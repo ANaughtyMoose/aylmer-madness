@@ -36,7 +36,7 @@ export const PLACES = {
   ctire:     { poi: 'Canadian Tire', x: 429.2, z: -242.8, label: 'Canadian Tire, chemin d’Aylmer', snap: true, lot: true },
   // The garage sale: 41 Promenade Wychwood, a real footprint on a real street.
   yardsale:  { road: 'Promenade Wychwood', x: -523.8, z: 219.8, label: '41 Promenade Wychwood', snap: true },
-  // Sayyad lives at Steph's address — same house, same coordinates, and the
+  // 'sayyad' is the same house as 'steph' (historical key) — same coordinates, and the
   // label keeps "Denise" in it so mapState()'s home-address filter still hides it.
   sayyad:    { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
   // 129 avenue Frank-Robinson, west side, just south of rue Smiley.
