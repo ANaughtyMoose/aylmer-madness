@@ -93,9 +93,21 @@ eight traffic lights and 140 stop signs; you get a toast if you don't.
 It is the real Aylmer. `tools/build_map.py` turns OpenStreetMap pulls in `data/`
 into `src/game/mapdata.js`: every street (1,200 segments, 300+ named streets —
 Chemin d'Aylmer, Principale, Lucerne, Wilfrid-Lavigne, Vanier, Fraser…), 10,000+
-real building footprints extruded with roofs by type, the Ottawa River shoreline,
-Parc des Cèdres, the marina, every park and parking lot. The clip is roughly
-Rue Raoul-Roy to Deschênes east-west, and Allumettières to the river.
+real building footprints, the Ottawa River shoreline, Parc des Cèdres, the
+marina, every park and parking lot. The clip is roughly Rue Raoul-Roy to
+Deschênes east-west, and Allumettières to the river.
+
+The houses are the real houses, too. `tools/build_houses.py` joins each
+footprint to Québec's open **rôle d'évaluation foncière** (year built, storeys,
+detached / semi / row — 98% matched by address) and to the province's open
+**LiDAR** point cloud (measured eave and ridge heights, ridge direction, hip vs
+gable — 99% covered), and `src/game/houses.js` builds each one from ~14
+parametric archetypes by era: Vieux-Aylmer brick two-storeys with porches,
+Wychwood hip-roof bungalows, Deschênes cottages, split-levels and colonials,
+2000s stone-fronts. Walls and roofs are textured from one procedural atlas
+(`tools/make_atlas.py`); within 200 m you get windows, doors, garage doors and
+chimneys, further out a cheap silhouette. See `docs/HOUSES.md` for the plan,
+data sources and what is still rough.
 
 - **You** live at 299 Chemin Fraser; **Steph** (the Civic) at 75 Denise-Friend.
   Marc's Saturn is on Bancroft in old Aylmer; Dave's Sunfire is out on Chemin

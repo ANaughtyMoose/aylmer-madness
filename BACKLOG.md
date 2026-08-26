@@ -1,7 +1,7 @@
 # Aylmer Madness — backlog
 
 Priority: **P1** next session · **P2** soon · **P3** when it matters. Effort: S (< 1 h), M (half day), L (day+).
-Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) is in progress — see docs/HOUSES.md.
+Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) Phases 1–3 are in; remaining bits are listed in docs/HOUSES.md.
 
 ## Requested
 
@@ -27,7 +27,7 @@ Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (house
 
 | # | Item | Pri | Eff | Notes |
 |---|------|-----|-----|-------|
-| W1 | **Houses look generic** | P1 | L | See the Street-View-free plan (assessment roll + LiDAR archetypes + material atlas). Phases 1 and 3 first. |
+| ~~W1~~ | ✅ **Houses look generic** | P1 | L | See the Street-View-free plan (assessment roll + LiDAR archetypes + material atlas). Phases 1 and 3 first. **Done:** Phases 1–3 shipped (roll + LiDAR join, archetypes, atlas, near/far LOD). Left: porch colliders, textured far bake, 16 px atlas bleed, Phases 4–5 — see docs/HOUSES.md Status. |
 | ~~W2~~ | ✅ Draw-distance pop-in on High | P2 | S | Chunk cutoff is visible when fog is thin; fade chunks in over 0.4 s (alpha via `opts.alpha`) or raise `fogMul` on High. |
 | ~~W3~~ | ✅ Intersections: markings overlap, sidewalk gaps, joint discs visible | P2 | M | Build proper intersection polygons from the graph (union of road quads), clip markings to segment interiors, stop lines. |
 | ~~W4~~ | ✅ No traffic lights / stop signs | P2 | M | Traffic already has "stop nodes"; add sign meshes, red/green light at the 6–8 major intersections (Chemin d'Aylmer × Wilfrid-Lavigne, × Vanier, × Principale…), and make traffic obey. Player gets a "brûlé un feu rouge" toast. |
