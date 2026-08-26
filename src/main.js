@@ -608,7 +608,13 @@ function updateMission(dt) {
     garage.setProgress(G.done);
     for (const u of garage.newlyUnlocked(G.done)) {
       if (u.toast) hud.toast(u.toast, 3600);
-      if (u.id !== G.carId && !G.parked[u.id]) G.parked[u.id] = curbSpot(homeOf(u.id));
+      if (u.id !== G.carId && !G.parked[u.id]) {
+        // Next free slot at that address (your own car counts if it lives there).
+        const k = homeKey(u.id);
+        let slot = homeKey(G.carId) === k ? 1 : 0;
+        for (const id of Object.keys(G.parked)) if (homeKey(id) === k) slot++;
+        G.parked[u.id] = curbSpot(homeOf(u.id), slot);
+      }
     }
     const prev = G.best[def.id];
     const record = prev == null || m.elapsed < prev;

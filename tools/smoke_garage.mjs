@@ -194,8 +194,9 @@ group('the new cars');
   const inVan = gang.build({ carId: 'caravan', carName: 'Caravan', seats: 6 });
   ok(inRanger.length > inVan.length, `two trips in the Ranger (${inRanger.length} stages), one in the van (${inVan.length})`);
   const inBus = gang.build({ carId: 'bus', carName: 'Orion', seats: 39 });
-  ok(inBus[0].at === 'principale', 'the bus does not go down Bancroft — Marc walks to Principale');
-  ok(inRanger[0].at === 'marc', 'everything else picks him up at his door');
+  // Margaret lives at 299 Fraser with you, so every car — even the bus — starts by picking her up at home.
+  ok(inBus[0].at === 'home', 'the bus picks Margaret up at home too');
+  ok(inRanger[0].at === 'home', 'everything else picks her up at the driveway');
 }
 
 // ---------------------------------------------------------------- 6. radio
