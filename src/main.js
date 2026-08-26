@@ -84,6 +84,9 @@ const G = {
   // `envKey` is the current TIME_OF_DAY key and `night` is the lights-on flag
   // other systems can read; `fx` owns steam, crumples, lamps and fallen poles.
   envKey: 'day', night: false,
+  // Counters other systems may read with optional chaining (G.stats?.airtime).
+  stats: { airtime: 0, jumps: 0, bigAir: 0, landings: 0, hardest: 0 },
+  camShake: 0,               // hood-cam rattle, decays after a landing
   fx: null, repair: { t: 0 }, towed: false,
   // side-job state: hand-placed props, the canoe, who the camera follows, cash
   props: null, boat: null, focus: null, wallet: null,
@@ -224,6 +227,11 @@ function worldStages() {
         waterAt: (x, z) => G.world.waterAt(x, z),
         queryPoles: (x, z, rad) => G.world.queryPoles(x, z, rad),
         snapPole: (p, ux, uz) => G.world.snapPole(p, ux, uz),
+        // The height field. Hands back a SHARED record { h, nx, ny, nz, kind } —
+        // read what you need before calling it again. Anything that only wants
+        // the height (traffic, props, the camera) should use groundY.
+        groundAt: (x, z) => G.world.groundAt(x, z),
+        groundY: (x, z) => G.world.groundAt(x, z).h,
         bounds: G.world.bounds,
       };
     }],
@@ -292,6 +300,7 @@ function enterDrive() {
   G.waypoint = null; G.route = null; G.routeKey = '';
   G.traffic = new Traffic(QUALITY[G.quality].traffic);
   G.traffic.signals = G.signals;
+  G.traffic.phys = G.phys;          // so ambient cars sit on the height field too
   // Detailed houses reach HOUSE_NEAR normally; 'low' pulls them in to 140 m,
   // where its thicker fog has already eaten most of the difference.
   G.world.setHouseNear(G.quality === 'low' ? 140 : HOUSE_NEAR);
@@ -704,6 +713,22 @@ function tick(dt) {
     };
   const preImpact = v.impact;
   v.update(dt, ctl, G.phys);
+  // Air and landings. `v.landed` is the vertical speed the springs killed, set
+  // for exactly one tick; `v.lastAir` is how long the flight that ended it was.
+  if (v.inAir) G.stats.airtime += dt;
+  audio.whoosh(v.inAir ? clamp(v.clearance / 2.2, 0, 1) : 0);
+  if (v.landed > 0) {
+    G.stats.landings++;
+    if (v.landed > G.stats.hardest) G.stats.hardest = v.landed;
+    audio.land(v.landed);
+    G.camShake = Math.min(1, G.camShake + v.landed * 0.09);
+    if (v.lastAir > 0.8) {
+      G.stats.jumps++;
+      if (v.lastAir > G.stats.bigAir) G.stats.bigAir = v.lastAir;
+      hud.toast(`${v.lastAir.toFixed(1)} s dans les airs!`, 1500);
+    }
+  }
+  G.camShake *= Math.exp(-4.5 * dt);
   if (inBoat) {
     G.boat.update(dt, { steer: input.steer, throttle: input.throttle, brake: input.brake });
   }
@@ -773,15 +798,25 @@ function render(dt) {
   } else {
     px = f.x - cx * back; pz = f.z - cz * back;
   }
-  const py = cam.height + Math.abs(f.vLong) * 0.012;
+  // The camera rides at the car's own height and never sinks into a berm.
+  let py = (f.bodyY || 0) + cam.height + Math.abs(f.vLong) * 0.012;
+  if (G.phys && G.phys.groundY) py = Math.max(py, G.phys.groundY(px, pz) + 1.1);
   G.camPos[0] = lerp(G.camPos[0], px, Math.min(1, dt * 9));
   G.camPos[1] = lerp(G.camPos[1], py, Math.min(1, dt * 6));
   G.camPos[2] = lerp(G.camPos[2], pz, Math.min(1, dt * 9));
 
   const fov = QUALITY[G.quality].fov + cam.fovAdd + G.settings.fov
     + clamp(Math.abs(f.vLong) / f.spec.topSpeed, 0, 1) * 0.09;
+  // In the air the chase cam leans with the nose, and every landing rattles the
+  // hood cam for a moment. Both are small on purpose — they read, they don't spin.
+  let camPitch = cam.pitch;
+  if (f.inAir) camPitch += clamp(-f.pitch * 0.45, -0.22, 0.22);
+  if (G.camShake > 0.002) {
+    const k = G.camShake * (cam.name === 'hood' ? 0.10 : 0.045);
+    camPitch += Math.sin(G.time * 61) * k;
+  }
   r.setEnvironment(G.env);
-  r.begin(G.camPos, G.camYaw, cam.pitch, fov);
+  r.begin(G.camPos, G.camYaw, camPitch, fov);
 
   m4.compose(mm, G.camPos[0], 0, G.camPos[2], 0, 0, 0);
   r.draw(G.sky.mesh, mm, skyOpts(G.env));
@@ -791,21 +826,21 @@ function render(dt) {
   G.world.draw(r, mm, f.x, f.z, QUALITY[G.quality].drawDist, dt);
   G.signals.draw(r, f.x, f.z);
 
-  drawCar(v.spec, v.x, v.z, v.yaw, v.pitch, v.roll, v.spin, v.steer, null, v.passengers, v.y);
+  drawCar(v.spec, v.x, v.z, v.yaw, v.pitch, v.roll, v.spin, v.steer, null, v.passengers, v.bodyY, v.gh);
   const night = nightAmount(G.env);
   if (night > 0.35 && G.meshes.cones[v.spec.id]) {
     coneOpts.alpha = 0.15 * night;
-    m4.compose(mm, v.x, 0, v.z, v.yaw, 0, 0);
+    m4.compose(mm, v.x, v.bodyY, v.z, v.yaw, 0, 0);
     r.draw(G.meshes.cones[v.spec.id], mm, coneOpts);
   }
   for (const t of G.traffic.cars) {
     if (Math.hypot(t.x - v.x, t.z - v.z) > 320) continue;
-    drawCar(t.spec, t.x, t.z, t.yaw, 0, 0, t.spin, 0, t.tint, 0);
+    drawCar(t.spec, t.x, t.z, t.yaw, 0, 0, t.spin, 0, t.tint, t.y || 0, t.y || 0);
   }
   for (const id of Object.keys(G.parked)) {
     const p = G.parked[id];
     if (Math.hypot(p.x - v.x, p.z - v.z) > 320) continue;
-    drawCar(carById(id), p.x, p.z, p.yaw, 0, 0, 0, 0, null, 0);
+    drawCar(carById(id), p.x, p.z, p.yaw, 0, 0, 0, 0, null, 0, G.phys.groundY(p.x, p.z), G.phys.groundY(p.x, p.z));
   }
   if (G.props) G.props.draw(r, f);
   drawMarkers();
@@ -824,7 +859,7 @@ function render(dt) {
   });
 }
 
-function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y = 0) {
+function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y = 0, gy = 0) {
   const r = G.renderer;
   const skin = G.meshes.skins[spec.id];
   const opts = tint ? { colorMul: tint } : {};
@@ -853,8 +888,12 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
     }
   }
 
-  m4.compose(mm, x, 0.06, z, yaw, 0, 0, spec.wid + 0.5, 1, spec.len + 0.4);
-  r.draw(G.meshes.shadow, mm, { alpha: 0.3, unlit: true, colorMul: black });
+  // The blob shadow stays on the ground and spreads out as the car climbs away
+  // from it, which is most of what sells a jump.
+  const lift = clamp(y - gy, 0, 4);
+  const k = 1 + lift * 0.13;
+  m4.compose(mm, x, gy + 0.06, z, yaw, 0, 0, (spec.wid + 0.5) * k, 1, (spec.len + 0.4) * k);
+  r.draw(G.meshes.shadow, mm, { alpha: 0.3 * (1 - lift / 5), unlit: true, colorMul: black });
 }
 
 function markerList() {

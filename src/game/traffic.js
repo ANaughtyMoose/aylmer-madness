@@ -129,7 +129,7 @@ export class Traffic {
       const ei = pool[Math.floor(rnd() * pool.length) % pool.length];
       const spec = CARS[Math.floor(rnd() * CARS.length)];
       const car = {
-        x: 0, z: 0, yaw: 0, spin: 0, speed: 0, horn: 0,
+        x: 0, z: 0, y: 0, yaw: 0, spin: 0, speed: 0, horn: 0,
         spec,
         tint: TINTS[Math.floor(rnd() * TINTS.length)],
         edge: ei,
@@ -275,6 +275,10 @@ export class Traffic {
     for (const c of this.cars) {
       if (c.respawnT > 0) c.respawnT -= dt;
       c.honk = 0;
+
+      // Ambient cars are followers, not physics bodies: they only need to sit on
+      // whatever the height field says is under them (terrain.js).
+      if (this.phys) c.y = this.phys.groundY(c.x, c.z);
 
       // Keep the traffic where you can see it: a 5 km map is mostly elsewhere.
       const away = Math.hypot(c.x - player.x, c.z - player.z);

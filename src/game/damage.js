@@ -113,6 +113,22 @@ export class DriveFx {
       }
     }
     this.puffs.update(dt);
+    // Landing dust. `veh.landed` is the vertical speed the springs killed, set
+    // for one tick only — a puff off each end of the car, biggest for the worst
+    // landings. Nothing else in here has to know what a jump is.
+    if (veh.landed > 1.8) {
+      const s = veh.spec;
+      const fx = Math.sin(veh.yaw), fz = Math.cos(veh.yaw);
+      const n = veh.landed > 6 ? 4 : 2;
+      for (let i = 0; i < n; i++) {
+        const off = (i % 2 ? 1 : -1) * s.len * 0.34;
+        const lat = (i < 2 ? -1 : 1) * s.wid * 0.42;
+        this.puffs.emit(veh.x + fx * off + Math.cos(veh.yaw) * lat,
+          (veh.gh || 0) + 0.18,
+          veh.z + fz * off - Math.sin(veh.yaw) * lat,
+          veh.vx * 0.4, veh.vz * 0.4);
+      }
+    }
     if (veh.damage > DAMAGE.COSMETIC) {
       // Faster once it is really unwell, and a burst right after a bang.
       const rate = veh.steamT > 0 ? 0.10 : (veh.damage > DAMAGE.PERF ? 0.26 : 0.5);
@@ -123,7 +139,7 @@ export class DriveFx {
         const fx = Math.sin(veh.yaw), fz = Math.cos(veh.yaw);
         const off = s.len * 0.34;
         this.puffs.emit(veh.x + fx * off + (Math.random() - 0.5) * 0.5,
-          veh.y + s.h * 0.62,
+          (veh.bodyY != null ? veh.bodyY : veh.y) + s.h * 0.62,
           veh.z + fz * off + (Math.random() - 0.5) * 0.5,
           veh.vx, veh.vz);
       }
@@ -156,7 +172,7 @@ export class DriveFx {
     me.head = night; me.headOut = veh.headOut;
     me.tail = night; me.brake = veh.braking; me.rev = veh.reversing;
     me.glow = night; me.deformF = veh.deformF; me.deformR = veh.deformR;
-    this.drawCarFx(veh.spec, veh.x, veh.y, veh.z, veh.yaw, veh.pitch, veh.roll, me);
+    this.drawCarFx(veh.spec, veh.x, veh.bodyY != null ? veh.bodyY : veh.y, veh.z, veh.yaw, veh.pitch, veh.roll, me);
 
     // --- everyone else's, after dark only, and only the near ones
     if (night && traffic) {
