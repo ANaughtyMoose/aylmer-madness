@@ -28,7 +28,8 @@ not work. Any static server does; `serve.sh` just wraps `python3 -m http.server`
 | **Shift** | look behind (hold, or latch it in Settings) |
 | **C** | camera (chase / close / far / hood) |
 | **?** | show / hide the on-screen key legend |
-| **H** horn · **R** put the car back on the road · **0** mute · **Esc** pause (jobs, controls, settings, best times) |
+| **R** | radio: CKOI 102.1 → cassette → off |
+| **H** horn · **T** put the car back on the road · **0** mute · **Esc** pause (jobs, controls, settings, best times) |
 
 A gamepad works too: left stick steers, triggers are throttle and brake, A is
 the handbrake, and it rumbles when you hit things. The first drive walks you
@@ -52,14 +53,32 @@ through the keys once; the pause menu has a keyboard diagram and a Settings tab
 
 ## The cars
 
-Four real cars, and they do not drive alike.
+You start with one. The rest you earn or buy, and they do not drive alike.
 
 - **1993 Ford Ranger XLT** (white, 2.3 four-cylinder, three-across bench) —
-  slow, tall, leans in corners, and the bench means only **two passengers**.
-  The "pick up the gang" job re-plans itself into two trips when you drive it.
-- **1997 Saturn SL, 4-door** (blue) — polymer panels, average at everything.
-- **1988 Honda Civic Si** (red) — light, revvy, best grip and turn-in.
-- **1997 Pontiac Sunfire** (teal) — quick in a straight line, lazier in corners.
+  yours. Slow, tall, leans in corners, and the bench means only **two
+  passengers**. The "pick up the gang" job re-plans itself into two trips.
+- **1997 Saturn SL, 4-door** (blue) — Margaret's, parked next to yours at
+  299 Fraser. She lends it after « Ramasser la gang ». Average at everything.
+- **1988 Honda Civic Si** (red) — Sayyad's, 75 Denise-Friend. His after
+  « Poutine express ». Light, revvy, best grip and turn-in.
+- **1997 Pontiac Sunfire** (teal) — Dave's, out in Deschênes. After « Avant
+  minuit ». Quick in a straight line, lazier in corners.
+- **The used lot** on chemin d'Aylmer, past the Canadian Tire — press **E**
+  beside one: a 1987 Oldsmobile Cutlass Ciera ($300, brown, floaty V6 and a
+  three-speed slushbox), a 1991 Chevy Cavalier Z24 ($450, quick-ish, rattles
+  above 55), a 1988 Dodge Caravan ($250, seven seats — the gang goes in one
+  trip), and an Orion I city bus ($1,500, forty seats, only after ten jobs).
+
+Every engine is synthesized: a four-stroke pulse train at the firing
+frequency (the Ranger idles at 25 Hz, booms in third at 50 km/h), intake hiss,
+exhaust rasp, a rev limiter, overrun pops, and a real five-speed with the
+right ratios. `docs/audio/` has 12-second auditions of each car; `node
+tools/audition.mjs` regenerates them.
+
+**Radio** (**R**): CKOI 102.1 plays four synthesized 1999 loops with a jingle
+between tracks; the cassette deck plays your own files — drop them in
+`assets/radio/` and list them in `playlist.json` (see the README there).
 
 ## The jobs
 
