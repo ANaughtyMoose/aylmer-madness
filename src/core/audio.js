@@ -578,12 +578,13 @@ export const DEFAULT_ENGINE = {
   tickF: 3400, tickG: 0.030,
   lumpy: 0.012, pop: 1,
   gain: 1, rattle: 0, rattleFrom: 0,
+
+};
+
 // What each material sounds like when a Ranger finds it.
 const THUD = {
   bin:   { type: 'lowpass',  freq: 520,  q: 1.0, body: 96,  dur: 0.24, vol: 0.20 },
   metal: { type: 'bandpass', freq: 1750, q: 2.4, body: 210, dur: 0.20, vol: 0.16 },
   wood:  { type: 'bandpass', freq: 780,  q: 1.6, body: 150, dur: 0.14, vol: 0.15 },
   glass: { type: 'highpass', freq: 2600, q: 1.0, body: 640, dur: 0.26, vol: 0.12 },
-};
-
 };
