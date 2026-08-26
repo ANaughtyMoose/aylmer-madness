@@ -31,6 +31,15 @@
 // Forgetting end() means the NEXT vertices keep tiling that material — always
 // close a textured run.
 
+// The average colour of every tile, shared with the no-atlas path so a builder
+// can ask for "the colour of brick_red" and get the same answer either way —
+// materials_stub.js owns the table, this file only borrows it. `color()` is the
+// colour of the material; `tint()` is what you give a vertex that is ALSO going
+// to be textured with it (near-white, because the texture multiplies in).
+import { rgb } from '../core/mesh.js';
+import { TILES } from './materials_stub.js';
+
+export { TILES };
 export const ATLAS_DIR = 'assets/materials/';
 export const WHITE = [1, 1, 1];
 
@@ -67,7 +76,14 @@ export async function loadMaterials(renderer, opts = {}) {
   let tex = null;
   if (renderer && renderer.texture) {
     const image = opts.image || await loadImage(base + 'atlas.png');
-    tex = renderer.texture(image, { aniso: opts.aniso === undefined ? 16 : opts.aniso });
+    tex = renderer.texture(image, {
+      aniso: opts.aniso === undefined ? 16 : opts.aniso,
+      // Cap the mip chain: the atlas cells only have 8 px of bleed, so from
+      // level 5 (a 32 px texel) a cell's edge texels start averaging in its
+      // neighbour and brick picks up a frame of shingle at 150 m. Level 4 is
+      // the last one that stays inside the gutter; anisotropy carries the rest.
+      maxLevel: opts.maxLevel === undefined ? 4 : opts.maxLevel,
+    });
   }
   const mats = new Materials(manifest, tex);
   if (opts.current !== false) current = mats;
@@ -78,6 +94,8 @@ export class Materials {
   constructor(manifest, tex) {
     this.size = manifest.size;
     this.tex = tex;
+    this.atlas = true;
+    this._col = new Map();
     this.tiles = manifest.tiles;
     this.list = Object.keys(manifest.tiles);
     this._rect = new Map();
@@ -110,8 +128,65 @@ export class Materials {
     return { w, h: w * (t.aspect === undefined ? 1 : t.aspect) };
   }
 
+  /**
+   * Average colour of a material, 0..1 floats — identical to the no-atlas path,
+   * so untextured trim (porch posts, concrete, asphalt, a chimney cap) is the
+   * same colour whether or not the atlas loaded. Unknown names fall back to a
+   * neutral, exactly like the stub.
+   */
+  color(name) {
+    let c = this._col.get(name);
+    if (!c) {
+      const hex = TILES[name];
+      c = rgb(hex === undefined ? 0xbfb8aa : hex);
+      this._col.set(name, c);
+    }
+    return c;
+  }
+
+  /**
+   * Vertex tint for a surface that IS textured with `name`: near-white, because
+   * the shader multiplies the texel into the vertex colour. `k` (0.9..1.1) is
+   * the per-house brightness jitter that keeps neighbours apart.
+   */
+  tint(name, k = 1) {
+    const v = Math.min(1, 0.955 * k);
+    return [v, v, v];
+  }
+
+  /** The manifest entry if `name` is a DECAL (absolute UVs, alpha cut), else null. */
+  decalUV(name) {
+    const t = this.tiles[name];
+    return t && t.tiled === false ? t : null;
+  }
+
+  /**
+   * Arm world-space tiling of `name` on `mb`: every vertex emitted afterwards
+   * that does not carry its own UV gets one projected from its position at the
+   * tile's real size (manifest `metres`). That is what makes the dumb
+   * primitives — prism / roof / hip / tower / mansard — come out in brick and
+   * shingle at 7 cm courses without knowing what a UV is.
+   *
+   * opts: ox / oy / oz the projection origin (use the building centre: it keeps
+   * the repeat counts small, and fract() in the shader exact); uOffset /
+   * vOffset per-house pattern jitter; metres to override the repeat size.
+   * Returns false (and clears any armed material) for a decal or unknown name.
+   */
+  tile(mb, name, opts = {}) {
+    const t = this.tiles[name];
+    if (!t || !t.tiled) { this.end(mb); return false; }
+    mb.textured = true;
+    mb.curRect = this.rect(name);
+    mb.autoUV = {
+      m: opts.metres || t.metres,
+      ox: opts.ox || 0, oy: opts.oy || 0, oz: opts.oz || 0,
+      u: opts.uOffset || 0, v: opts.vOffset || 0,
+    };
+    return true;
+  }
+
   /** Stop tiling: later vertices sample the UV they are given, as-is. */
-  end(mb) { mb.curRect = null; return this; }
+  end(mb) { mb.curRect = null; mb.autoUV = null; return this; }
 
   /**
    * UV corners for a widthM × heightM surface of material `name`, and — the
@@ -132,6 +207,7 @@ export class Materials {
     const t = this.uv(name);
     const rect = this.rect(name);
     mb.textured = true;
+    mb.autoUV = null;              // explicit UVs from here on
     if (!t.tiled) {
       mb.curRect = null;
       return {
