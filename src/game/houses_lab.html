@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Aylmer Madness — house lab</title>
+<style>
+html,body{margin:0;height:100%;background:#1a2028;color:#fff;font-family:Helvetica,Arial,sans-serif;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#ui{position:fixed;top:14px;left:16px;font-size:13px;line-height:1.7;background:rgba(16,20,26,.72);
+    padding:12px 14px;border-radius:8px;min-width:250px}
+#ui b{font-size:16px;display:block;margin-bottom:6px}
+#ui select,#ui button{font:inherit;background:#242c36;color:#fff;border:1px solid #3a4450;
+    border-radius:4px;padding:3px 6px;margin:2px 0;width:100%}
+#ui button{cursor:pointer;width:auto;padding:3px 10px}
+#stats{opacity:.75;margin-top:8px;white-space:pre-line;font-family:Menlo,monospace;font-size:12px}
+#hint{position:fixed;bottom:12px;left:16px;font-size:12px;opacity:.55}
+label{opacity:.7;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+</style></head><body>
+<canvas id="gl"></canvas>
+<div id="ui">
+  <b>House lab</b>
+  <label>mode</label>
+  <select id="mode">
+    <option value="one">single archetype</option>
+    <option value="street">random Aylmer street</option>
+  </select>
+  <div id="oneBox">
+    <label>archetype</label>
+    <select id="arch"></select>
+    <label>footprint</label>
+    <select id="foot">
+      <option value="rect">11 x 8 rectangle</option>
+      <option value="L">13 x 9 L-plan (garage wing)</option>
+      <option value="wide">17 x 9 wide</option>
+      <option value="deep">8 x 13 gable-front</option>
+      <option value="real">a real Aylmer footprint</option>
+    </select>
+  </div>
+  <div id="streetBox" style="display:none">
+    <label>street</label>
+    <select id="street"></select>
+  </div>
+  <label>lod</label>
+  <select id="lod">
+    <option value="0">0 — full</option>
+    <option value="1">1 — no decals / porch / chimney</option>
+    <option value="2">2 — box + roof (today's extrusion)</option>
+  </select>
+  <button id="reroll">reroll seed</button>
+  <div id="stats"></div>
+</div>
+<div id="hint">drag to orbit · wheel to zoom · ← → cycle archetype · R reroll · space pause spin</div>
+<script type="module" src="./houses_lab.js"></script>
+</body></html>
