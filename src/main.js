@@ -1418,10 +1418,12 @@ $('btnContinue').onclick = () => {
   const slot = mostRecentSlot();
   if (slot) loadIntoGame(slot);
 };
-$('btnLoad').onclick = () => openLoadScreen(true);
+$('btnLoad').onclick = () => { if ($('btnLoad').disabled) return; openLoadScreen(true); };
 $('loadback').onclick = () => openLoadScreen(false);
+$('loadback2').onclick = () => openLoadScreen(false);
 $('btnOptions').onclick = () => openOptions(true);
 $('optback').onclick = () => openOptions(false);
+$('optback2').onclick = () => openOptions(false);
 $('resume').onclick = () => pause(false);
 $('mapbtn').onclick = () => { pause(false); openMap(true); };
 $('garage').onclick = toMenu;
