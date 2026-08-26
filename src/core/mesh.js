@@ -25,6 +25,15 @@ export class MeshBuilder {
     // every vertex emitted afterwards carries it.
     this.rect = [];
     this.curRect = null;
+    // Optional world-space auto-tiling. While set (materials.js `tile()`), any
+    // vertex that arrives WITHOUT explicit UVs gets them from its position and
+    // normal: the pattern is projected onto the face at `m` metres per repeat,
+    // measured from the origin (ox,oy,oz) — one origin per house keeps the
+    // numbers small enough for fract() in the shader to stay exact. It is what
+    // lets the dumb primitives below (prism, roof, hip, tower, mansard) come out
+    // tiled with real brick and shingle without knowing anything about UVs.
+    //   { m, ox, oy, oz, u, v }
+    this.autoUV = null;
     this.textured = false;
     this.min = [1e9, 1e9, 1e9];
     this.max = [-1e9, -1e9, -1e9];
@@ -48,7 +57,29 @@ export class MeshBuilder {
     this.uv.push(u, v);
   }
 
+  // World-space projected UVs for the vertex, in REPEATS of the armed material.
+  // Horizontal faces project onto XZ; everything else onto (tangent, up-slope),
+  // so shingle courses keep their real size on a pitch and siding laps stay
+  // level and continuous around a corner.
+  // Leaves the result in _au / _av (no allocation — this runs per vertex).
+  autoUVAt(x, y, z, nx, ny, nz) {
+    const a = this.autoUV;
+    const px = x - a.ox, py = y - a.oy, pz = z - a.oz;
+    const hl = Math.hypot(nx, nz);
+    if (hl < 1e-4) { this._au = px / a.m + a.u; this._av = pz / a.m + a.v; return; }
+    const tx = nz / hl, tz = -nx / hl;                 // cross(up, n), normalised
+    const l = Math.hypot(nx, ny, nz) || 1;
+    const mx = nx / l, my = ny / l, mz = nz / l;
+    const bx = my * tz, by = mz * tx - mx * tz, bz = -my * tx;   // cross(n, t)
+    this._au = (px * tx + pz * tz) / a.m + a.u;
+    this._av = -(px * bx + py * by + pz * bz) / a.m + a.v;
+  }
+
   vert(x, y, z, nx, ny, nz, c, u = 0, v = 0) {
+    if (this.autoUV && u === 0 && v === 0) {
+      this.autoUVAt(x, y, z, nx, ny, nz);
+      u = this._au; v = this._av;
+    }
     this.v.push(x, y, z, nx, ny, nz, c[0], c[1], c[2]);
     this.pushUV(u, v);
     if (this.curRect || this.rect.length) {
@@ -73,6 +104,7 @@ export class MeshBuilder {
     if (this.uv.length) while (this.uv.length < n * 2) this.uv.push(0, 0);
     if (this.rect.length) while (this.rect.length < n * 4) this.rect.push(0, 0, 0, 0);
     this.curRect = null;
+    this.autoUV = null;
     return this;
   }
 
@@ -135,7 +167,10 @@ export class MeshBuilder {
   }
 
   // Gabled roof: a prism ridged along X (yaw rotates it).
-  roof(cx, baseY, cz, w, d, h, c, yaw = 0, overhang = 0.35) {
+  // opts.onGable() is called after the two slopes and before the two gable-end
+  // triangles, which are wall, not roof: houses.js uses it to swap the armed
+  // material from shingle back to brick / siding. opts.gableCol tints them.
+  roof(cx, baseY, cz, w, d, h, c, yaw = 0, overhang = 0.35, opts = null) {
     const s = Math.sin(yaw), co = Math.cos(yaw);
     const P = (px, py, pz) => [cx + px * co + pz * s, py, cz - px * s + pz * co];
     const hw = w / 2 + overhang, hd = d / 2 + overhang;
@@ -144,13 +179,15 @@ export class MeshBuilder {
     const r0 = P(-hw, y1, 0), r1 = P(hw, y1, 0);
     this.quad(b, a, r0, r1, c);      // -Z slope
     this.quad(dd, cc, r1, r0, c);    // +Z slope
-    const g0 = this.vert(a[0], a[1], a[2], -co, 0, s, c);
-    this.vert(dd[0], dd[1], dd[2], -co, 0, s, c);
-    this.vert(r0[0], r0[1], r0[2], -co, 0, s, c);
+    if (opts && opts.onGable) opts.onGable();
+    const g = (opts && opts.gableCol) || c;
+    const g0 = this.vert(a[0], a[1], a[2], -co, 0, s, g);
+    this.vert(dd[0], dd[1], dd[2], -co, 0, s, g);
+    this.vert(r0[0], r0[1], r0[2], -co, 0, s, g);
     this.tri(g0, g0 + 1, g0 + 2);
-    const g1 = this.vert(cc[0], cc[1], cc[2], co, 0, -s, c);
-    this.vert(b[0], b[1], b[2], co, 0, -s, c);
-    this.vert(r1[0], r1[1], r1[2], co, 0, -s, c);
+    const g1 = this.vert(cc[0], cc[1], cc[2], co, 0, -s, g);
+    this.vert(b[0], b[1], b[2], co, 0, -s, g);
+    this.vert(r1[0], r1[1], r1[2], co, 0, -s, g);
     this.tri(g1, g1 + 1, g1 + 2);
   }
 
@@ -318,11 +355,15 @@ export class MeshBuilder {
   }
 
   // Up-facing rectangle cap, rotated about Y (2 tris). Same yaw convention as
-  // tower()/roof(): local +X maps to map-angle -yaw.
-  capRect(cx, cz, w, d, y, yaw, c) {
+  // tower()/roof(): local +X maps to map-angle -yaw. `down` flips it into a
+  // soffit — the underside of a roof, which you see whenever the camera is
+  // below the eave and without which you look straight through the (back-face
+  // culled) near slope at the sky.
+  capRect(cx, cz, w, d, y, yaw, c, down = false) {
     const co = Math.cos(yaw), si = Math.sin(yaw), hw = w / 2, hd = d / 2;
     const P = (px, pz) => [cx + px * co + pz * si, y, cz - px * si + pz * co];
-    this.quad(P(-hw, -hd), P(-hw, hd), P(hw, hd), P(hw, -hd), c, [0, 1, 0]);
+    if (down) this.quad(P(-hw, -hd), P(hw, -hd), P(hw, hd), P(-hw, hd), c, [0, -1, 0]);
+    else this.quad(P(-hw, -hd), P(-hw, hd), P(hw, hd), P(hw, -hd), c, [0, 1, 0]);
     return 2;
   }
 

@@ -218,19 +218,24 @@ export class Loading {
   hide() { if (this.root) this.root.classList.add('hidden'); }
 
   // Run [label, fn] pairs with a paint between each, so the label the player
-  // sees is the work actually happening. Returns a promise.
+  // sees is the work actually happening. A stage that returns a promise (the
+  // material atlas has to come off the network) holds the bar until it settles,
+  // so the label is still telling the truth. Returns a promise.
   run(stages) {
     this.show();
     return new Promise((resolve, reject) => {
       let i = 0;
+      const fail = (e) => { this.hide(); reject(e); };
       const next = () => {
         if (i >= stages.length) { this.hide(); resolve(); return; }
         const [label, fn] = stages[i++];
         this.stage(label);
         // Two frames: one to lay the label out, one to paint it.
         raf(() => raf(() => {
-          try { fn(); } catch (e) { this.hide(); reject(e); return; }
-          next();
+          let out;
+          try { out = fn(); } catch (e) { fail(e); return; }
+          if (out && typeof out.then === 'function') out.then(() => next(), fail);
+          else next();
         }));
       };
       next();

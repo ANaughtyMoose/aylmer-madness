@@ -4,7 +4,9 @@ import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
 import { MeshBuilder, rgb } from './core/mesh.js';
 import { m4, clamp, lerp, angleDelta } from './core/math.js';
-import { buildWorld, buildHeadlights, nightAmount } from './game/world.js';
+import { buildWorld, buildHeadlights, nightAmount, HOUSE_NEAR } from './game/world.js';
+import { loadMaterials } from './game/materials.js';
+import MATS_STUB from './game/materials_stub.js';
 import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow, DAMAGE } from './game/cars.js';
 import { asBody, collideCars, driftBody, contact } from './game/collide.js';
 import { DriveFx, updateRepair, restoreDamage } from './game/damage.js';
@@ -207,8 +209,15 @@ function startGame() {
 function worldStages() {
   const r = G.renderer;
   return [
+    // The atlas is one 2048² PNG off the network, so this stage is a promise —
+    // Loading.run waits for it. If it does not turn up the houses fall back to
+    // flat vertex colours and the game still runs.
+    [t('load.mats'), () => loadMaterials(r).then((m) => { G.mats = m; }).catch((e) => {
+      console.warn('materials: atlas failed to load, falling back to vertex colours —', e.message);
+      G.mats = MATS_STUB;
+    })],
     [t('load.world'), () => {
-      G.world = buildWorld(r);
+      G.world = buildWorld(r, G.mats || MATS_STUB);
       G.phys = {
         roadAt: (x, z) => G.world.roadAt(x, z),
         querySegments: (x, z, rad) => G.world.querySegments(x, z, rad),
@@ -283,6 +292,9 @@ function enterDrive() {
   G.waypoint = null; G.route = null; G.routeKey = '';
   G.traffic = new Traffic(QUALITY[G.quality].traffic);
   G.traffic.signals = G.signals;
+  // Detailed houses reach HOUSE_NEAR normally; 'low' pulls them in to 140 m,
+  // where its thicker fog has already eaten most of the difference.
+  G.world.setHouseNear(G.quality === 'low' ? 140 : HOUSE_NEAR);
   G.camYaw = G.veh.yaw + Math.PI;
   G.camPos = [G.veh.x, 4, G.veh.z];
   setEnv('day', true);
@@ -1065,4 +1077,11 @@ window.AYLMER = {
   render() { if (G.mode === 'drive') render(STEP); },
   teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw); },
   start: startMission,
+  // Debug/screenshot hooks: force a time of day, and read back what the last
+  // frame actually drew (see world.js `stats`).
+  env(name = 'day') { setEnv(name, true); return name; },
+  stats() {
+    const w = G.world && G.world.stats;
+    return w ? { ...w, drawCalls: G.renderer.stats.draws, rendererTris: G.renderer.stats.tris } : null;
+  },
 };

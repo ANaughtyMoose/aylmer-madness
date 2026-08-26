@@ -8,7 +8,13 @@ import { Renderer } from '../core/gl.js';
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { m4, mulberry32, clamp } from '../core/math.js';
 import { MAP } from './mapdata.js';
-import MATS from './materials_stub.js';
+import STUB from './materials_stub.js';
+import { loadMaterials } from './materials.js';
+
+// The lab draws with the real atlas when it is there and the stub when it is
+// not, which is exactly the choice world.js makes — so what you see here is
+// what the game bakes.
+let MATS = STUB;
 import { buildHouse, ARCHETYPES, inferAttrs, makeStreetYawIndex } from './houses.js';
 
 const r = new Renderer(document.getElementById('gl'));
@@ -145,7 +151,7 @@ function build() {
     drawRoads(mb, cx, cz, pad + 10);
     for (const i of idx) {
       const b = MAP.buildings[i];
-      const res = buildHouse(mb, b, null, MATS, mulberry32(seed ^ (i * 2654435761)),
+      const res = buildHouse(mb, b, b.hs || null, MATS, mulberry32(seed ^ (i * 2654435761)),
         { lod, index: i, streetYaw: streetYawAt(b.c[0], b.c[1], -b.a) });
       tris += res.tris;
       lines.push(`${(b.addr || '?').slice(0, 26).padEnd(27)}${String(res.tris).padStart(4)}  ${res.archetype}`);
@@ -250,6 +256,11 @@ addEventListener('keydown', (e) => {
 
 build();
 
+// Atlas in the background: rebuild once it lands, keep the stub look if it does not.
+const drawOpts = { tex: null };
+loadMaterials(r, { base: '../../assets/materials/' }).then((m) => { MATS = m; drawOpts.tex = m.tex; build(); })
+  .catch((e) => console.warn('lab: no atlas, vertex colours only —', e.message));
+
 const mm = m4.create();
 function frame(t) {
   requestAnimationFrame(frame);
@@ -262,7 +273,7 @@ function frame(t) {
   ];
   r.begin(cp, a, pitch, 0.9);
   m4.identity(mm);
-  if (mesh) r.draw(mesh, mm);
+  if (mesh) r.draw(mesh, mm, MATS.tex ? drawOpts : undefined);
   r.end();
 }
 requestAnimationFrame(frame);

@@ -8,9 +8,18 @@
 //   MaterialProvider = {
 //     tex,                      // GL texture, or null for the vertex-colour path
 //     uv(name) -> {u0,v0,u1,v1} | null,   // atlas rect for a tile or decal
-//     color(name) -> [r,g,b],             // fallback/tint colour, 0..1 floats
-//     wallUV(mb, name, widthM, heightM)   // tiling hint; a no-op here
+//     decalUV(name) -> entry | null,      // the same, but only for DECALS
+//     color(name) -> [r,g,b],             // the material's own colour
+//     tint(name, k) -> [r,g,b],           // vertex colour UNDER that texture
+//     tile(mb, name, opts) -> boolean,    // arm world-space tiling on a builder
+//     end(mb),                            // close a textured run
+//     wallUV(mb, name, widthM, heightM)   // explicit-UV tiling; a no-op here
 //   }
+//
+// `tile()` returning false and `decalUV()` returning null are the signals to
+// houses.js that there is no atlas: it then emits plain vertex-coloured
+// geometry, and `tint()` collapses to `color()` so the result is exactly what
+// the game looked like before the atlas existed.
 //
 // `uv()` returning null is the signal to houses.js that there is no atlas, so
 // it emits plain vertex-coloured geometry. When the real atlas lands, the same
@@ -45,6 +54,7 @@ export const STUB = {
   tex: null,
   atlas: false,
   uv() { return null; },
+  decalUV() { return null; },
   color(name) {
     let c = CACHE.get(name);
     if (!c) {
@@ -54,6 +64,14 @@ export const STUB = {
     }
     return c;
   },
+  // Without an atlas the vertex colour IS the material, so a "tint" is just the
+  // material colour with the caller's brightness jitter applied.
+  tint(name, k = 1) {
+    const c = this.color(name);
+    return [Math.min(1, c[0] * k), Math.min(1, c[1] * k), Math.min(1, c[2] * k)];
+  },
+  tile(mb) { if (mb) { mb.curRect = null; mb.autoUV = null; } return false; },
+  end(mb) { if (mb) { mb.curRect = null; mb.autoUV = null; } return this; },
   wallUV() { /* no-op without an atlas */ },
 };
 

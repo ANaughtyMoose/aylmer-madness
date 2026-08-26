@@ -6,8 +6,20 @@
 //
 // `b`    a mapdata building: { k, h, a, c:[x,z], p:[[x,z]...], t:[i,i,i...], addr? }
 // `hs`   Phase 1's per-house attributes, or null (then they are inferred here)
-// `mats` a material provider (src/game/materials_stub.js, or Phase 3's
-//        materials.js — identical API, see that file's header)
+// `mats` a material provider: src/game/materials.js (the real 2048² atlas) or
+//        src/game/materials_stub.js (no atlas, vertex colours only). The
+//        contract is seven members and is written out in the stub's header.
+//        Which one you pass is the whole difference between a textured house
+//        and the flat-coloured one the game had before Phase 3 — every call
+//        site below works either way:
+//          mt.wall() / mt.roof() / mt.base()  arm a tiling material; the next
+//            primitive gets world-projected UVs at the tile's real size
+//            (MeshBuilder.autoUV) until mt.off()
+//          mt.dec(name)                       an alpha-cut decal rect, or null
+//          mats.tint(name, k)                 vertex colour UNDER a texture
+//            (near-white x k with the atlas, the material's colour without it)
+//          mats.color(name)                   the material's own colour, for
+//            the untextured trim: concrete, asphalt, porch posts
 // `rng`  a seeded 0..1 generator (mulberry32 from core/math.js)
 // `opts` { lod, streetYaw, y, index, addSegment, budget }
 //
@@ -237,8 +249,24 @@ export function inferAttrs(b, index = 0) {
 // Fill the gaps in whatever Phase 1 supplied; never trusts it to be complete.
 // Heights are re-derived from the storey count that actually wins, so partial
 // attrs ({era, storeys, roof} and nothing else) still give the right silhouette.
-export function normalizeAttrs(b, hs, index = 0) {
+// Phase 1 (tools/build_houses.py) ships SHORT keys to keep mapdata small:
+//   e era, y year, s storeys, l link, r roof, ry ridgeYaw, h eave height,
+//   rh ridge height, g garage, p porch (1 or absent), sr source bitmask.
+// Both spellings are accepted so a hand-written attrs object still works.
+export function decodeAttrs(hs) {
+  if (!hs) return null;
+  if (hs.era !== undefined || hs.storeys !== undefined || hs.roof !== undefined) return hs;
+  return {
+    era: hs.e, year: hs.y, storeys: hs.s, link: hs.l, roof: hs.r,
+    ridgeYaw: hs.ry, height: hs.h, ridgeHeight: hs.rh,
+    garage: hs.g, porch: hs.p === undefined ? undefined : !!hs.p,
+    src: hs.sr,
+  };
+}
+
+export function normalizeAttrs(b, hs0, index = 0) {
   const base = inferAttrs(b, index);
+  const hs = decodeAttrs(hs0);
   if (!hs) return base;
   const out = {
     era: ERAS.indexOf(hs.era) >= 0 ? hs.era : base.era,
@@ -252,17 +280,25 @@ export function normalizeAttrs(b, hs, index = 0) {
     source: 'phase1',
   };
   if (Number.isFinite(hs.height) && hs.height > 1.8) {
-    out.height = hs.height;
+    // Trust the measured eave, but keep it inside what the storey count can
+    // hold: a LiDAR "eave" is a percentile of the roof surface, and a 12 m
+    // bungalow is a tree overhanging the footprint, not a house.
+    const nom = EAVE[out.storeys] || EAVE[2];
+    out.height = clamp(hs.height, nom * 0.8, nom * 1.45);
   } else if (out.storeys === base.storeys) {
     out.height = base.height;
   } else {
     out.height = EAVE[out.storeys] * (base.height / EAVE[base.storeys]);
   }
+  const ext = obbExtent(b.p, b.c, out.ridgeYaw);
+  const short = Math.min(ext.u1 - ext.u0, ext.v1 - ext.v0);
   if (Number.isFinite(hs.ridgeHeight) && hs.ridgeHeight > out.height) {
-    out.ridgeHeight = hs.ridgeHeight;
+    // LiDAR maxima catch overhanging trees and chimneys, so a "ridge" 6 m above
+    // the eave of a bungalow is noise, not a spire: cap the rise at what a 12/12
+    // pitch over the short span could actually reach.
+    out.ridgeHeight = out.height
+      + clamp(hs.ridgeHeight - out.height, 0.8, Math.max(1.4, Math.min(short, 12) * 0.62));
   } else {
-    const ext = obbExtent(b.p, b.c, out.ridgeYaw);
-    const short = Math.min(ext.u1 - ext.u0, ext.v1 - ext.v0);
     const pitch = out.era === 'old' ? 0.95 : out.era === 'midcentury' ? 0.42 : 0.62;
     out.ridgeHeight = out.height + clamp(Math.min(short, 11) * 0.5 * pitch, 1.1, 4.2);
   }
@@ -450,6 +486,65 @@ function jitter(c, k) { return [clamp(c[0] * k, 0, 1), clamp(c[1] * k, 0, 1), cl
 
 const SHINGLE = ['shingle_dark', 'shingle_dark', 'shingle_grey', 'shingle_brown'];
 
+// ---------------------------------------------------------------- materials
+//
+// Every surface goes out one of three ways, and all three work with or without
+// an atlas (materials_stub.js answers "no" to everything, and the vertex colours
+// alone are then exactly what the game looked like before Phase 3):
+//
+//   tiled     mt.wall() / mt.roof() / mt.base() arm a material on the builder;
+//             whatever primitive runs next gets UVs projected from world space
+//             at the tile's real size (mesh.js autoUV). Close with mt.off().
+//   decal     mt.off() then mb.panel(..., mt.dec('window_2pane'), OUT) — an
+//             absolute-UV, alpha-cut quad standing OUT metres proud of the wall.
+//   plain     vertex colour only: trim, concrete, asphalt, glass fallbacks.
+//
+// Vertex colours are TINTS under a texture (mats.tint -> near-white × jitter) and
+// the material's own colour without one (mats.tint -> mats.color × jitter), so
+// the same call site is right either way.
+
+// Tiles and per-house colour jitter, drawn from `rng` in a FIXED order so that
+// the near (lod 0) and far (lod 2) bakes — separate builders, same seed — agree
+// on what a given house looks like.
+function recipe(spec, mats, rng) {
+  const wallTile = pick(spec.wall, rng());
+  const wallK = 0.9 + rng() * 0.2;
+  const baseTile = spec.base ? pick(spec.base, rng()) : null;
+  const baseK = 0.92 + rng() * 0.16;
+  const roofTile = pick(spec.roofTiles, rng());
+  const roofK = 0.88 + rng() * 0.22;
+  return {
+    wallTile, baseTile, roofTile,
+    wall: mats.tint(wallTile, wallK),
+    base: baseTile ? mats.tint(baseTile, baseK) : null,
+    roof: mats.tint(roofTile, roofK),
+    // Per-house pattern offset: without it every wall on the street starts its
+    // brick on the same half-course and the row reads as one long building.
+    uOff: rng() * 8,
+  };
+}
+
+// The per-house arming kit. `M` is the projection origin — the building centre,
+// so the repeat counts stay small and fract() in the shader stays exact.
+function matKit(mb, mats, R, cx, cz) {
+  const M = { ox: cx, oy: 0, oz: cz, uOffset: R.uOff };
+  const mt = {
+    M,
+    wall: () => mats.tile(mb, R.wallTile, M),
+    roof: () => mats.tile(mb, R.roofTile, M),
+    base: () => (R.baseTile ? mats.tile(mb, R.baseTile, M) : mats.end(mb)),
+    named: (name) => mats.tile(mb, name, M),
+    off: () => mats.end(mb),
+    dec: (name) => mats.decalUV(name),
+    col: (name) => mats.color(name),
+    tint: (name, k) => mats.tint(name, k),
+  };
+  // Handed to MeshBuilder.roof: the two gable-end triangles of a roof prism are
+  // wall, not shingle, so the armed material swaps for them.
+  mt.gable = { gableCol: R.wall, onGable: mt.wall };
+  return mt;
+}
+
 // Per-archetype recipe: which atlas tiles the walls, base course and roof draw
 // from, and what the extras are. `p*` fields are probabilities against rng().
 const SPECS = {
@@ -600,23 +695,32 @@ export function buildPlain(mb, b, mats, rng, opts = {}) {
   const y0 = opts.y || 0;
   const gable = opts.gable !== undefined ? opts.gable
     : (b.k === 'house' || b.k === 'terrace' || b.k === 'shed');
-  const wallCol = opts.wall || jitter(mats.color(b.k === 'house' ? 'vinyl_beige' : 'stucco'),
-    0.88 + rng() * 0.24);
   const h = opts.h || b.h;
+  // `mt` (from a caller that already drew the recipe) keeps the far LOD in the
+  // same materials as the near one; without it, pick a plausible pair here.
+  const mt = opts.mt || null;
+  const wallTile = opts.wallTile || (b.k === 'house' ? 'vinyl_beige' : 'stucco');
+  const wallCol = opts.wall || mats.tint(wallTile, 0.88 + rng() * 0.24);
+  if (mt) mt.wall(); else mats.tile(mb, wallTile, { ox: b.c[0], oz: b.c[1] });
   mb.prism(b.p, y0, h, wallCol, { onEdge: opts.addSegment });
   if (gable) {
-    const roofCol = jitter(mats.color(pick(SHINGLE, rng())), 0.9 + rng() * 0.2);
+    const roofTile = opts.roofTile || pick(SHINGLE, rng());
+    const roofCol = opts.roofCol || mats.tint(roofTile, 0.9 + rng() * 0.2);
+    if (mt) mt.roof(); else mats.tile(mb, roofTile, { ox: b.c[0], oz: b.c[1] });
     mb.capPoly(b.p, b.t, y0 + h, roofCol);
     const e = obbExtent(b.p, b.c, b.a);
     const ew = e.u1 - e.u0, ed = e.v1 - e.v0;
     const cu = (e.u0 + e.u1) / 2, cv = (e.v0 + e.v1) / 2;
     const gx = b.c[0] + cu * e.ca - cv * e.sa, gz = b.c[1] + cu * e.sa + cv * e.ca;
-    mb.roof(gx, y0 + h, gz, ew, ed, clamp(0.35 * ed, 1.6, 3.2), roofCol, -b.a, 0.4);
+    mb.roof(gx, y0 + h, gz, ew, ed, clamp(0.35 * ed, 1.6, 3.2), roofCol, -b.a, 0.4,
+      mt ? mt.gable : null);
   } else {
+    mats.end(mb);
     const flat = mats.color('flat');
     const rc = [flat[0] * 0.46, flat[1] * 0.45, flat[2] * 0.42];
     mb.capPoly(b.p, b.t, y0 + h, rc);
   }
+  mats.end(mb);
 }
 
 // --------------------------------------------------------------------- houses
@@ -635,10 +739,15 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
     return { archetype: 'flat_block', attrs, tris: (mb.i.length - t0) / 3 };
   }
   const spec = SPECS[id];
+  // The recipe is drawn first at EVERY lod, from the same rng draws, so the far
+  // silhouette wears the same brick and shingle as the near one.
+  const R = recipe(spec, mats, rng);
+  const mt = matKit(mb, mats, R, b.c[0], b.c[1]);
   if (lod >= 2) {
-    const wall = jitter(mats.color(pick(spec.wall, rng())), 0.9 + rng() * 0.2);
     buildPlain(mb, b, mats, rng, {
-      y: y0, h: attrs.height, gable: attrs.roof !== 'flat', wall, addSegment: opts.addSegment,
+      y: y0, h: attrs.height, gable: attrs.roof !== 'flat',
+      wall: R.wall, roofCol: R.roof, wallTile: R.wallTile, roofTile: R.roofTile, mt,
+      addSegment: opts.addSegment,
     });
     return { archetype: id, attrs, tris: (mb.i.length - t0) / 3 };
   }
@@ -667,18 +776,16 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   const front = frontFace(ang, streetYaw);
 
   // ---- colours (seeded, so a street reads as a street and not a paint chart)
-  const wallTile = pick(spec.wall, rng());
-  const wallCol = jitter(mats.color(wallTile), 0.9 + rng() * 0.2);
-  const baseTile = spec.base ? pick(spec.base, rng()) : null;
-  const baseCol = baseTile ? jitter(mats.color(baseTile), 0.92 + rng() * 0.16) : null;
-  const roofTile = pick(spec.roofTiles, rng());
-  const roofCol = jitter(mats.color(roofTile), 0.88 + rng() * 0.22);
+  const wallTile = R.wallTile, baseTile = R.baseTile;
+  const wallCol = R.wall, baseCol = R.base, roofCol = R.roof;
   const trimCol = mats.color('trim');
-  const winCol = mats.color(spec.winTile);
-  const doorCol = jitter(mats.color(spec.door), 0.9 + rng() * 0.2);
+  // Decals carry their own glass and paint, so under the atlas the vertex colour
+  // is only a tint; without it, it is the whole window.
+  const winCol = mats.tint(spec.winTile, 1);
+  const doorCol = mats.tint(spec.door, 0.9 + rng() * 0.2);
   const conc = mats.color('concrete');
   const asphalt = mats.color('asphalt');
-  const uvWin = mats.uv(spec.winTile), uvDoor = mats.uv(spec.door);
+  const uvWin = mats.decalUV(spec.winTile), uvDoor = mats.decalUV(spec.door);
 
   const eave = attrs.height;
   const roofRise = Math.max(0.8, attrs.ridgeHeight - attrs.height);
@@ -721,25 +828,30 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
 
   // ---- walls: the real footprint, stepped down over the garage wing
   const wallRect = garageRect;
+  mt.wall();
   emitWalls(mb, b, y0, eave, garageEave, wallRect, ox, oz, ca, sa, wallCol, opts.addSegment);
 
   // Cap the plan at the garage height (hidden inside the house, closes the wing).
+  mt.roof();
   mb.capPoly(b.p, b.t, y0 + (wallRect ? garageEave : eave), roofCol);
 
   // ---- roofs, one per rect, on the real footprint's oriented rectangles
-  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol);
+  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol, mt);
   if (wing && wing !== garageRect) {
-    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol);
+    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol, mt);
   }
   if (garageRect) {
     roofOn(mb, garageRect, L2M, yaw, y0 + garageEave, Math.max(0.7, roofRise * 0.65),
-      carport ? 'flat' : (attrs.roof === 'flat' ? 'gable' : attrs.roof), spec, roofCol);
+      carport ? 'flat' : (attrs.roof === 'flat' ? 'gable' : attrs.roof), spec, roofCol, mt);
   }
+  mt.off();
 
   // ---- brick / stone base course on the visible faces
   if (baseCol && detail && room(8)) {
     const bh = Math.min(spec.baseH, eave - 0.4);
-    faceBand(mb, main, L2M, y0 + bh / 2, bh, baseCol, mats.uv(baseTile), front, true);
+    mt.base();
+    faceBand(mb, main, L2M, y0 + bh / 2, bh, baseCol, null, front, true);
+    mt.off();
   }
 
   // ---- front elements
@@ -759,10 +871,10 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
 
     // porch (the single most era-defining thing on an old Aylmer house)
     if (attrs.porch && spec.porch === 'full' && room(48)) {
-      porch(mb, fw, front, y0, eave, Math.min(fw.len, 9), trimCol, roofCol);
+      porch(mb, fw, front, y0, eave, Math.min(fw.len, 9), trimCol, roofCol, mt);
     } else if (attrs.porch && spec.porch === 'small' && room(30)) {
       porch(mb, { ...fw, cx: dx0, cz: dz0, len: 3.0 }, front, y0, Math.min(eave, 3.1),
-        3.0, trimCol, roofCol);
+        3.0, trimCol, roofCol, mt);
     }
 
     // windows, per storey, along every face longer than 3 m
@@ -776,23 +888,29 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
         Math.max(0, Math.min(4, wBudget - placed)));
     }
 
-    // picture window (midcentury) / bay window (suburban)
+    // picture window (midcentury) / bay window (suburban). The wide 'window_bay'
+    // decal is the right shape for a picture window; fall back to the sash one.
     if (spec.picture && room(2)) {
       const px = fw.cx - fw.tx * fw.len * 0.22, pz = fw.cz - fw.tz * fw.len * 0.22;
+      const uvPic = mats.decalUV('window_bay') || uvWin;
       mb.panel(px, y0 + 1.75, pz, Math.min(3.0, fw.len * 0.42), 1.5,
-        front.nx, front.nz, winCol, uvWin, OUT);
+        front.nx, front.nz, winCol, uvPic, OUT);
     }
-    if (spec.bay && fw.len > 7.5 && room(10)) {
+    if (spec.bay && fw.len > 7.5 && room(12)) {
       // bay: local +X is the outward normal, so wBot is how far it projects
       const px = fw.cx - fw.tx * fw.len * 0.26, pz = fw.cz - fw.tz * fw.len * 0.26;
       mb.tower(px + front.nx * 0.28, y0 + 0.85, pz + front.nz * 0.28, 0.62, 2.5, 1.65,
-        jitter(winCol, 1.1), { yaw: -front.yaw, noBottom: true, top: trimCol });
+        jitter(mats.color(spec.winTile), 1.1), { yaw: -front.yaw, noBottom: true, top: trimCol });
+      // glazing on the front of the box, or it reads as a packing crate
+      const uvBay = mats.decalUV('window_bay') || uvWin;
+      mb.panel(px + front.nx * 0.59, y0 + 1.7, pz + front.nz * 0.59, 2.2, 1.35,
+        front.nx, front.nz, winCol, uvBay, OUT);
     }
 
     // dormers on the street slope
     if (spec.dormers && room(12 * spec.dormers)) {
       dormers(mb, main, L2M, yaw, y0 + eave, roofRise, spec.dormers,
-        front, wallCol, roofCol, winCol, uvWin);
+        front, wallCol, roofCol, winCol, uvWin, mt);
     }
 
     // chimney
@@ -800,23 +918,26 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
       const cu = (main.u0 + main.u1) / 2 + (main.u1 - main.u0) * 0.30;
       const cv = (main.v0 + main.v1) / 2 - (main.v1 - main.v0) * 0.18;
       const pm = L2M(cu, cv);
-      const brick = mats.color(spec.era === 'old' ? 'brick_red' : 'brick_brown');
-      mb.tower(pm[0], y0 + eave - 0.6, pm[1], 0.78, 0.68, roofRise + 1.25, brick,
-        { yaw, noBottom: true, top: shade(0x2a2a2a, 1) });
+      const brickTile = spec.era === 'old' ? 'brick_red' : 'brick_brown';
+      mt.named(brickTile);
+      mb.tower(pm[0], y0 + eave - 0.6, pm[1], 0.78, 0.68, roofRise + 1.25,
+        mats.tint(brickTile, 1), { yaw, noBottom: true, top: shade(0x2a2a2a, 1) });
+      mt.off();
     }
 
     // detached shed / garage in the back yard
     if ((attrs.garage === 'detached' || spec.shed) && room(16)) {
       backShed(mb, ext, L2M, yaw, y0, front, wallCol, roofCol,
-        attrs.garage === 'detached' ? 'garage' : 'shed', mats, rng);
+        attrs.garage === 'detached' ? 'garage' : 'shed', mats, rng, mt);
     }
   }
 
   // ---- garage door + driveway (kept at lod 1: they read from a long way off)
   if (garageRect) {
     const gf = faceOf(garageRect, L2M, front);
-    const gdCol = jitter(mats.color(bays === 2 ? 'garage_door_2' : 'garage_door_1'), 0.95 + rng() * 0.1);
-    const gdUV = mats.uv(bays === 2 ? 'garage_door_2' : 'garage_door_1');
+    const gdName = bays === 2 ? 'garage_door_2' : 'garage_door_1';
+    const gdCol = mats.tint(gdName, 0.95 + rng() * 0.1);
+    const gdUV = mats.decalUV(gdName);
     const gw = Math.min(bays === 2 ? 5.2 : 3.0, gf.len - 0.7);
     if (!carport && gw > 1.6 && detail) {
       mb.panel(gf.cx, y0 + 1.12, gf.cz, gw, 2.15, front.nx, front.nz, gdCol, gdUV, OUT);
@@ -837,9 +958,12 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
 
   // ---- row / semi: mirrored units with their own colour, door and windows
   if ((spec.row || spec.units) && detail) {
-    rowUnits(mb, main, L2M, y0, eave, front, spec, mats, rng, room);
+    rowUnits(mb, main, L2M, y0, eave, front, spec, mats, rng, room, mt);
   }
 
+  // Never leave a material armed: the next thing in this chunk is somebody
+  // else's road, and it has to come out of the white 'flat' tile untouched.
+  mt.off();
   return { archetype: id, attrs, tris: (mb.i.length - t0) / 3, streetYaw, front: front.yaw };
 }
 
@@ -874,20 +998,31 @@ function wallQuad(mb, a, q, t0, t1, y0, h, col) {
   mb.quad([ax, y0, az], [bx, y0, bz], [bx, y0 + h, bz], [ax, y0 + h, az], col);
 }
 
-// Roof on one rect of the decomposition, in the requested form.
-function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol) {
+// Roof on one rect of the decomposition, in the requested form. `mt` arms the
+// shingle before the slopes and swaps back to the wall material for the gable
+// ends (which are siding or brick on a real house, not roofing).
+function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt) {
   const w = r.u1 - r.u0, d = r.v1 - r.v0;
   const cm = L2M((r.u0 + r.u1) / 2, (r.v0 + r.v1) / 2);
   const ov = spec.overhang;
   const h = clamp(rise * clamp(Math.min(w, d) / 9, 0.55, 1.5), 0.7, 5.0);
+  if (mt) mt.roof();
+  // Soffit. From a car the eave of a two-storey is above you, and a roof made of
+  // two one-sided planes is see-through from underneath: you get sky between the
+  // wall top and the ridge. Two triangles of dark underside close it.
+  // (only where you can actually get under it — below ~4.6 m the wall hides the
+  // slope from anyone sitting in a car, and 10 000 bungalows do not need it.)
+  if (form !== 'flat' && baseY > 4.6) {
+    mb.capRect(cm[0], cm[1], w + ov * 2, d + ov * 2, baseY + 0.02, yaw, roofCol, true);
+  }
   switch (form) {
     case 'hip': mb.hip(cm[0], baseY, cm[1], w, d, h, roofCol, w >= d ? yaw : yaw - Math.PI / 2, ov); break;
     case 'flat': mb.capRect(cm[0], cm[1], w + ov, d + ov, baseY + 0.25, yaw, roofCol); break;
     case 'shed': mb.shedRoof(cm[0], baseY, cm[1], w, d, h, roofCol, yaw, ov); break;
     case 'mansard': mb.mansard(cm[0], baseY, cm[1], w, d, h * 1.25, roofCol, yaw, ov, Math.min(1.4, d * 0.16)); break;
     default:
-      if (w >= d) mb.roof(cm[0], baseY, cm[1], w, d, h, roofCol, yaw, ov);
-      else mb.roof(cm[0], baseY, cm[1], d, w, h, roofCol, yaw - Math.PI / 2, ov);
+      if (w >= d) mb.roof(cm[0], baseY, cm[1], w, d, h, roofCol, yaw, ov, mt ? mt.gable : null);
+      else mb.roof(cm[0], baseY, cm[1], d, w, h, roofCol, yaw - Math.PI / 2, ov, mt ? mt.gable : null);
   }
 }
 
@@ -980,8 +1115,10 @@ function rectFaces(r, L2M) {
 // The deck projects PORCH_D metres past the front wall, which is outside the
 // footprint — deliberate (Vieux-Aylmer porches sit right on the sidewalk), but
 // it means the porch is not in world.js's collider set. See integrateNotes.md.
-function porch(mb, f, front, y0, eave, width, trimCol, roofCol) {
+function porch(mb, f, front, y0, eave, width, trimCol, roofCol, mt) {
   const w = Math.max(2.4, Math.min(width, f.len));
+  const uvRail = mt ? mt.dec('porch_rail') : null;
+  const railCol = uvRail ? [1, 1, 1] : trimCol;
   const cx = f.cx + front.nx * (PORCH_D / 2), cz = f.cz + front.nz * (PORCH_D / 2);
   const mYaw = -front.yaw;                    // MeshBuilder yaw: local +X == outward
   mb.tower(cx, y0, cz, PORCH_D, w, 0.34, trimCol, { yaw: mYaw, noBottom: true });
@@ -999,16 +1136,18 @@ function porch(mb, f, front, y0, eave, width, trimCol, roofCol) {
     const rx = f.cx + f.tx * t + front.nx * (PORCH_D - 0.2);
     const rz = f.cz + f.tz * t + front.nz * (PORCH_D - 0.2);
     mb.panel(rx, y0 + 0.75, rz, Math.max(0.8, w * 0.34), 0.75,
-      front.nx, front.nz, trimCol, null, 0.02);
+      front.nx, front.nz, railCol, uvRail, 0.02);
   }
   // Slope only: low at the outer edge, high against the house wall. Local +Z has
   // to point back at the wall, which is meshYaw = -front.yaw - PI/2.
+  if (mt) mt.roof();
   mb.shedRoof(cx, top, cz, w, PORCH_D + 0.5, 0.42, roofCol,
     -front.yaw - Math.PI / 2, 0.22, { slopeOnly: true });
+  if (mt) mt.off();
 }
 
 // Gable dormers poking through the street-facing slope.
-function dormers(mb, r, L2M, yaw, eaveY, rise, count, front, wallCol, roofCol, winCol, uv) {
+function dormers(mb, r, L2M, yaw, eaveY, rise, count, front, wallCol, roofCol, winCol, uv, mt) {
   const w = r.u1 - r.u0, d = r.v1 - r.v0;
   if (Math.min(w, d) < 5) return;
   const faces = rectFaces(r, L2M);
@@ -1022,8 +1161,10 @@ function dormers(mb, r, L2M, yaw, eaveY, rise, count, front, wallCol, roofCol, w
     const cz = best.cz + best.tz * t - best.nz * inset;
     const y = eaveY + rise * 0.18;
     // local +X is the slope normal, so wBot is the dormer's depth into the roof
+    if (mt) mt.wall();
     mb.tower(cx, y, cz, 1.35, 1.55, 1.25, wallCol,
       { yaw: -best.yaw, noBottom: true, top: roofCol });
+    if (mt) mt.off();
     mb.panel(cx + best.nx * 0.68, y + 0.68, cz + best.nz * 0.68, 0.85, 0.85,
       best.nx, best.nz, winCol, uv, 0.02);
   }
@@ -1037,7 +1178,7 @@ function driveway(mb, f, front, y0, width, len, col) {
 }
 
 // A shed or a single detached garage at the back of the lot.
-function backShed(mb, ext, L2M, yaw, y0, front, wallCol, roofCol, kind, mats, rng) {
+function backShed(mb, ext, L2M, yaw, y0, front, wallCol, roofCol, kind, mats, rng, mt) {
   const w = kind === 'garage' ? 5.6 : 2.8, d = kind === 'garage' ? 6.0 : 2.4;
   const h = kind === 'garage' ? 2.5 : 2.1;
   const cu = (ext.u0 + ext.u1) / 2 + (ext.u1 - ext.u0) * 0.3;
@@ -1046,27 +1187,33 @@ function backShed(mb, ext, L2M, yaw, y0, front, wallCol, roofCol, kind, mats, rn
   const bx = p[0] - front.nx * ((ext.v1 - ext.v0) * 0.5 + d * 0.7 + 3);
   const bz = p[1] - front.nz * ((ext.v1 - ext.v0) * 0.5 + d * 0.7 + 3);
   const col = jitter(wallCol, 0.9);
+  if (mt) mt.wall();
   mb.tower(bx, y0, bz, w, d, h, col, { yaw, noBottom: true, top: roofCol });
+  if (mt) mt.roof();
   mb.roof(bx, y0 + h, bz, Math.max(w, d), Math.min(w, d), 0.85, roofCol,
-    w >= d ? yaw : yaw - Math.PI / 2, 0.25);
+    w >= d ? yaw : yaw - Math.PI / 2, 0.25, mt ? mt.gable : null);
+  if (mt) mt.off();
 }
 
 // Row / semi: a colour band, a door and two windows per unit, mirrored in pairs.
-function rowUnits(mb, r, L2M, y0, eave, front, spec, mats, rng, room) {
+function rowUnits(mb, r, L2M, y0, eave, front, spec, mats, rng, room, mt) {
   const faces = rectFaces(r, L2M);
   let f = faces[0], bd = -2;
   for (const q of faces) { const c = Math.cos(q.yaw - front.yaw); if (c > bd) { bd = c; f = q; } }
   const units = clamp(Math.round(f.len / 6.5), 2, 6);
   const uw = f.len / units;
-  const doorCol = mats.color(spec.door), winCol = mats.color(spec.winTile);
-  const uvD = mats.uv(spec.door), uvW = mats.uv(spec.winTile);
+  const doorCol = mats.tint(spec.door, 1), winCol = mats.tint(spec.winTile, 1);
+  const uvD = mats.decalUV(spec.door), uvW = mats.decalUV(spec.winTile);
   for (let i = 0; i < units; i++) {
     if (!room(8)) break;
     const t = ((i + 0.5) / units - 0.5) * f.len;
     const mirror = i % 2 === 0 ? 1 : -1;
-    const band = jitter(mats.color(pick(spec.wall, rng())), 0.9 + rng() * 0.2);
+    const bandTile = pick(spec.wall, rng());
+    const band = mats.tint(bandTile, 0.9 + rng() * 0.2);
+    if (mt) mt.named(bandTile);
     mb.panel(f.cx + f.tx * t, y0 + eave / 2, f.cz + f.tz * t, uw * 0.94, eave * 0.94,
       f.nx, f.nz, band, null, 0.02);
+    if (mt) mt.off();
     const dt = t + mirror * uw * 0.26;
     mb.panel(f.cx + f.tx * dt, y0 + 1.1, f.cz + f.tz * dt, 0.92, 2.1,
       f.nx, f.nz, doorCol, uvD, OUT);

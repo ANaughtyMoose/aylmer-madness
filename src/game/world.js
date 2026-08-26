@@ -8,7 +8,9 @@
 //   * a uniform grid of wall segments (building footprint edges + poles) for physics,
 //   * a uniform grid of road centrelines for the "am I on tarmac?" test.
 //
-// buildWorld(renderer) returns:
+// buildWorld(renderer, mats) returns:  (`mats` is the material provider from
+// game/materials.js — the atlas — or materials_stub.js for the vertex-colour
+// fallback; houses are the only geometry that uses it)
 //   draw(r, model, x, z, drawDist, dt)  everything above in one call: distance +
 //                                       frustum cull, the 0.4 s fog fade-in for
 //                                       newly-arrived chunks (W2), the river, the
@@ -36,6 +38,13 @@ import { buildHouse, makeStreetYawIndex } from './houses.js';
 import MATS from './materials_stub.js';
 
 const CHUNK = 200;      // world chunk size (metres)
+// How far the detailed (lod 0) house bake reaches, measured to the chunk CENTRE.
+// Beyond it a chunk draws the lod 2 silhouette instead. 200 m is one chunk past
+// the one you are in — windows and doors are a couple of pixels by then — and it
+// keeps the per-frame triangle count within a few percent of what the old
+// single-lod bake drew. Measured (world geometry only, medium quality):
+//   Chemin Foley 22.8k, Rue Bancroft 28.3k, Denise-Friend 36.5k tris a frame.
+export const HOUSE_NEAR = 200;
 const SEG_CELL = 32;    // broadphase cell for querySegments
 const ROAD_CELL = 40;   // broadphase cell for roadAt
 const FADE = 0.4;       // seconds a chunk takes to come out of the fog (W2)
@@ -143,7 +152,7 @@ function subsample(list, cap) {
   return out;
 }
 
-export function buildWorld(renderer) {
+export function buildWorld(renderer, mats = MATS) {
   const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const B = MAP.bounds;
   const NX = Math.ceil((B.maxX - B.minX) / CHUNK);
@@ -152,6 +161,14 @@ export function buildWorld(renderer) {
   const builders = new Map();
   const waterB = new Map();     // river/pond triangles, drawn with the wobble shader
   const nightB = new Map();     // streetlight pools, drawn only after dark
+  // Houses are baked TWICE, into their own per-chunk meshes: `houseNearB` at
+  // lod 0 (windows, doors, porches, real materials) and `houseFarB` at lod 2
+  // (the old extrude-and-cap silhouette, vertex colours only). draw() picks one
+  // per chunk by distance, so the near geometry never leaves the block you are
+  // driving through and the far mesh carries no UV/rect attributes at all.
+  // Everything else in town stays in `builders`, untextured, exactly as before.
+  const houseNearB = new Map();
+  const houseFarB = new Map();
   const distant = new MeshBuilder();
 
   function chunkKey(x, z) {
@@ -166,6 +183,8 @@ export function buildWorld(renderer) {
     return b;
   }
   function bAt(x, z) { return pick(builders, x, z); }
+  function hnAt(x, z) { return pick(houseNearB, x, z); }
+  function hfAt(x, z) { return pick(houseFarB, x, z); }
   const bKey = chunkKey;
   function wAt(x, z) { return pick(waterB, x, z); }
   function nAt(x, z) { return pick(nightB, x, z); }
@@ -589,13 +608,13 @@ export function buildWorld(renderer) {
 
   // ------------------------------------------------------------ 5. buildings
   // Houses and terraces go through the parametric archetypes in houses.js
-  // (era / storeys / roof form from Phase 1 data or inference); everything else
-  // keeps the extrude-and-cap below. lod 1 = real heights, roofs, garage wings,
-  // driveways; lod 0 adds windows, doors, porches, chimneys (see docs/HOUSES.md).
+  // (era / storeys / roof form from Phase 1's `b.hs`, inferred where it is
+  // missing); everything else keeps the extrude-and-cap below. Each house is
+  // baked twice — lod 0 with windows, doors, porches and the real materials for
+  // the chunk you are in, lod 2 for the rest of town (see docs/HOUSES.md).
   const streetYawAt = makeStreetYawIndex(MAP.roads);
   const HOUSEY = { house: 1, terrace: 1 };
-  const HOUSE_LOD = 1;
-  let houseCount = 0, houseTris = 0;
+  let houseCount = 0, houseTris = 0, houseFarTris = 0;
   const buildings = MAP.buildings;
   const gableCols = ROOF.map(rgb);
   const flatRoofCol = rgb(C.flatRoof);
@@ -620,16 +639,26 @@ export function buildWorld(renderer) {
     const b = buildings[bi];
     const p = b.p, n = p.length, h = b.h, c = b.c;
     const rnd = mulberry32((bi * 2654435761 + 0x9e3779b9) >>> 0);
-    const bd = bAt(c[0], c[1]);
-    if (HOUSEY[b.k] === 1) {
-      const hr = buildHouse(bd, b, b.hs || null, MATS, rnd, {
-        lod: HOUSE_LOD, index: bi,
-        streetYaw: streetYawAt(c[0], c[1], -b.a),
+    // Phase 1 gives 537 dwellings an `hs` blob while OSM still calls them
+    // 'commercial' on footprint size alone, so the attributes decide too.
+    if (HOUSEY[b.k] === 1 || b.hs) {
+      const sy = streetYawAt(c[0], c[1], -b.a);
+      const seed = (bi * 2654435761 + 0x9e3779b9) >>> 0;
+      // Near: full detail, the real atlas, and the ONLY call that registers
+      // colliders — the far copy is the same house, so it must not add them again.
+      const hr = buildHouse(hnAt(c[0], c[1]), b, b.hs || null, mats, mulberry32(seed), {
+        lod: 0, index: bi, streetYaw: sy,
         addSegment,                 // one call per footprint edge, same order as before
       });
-      houseCount++; houseTris += hr.tris || 0;
+      // Far: same seed, so recipe() draws the same tiles and the silhouette
+      // wears the same brick; the stub provider keeps it vertex-coloured.
+      const fr = buildHouse(hfAt(c[0], c[1]), b, b.hs || null, MATS, mulberry32(seed), {
+        lod: 2, index: bi, streetYaw: sy,
+      });
+      houseCount++; houseTris += hr.tris || 0; houseFarTris += fr.tris || 0;
       continue;
     }
+    const bd = bAt(c[0], c[1]);
 
     // wall colour
     let wallHex;
@@ -1136,7 +1165,37 @@ export function buildWorld(renderer) {
     }
     return out;
   }
-  const chunks = uploadSet(builders, true);
+  // Land chunks carry three meshes: the town (roads, ground, trees, everything
+  // that is not a house) plus the near and far house bakes. A chunk can exist
+  // with only houses in it, so the record list is the union of the three keys.
+  function uploadMap(map) {
+    const out = new Map();
+    for (const [k, b] of map) {
+      if (b.empty) continue;
+      tris += b.i.length / 3;
+      out.set(k, renderer.upload(b));
+    }
+    return out;
+  }
+  const landMesh = uploadMap(builders);
+  const nearMesh = uploadMap(houseNearB);
+  const farMesh = uploadMap(houseFarB);
+  for (const [k, m] of landMesh) meshByKey.set(k, m);
+  let nearTris = 0, farTris = 0;
+  for (const m of nearMesh.values()) nearTris += m.count / 3;
+  for (const m of farMesh.values()) farTris += m.count / 3;
+  const chunks = [];
+  for (const k of new Set([...landMesh.keys(), ...nearMesh.keys(), ...farMesh.keys()])) {
+    const mesh = landMesh.get(k) || null;
+    const near = nearMesh.get(k) || null;
+    const far = farMesh.get(k) || null;
+    const any = mesh || near || far;
+    chunks.push({
+      mesh, near, far, min: any.min, max: any.max, fade: 0,
+      cx: B.minX + ((k % NX) + 0.5) * CHUNK,
+      cz: B.minZ + (Math.floor(k / NX) + 0.5) * CHUNK,
+    });
+  }
   const waterChunks = uploadSet(waterB);
   const nightChunks = uploadSet(nightB);
   for (let i = 0; i < poles.length; i++) poles[i].mesh = poles[i].k == null ? null : (meshByKey.get(poles[i].k) || null);
@@ -1146,7 +1205,8 @@ export function buildWorld(renderer) {
 
   const dt = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) | 0;
   console.log(`world: ${chunks.length} chunks (+${waterChunks.length} water, ${nightChunks.length} night), `
-    + `${tris | 0} tris, ${buildings.length} buildings (${houseCount} archetype houses, ${houseTris | 0} tris), `
+    + `${tris | 0} tris, ${buildings.length} buildings (${houseCount} archetype houses, `
+    + `${houseTris | 0} near + ${houseFarTris | 0} far tris, atlas ${mats && mats.tex ? 'on' : 'OFF'}), `
     + `${MAP.roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
     + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${stopLineCount} stop lines), `
     + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${poleCount} poles, `
@@ -1162,24 +1222,60 @@ export function buildWorld(renderer) {
   const waterOpts = { water: true };
   const poolOpts = { alpha: 0.3, unlit: true, colorMul: new Float32Array([1, 0.86, 0.63]) };
   const signOpts = { tex: null };
+  // Houses are drawn in a second pass with the atlas bound, so the texture is
+  // switched on exactly once a frame instead of once a chunk.
+  const houseTex = (mats && mats.tex) || null;
+  const houseOpts = { tex: houseTex, fogMul: 1 };
+  // Visible house meshes, queued during the chunk walk and drawn after it. 256
+  // is four times the most chunks that survive the cull at drawDist 950; past
+  // that the extra houses are dropped rather than growing the array mid-frame.
+  const pendMesh = new Array(256).fill(null);
+  const pendFade = new Float32Array(256);
   let firstFrame = true;
+  let houseNear = HOUSE_NEAR;
+  // Quality 'low' pulls the detailed houses in; everything else uses HOUSE_NEAR.
+  function setHouseNear(m) { houseNear = Math.max(0, m || 0); }
+
+  const stats = {
+    resident: tris, residentNear: nearTris, residentFar: farTris,
+    tris: 0, draws: 0, near: 0, far: 0, chunks: 0,
+  };
 
   function draw(r, model, x, z, drawDist, dtSec) {
     const dd2 = drawDist * drawDist;
+    const near2 = houseNear * houseNear;
     const step = firstFrame ? 1 : Math.min(1, (dtSec || 0) / FADE);
+    let nH = 0;
+    stats.tris = 0; stats.draws = 0; stats.near = 0; stats.far = 0; stats.chunks = 0;
     for (let i = 0; i < chunks.length; i++) {
       const c = chunks[i];
       const dx = c.cx - x, dz = c.cz - z;
-      if (dx * dx + dz * dz > dd2) { c.fade = 0; continue; }
+      const d2 = dx * dx + dz * dz;
+      if (d2 > dd2) { c.fade = 0; continue; }
       if (c.fade < 1) c.fade = Math.min(1, c.fade + step);
-      if (!r.visible(c.mesh)) continue;
-      if (c.fade >= 1) r.draw(c.mesh, model, noOpts);
-      else {
-        // W2: a new chunk arrives buried in fog and thins out over FADE seconds,
-        // which reads as a fade without paying for a transparent pass.
-        fadeOpts.fogMul = 1 + (1 - c.fade) * 3.2;
-        r.draw(c.mesh, model, fadeOpts);
+      if (c.mesh && r.visible(c.mesh)) {
+        stats.chunks++;
+        stats.tris += c.mesh.count / 3; stats.draws++;
+        if (c.fade >= 1) r.draw(c.mesh, model, noOpts);
+        else {
+          // W2: a new chunk arrives buried in fog and thins out over FADE seconds,
+          // which reads as a fade without paying for a transparent pass.
+          fadeOpts.fogMul = 1 + (1 - c.fade) * 3.2;
+          r.draw(c.mesh, model, fadeOpts);
+        }
       }
+      const isNear = d2 < near2;
+      const hm = isNear ? c.near : c.far;
+      if (hm && nH < pendMesh.length && r.visible(hm)) {
+        pendMesh[nH] = hm; pendFade[nH] = c.fade; nH++;
+        stats.tris += hm.count / 3; stats.draws++;
+        if (isNear) stats.near += hm.count / 3; else stats.far += hm.count / 3;
+      }
+    }
+    for (let i = 0; i < nH; i++) {
+      houseOpts.fogMul = pendFade[i] >= 1 ? 1 : 1 + (1 - pendFade[i]) * 3.2;
+      r.draw(pendMesh[i], model, houseOpts);
+      pendMesh[i] = null;
     }
     for (let i = 0; i < waterChunks.length; i++) {
       const c = waterChunks[i];
@@ -1208,6 +1304,9 @@ export function buildWorld(renderer) {
     chunks,
     waterChunks,
     nightChunks,
+    setHouseNear,
+    stats,
+    mats,
     signage,
     distant: distantMesh,
     poles,

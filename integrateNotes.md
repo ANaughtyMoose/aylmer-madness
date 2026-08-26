@@ -1,5 +1,12 @@
 # Wiring `buildHouse` into `world.js` (Phase 2 hand-off)
 
+> **Done** (branch `agent/houses-integrate`) — kept for the reasoning, not as a
+> to-do list. §3's distance LOD shipped with the near bake at lod 0 and the far
+> at lod 2, in their own per-chunk meshes rather than the main one; §4's worry
+> about the texture replacing the vertex colour turned out not to apply — the
+> shader multiplies, so tints still work. See the Status section of
+> docs/HOUSES.md for what the game draws now.
+
 Everything below touches **only `src/game/world.js`** (plus one line in
 `src/main.js` if you want distance LOD). Nothing in `houses.js`, `mesh.js` or
 `materials_stub.js` needs to change to do any of it.

@@ -7,12 +7,14 @@
 // Asserts: triangle budget per lod, no NaN/Inf vertices, roof apex above the
 // eave, every archetype reachable, and that the attribute fallback classifies
 // all ~10k MAP buildings into a real archetype inside two seconds.
+import { readFileSync } from 'node:fs';
 import { MeshBuilder } from '../src/core/mesh.js';
 import { mulberry32 } from '../src/core/math.js';
 import { MAP } from '../src/game/mapdata.js';
 import STUB from '../src/game/materials_stub.js';
+import { loadMaterials } from '../src/game/materials.js';
 import {
-  buildHouse, inferAttrs, archetypeOf, ARCHETYPES, makeStreetYawIndex,
+  buildHouse, inferAttrs, archetypeOf, ARCHETYPES, makeStreetYawIndex, normalizeAttrs,
 } from '../src/game/houses.js';
 
 const BUDGET = { 0: 140, 1: 80, 2: 48 };
@@ -231,6 +233,103 @@ for (const ang of [0, 0.7, -1.9, 2.6, Math.PI]) {
   if (inward > 2) fail(`ang ${ang.toFixed(2)}: ${inward}/${walls} wall tris face inward`);
 }
 ok('wall winding consistent across rotations');
+
+// ------------------------------------------------- 7. the real atlas
+// No image and no GL here — loadMaterials takes the manifest off disk, which is
+// enough to check every number that reaches the vertex buffers.
+console.log('\n7. the real material atlas (manifest only, no GL)');
+const manifest = JSON.parse(readFileSync(new URL('../assets/materials/atlas.json', import.meta.url), 'utf8'));
+const mats = await loadMaterials(null, { manifest, current: false });
+
+{
+  // A house built against the atlas must arm a non-zero rect on its walls and
+  // roofs, and leave rect 0 on its decals (they carry absolute UVs).
+  const mb = new MeshBuilder();
+  const b = lFootprint();
+  const res = buildHouse(mb, b, FORCE.sub_2s_colonial, mats, mulberry32(11),
+    { lod: 0, streetYaw: Math.PI / 2, index: 5 });
+  const n = mb.vertCount;
+  if (mb.uv.length !== n * 2) fail(`uv array is ${mb.uv.length}, expected ${n * 2}`);
+  if (mb.rect.length !== n * 4) fail(`rect array is ${mb.rect.length}, expected ${n * 4}`);
+  let tiled = 0, absolute = 0;
+  for (let i = 0; i < n; i++) {
+    if (mb.rect[i * 4 + 2] > 0) tiled++; else absolute++;
+  }
+  // Walls, roofs, gable ends, the base course and the chimney tile; the decals
+  // and the untextured trim (steps, driveway, porch posts) do not. On a
+  // window-heavy colonial that lands near half and half.
+  if (tiled < n * 0.4) fail(`only ${tiled}/${n} vertices tile a material`);
+  if (absolute < 8) fail(`${absolute} untiled vertices — the decals lost their absolute UVs`);
+  const kinds = new Set();
+  for (let i = 0; i < n; i++) if (mb.rect[i * 4 + 2] > 0) kinds.add(mb.rect.slice(i * 4, i * 4 + 4).join(','));
+  if (kinds.size < 3) fail(`only ${kinds.size} distinct materials armed (wall/roof/base expected)`);
+  ok(`${res.tris} tris, ${tiled} tiled (${kinds.size} materials) + ${absolute} absolute-UV vertices`);
+
+  // Every armed rect must be a real atlas cell, and every absolute UV inside [0,1].
+  const cells = new Set(mats.list.map((k) => mats.rect(k).join(',')));
+  let badRect = 0, badUV = 0;
+  for (let i = 0; i < n; i++) {
+    const r = mb.rect.slice(i * 4, i * 4 + 4);
+    if (r[2] > 0) { if (!cells.has(r.join(','))) badRect++; }
+    else if (mb.uv[i * 2] < 0 || mb.uv[i * 2] > 1 || mb.uv[i * 2 + 1] < 0 || mb.uv[i * 2 + 1] > 1) badUV++;
+  }
+  if (badRect) fail(`${badRect} vertices carry a rect that is not an atlas cell`);
+  if (badUV) fail(`${badUV} untiled vertices have UVs outside [0,1]`);
+  if (!badRect && !badUV) ok('every rect is an atlas cell and every decal UV is in [0,1]');
+}
+
+{
+  // The repeat count across a wall has to be metres / tile metres, or the brick
+  // comes out the wrong size. Check the primitive directly, both axes.
+  const cases = [['brick_red', 6, 3], ['vinyl_white', 11.5, 5.75], ['stone_grey', 4, 2.4]];
+  let bad = 0;
+  for (const [name, w, h] of cases) {
+    const mb = new MeshBuilder();
+    mats.tile(mb, name, { ox: 0, oz: 0 });
+    mb.quad([0, 0, 0], [w, 0, 0], [w, h, 0], [0, h, 0], [1, 1, 1], [0, 0, 1]);
+    const m = mats.metres(name);
+    const du = Math.abs(mb.uv[2] - mb.uv[0]), dv = Math.abs(mb.uv[7] - mb.uv[1]);
+    if (Math.abs(du - w / m) > 1e-6) { fail(`${name}: ${du} repeats across ${w} m, expected ${w / m}`); bad++; }
+    if (Math.abs(dv - h / m) > 1e-6) { fail(`${name}: ${dv} repeats up ${h} m, expected ${h / m}`); bad++; }
+  }
+  // A roof slope measures its repeats along the PITCH, not the plan.
+  {
+    const mb = new MeshBuilder();
+    mats.tile(mb, 'shingle_dark', { ox: 0, oz: 0 });
+    mb.quad([0, 0, 0], [8, 0, 0], [8, 3, -4], [0, 3, -4], [1, 1, 1], [0, 0.8, 0.6]);
+    const m = mats.metres('shingle_dark');
+    const dv = Math.abs(mb.uv[7] - mb.uv[1]);
+    if (Math.abs(dv - Math.hypot(3, 4) / m) > 1e-6) {
+      fail(`shingle: ${dv} repeats up the slope, expected ${Math.hypot(3, 4) / m}`); bad++;
+    }
+  }
+  if (!bad) ok('UV repeats are wall metres / tile metres on walls and slopes');
+}
+
+{
+  // The stub has to keep working: no atlas, no rect, no UVs, same triangles.
+  const mb = new MeshBuilder();
+  const b = lFootprint();
+  const res = buildHouse(mb, b, FORCE.sub_2s_colonial, STUB, mulberry32(11),
+    { lod: 0, streetYaw: Math.PI / 2, index: 5 });
+  if (mb.rect.length) fail(`the stub path emitted ${mb.rect.length / 4} rects`);
+  if (mb.uv.length) fail(`the stub path emitted ${mb.uv.length / 2} UVs`);
+  ok(`untextured fallback still builds (${res.tris} tris, no uv/rect)`);
+}
+
+{
+  // Phase 1 ships short keys (e/s/l/r/ry/h/rh/g/p); both spellings must decode.
+  const b = lFootprint();
+  const short = normalizeAttrs(b, { e: 'old', s: 2, l: 'detached', r: 'gable', ry: 0.3, h: 6.1, rh: 8.4, g: 'none', p: 1 }, 3);
+  const long = normalizeAttrs(b, { era: 'old', storeys: 2, link: 'detached', roof: 'gable', ridgeYaw: 0.3, height: 6.1, ridgeHeight: 8.4, garage: 'none', porch: true }, 3);
+  for (const k of ['era', 'storeys', 'link', 'roof', 'ridgeYaw', 'height', 'ridgeHeight', 'garage', 'porch']) {
+    if (String(short[k]) !== String(long[k])) fail(`short key ${k}: ${short[k]} vs ${long[k]}`);
+  }
+  ok('Phase 1 short attribute keys decode to the same house as long ones');
+  let withHs = 0;
+  for (const bb of MAP.buildings) if (bb.hs) withHs++;
+  ok(`${withHs} of ${MAP.buildings.length} buildings carry Phase 1 attributes`);
+}
 
 console.log(failures ? `\n${failures} FAILURE(S)` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

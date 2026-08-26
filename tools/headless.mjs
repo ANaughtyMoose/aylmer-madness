@@ -76,7 +76,11 @@ if (script) {
   console.log('script:', typeof out === 'string' ? out : JSON.stringify(out, null, 1));
 }
 if (shot) {
-  const png = await send('Page.captureScreenshot', { format: 'png' });
+  // .jpg / .jpeg asks Chrome for JPEG instead — a 1280x800 PNG of the game is
+  // 300-800 KB, which is more than docs/shots wants to carry.
+  const jpeg = /\.jpe?g$/i.test(shot);
+  const png = await send('Page.captureScreenshot',
+    jpeg ? { format: 'jpeg', quality: 82 } : { format: 'png' });
   const fs = await import('node:fs'); fs.writeFileSync(shot, Buffer.from(png.data, 'base64'));
   console.log('screenshot:', shot);
 }

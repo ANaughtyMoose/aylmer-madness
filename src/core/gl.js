@@ -75,7 +75,11 @@ void main(){
   // was), so a chunk can mix textured houses and untextured scenery in one
   // draw and builders can tint a material (vinyl_white x tint = any siding).
   vec3 base = vCol * mix(vec3(1.0), tx.rgb, uUseTex);
-  if (uUseTex > 0.5 && tx.a < 0.35) discard;
+  // Alpha cut-out is for absolute-UV geometry only: decals (windows, doors) and
+  // car skins. A tiled cell (vRect.z > 0) never discards — at a high mip level
+  // its edge texels average in the transparent gutter around the atlas cell,
+  // and a roof that dissolves at 150 m is worse than a slightly soft edge.
+  if (uUseTex > 0.5 && vRect.z <= 0.0 && tx.a < 0.35) discard;
   if (uWater > 0.5) {
     // Two crossed ripple trains at different speeds: enough to break the flat
     // slab of river without a normal map or a second pass.

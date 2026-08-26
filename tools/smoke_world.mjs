@@ -23,13 +23,15 @@ globalThis.document = {
 
 class StubRenderer {
   constructor() {
-    this.uploads = 0; this.verts = 0; this.tris = 0; this.draws = 0;
+    this.uploads = 0; this.verts = 0; this.tris = 0; this.draws = 0; this.texVerts = 0;
     this.textures = 0; this.time = 0;
     this.env = { sky: [0.42, 0.62, 0.95], fog: [0.72, 0.8, 0.92], sun: [1, 1, 1] };
   }
   upload(b) {
     this.uploads++;
+    if (b.finish) b.finish();          // the real Renderer.upload does this
     this.verts += b.v.length / 9;
+    if (b.rect.length) this.texVerts += b.v.length / 9;
     this.tris += b.i.length / 3;
     assert.equal(b.i.length % 3, 0, 'index buffer is not whole triangles');
     if (b.uv.length) assert.equal(b.uv.length, (b.v.length / 9) * 2, 'uv array out of step');
@@ -235,8 +237,31 @@ ok('T3 MAP keeps the shape nav/bigmap/hud/places read', () => {
 });
 
 // ------------------------------------------------- budget
-ok('triangle budget still under 500k', () => {
-  assert.ok(r.tris < 500000, `${r.tris | 0} triangles`);
+// The town itself (roads, ground, trees, non-house buildings) still has to fit
+// the old 500k budget; the houses are baked twice on top of it — lod 0 near and
+// lod 2 far — and only ever one of the two is drawn for a given chunk.
+ok('the town without houses is still under 500k triangles', () => {
+  const houses = world.stats.residentNear + world.stats.residentFar;
+  assert.ok(r.tris - houses < 500000, `${(r.tris - houses) | 0} triangles`);
+});
+
+ok('resident house geometry stays inside the LOD budget', () => {
+  const st = world.stats;
+  assert.ok(st.residentNear > 400000, `near bake is only ${st.residentNear | 0} tris`);
+  assert.ok(st.residentNear + st.residentFar < 1300000,
+    `${(st.residentNear + st.residentFar) | 0} resident house triangles`);
+  // Only the near bake carries UV + atlas-rect attributes (60 B a vertex); the
+  // far bake and the whole town stay on the 36 B layout.
+  const mb = (r.texVerts * 60 + (r.verts - r.texVerts) * 36) / (1024 * 1024);
+  assert.ok(mb < 190, `${mb.toFixed(0)} MB of vertex buffers`);
+  console.log(`       ${(st.residentNear / 1000) | 0}k near + ${(st.residentFar / 1000) | 0}k far tris, `
+    + `${(r.texVerts / 1000) | 0}k textured verts, ${mb.toFixed(0)} MB vertex data`);
+});
+
+ok('near and far house bakes agree on how many houses there are', () => {
+  let near = 0, far = 0;
+  for (const c of world.chunks) { if (c.near) near++; if (c.far) far++; }
+  assert.equal(near, far, `${near} near chunks vs ${far} far chunks`);
 });
 
 console.log(`\n${checks - fails.length}/${checks} checks passed`);
