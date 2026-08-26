@@ -495,7 +495,7 @@ function resetCarLocations(quiet = false) {
   G.parked = {};
   for (const c of CARS) {
     if (G.veh && c.id === G.veh.spec.id) continue;
-    G.parked[c.id] = { ...home[c.id] };
+    if (home[c.id]) G.parked[c.id] = { ...home[c.id] };   // cars not lent/bought yet have no spot
   }
   G.health = {};
   if (G.veh) {

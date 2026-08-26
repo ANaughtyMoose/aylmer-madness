@@ -134,7 +134,8 @@ group('save slots');
   for (const k of ['version', 'name', 'savedAt', 'playtime', 'carId', 'money', 'timeOfDay']) {
     eq(back[k], full[k], `round-trip: ${k}`);
   }
-  eq(back.parked, full.parked, 'round-trip: parked positions');
+  // normalizeSave adds a home spot for every car the fixture left out, so compare the ones it set.
+  for (const id of Object.keys(full.parked)) eq(back.parked[id], full.parked[id], `round-trip: parked ${id}`);
   eq(back.health, full.health, 'round-trip: per-car damage');
   eq(back.progress, full.progress, 'round-trip: jobs done');
   eq(back.best, full.best, 'round-trip: best times');
@@ -374,7 +375,8 @@ group('reset car locations');
   for (const c of CARS) {
     const p = PLACES[owners[c.id]];
     const d = Math.hypot(home[c.id].x - p.x, home[c.id].z - p.z);
-    ok(d < 12, `${c.id} is parked within a car length of ${owners[c.id]}`);
+    // Six cars can share the driveway at 299 Fraser; slots run 6.5 m apart along the kerb.
+    ok(d < 40, `${c.id} is parked at ${owners[c.id]} (${d.toFixed(1)} m from the marker)`);
   }
   const dHome = Math.hypot(home.ranger.x - home.saturn.x, home.ranger.z - home.saturn.z);
   ok(dHome > 5, 'two cars in the same driveway do not sit on top of each other');
