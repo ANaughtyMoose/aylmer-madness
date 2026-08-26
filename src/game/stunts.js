@@ -98,7 +98,7 @@ export const COUCH = {
                      // roughly +/- 1.2 m of aim is forgiven, past that it spins off
   flight: 1.20,      // seconds of animation
   spin: 5.0,         // rad/s of tumble
-  hitRadius: 2.6,    // how close the car has to get to the trunk to count
+  hitRadius: 3.4,    // how close the car has to get to the trunk to count (a corner hit the trunk stops still counts)
 };
 
 // Does this car, right now, launch the couch? car: { x, z, yaw, vLong }.
