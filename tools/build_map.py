@@ -5,6 +5,27 @@ Everything the game draws or drives on comes from here: real Aylmer roads,
 real building footprints, the Ottawa River shoreline, parks and lots.
 Coordinates are metres in a local frame: +X east, +Z south (GL right-handed
 with +Y up), origin at the centre of the clip rectangle.
+
+Buildings carry an "id" (the OSM way id) and, where data/houses.json has a
+record for that id, an "hs" object of per-house attributes recovered from open
+data by tools/build_houses.py.  Short keys, in the same order as the long-form
+schema in docs/HOUSES.md:
+
+    id   OSM way id (int)
+    hs.e  era        'old' <=1945 | 'midcentury' 1946-69 | 'cottage'
+                     | 'suburban' 1970-99 | 'modern' >=2000
+    hs.y  year built (int) or null
+    hs.s  storeys    1 | 1.5 | 2 | 2.5 | 3
+    hs.l  link       'detached' | 'semi' | 'row' | 'apartment'
+    hs.r  roof       'gable' | 'hip' | 'flat' | 'mansard' | 'shed'
+    hs.ry ridge yaw, radians, SAME convention as the building's 'a':
+          atan2(dz, dx) — 0 = +X east, positive turning toward +Z south —
+          folded into [-pi/2, pi/2) because a ridge line has no direction
+    hs.h  eave height, metres
+    hs.rh ridge height, metres, or null for a flat roof
+    hs.g  garage     'none' | 'attached' | 'detached' | 'carport'
+    hs.p  porch      1 or absent
+    hs.sr source bitmask: 1 assessment roll, 2 LiDAR, 4 footprint shape
 """
 import json, math, os, sys, hashlib, base64
 
@@ -229,9 +250,35 @@ HEIGHT = {'house': (4.8, 6.2), 'terrace': (6.0, 7.0), 'apartments': (10, 16), 'c
           'industrial': (6.5, 8.5), 'church': (10, 13), 'school': (6.5, 8), 'shed': (2.4, 3.0),
           'public': (7, 9), 'big': (7, 9), 'mall': (8, 9)}
 
+HS_KEYS = (('era', 'e'), ('year', 'y'), ('storeys', 's'), ('link', 'l'),
+           ('roof', 'r'), ('ridgeYaw', 'ry'), ('height', 'h'),
+           ('ridgeHeight', 'rh'), ('garage', 'g'))
+
+def load_houses():
+    """data/houses.json -> {osm way id: short-key attribute object}."""
+    path = os.path.join(DATA, 'houses.json')
+    if not os.path.exists(path):
+        print('houses: data/houses.json absent — run tools/build_houses.py',
+              file=sys.stderr)
+        return {}
+    with open(path) as f:
+        raw = json.load(f)
+    out = {}
+    for k, v in raw.items():
+        hs = {short: v[long] for long, short in HS_KEYS if v.get(long) is not None}
+        if v.get('porch'):
+            hs['p'] = 1
+        s = v.get('src') or {}
+        hs['sr'] = (1 if s.get('roll') else 0) | (2 if s.get('lidar') else 0) \
+                   | (4 if s.get('shape') else 0)
+        out[int(k)] = hs
+    return out
+
 def build_buildings():
+    houses = load_houses()
     out = []
     dropped = 0
+    with_hs = 0
     for w in load('buildings.json'):
         t = w.get('tags', {})
         pts = [proj(g['lat'], g['lon']) for g in w['geometry']]
@@ -269,14 +316,20 @@ def build_buildings():
             continue
         cx = sum(p[0] for p in pts) / len(pts); cz = sum(p[1] for p in pts) / len(pts)
         b = {
+            'id': w['id'],
             'k': kind, 'h': round(h, 1), 'a': round(ang, 3), 'c': [round(cx, 1), round(cz, 1)],
             'p': [[p[0], p[1]] for p in pts], 't': [i for tri in tris for i in tri],
         }
+        hs = houses.get(w['id'])
+        if hs:
+            b['hs'] = hs
+            with_hs += 1
         if t.get('name'): b['name'] = t['name']
         if t.get('addr:housenumber') and t.get('addr:street'):
             b['addr'] = f"{t['addr:housenumber']} {t['addr:street']}"
         out.append(b)
-    print(f'buildings: {len(out)} kept, {dropped} tiny dropped', file=sys.stderr)
+    print(f'buildings: {len(out)} kept, {dropped} tiny dropped, '
+          f'{with_hs} with house attributes', file=sys.stderr)
     return out
 
 # ------------------------------------------------------------------ areas + water
