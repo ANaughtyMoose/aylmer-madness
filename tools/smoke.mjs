@@ -491,7 +491,9 @@ group('playthrough: le canot a 45 piasses');
   });
   ok(res.done, 'the canoe job completes', res.failed || '');
   ok(res.log.join(',') === 'buy,buy,repair,paddle', 'stages ran in order: ' + res.log.join(','));
-  ok(G.wallet.value === 80 - 45 - 21, `the canoe and the Bondo cost 66 $ (left: ${G.wallet.value})`);
+  // 45 for the canoe, 21 for the Bondo, and the gars campé sur l'île gives you
+  // 90 for it when you land — every job has to pay something now.
+  ok(G.wallet.value === 80 - 45 - 21 + 90, `canoe -45, Bondo -21, sold on the island +90 (left: ${G.wallet.value})`);
   const paddleSecs = res.marks.paddle - res.marks.repair;
   ok(paddleSecs > 120 && paddleSecs < 420,
     `the crossing takes ${Math.round(paddleSecs)} s of paddling flat out`);

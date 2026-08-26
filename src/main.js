@@ -27,6 +27,9 @@ import {
   Legend, Tutorial, Loading, IntroCard, keyboardHTML, settingsHTML, wireSettings,
 } from './game/ui.js';
 import { CarTurntable } from './game/turntable.js';
+import { Gearbox } from './game/gearbox.js';
+import { Garage } from './game/garage.js';
+import { Radio } from './game/radio.js';
 import { Signals } from './game/signals.js';
 // Side jobs: props, the canoe, and the extended stage model. Everything below
 // hooks in through G — main.js does not know what a doughnut is.
@@ -87,6 +90,9 @@ const G = {
   fx: null, repair: { t: 0 }, towed: false,
   // side-job state: hand-placed props, the canoe, who the camera follows, cash
   props: null, boat: null, focus: null, wallet: null,
+  // Progression + the deck. `gearbox` turns road speed into rpm for the engine
+  // note (game/gearbox.js); `garage` says which cars you are allowed to drive.
+  gearbox: null, garage: null, radio: null,
   hud, audio, input,
 };
 setLang(G.settings.lang);
@@ -100,7 +106,45 @@ const introCard = new IntroCard();
 hud.setSize(MAP_SIZES[G.mapPrefs.size]);
 hud.setRange(G.mapPrefs.range);
 // Whose driveway each car lives in.
-const OWNER = { ranger: 'home', saturn: 'marc', civic: 'steph', sunfire: 'dave' };
+const OWNER = {
+  ranger: 'home', saturn: 'marc', civic: 'steph', sunfire: 'dave',
+  // The four beaters live on the lot until somebody buys them, and after that
+  // they live in your driveway with everything else.
+  cutlass: 'usedlot', cavalier: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
+};
+const homeOf = (id) => PLACES[OWNER[id]] || PLACES.home;
+
+const garage = new Garage(G.done);
+G.garage = garage;
+const radio = new Radio(audio);
+G.radio = radio;
+radio.onChange = paintRadio;
+// If the car you were last in is not yours any more (progress was wiped), the
+// Ranger always is.
+if (!garage.has(G.carId, G.done)) G.carId = 'ranger';
+
+// The radio's one line of HUD, bottom-left under the objective.
+function paintRadio(st) {
+  const el = $('radio');
+  if (!el) return;
+  const s = st || radio.state();
+  el.classList.toggle('hidden', !(s.on || s.wantOn) || G.mode !== 'drive');
+  // It sits one line above the street name, which hud.setSize() slides sideways
+  // when the minimap changes size.
+  const street = $('street');
+  if (street && street.style.left) el.style.left = street.style.left;
+  const name = $('radiostation'), track = $('radiotrack');
+  if (name) name.textContent = s.stationName;
+  if (track) track.textContent = s.track || s.slogan || '';
+}
+
+function toggleRadio() {
+  const st = radio.toggle();
+  hud.toast(st.wantOn
+    ? `${st.stationName}${st.slogan ? ' \u2014 ' + st.slogan : ''}\n${st.track}`
+    : t('radio.off'), 1800);
+  paintRadio(st);
+}
 
 function loadBest() {
   try { return JSON.parse(localStorage.getItem('aylmer.best') || '{}') || {}; } catch (e) { return {}; }
@@ -119,24 +163,30 @@ function buildMenu() {
   wrap.innerHTML = '';
   const cards = [];
   for (const c of CARS) {
+    const owned = garage.has(c.id, G.done);
     const el = document.createElement('div');
-    el.className = 'card' + (c.id === G.carId ? ' sel' : '');
+    el.className = 'card' + (c.id === G.carId ? ' sel' : '') + (owned ? '' : ' locked');
     const hex = '#' + c.body.toString(16).padStart(6, '0');
-    const bar = (label, v) =>
-      `<div class="bar"><b>${label}</b><u><i style="width:${Math.round(v * 100)}%"></i></u></div>`;
+    // The bus is off the end of every one of these scales, so clamp them.
+    const bar = (label, v) => {
+      const w = Math.round(Math.max(0.04, Math.min(1, v)) * 100);
+      return `<div class="bar"><b>${label}</b><u><i style="width:${w}%"></i></u></div>`;
+    };
     // The turntable canvas replaces the paint swatch when WebGL is available;
     // the body colour stays as a thin stripe so the car is still identifiable.
     const art = turntable.ok
       ? `<canvas class="turn" width="300" height="200"></canvas>` +
         `<div class="stripe" style="background:${hex}"></div>`
       : `<div class="swatch" style="background:${hex}"></div>`;
-    el.innerHTML = art +
+    const lock = owned ? '' :
+      `<div class="lock"><span>\u{1F512}</span>${garage.reason(c.id, G.done, G.settings.lang)}</div>`;
+    el.innerHTML = art + lock +
       `<h3>${c.name}</h3><div class="who">${c.who} &middot; ${c.seats + 1} ${t('menu.seats')}</div>` +
-      bar('Speed', (c.topSpeed - 33) / 15) +
-      bar('Accel', (c.accel - 3) / 3) +
-      bar('Grip', (c.grip - 0.72) / 0.4) +
+      bar('Speed', (c.topSpeed - 24) / 24) +
+      bar('Accel', (c.accel - 1.4) / 4.2) +
+      bar('Grip', (c.grip - 0.60) / 0.52) +
       `<div class="flav">${c.flavour}</div>`;
-    el.onclick = () => { G.carId = c.id; buildMenu(); };
+    el.onclick = () => { if (!owned) return; G.carId = c.id; buildMenu(); };
     wrap.appendChild(el);
     const cv = el.querySelector('canvas.turn');
     if (cv) cards.push({ id: c.id, canvas: cv });
@@ -170,6 +220,7 @@ function applyMenuText() {
 }
 
 function startGame() {
+  if (!garage.has(G.carId, G.done)) G.carId = 'ranger';
   G.assist = $('optAssist').checked;
   audio.enabled = $('optAudio').checked;
   G.settings.assist = G.assist;
@@ -279,8 +330,20 @@ function enterDrive() {
   G.veh.reset(h.x, h.z, h.a);
   G.health = {}; G.repair.t = 0; G.towed = false;
   audio.setEngineProfile(spec.sound);
+  G.gearbox = new Gearbox(spec.drive);
   G.parked = {};
-  for (const c of CARS) if (c.id !== spec.id) G.parked[c.id] = curbSpot(PLACES[OWNER[c.id]]);
+  garage.setProgress(G.done);
+  // Cars you have are at their owner's kerb; the ones on the lot stand in a row
+  // with the price soaped on the glass whether or not you can afford them.
+  for (const c of CARS) {
+    if (c.id === spec.id) continue;
+    if (garage.has(c.id, G.done)) G.parked[c.id] = curbSpot(homeOf(c.id));
+  }
+  const sale = garage.forSale();
+  for (let i = 0; i < sale.length; i++) {
+    if (sale[i] === spec.id) continue;
+    G.parked[sale[i]] = lotSpot(PLACES.usedlot, i);
+  }
   // Where you left the other three last session, if you took the same car out.
   const saved = loadGarage();
   if (saved.carId === spec.id) {
@@ -323,10 +386,27 @@ function enterDrive() {
   G.tutoMapOpened = false; G.tutoJobTaken = false;
   saveGarageNow();
   audio.start(); audio.resume();
+  radio.resume();
+  radio.loadTape().then(() => paintRadio()).catch(() => {});
+  paintRadio();
 }
 
 function saveGarageNow() {
   saveGarage({ carId: G.carId, parked: G.parked, health: G.health });
+}
+
+// A row of parking spots along the kerb — the used lot, where four beaters sit
+// nose-to-tail. `i` is the place in the row.
+function lotSpot(p, i = 0) {
+  const a = p.a || 0;
+  const fx = Math.sin(a), fz = Math.cos(a);
+  let dx = p.bx - p.x, dz = p.bz - p.z;
+  const d = Math.hypot(dx, dz);
+  // If the marker snapped exactly onto the building there is no "in" direction;
+  // step off the road to the right instead.
+  if (d < 0.5) { dx = fz; dz = -fx; } else { dx /= d; dz /= d; }
+  const along = (i - 1.5) * 6.2;
+  return { x: p.x + dx * 4.0 + fx * along, z: p.z + dz * 4.0 + fz * along, yaw: a };
 }
 
 // A parking spot at the curb in front of a place, nose along the street.
@@ -348,6 +428,7 @@ function swapCar(id) {
   G.veh.reset(spot.x, spot.z, spot.yaw);
   restoreDamage(G.veh, G.health[id]);
   audio.setEngineProfile(spec.sound);
+  G.gearbox = new Gearbox(spec.drive);
   G.repair.t = 0;
   hud.setCar(spec.name);
   hud.toast(`${spec.who === 'Yours' ? 'Ton' : spec.who.replace("'s", '') + ' te passe son'} ${spec.name}`, 1800);
@@ -448,8 +529,26 @@ function updateMission(dt) {
       }
       if (carId && Math.abs(v.vLong) < 3) {
         const c = carById(carId);
-        hud.prompt(`E  —  prendre ${c.who === 'Yours' ? 'ton' : 'le'} ${c.name}${c.who === 'Yours' ? '' : ' de ' + c.who.replace("'s", '')}`);
-        if (G.wantStart) { G.wantStart = false; hud.prompt(null); swapCar(carId); }
+        if (!garage.has(carId, G.done)) {
+          // On the lot: the same hold/cost shape the yard sale uses, except the
+          // thing you are buying drives away.
+          const cost = garage.cost(carId);
+          const can = garage.canBuy(carId, G.wallet, G.done);
+          hud.prompt(`E  \u2014  acheter ${c.name}   \u00b7   ${cost} $` + (can.ok ? '' : `   (${can.why})`));
+          if (G.wantStart) {
+            G.wantStart = false;
+            const r = garage.buy(carId, G.wallet, G.done);
+            if (r.ok) {
+              hud.prompt(null);
+              hud.toast(`Vendu.\n${c.name} \u2014 ${cost} $`, 2600);
+              audio.chime(true);
+              swapCar(carId);
+            } else hud.toast(r.why, 2400);
+          }
+        } else {
+          hud.prompt(`E  —  prendre ${c.who === 'Yours' ? 'ton' : 'le'} ${c.name}${c.who === 'Yours' ? '' : ' de ' + c.who.replace("'s", '')}`);
+          if (G.wantStart) { G.wantStart = false; hud.prompt(null); swapCar(carId); }
+        }
       } else hud.prompt(null);
       G.wantStart = false;
       return;
@@ -496,6 +595,12 @@ function updateMission(dt) {
     const def = m.def;
     G.done.add(def.id); saveProgress(def.id);
     audio.chime(true);
+    // Somebody may just have decided to lend you their car.
+    garage.setProgress(G.done);
+    for (const u of garage.newlyUnlocked(G.done)) {
+      if (u.toast) hud.toast(u.toast, 3600);
+      if (u.id !== G.carId && !G.parked[u.id]) G.parked[u.id] = curbSpot(homeOf(u.id));
+    }
     const prev = G.best[def.id];
     const record = prev == null || m.elapsed < prev;
     if (record) { G.best[def.id] = m.elapsed; saveBest(); }
@@ -554,9 +659,11 @@ function openMap(on) {
     $('bigmap').classList.remove('hidden');
     $('pause').classList.add('hidden');
     audio.engine(0, 0); audio.skid(0); audio.horn(false);
+    paintRadio();
   } else {
     G.mode = 'drive'; last = performance.now();
     $('bigmap').classList.add('hidden');
+    paintRadio();
   }
 }
 
@@ -618,7 +725,9 @@ function handleKeys() {
   } else {
     G.lookBack = input.down('ShiftLeft', 'ShiftRight');
   }
-  if (input.hit('KeyR')) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
+  // R is the radio (it is 1999 and the deck matters); T is the get-me-out-of-here.
+  if (input.hit('KeyT')) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
+  if (input.hit('KeyR')) toggleRadio();
   if (input.hit('Enter', 'KeyE')) G.wantStart = true;
   if (input.hit('KeyQ')) G.wantCycle = true;
   // Mute moved off M so N can cycle the minimap size.
@@ -734,13 +843,16 @@ function tick(dt) {
   if (G.streetTimer <= 0) { G.streetTimer = 0.4; hud.setStreet(G.nav.streetName(v.x, v.z)); }
   updateRoute(dt);
 
-  // Audio: fake five-speed so the note climbs and drops like a real box.
-  const frac = clamp(Math.abs(v.vLong) / v.spec.topSpeed, 0, 1);
-  const gear = Math.min(4, Math.floor(frac * 4.4));
-  const rpm = clamp(0.18 + ((frac * 4.4) - gear) * 0.82, 0, 1);
-  audio.engine(rpm, ctl.throttle * 0.7 + Math.min(0.3, frac), v.speedKmh);
+  // The gearbox. rpm is not "how fast are you going out of top speed" any more:
+  // it is road speed through the real ratios, and the engine note follows it —
+  // including the 250 ms clutch dip on every change. See game/gearbox.js.
+  const gb = G.gearbox;
+  gb.update(dt, v.speedKmh, ctl.throttle, v.reversing && v.speedKmh > 1);
+  const load = clamp(ctl.throttle * 0.85 + Math.min(0.2, v.speedKmh / 400), 0, 1);
+  audio.engine(gb.rpm, load, v.speedKmh, ctl.throttle, gb.clutch);
   audio.skid(v.skid);
-  hud.setGear(gear + 1);
+  hud.setGear(v.reversing && v.speedKmh > 1 ? 'R' : gb.gear);
+  radio.update(dt, load, input.down('KeyH') || input.padHorn);
 
   tutorial.update(dt, {
     speedKmh: v.speedKmh, steer: input.steer, brake: ctl.brake,
@@ -1000,16 +1112,20 @@ function pause(on) {
     $('pause').classList.remove('hidden');
     audio.horn(false);
     audio.engine(0, 0); audio.skid(0);
+    radio.suspend();
     saveGarageNow();
   } else {
     G.mode = 'drive';
     last = performance.now();
     $('pause').classList.add('hidden');
+    radio.resume();
   }
 }
 
 function toMenu() {
   pause(false);
+  radio.suspend();
+  audio.engine(0, 0);
   G.mode = 'menu';
   G.mission = null;
   G.introUntil = 0;
@@ -1028,6 +1144,8 @@ $('garage').onclick = toMenu;
 $('wipe').onclick = () => {
   resetProgress(); G.done = new Set();
   clearGarage();
+  garage.reset().setProgress(G.done);
+  G.carId = 'ranger';
   tutorial.reset();
   if (G.wallet) G.wallet.set(START_CASH);
   hud.toast('Progression effac\u00e9e', 1600);
@@ -1072,7 +1190,7 @@ requestAnimationFrame(frame);
 
 // Debug hook: lets a console (or a test) step the sim without a live rAF.
 window.AYLMER = {
-  G, hud, input,
+  G, hud, input, garage, radio,
   step(dt = STEP) { if (G.mode === 'drive') { input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } },
   render() { if (G.mode === 'drive') render(STEP); },
   teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw); },

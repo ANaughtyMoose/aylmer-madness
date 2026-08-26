@@ -59,6 +59,7 @@ const CORE_MISSIONS = [
         radius: 24,
         time: 130,
         toast: 'Arrivé. Personne a rien vu.',
+        money: 20,
       }];
     },
   },
@@ -70,23 +71,32 @@ const CORE_MISSIONS = [
     giver: 'principale',
     timeOfDay: 'day',
     build(ctx) {
-      const marc = {
-        text: 'Chez Marc', sub: 'il est dehors depuis vingt minutes',
-        at: 'marc', radius: 13, toast: 'Marc embarque', passengers: +1,
-      };
+      // Bancroft is a lane and a half wide with cars on both sides. An ex-city
+      // bus does not go down it, so he walks out to Principale instead.
+      const marc = ctx.carId === 'bus'
+        ? {
+          text: 'Rue Principale', sub: 'l’autobus passe pas sur Bancroft — il te rejoint au coin',
+          at: 'principale', radius: 15, toast: 'Marc embarque, en riant', passengers: +1,
+        }
+        : {
+          text: 'Chez Marc', sub: 'il est dehors depuis vingt minutes',
+          at: 'marc', radius: 13, toast: 'Marc embarque', passengers: +1,
+        };
       const steph = {
         text: 'Chez Steph', sub: "elle amène le radio pis les cassettes",
         at: 'steph', radius: 13, toast: 'Steph embarque', passengers: +1,
+        // ...and the first thing she does is turn the radio on.
+        onExit: (G) => { if (G && G.radio) G.radio.power(true); },
       };
       const dave = {
         text: 'Chez Dave', sub: 'il habite loin, on le sait, il le sait',
         at: 'dave', radius: 13, toast: 'Dave embarque', passengers: +1,
       };
-      const beach = (sub, passengers) => ({
+      const beach = (sub, passengers, money) => ({
         text: 'Parc des Cèdres',
         sub,
         at: 'beach', radius: 20, maxSpeed: 45,
-        toast: 'Tout le monde débarque', passengers,
+        toast: 'Tout le monde débarque', passengers, money,
       });
 
       // The Ranger's bench seats three total, so two friends is the legal max
@@ -97,10 +107,10 @@ const CORE_MISSIONS = [
           { ...steph, sub: "trois sur le banc, c'est pas légal — elle s'assoit au milieu pareil" },
           beach('dépose-les, tranquille, y a des kids', -2),
           { ...dave, sub: 'deuxième voyage, il a même pas remarqué' },
-          beach('pour de vrai cette fois', -1),
+          beach('pour de vrai cette fois', -1, 30),
         ];
       }
-      return [marc, steph, dave, beach('roule lentement, y a des kids partout', -3)];
+      return [marc, steph, dave, beach('roule lentement, y a des kids partout', -3, 30)];
     },
   },
 
@@ -123,6 +133,7 @@ const CORE_MISSIONS = [
           sub: `avant que le fromage arrête de faire scouic dans le ${ctx.carName}`,
           at: 'steph', radius: 13, time: 95, maxSpeed: 40,
           toast: 'Livrées encore chaudes. Légende.',
+          money: 18,
         },
       ];
     },
@@ -147,6 +158,7 @@ const CORE_MISSIONS = [
           sub: 'ça fond, ça fond, ça fond',
           at: 'beach', radius: 20, time: 95,
           toast: 'Encore de la slush dedans. De justesse.',
+          money: 15,
         },
       ];
     },
@@ -177,6 +189,7 @@ const CORE_MISSIONS = [
           sub: 'le casse-croûte cherche quelqu’un pour l’été',
           at: 'marina', radius: 16,
           toast: 'Essai samedi matin. Six heures. Six heures du matin.',
+          money: 25,
         },
       ];
     },
@@ -194,6 +207,7 @@ const CORE_MISSIONS = [
         sub: `traverse la ville — le ${ctx.carName} fait trop de bruit dans l'entrée`,
         at: 'home', radius: 14, time: 210, maxSpeed: 35,
         toast: 'Lumière de la cuisine éteinte. Tu es correct.',
+        money: 22,
       }];
     },
   },
@@ -232,6 +246,7 @@ const CORE_MISSIONS = [
           sub: 'dernier arrêt — le soleil tombe dans la rivière',
           at: 'beach', radius: 20, time: 100,
           toast: 'Tu connais ta ville, là.',
+          money: 40,
         },
       ];
     },
@@ -277,4 +292,14 @@ export function missionById(id) {
 for (const m of MISSIONS) {
   if (!PLACES[m.giver]) throw new Error(`mission ${m.id}: unknown giver ${m.giver}`);
   if (!TIME_OF_DAY[m.timeOfDay]) throw new Error(`mission ${m.id}: unknown timeOfDay`);
+}
+
+// Every job pays. The economy only works if the used lot is reachable by
+// working, so a job with no `money` anywhere in it is a bug, not a design.
+// (Two builds per job: the bench-seat variant and the normal one.)
+export function missionPayout(def, ctx) {
+  const c = Object.assign({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 0 }, ctx || {});
+  let total = 0;
+  for (const st of def.build(c)) total += (st.money || 0) - (st.cost || 0);
+  return total;
 }

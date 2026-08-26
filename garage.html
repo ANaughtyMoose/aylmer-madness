@@ -25,7 +25,7 @@ let idx = 0, useSkin = true, yaw = 0.7, pitch = -0.28, dist = 8.5, drag = null;
 // skinned body's wheel arches are the driving agent's re-loft, not this file's.)
 let steer = 0, held = 0;
 const keys = new Set();
-addEventListener('keydown', e => { keys.add(e.code); if (e.code==='ArrowRight') idx=(idx+1)%CARS.length; if (e.code==='ArrowLeft') idx=(idx+3)%CARS.length; if (e.code==='KeyS') useSkin=!useSkin; });
+addEventListener('keydown', e => { keys.add(e.code); if (e.code==='ArrowRight') idx=(idx+1)%CARS.length; if (e.code==='ArrowLeft') idx=(idx+CARS.length-1)%CARS.length; if (e.code==='KeyS') useSkin=!useSkin; });
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 addEventListener('pointerdown', e => drag=[e.clientX,e.clientY]); addEventListener('pointerup', ()=>drag=null);

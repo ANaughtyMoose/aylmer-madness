@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aylmer Madness — engine audition</title>
+</head>
+<body style="background:#0a0e12;color:#cfd6dd;font:13px/1.5 ui-monospace,monospace;padding:24px">
+<p>Renders each car's engine offline. Used by <code>tools/audition.mjs</code>; there is
+nothing to click. Open the console and call
+<code>AUDITION.render('ranger', 'pull')</code> if you want one by hand.</p>
+<script type="module">
+import { CARS, carById } from '../src/game/cars.js';
+import { renderAudition, toPcm16Base64, envelope } from '../src/core/audition.js';
+import { renderLoop, STYLES, CKOI_TRACKS } from '../src/game/radio.js';
+
+window.AUDITION = {
+  cars: CARS.map((c) => c.id),
+  async render(id, kind = 'pull', sampleRate = 22050) {
+    const spec = carById(id);
+    const r = await renderAudition(spec, kind, sampleRate);
+    const env = envelope(r.samples, r.sampleRate, r.seconds);
+    return {
+      id, kind, sampleRate: r.sampleRate, seconds: r.seconds,
+      peak: env.peak, rms: env.rms, marks: r.marks, shifts: r.shifts,
+      plateau: r.plateau, plateauRpm: r.plateauRpm, cyl: r.cyl,
+      pcm: toPcm16Base64(r.samples),
+    };
+  },
+  styles: STYLES.map((s) => s.id),
+  // Eight seconds of a CKOI loop, so the station can be listened to without
+  // playing the game either.
+  async radio(style, seconds = 8, sampleRate = 22050) {
+    const t = CKOI_TRACKS.find((x) => x.style === style) || CKOI_TRACKS[0];
+    const buf = await renderLoop(style, t.seed, sampleRate);
+    const n = Math.min(buf.length, Math.round(seconds * sampleRate));
+    const cut = buf.getChannelData(0).subarray(0, n);
+    const env = envelope(cut, sampleRate, n / sampleRate);
+    return {
+      style, seconds: n / sampleRate, sampleRate, bpm: (STYLES.find((s) => s.id === style) || {}).bpm,
+      title: t.title, artist: t.artist,
+      peak: env.peak, rms: env.rms, pcm: toPcm16Base64(cut),
+    };
+  },
+};
+document.title = 'audition ready';
+</script>
+</body>
+</html>

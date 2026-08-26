@@ -32,6 +32,9 @@ export const PLACES = {
   // ---- side jobs -------------------------------------------------------
   // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.
   ctire:     { poi: 'Canadian Tire', x: 429.2, z: -242.8, label: 'Canadian Tire, chemin d’Aylmer', snap: true, lot: true },
+  // The used lot: a gravel corner on chemin d'Aylmer beside the Canadian Tire.
+  // Four beaters nose-to-tail and a plywood sign — see game/garage.js.
+  usedlot:   { road: "Chemin d'Aylmer", x: 520, z: -246, label: 'Lot d’occasion, chemin d’Aylmer', snap: true },
   // The garage sale: 41 Promenade Wychwood, a real footprint on a real street.
   yardsale:  { road: 'Promenade Wychwood', x: -523.8, z: 219.8, label: '41 Promenade Wychwood', snap: true },
   // Sayyad lives at Steph's address — same house, same coordinates, and the

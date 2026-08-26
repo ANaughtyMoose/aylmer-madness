@@ -1,3 +1,8 @@
 .DS_Store
 data/raw/
 __pycache__/
+
+# The player's own mixtape (see assets/radio/README.md) — never ours to commit.
+assets/radio/*
+!assets/radio/README.md
+!assets/radio/playlist.example.json
