@@ -1084,7 +1084,11 @@ export function buildWorld(renderer, mats = MATS) {
   // ------------------------------------------------------------ 8. distant scenery
   const grassFar = shade(C.grassLo, 0.92);
   // apron: green everywhere outside the map except to the south, which is river
-  distant.flat(B.minX - 3000, B.minZ - 3000, B.maxX + 3000, B.maxZ, -0.05, grassFar);
+  // Well below the baked ground: this one quad spans 11 km, and on software /
+  // low-precision GPUs its interpolated depth can beat a road 10 cm above it
+  // (streets vanished into fog colour on SwiftShader at -0.05). At -0.6 nothing
+  // in the town can lose to it, and it only ever shows through landuse gaps.
+  distant.flat(B.minX - 3000, B.minZ - 3000, B.maxX + 3000, B.maxZ, -0.6, grassFar);
   // the Ottawa River continuing south past the map edge
   distant.flat(-6000, B.maxZ, 6000, 6000, -0.6, waterCol);
   // the Ontario shore: a far tree line read as one dark green block
