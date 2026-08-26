@@ -496,6 +496,25 @@ export function addDetails(mb, s, opts = {}) {
     both((sx) => mb.box(sx * (hw - 0.13), floor + 0.10, zc, 0.03, 0.04, len - 0.30, shade(s.body, 0.6)));   // inner wheel-tub lip
     mb.box(0, floor + 0.01, zc, hw * 2 - 0.28, 0.01, len - 0.2, shade(s.body, 0.62));                    // ribbed floor
     for (let k = -3; k <= 3; k++) mb.box(0, floor + 0.02, zc + k * (len / 7), hw * 2 - 0.3, 0.008, 0.05, shade(s.body, 0.50));
+    // XLT, not XL: the two-tone lower body (Medium Silver under Oxford White) with
+    // the twin bodyside stripes on the break line, chrome mirror heads and door
+    // handles over the black ones, and the fender badge. The band is cut around
+    // the wheel arches so they still read as arches.
+    const two = rgb(0x8f969e), stripeA = rgb(0x24457f), stripeB = rgb(0xb9bec4);
+    const r = s.wheelR + 0.10, yLo = s.clearance + 0.17, yHi = 0.71;
+    const spans = [[zR + 0.22, -s.axleZ - r], [-s.axleZ + r, s.axleZ - r], [s.axleZ + r, zF - 0.34]];
+    both((sx) => {
+      for (const [za, zb] of spans) {
+        if (zb - za < 0.2) continue;
+        const zc2 = (za + zb) / 2, tc = (zc2 - zR) / (zF - zR), hwB = hwAt(s, tc);
+        mb.box(sx * (hwB + 0.006), (yLo + yHi) / 2, zc2, 0.012, yHi - yLo, zb - za, two);
+        mb.box(sx * (hwB + 0.009), yHi + 0.016, zc2, 0.012, 0.02, zb - za, stripeA);
+        mb.box(sx * (hwB + 0.009), yHi + 0.045, zc2, 0.012, 0.012, zb - za, stripeB);
+      }
+      mb.box(sx * (hwAt(s, 0.69) + 0.09), beltAt(s, 0.69) + 0.08, z(0.69), 0.17, 0.11, 0.14, chrome);   // mirror head
+      mb.box(sx * (hwAt(s, 0.49) + 0.009), beltAt(s, 0.49) - 0.13, z(0.49), 0.014, 0.032, 0.15, chrome); // handle
+      mb.box(sx * (hwAt(s, 0.80) + 0.007), 0.82, z(0.80), 0.012, 0.045, 0.15, chrome);                  // XLT badge
+    });
   }
 
   if (s.id === 'saturn') {

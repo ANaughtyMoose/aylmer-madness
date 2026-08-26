@@ -5,8 +5,10 @@ html,body{margin:0;height:100%;background:#1a2028;color:#fff;font-family:Helveti
 canvas{display:block;width:100%;height:100%}
 #ui{position:fixed;top:14px;left:16px;font-size:14px;opacity:.85;line-height:1.6}
 #ui b{font-size:18px;display:block}
-</style></head><body>
+</style><style>#back{position:fixed;right:18px;top:14px;z-index:5;background:#ffc94d;color:#10171c;font:700 12px/1 Helvetica,Arial,sans-serif;letter-spacing:.6px;padding:10px 14px;border-radius:8px;text-decoration:none}#back:hover{filter:brightness(1.08)}</style>
+</head><body>
 <canvas id="gl"></canvas>
+<a id="back" href="index.html">&larr; Retour au menu</a>
 <div id="ui"><b id="name"></b><span id="info"></span><br><small>← → change car · S skin/loft · A/D steer the front wheels · drag to orbit</small></div>
 <script type="module">
 import { Renderer } from './src/core/gl.js';

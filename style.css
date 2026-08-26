@@ -284,3 +284,7 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
 .topbar button{width:auto;margin:0;padding:8px 16px;font-size:12px;letter-spacing:.6px}
 .topbar .hint{font-size:11px;opacity:.5;letter-spacing:1px}
 #btnLoad:disabled,#btnContinue:disabled{opacity:.35;cursor:default}
+
+/* The one button that starts the game reads like it. */
+#menuside #start{font-size:17px;padding:18px 12px;letter-spacing:1.4px;box-shadow:0 6px 24px rgba(255,201,77,.28)}
+#menuside #start:hover{filter:brightness(1.06)}
