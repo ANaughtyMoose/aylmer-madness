@@ -21,6 +21,7 @@ const FR = {
 
   // loading
   'load.title': 'ON BÂTIT AYLMER',
+  'load.mats': 'La brique pis le clin…',
   'load.world': 'Rues, maisons, rivière, arbres…',
   'load.roads': 'Rues…',
   'load.houses': 'Maisons…',
@@ -121,6 +122,7 @@ const EN = {
   'menu.seats': 'seats',
 
   'load.title': 'BUILDING AYLMER',
+  'load.mats': 'Brick and siding…',
   'load.world': 'Streets, houses, river, trees…',
   'load.roads': 'Streets…',
   'load.houses': 'Houses…',

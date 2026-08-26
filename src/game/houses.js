@@ -6,8 +6,20 @@
 //
 // `b`    a mapdata building: { k, h, a, c:[x,z], p:[[x,z]...], t:[i,i,i...], addr? }
 // `hs`   Phase 1's per-house attributes, or null (then they are inferred here)
-// `mats` a material provider (src/game/materials_stub.js, or Phase 3's
-//        materials.js — identical API, see that file's header)
+// `mats` a material provider: src/game/materials.js (the real 2048² atlas) or
+//        src/game/materials_stub.js (no atlas, vertex colours only). The
+//        contract is seven members and is written out in the stub's header.
+//        Which one you pass is the whole difference between a textured house
+//        and the flat-coloured one the game had before Phase 3 — every call
+//        site below works either way:
+//          mt.wall() / mt.roof() / mt.base()  arm a tiling material; the next
+//            primitive gets world-projected UVs at the tile's real size
+//            (MeshBuilder.autoUV) until mt.off()
+//          mt.dec(name)                       an alpha-cut decal rect, or null
+//          mats.tint(name, k)                 vertex colour UNDER a texture
+//            (near-white x k with the atlas, the material's colour without it)
+//          mats.color(name)                   the material's own colour, for
+//            the untextured trim: concrete, asphalt, porch posts
 // `rng`  a seeded 0..1 generator (mulberry32 from core/math.js)
 // `opts` { lod, streetYaw, y, index, addSegment, budget }
 //
@@ -237,8 +249,24 @@ export function inferAttrs(b, index = 0) {
 // Fill the gaps in whatever Phase 1 supplied; never trusts it to be complete.
 // Heights are re-derived from the storey count that actually wins, so partial
 // attrs ({era, storeys, roof} and nothing else) still give the right silhouette.
-export function normalizeAttrs(b, hs, index = 0) {
+// Phase 1 (tools/build_houses.py) ships SHORT keys to keep mapdata small:
+//   e era, y year, s storeys, l link, r roof, ry ridgeYaw, h eave height,
+//   rh ridge height, g garage, p porch (1 or absent), sr source bitmask.
+// Both spellings are accepted so a hand-written attrs object still works.
+export function decodeAttrs(hs) {
+  if (!hs) return null;
+  if (hs.era !== undefined || hs.storeys !== undefined || hs.roof !== undefined) return hs;
+  return {
+    era: hs.e, year: hs.y, storeys: hs.s, link: hs.l, roof: hs.r,
+    ridgeYaw: hs.ry, height: hs.h, ridgeHeight: hs.rh,
+    garage: hs.g, porch: hs.p === undefined ? undefined : !!hs.p,
+    src: hs.sr,
+  };
+}
+
+export function normalizeAttrs(b, hs0, index = 0) {
   const base = inferAttrs(b, index);
+  const hs = decodeAttrs(hs0);
   if (!hs) return base;
   const out = {
     era: ERAS.indexOf(hs.era) >= 0 ? hs.era : base.era,
@@ -252,17 +280,25 @@ export function normalizeAttrs(b, hs, index = 0) {
     source: 'phase1',
   };
   if (Number.isFinite(hs.height) && hs.height > 1.8) {
-    out.height = hs.height;
+    // Trust the measured eave, but keep it inside what the storey count can
+    // hold: a LiDAR "eave" is a percentile of the roof surface, and a 12 m
+    // bungalow is a tree overhanging the footprint, not a house.
+    const nom = EAVE[out.storeys] || EAVE[2];
+    out.height = clamp(hs.height, nom * 0.8, nom * 1.45);
   } else if (out.storeys === base.storeys) {
     out.height = base.height;
   } else {
     out.height = EAVE[out.storeys] * (base.height / EAVE[base.storeys]);
   }
+  const ext = obbExtent(b.p, b.c, out.ridgeYaw);
+  const short = Math.min(ext.u1 - ext.u0, ext.v1 - ext.v0);
   if (Number.isFinite(hs.ridgeHeight) && hs.ridgeHeight > out.height) {
-    out.ridgeHeight = hs.ridgeHeight;
+    // LiDAR maxima catch overhanging trees and chimneys, so a "ridge" 6 m above
+    // the eave of a bungalow is noise, not a spire: cap the rise at what a 12/12
+    // pitch over the short span could actually reach.
+    out.ridgeHeight = out.height
+      + clamp(hs.ridgeHeight - out.height, 0.8, Math.max(1.4, Math.min(short, 12) * 0.62));
   } else {
-    const ext = obbExtent(b.p, b.c, out.ridgeYaw);
-    const short = Math.min(ext.u1 - ext.u0, ext.v1 - ext.v0);
     const pitch = out.era === 'old' ? 0.95 : out.era === 'midcentury' ? 0.42 : 0.62;
     out.ridgeHeight = out.height + clamp(Math.min(short, 11) * 0.5 * pitch, 1.1, 4.2);
   }
@@ -860,11 +896,15 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
       mb.panel(px, y0 + 1.75, pz, Math.min(3.0, fw.len * 0.42), 1.5,
         front.nx, front.nz, winCol, uvPic, OUT);
     }
-    if (spec.bay && fw.len > 7.5 && room(10)) {
+    if (spec.bay && fw.len > 7.5 && room(12)) {
       // bay: local +X is the outward normal, so wBot is how far it projects
       const px = fw.cx - fw.tx * fw.len * 0.26, pz = fw.cz - fw.tz * fw.len * 0.26;
       mb.tower(px + front.nx * 0.28, y0 + 0.85, pz + front.nz * 0.28, 0.62, 2.5, 1.65,
         jitter(mats.color(spec.winTile), 1.1), { yaw: -front.yaw, noBottom: true, top: trimCol });
+      // glazing on the front of the box, or it reads as a packing crate
+      const uvBay = mats.decalUV('window_bay') || uvWin;
+      mb.panel(px + front.nx * 0.59, y0 + 1.7, pz + front.nz * 0.59, 2.2, 1.35,
+        front.nx, front.nz, winCol, uvBay, OUT);
     }
 
     // dormers on the street slope
@@ -967,6 +1007,14 @@ function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt) {
   const ov = spec.overhang;
   const h = clamp(rise * clamp(Math.min(w, d) / 9, 0.55, 1.5), 0.7, 5.0);
   if (mt) mt.roof();
+  // Soffit. From a car the eave of a two-storey is above you, and a roof made of
+  // two one-sided planes is see-through from underneath: you get sky between the
+  // wall top and the ridge. Two triangles of dark underside close it.
+  // (only where you can actually get under it — below ~4.6 m the wall hides the
+  // slope from anyone sitting in a car, and 10 000 bungalows do not need it.)
+  if (form !== 'flat' && baseY > 4.6) {
+    mb.capRect(cm[0], cm[1], w + ov * 2, d + ov * 2, baseY + 0.02, yaw, roofCol, true);
+  }
   switch (form) {
     case 'hip': mb.hip(cm[0], baseY, cm[1], w, d, h, roofCol, w >= d ? yaw : yaw - Math.PI / 2, ov); break;
     case 'flat': mb.capRect(cm[0], cm[1], w + ov, d + ov, baseY + 0.25, yaw, roofCol); break;

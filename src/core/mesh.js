@@ -355,11 +355,15 @@ export class MeshBuilder {
   }
 
   // Up-facing rectangle cap, rotated about Y (2 tris). Same yaw convention as
-  // tower()/roof(): local +X maps to map-angle -yaw.
-  capRect(cx, cz, w, d, y, yaw, c) {
+  // tower()/roof(): local +X maps to map-angle -yaw. `down` flips it into a
+  // soffit — the underside of a roof, which you see whenever the camera is
+  // below the eave and without which you look straight through the (back-face
+  // culled) near slope at the sky.
+  capRect(cx, cz, w, d, y, yaw, c, down = false) {
     const co = Math.cos(yaw), si = Math.sin(yaw), hw = w / 2, hd = d / 2;
     const P = (px, pz) => [cx + px * co + pz * si, y, cz - px * si + pz * co];
-    this.quad(P(-hw, -hd), P(-hw, hd), P(hw, hd), P(hw, -hd), c, [0, 1, 0]);
+    if (down) this.quad(P(-hw, -hd), P(hw, -hd), P(hw, hd), P(-hw, hd), c, [0, -1, 0]);
+    else this.quad(P(-hw, -hd), P(-hw, hd), P(hw, hd), P(hw, -hd), c, [0, 1, 0]);
     return 2;
   }
 

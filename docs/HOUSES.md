@@ -1,6 +1,8 @@
 # Making the houses look like Aylmer houses (W1)
 
-Recovered from the original assessment (session of 2026-08-25). Not started.
+Recovered from the original assessment (session of 2026-08-25).
+**Phases 1, 2 and 3 are in — see [Status](#status) at the bottom for what the
+game actually draws today, with screenshots.**
 
 Short version: don't pull Street View pixels into the game — Google's Maps
 Platform terms forbid storing or repurposing Street View imagery (and
@@ -215,3 +217,122 @@ also has `hs`, the same fields under short keys:
 Phase 2 should treat "has `hs`" as "build this as a house", not `k === 'house'`:
 `build_map.classify()` calls any untagged 180–600 m² footprint `commercial`,
 and 537 of those are dwellings according to the roll.
+
+
+---
+
+## Status
+
+*(2026-08-25, branch `agent/houses-integrate`.)* Phases 1 → 3 are done and
+wired together: real per-house attributes, the parametric archetypes, and the
+material atlas on the walls. What follows is what ships and what does not.
+
+### What is done
+
+| | where |
+|---|---|
+| Per-house attributes from the roll + LiDAR, 10 110 of 10 368 buildings | `data/houses.json` → `mapdata.js` `b.hs` (short keys, decoded by `houses.decodeAttrs`) |
+| 14 parametric archetypes, lods 0/1/2 | `src/game/houses.js` |
+| 2048² material atlas — 18 tiling materials + 8 alpha-cut decals | `assets/materials/atlas.png` + `.json`, `src/game/materials.js` |
+| Houses textured at real-world scale (7.5 cm brick courses, 20 cm vinyl laps, 16 cm shingle courses) | `MeshBuilder.autoUV` + `Materials.tile()` |
+| Distance LOD, lod 0 near / lod 2 far, one draw per chunk per set | `world.js` `HOUSE_NEAR`, `draw()` |
+| Atlas failure falls back to the old vertex-colour look | `main.js` `worldStages()` → `materials_stub.js` |
+
+**How the texturing works.** `Materials.tile(mb, name, {ox, oz})` arms a
+material on a MeshBuilder; every vertex emitted afterwards that does not carry
+its own UV gets one *projected from its world position* at the tile's real size
+(`mesh.js` `autoUV`) — horizontal faces onto XZ, everything else onto
+(tangent, up-slope), so shingle courses keep their size on a pitch and siding
+laps stay level and continuous around a corner. That means the dumb primitives
+— `prism`, `roof`, `hip`, `tower`, `mansard` — come out in brick without
+knowing what a UV is, and `houses.js` only has to say which material is on
+which surface. The projection origin is the building centre, so the repeat
+counts stay small and `fract()` in the shader stays exact. Decals (windows,
+doors, garage doors, the porch rail) are the other path: absolute atlas UVs,
+`rect` left at zero, alpha-cut by the shader, 4.5 cm proud of the wall.
+
+Vertex colours are still there and still matter: the texture *multiplies* them,
+so `mats.tint()` hands out a near-white per-house jitter under the atlas and
+the material's own colour without one. Same call site, both paths.
+
+### Numbers
+
+Whole map, 10 110 houses, measured with `node tools/smoke_world.mjs`:
+
+| | triangles |
+|---|---|
+| the town (roads, ground, trees, non-house buildings) | 197 k |
+| houses, near bake (lod 0) | 893 k |
+| houses, far bake (lod 2) | 230 k |
+| **resident total** | **1.32 M** |
+
+Drawn per frame, medium quality, world geometry only (`A.stats()`):
+
+| | this branch | before (lod 1, one mesh) |
+|---|---|---|
+| Chemin Foley (299 Fraser) | 22.8 k (4.9 k of it lod 0 houses) | 20.8 k |
+| Rue Bancroft (Principale) | 28.3 k (6.1 k) | 28.1 k |
+| Rue Denise-Friend | 36.5 k (13.9 k) | 29.7 k |
+
+Denise-Friend is the worst case in town — a dense block where a third of what
+you see is lod 0 houses, and the only spot that is meaningfully over the old
+build (+23 %). Two of the three match it. The draw count goes from 16-18 chunk
+draws to 30-34 (a town mesh and a house mesh per chunk, the houses batched into
+one textured pass at the end of the frame), which is the part worth watching if
+the chunk size ever changes.
+
+Bake is 480 ms in node and ~680 ms in the browser including the GL uploads (it
+was 180 ms). Vertex + index data is 153 MB, up from ~42 MB: 2.77 M vertices, of
+which 1.86 M carry UV + atlas rect and therefore cost 60 B each instead of 36 B
+(the near bake is the only textured geometry — 117 MB of the total).
+
+That is the deliberate trade, and the two ways out were both worse:
+`rect` could be squeezed from a vec4 to a tile id in one float — 22 MB back, at
+the price of the shader recomputing the cell and a contract change across
+materials.js, houses_demo and two smoke tests; and lod **1** for the near bake
+would save ~75 MB but costs the windows, doors, porches and garage doors, which
+are the entire visible payoff. 153 MB of static buffers is not what limits a
+MacBook Air with unified memory — the bake time is the number to watch if this
+grows again.
+
+### Screenshots
+
+All 1280×800, headless Chrome, medium quality.
+
+| | |
+|---|---|
+| ![Rue Bancroft / Principale](shots/bancroft-principale.jpg) | ![the same street before](shots/bancroft-before.jpg) |
+| **Rue Bancroft, Vieux-Aylmer** — brick, porches with rails, driveways | **the same camera before this branch** — extrude-and-cap |
+| ![Avenue Frank-Robinson](shots/frank-robinson.jpg) | ![Promenade Wychwood](shots/wychwood.jpg) |
+| **Avenue Frank-Robinson at 129** | **Promenade Wychwood** |
+| ![Chemin Vanier](shots/deschenes-vanier.jpg) | ![Rue Bancroft at night](shots/bancroft-night.jpg) |
+| **Chemin Vanier** — brick base course, vinyl above, garage door | **Rue Bancroft, night** |
+| ![Rue Denise-Friend](shots/denise-friend.jpg) | ![the house lab](shots/lab-closeup.jpg) |
+| **Rue Denise-Friend** | **`src/game/houses_lab.html`** — 15 cm clapboard laps, 2-pane window decals, brick chimney, siding (not shingle) on the gable end |
+
+Two things those shots also show, neither of them new here: the ground and road
+surfaces are missing in some blocks (Denise-Friend, the marina, the Vanier
+subdivision) — identical on `main`, so it is a gap in the landuse polygons, not
+in the houses; and the sepia cast on a couple of frames is the job-offer
+overlay, not the renderer.
+
+### What is left
+
+* **Roof form is 73 % gable** out of the LiDAR (`tools/lidar_roof.py`), which
+  reads too gable-heavy on the Wychwood and Lakeview bungalow streets. One
+  constant in `analyse()` if someone with Street View open wants to argue.
+* **Bay windows are a coloured box**, not a decal — the only front element that
+  still looks like 2003.
+* **Porches and back sheds are not collidable.** `buildHouse` registers exactly
+  the footprint ring, same as the old code; the porch deck projects 2.1 m past
+  the front wall and you can drive through it.
+* **The far bake is untextured** (vertex colours at the tile's average colour).
+  It matches well enough that the 200 m swap is hard to catch, but it is a swap.
+* **`maxLevel` is capped at 4** on the atlas (`materials.js`): the cells only
+  carry 8 px of bleed, so from mip 5 a cell starts averaging in its neighbour.
+  A regenerated atlas with 16 px of bleed would let the chain run one level
+  further and would be a little calmer at 150 m.
+* `src/game/houses_lab.html` now loads the real atlas too, so the archetype /
+  footprint / lod dropdowns are the fastest way to check a material change.
+* Phase 5 (hero buildings) and Phase 4 (Mapillary / own-drive imagery) are
+  untouched.

@@ -9,7 +9,9 @@
 //                 wall of brick (metres 0.6) is simply u 0 -> 10.
 //   tiled: false  decals — windows, doors, garage doors, porch rails. UVs are
 //                 absolute atlas coordinates, no wrapping, and the alpha channel
-//                 cuts the silhouette (the shader discards alpha < 0.35).
+//                 cuts the silhouette (the shader discards alpha < 0.35 — only
+//                 for absolute UVs, so a tiled cell can never dissolve when a
+//                 high mip level averages in the gutter around it).
 //
 // 'flat' is a plain white tile at the atlas origin, so a vertex left at UV (0,0)
 // samples white. Because the shader MULTIPLIES the texture into the vertex
@@ -24,7 +26,14 @@
 //   ...
 //   renderer.draw(mesh, model, { tex: mats.tex });
 //
-// Hand-rolled geometry that is not a quad uses the stateful form:
+// Geometry that is not a quad and does not want to compute its own UVs — the
+// primitives in core/mesh.js, i.e. every house — uses the projected form:
+//   mats.tile(mb, 'brick_red', { ox: b.c[0], oz: b.c[1] });   // arm
+//   mb.prism(ring, 0, 6.1, tint);                             // UVs for free
+//   mb.roof(...);
+//   mats.end(mb);                                             // ALWAYS close
+//
+// Hand-rolled geometry that wants explicit UVs uses the stateful form:
 //   const q = mats.wallUV(mb, 'vinyl_blue', wallW, wallH);  // sets mb.curRect
 //   mb.vert(x, y, z, nx, ny, nz, tint, q.u0, q.v1);         // ... more verts
 //   mats.end(mb);                                           // clears mb.curRect
