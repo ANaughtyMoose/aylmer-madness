@@ -33,7 +33,7 @@ canvas#gl{display:block;width:100%;height:100%;touch-action:none}
 
 #menu{position:fixed;inset:0;background:linear-gradient(160deg,#12212b,#0a0e12 60%);
   display:flex;align-items:center;justify-content:center;z-index:10;overflow:auto}
-#menuinner{max-width:940px;padding:34px;text-align:center}
+#menuinner{max-width:1000px;padding:34px;text-align:center}
 h1{font-size:56px;letter-spacing:6px;font-weight:800;line-height:.95}
 h1 span{display:block;color:#ffc94d}
 .tag{opacity:.65;margin:12px 0 26px;font-size:14px;letter-spacing:.4px}
@@ -54,8 +54,23 @@ h1 span{display:block;color:#ffc94d}
 .turn{width:100%;height:auto;aspect-ratio:3/2;display:block;border-radius:6px;margin-bottom:9px;
   border:1px solid rgba(0,0,0,.35);background:#161d24}
 .card .stripe{height:4px;border-radius:2px;margin:-4px 0 9px}
-#opts{display:flex;gap:22px;justify-content:center;margin:24px 0 8px;font-size:13px;opacity:.8;flex-wrap:wrap}
-#opts select{background:#1b262d;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:5px;padding:2px 6px}
+/* main menu: a column of doors on the left, the cars on the right */
+#menucols{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start;text-align:left}
+#menuside{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+#menuside button,#menuside a{display:block;width:100%;margin:0;text-align:center;text-decoration:none}
+#menuside a{background:#ffc94d;color:#10171c;border-radius:8px;padding:13px 42px;
+  font-size:16px;font-weight:800;letter-spacing:1.5px;cursor:pointer}
+button.ghost,#menuside a.ghost{background:rgba(255,255,255,.07);color:#fff;
+  border:1px solid rgba(255,255,255,.16)}
+button.ghost:hover,#menuside a.ghost:hover{background:rgba(255,255,255,.14)}
+button.ghost[disabled]{opacity:.35;cursor:default}
+button.ghost[disabled]:hover{background:rgba(255,255,255,.07)}
+button.danger{background:rgba(232,86,63,.16);border-color:rgba(232,86,63,.5);color:#ffb3a6}
+button.danger:hover{background:rgba(232,86,63,.3)}
+button.armed{background:#e8563f;color:#fff;border-color:#e8563f}
+#contmeta{font-size:11px;opacity:.55;line-height:1.5;margin-top:4px;padding:0 2px}
+#carspick{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;opacity:.5;margin-bottom:8px}
+#cars{grid-template-columns:repeat(2,1fr)}
 button{background:#ffc94d;color:#10171c;border:0;border-radius:8px;padding:13px 42px;
   font-size:16px;font-weight:800;letter-spacing:1.5px;cursor:pointer;margin:10px 6px 0}
 button:hover{background:#ffd979}
@@ -193,3 +208,37 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
 /* wallet (side jobs) */
 #money{position:absolute;right:22px;top:22px;font-size:20px;font-weight:800;letter-spacing:.5px;
   color:#9ce8a4;text-shadow:0 2px 8px rgba(0,0,0,.85);font-variant-numeric:tabular-nums}
+
+/* ---------------------------------------------------------------- options + saves */
+#options,#loadscr{position:fixed;inset:0;background:linear-gradient(160deg,#12212b,#0a0e12 60%);
+  z-index:11;display:flex;align-items:flex-start;justify-content:center;overflow:auto}
+.panel.wide{max-width:980px;width:100%;padding:28px 20px 40px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(320px,1fr));gap:10px 26px;
+  align-items:start;text-align:left;max-width:940px;margin:0 auto}
+.osec{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
+  border-radius:11px;padding:12px 14px 6px}
+.osec h4{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.55;margin-bottom:4px}
+.osec .sform{max-width:none}
+.srow.act{justify-content:space-between}
+.srow.act>span{display:none}
+.srow.act button,.obtn{width:100%;margin:2px 0;padding:8px 12px;font-size:12px;letter-spacing:.6px;
+  background:rgba(255,255,255,.09);color:#fff;border:1px solid rgba(255,255,255,.16)}
+.srow.act button:hover,.obtn:hover{background:rgba(255,255,255,.16)}
+.okeys{padding:8px 0 4px;transform:scale(.86);transform-origin:top left;width:116%}
+.okeys .hint{margin:0 0 8px}
+
+.slots{display:grid;gap:8px;max-width:640px;margin:0 auto;text-align:left}
+.slot{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:11px 14px;display:grid;grid-template-columns:1fr auto;
+  grid-template-areas:"name btns" "meta btns";gap:2px 12px;align-items:center}
+.slot.empty{opacity:.55}
+.slot .sname{grid-area:name;font-weight:700;font-size:14px}
+.slot .smeta{grid-area:meta;font-size:11px;opacity:.6}
+.slot .sbtns{grid-area:btns;display:flex;gap:6px}
+.slot .sbtns button{width:auto;margin:0;padding:7px 14px;font-size:11px;letter-spacing:.5px;
+  background:rgba(255,255,255,.09);color:#fff;border:1px solid rgba(255,255,255,.16)}
+.slot .sbtns button.loadslot,.slot .sbtns button.saveslot{background:#ffc94d;color:#10171c}
+
+#fps{position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:6;
+  font-size:11px;font-weight:700;letter-spacing:1px;opacity:.55;font-variant-numeric:tabular-nums;
+  text-shadow:0 2px 8px rgba(0,0,0,.85);pointer-events:none}

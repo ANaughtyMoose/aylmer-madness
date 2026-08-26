@@ -3,6 +3,7 @@ export class Audio {
   constructor() {
     this.ok = false;
     this.enabled = true;
+    this.masterVol = 1;      // options screen; see setMaster() at the end
   }
   start() {
     if (this.ok) return;
@@ -11,7 +12,7 @@ export class Audio {
     const ctx = new AC();
     this.ctx = ctx;
     this.master = ctx.createGain();
-    this.master.gain.value = 0.5;
+    this.master.gain.value = 0.5 * this.masterVol;
     this.master.connect(ctx.destination);
 
     // Engine: two detuned saws through a lowpass whose cutoff follows revs.
@@ -157,6 +158,19 @@ export class Audio {
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
     o.connect(f); f.connect(g); g.connect(this.master);
     o.start(); o.stop(t + 0.14);
+  }
+
+  // Options screen, master volume. Everything in here already runs through
+  // this.master on its way to the speakers, so this is the one gain before the
+  // destination; 1 is the level the game has always shipped with. If a richer
+  // mixer turns up (audio.setVolume({master, engine, effects, radio})) the
+  // options screen prefers it and this stays as the fallback.
+  setMaster(v) {
+    this.masterVol = Math.min(1, Math.max(0, typeof v === 'number' && isFinite(v) ? v : 1));
+    if (this.ok && this.master) {
+      this.master.gain.setTargetAtTime(0.5 * this.masterVol, this.ctx.currentTime, 0.04);
+    }
+    return this.masterVol;
   }
 }
 
