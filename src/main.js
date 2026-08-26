@@ -4,16 +4,17 @@ import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
 import { MeshBuilder, rgb } from './core/mesh.js';
 import { m4, clamp, lerp, angleDelta } from './core/math.js';
-import { buildWorld } from './game/world.js';
+import { buildWorld, buildHeadlights, nightAmount } from './game/world.js';
 import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow } from './game/cars.js';
 import { Traffic } from './game/traffic.js';
 import { Hud } from './game/hud.js';
 import { loadCarSkin } from './game/carskin.js';
 import { Nav, routeLength } from './game/nav.js';
-import { buildSky, skyOpts, cloudOpts } from './game/sky.js';
+import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
 import { MISSIONS, TIME_OF_DAY, loadProgress, saveProgress, resetProgress } from './game/missions.js';
 import { PLACES, resolvePlaces } from './game/places.js';
+import { Signals } from './game/signals.js';
 
 const STEP = 1 / 60;
 // drawDist is the chunk cutoff; fogMul thickens the fog so the cutoff hides in it.
@@ -131,11 +132,13 @@ function loadWorld() {
     G.routeKey = '';
     hud.toast('Waypoint placé', 900);
   };
-  G.meshes = { cars: {}, wheels: {} };
+  G.meshes = { cars: {}, wheels: {}, cones: {} };
   G.sky = buildSky(r);
+  G.signals = new Signals().build(r);
   for (const c of CARS) {
     G.meshes.cars[c.id] = r.upload(buildCarBody(c));
     G.meshes.wheels[c.id] = r.upload(buildWheel(c));
+    G.meshes.cones[c.id] = buildHeadlights(r, c);
   }
   G.meshes.head = r.upload(buildHead());
   // Photo skins load in the background and replace the lofted models when present.
@@ -164,6 +167,7 @@ function enterDrive() {
   for (const c of CARS) if (c.id !== spec.id) G.parked[c.id] = curbSpot(PLACES[OWNER[c.id]]);
   G.waypoint = null; G.route = null; G.routeKey = '';
   G.traffic = new Traffic(QUALITY[G.quality].traffic);
+  G.traffic.signals = G.signals;
   G.camYaw = G.veh.yaw + Math.PI;
   G.camPos = [G.veh.x, 4, G.veh.z];
   setEnv('day', true);
@@ -464,6 +468,8 @@ function tick(dt) {
     const minD = (v.spec.wid + c.wid) * 0.5 + 1.2;
     if (d < minD && d > 0.001) v.nudge(dx / d, dz / d, (minD - d) * 0.8);
   }
+  G.signals.update(dt);
+  if (G.signals.playerRanRed(v)) hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700);
   updateMission(dt);
   G.time += dt;
 
@@ -510,17 +516,19 @@ function render(dt) {
 
   m4.compose(mm, G.camPos[0], 0, G.camPos[2], 0, 0, 0);
   r.draw(G.sky.mesh, mm, skyOpts(G.env));
-  if (G.quality !== 'low') r.draw(G.sky.clouds, mm, cloudOpts(G.env));
+  if (G.quality !== 'low') r.draw(G.sky.clouds, cloudModel(mm, G.camPos, r.time), cloudOpts(G.env));
   m4.identity(mm);
   r.draw(G.world.distant, mm, { fogMul: 0.28 });
-  const dd = QUALITY[G.quality].drawDist, dd2 = dd * dd;
-  for (const c of G.world.chunks) {
-    const dx = c.cx - v.x, dz = c.cz - v.z;
-    if (dx * dx + dz * dz > dd2) continue;
-    if (r.visible(c.mesh)) r.draw(c.mesh, mm);
-  }
+  G.world.draw(r, mm, v.x, v.z, QUALITY[G.quality].drawDist, dt);
+  G.signals.draw(r, v.x, v.z);
 
   drawCar(v.spec, v.x, v.z, v.yaw, v.pitch, v.roll, v.spin, v.steer, null, v.passengers);
+  const night = nightAmount(G.env);
+  if (night > 0.35 && G.meshes.cones[v.spec.id]) {
+    coneOpts.alpha = 0.15 * night;
+    m4.compose(mm, v.x, 0, v.z, v.yaw, 0, 0);
+    r.draw(G.meshes.cones[v.spec.id], mm, coneOpts);
+  }
   for (const t of G.traffic.cars) {
     if (Math.hypot(t.x - v.x, t.z - v.z) > 320) continue;
     drawCar(t.spec, t.x, t.z, t.yaw, 0, 0, t.spin, 0, t.tint, 0);
@@ -591,6 +599,7 @@ function markerList() {
   return out;
 }
 
+const coneOpts = { alpha: 0.15, unlit: true, colorMul: new Float32Array([1, 0.94, 0.74]) };
 const cyan = new Float32Array([0.31, 0.83, 1]);
 function drawMarkers() {
   const r = G.renderer, v = G.veh;

@@ -10,10 +10,13 @@ import { rgb } from '../core/mesh.js';
 import { loft } from './cars.js';
 
 const ATLAS = 2048;
-// Atlas slots in pixels: [x, y, w, h]
+// Atlas slots in pixels: [x, y, w, h]. `body` is a patch of flat paint that end
+// caps fall back to when there is no front/rear photo — smearing the side view
+// across the nose looked like a car that had been through a car wash sideways.
 const SLOT = {
   side: [0, 0, 2048, 1024], top: [0, 1024, 1024, 1024],
-  front: [1024, 1024, 512, 512], rear: [1536, 1024, 512, 512], dark: [1024, 1536, 1024, 512],
+  front: [1024, 1024, 512, 512], rear: [1536, 1024, 512, 512],
+  dark: [1024, 1536, 512, 512], body: [1536, 1536, 512, 512],
 };
 
 function loadImage(url) {
@@ -165,6 +168,8 @@ export async function loadCarSkin(renderer, spec) {
   ctx.fillRect(0, 0, ATLAS, ATLAS);
   ctx.fillStyle = '#1c1d20';
   ctx.fillRect(...SLOT.dark);
+  ctx.fillStyle = `rgb(${body[0]},${body[1]},${body[2]})`;
+  ctx.fillRect(...SLOT.body);
   // Draw each view's *bbox* region stretched into its slot (keeping aspect), and
   // remember where it landed in UV space.
   const uvRect = {};
@@ -194,6 +199,7 @@ export async function loadCarSkin(renderer, spec) {
   place('side', S); place('top', T); place('front', F); place('rear', R);
   const white = [1, 1, 1];
   const dark = [(SLOT.dark[0] + SLOT.dark[2] / 2) / ATLAS, (SLOT.dark[1] + SLOT.dark[3] / 2) / ATLAS];
+  const plain = [(SLOT.body[0] + SLOT.body[2] / 2) / ATLAS, (SLOT.body[1] + SLOT.body[3] / 2) / ATLAS];
   const lerp = (a, b, t) => a + (b - a) * t;
 
   const paint = (face, t, y, Rg, P) => {
@@ -217,9 +223,8 @@ export async function loadCarSkin(renderer, spec) {
       const r = uvRect.rear;
       return [white, lerp(r.u0, r.u1, 0.5 - P[0] / spec.wid), lerp(r.v1, r.v0, y / spec.h)];
     }
-    // no end-cap image: borrow the side texture's end column
-    const r = uvRect.side;
-    return [white, face === 'front' ? (noseLeft ? r.u0 : r.u1) : (noseLeft ? r.u1 : r.u0), lerp(r.v1, r.v0, y / spec.h)];
+    // C2: no end-cap image — flat body paint, not a stretched side view.
+    return [white, plain[0], plain[1]];
   };
 
   const mb = new MeshBuilder();

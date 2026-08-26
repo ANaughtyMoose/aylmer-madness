@@ -11,10 +11,19 @@ layout(location=2) in vec3 aCol;
 layout(location=3) in vec2 aUV;
 uniform mat4 uVP, uModel;
 uniform vec3 uEye;
+uniform float uTime, uWater;
 out vec3 vNor; out vec3 vCol; out float vDist; out vec2 vUV; out vec3 vRel;
 void main(){
   vUV = aUV;
-  vec4 wp = uModel * vec4(aPos,1.0);
+  vec3 p = aPos;
+  // Water draws (opts.water) get a shallow swell. It is one-sided — the surface
+  // only ever rises off its baked height — so the river can never sink under the
+  // grass it is supposed to sit a couple of centimetres above.
+  if (uWater > 0.5) {
+    float s = sin(p.x * 0.11 + uTime * 0.9) * sin(p.z * 0.083 - uTime * 0.7);
+    p.y += 0.045 * (0.5 + 0.5 * s);
+  }
+  vec4 wp = uModel * vec4(p,1.0);
   vNor = mat3(uModel) * aNor;
   vCol = aCol;
   gl_Position = uVP * wp;
@@ -25,8 +34,8 @@ void main(){
 const FS = `#version 300 es
 precision mediump float;
 in vec3 vNor; in vec3 vCol; in float vDist; in vec2 vUV; in highp vec3 vRel;
-uniform vec3 uLightDir, uSun, uSky, uGround, uFogColor, uColorMul, uSkyLo, uSkyHi;
-uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode;
+uniform vec3 uLightDir, uSun, uSky, uGround, uFogColor, uColorMul, uSkyLo, uSkyHi, uEye;
+uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode, uTime, uWater;
 uniform sampler2D uTex;
 out vec4 outColor;
 void main(){
@@ -46,6 +55,14 @@ void main(){
   vec4 tx = texture(uTex, vUV);
   vec3 base = mix(vCol, tx.rgb, uUseTex);
   if (uUseTex > 0.5 && tx.a < 0.35) discard;
+  if (uWater > 0.5) {
+    // Two crossed ripple trains at different speeds: enough to break the flat
+    // slab of river without a normal map or a second pass.
+    highp vec3 wp = vRel + uEye;
+    float r1 = sin(wp.x * 0.21 + uTime * 1.25) * sin(wp.z * 0.17 - uTime * 1.0);
+    float r2 = sin(wp.x * 0.052 + wp.z * 0.061 - uTime * 0.42);
+    base += vec3(0.035, 0.055, 0.075) * r1 + vec3(0.02, 0.03, 0.045) * r2;
+  }
   vec3 lit = base * uColorMul * (amb + uSun * d);
   vec3 col = mix(lit, base * uColorMul, uUnlit);
   float f = exp(-pow(vDist * uFogDensity, 2.0));
@@ -77,11 +94,14 @@ export class Renderer {
     this.u = {};
     for (const n of ['uVP', 'uModel', 'uEye', 'uLightDir', 'uSun', 'uSky', 'uGround',
       'uFogColor', 'uFogDensity', 'uAlpha', 'uUnlit', 'uColorMul', 'uUseTex', 'uTex',
-      'uSkyLo', 'uSkyHi', 'uSkyMode']) {
+      'uSkyLo', 'uSkyHi', 'uSkyMode', 'uTime', 'uWater']) {
       this.u[n] = gl.getUniformLocation(p, n);
     }
     gl.uniform1i(this.u.uTex, 0);
     gl.uniform1f(this.u.uSkyMode, 0);
+    gl.uniform1f(this.u.uWater, 0);
+    this._clock = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    this.time = 0;
 
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
@@ -175,10 +195,14 @@ export class Renderer {
     gl.uniform3fv(this.u.uGround, e.ground);
     gl.uniform3fv(this.u.uFogColor, e.fog);
     gl.uniform1f(this.u.uFogDensity, e.fogDensity);
+    // Wall-clock seconds since the renderer was made — drives the water swell.
+    this.time = ((typeof performance !== 'undefined' ? performance.now() : Date.now())
+      - this._clock) / 1000;
+    gl.uniform1f(this.u.uTime, this.time);
     this.stats.draws = 0; this.stats.tris = 0;
     this.transparent.length = 0;
     this._alpha = -1; this._unlit = -1; this._mul = null; this._tex = null; this._fm = -1;
-    this._sky = -1;
+    this._sky = -1; this._water = -1;
   }
 
   // Upload an image as an RGBA texture (mipmapped, clamped).
@@ -200,8 +224,12 @@ export class Renderer {
 
   visible(mesh) { return aabbInFrustum(this.planes, mesh.min, mesh.max); }
 
-  // opts: { alpha, unlit, colorMul, tex, fogMul,
-  //         sky, skyLo, skyHi }   sky: draw as the sky dome — fragment colour is
+  // opts: { alpha, unlit, colorMul, tex, fogMul, water,
+  //         sky, skyLo, skyHi }
+  //         water: this draw is a water surface — the vertices get a shallow
+  //         upward swell and the colour a pair of scrolling ripples, both keyed
+  //         off uTime (seconds since the renderer was created).
+  //         sky: draw as the sky dome — fragment colour is
   //         mix(skyLo, skyHi, vertex.r) plus a sun disc, no lighting/fog, depth
   //         writes and back-face culling off for that draw (so draw it FIRST).
   //         skyLo/skyHi default to env.fog / env.sky.
@@ -230,6 +258,8 @@ export class Renderer {
     if (alpha !== this._alpha) { gl.uniform1f(this.u.uAlpha, alpha); this._alpha = alpha; }
     if (unlit !== this._unlit) { gl.uniform1f(this.u.uUnlit, unlit); this._unlit = unlit; }
     if (mul !== this._mul) { gl.uniform3fv(this.u.uColorMul, mul); this._mul = mul; }
+    const water = (opts && opts.water) ? 1 : 0;
+    if (water !== this._water) { gl.uniform1f(this.u.uWater, water); this._water = water; }
     const sky = (opts && opts.sky) ? 1 : 0;
     if (sky !== this._sky) { gl.uniform1f(this.u.uSkyMode, sky); this._sky = sky; }
     if (sky) {

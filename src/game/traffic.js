@@ -32,6 +32,8 @@ export class Traffic {
     const rnd = mulberry32(seed);
     this.rnd = rnd;
     this.time = 0;
+    // Set by main.js to a Signals instance; null means "no lights in this town".
+    this.signals = null;
 
     // ------------------------------------------------------------ road graph
     // Nodes are OSM node ids, so ways that share an id are joined there.
@@ -253,6 +255,15 @@ export class Traffic {
       };
       check(player.x, player.z, 3.2);
       for (const o of this.cars) if (o !== c) check(o.x, o.z, 2.6);
+
+      // Traffic lights: brake into the stop bar while our axis is red or amber.
+      if (this.signals) {
+        const st = this.signals.stateAt(tgt[0], tgt[1], Math.atan2(e.dx, e.dz));
+        if (st === 'red' || st === 'amber') {
+          const gap = Math.hypot(dx, dz);
+          if (gap < 26) block = Math.max(block, clamp(1.05 - gap / 26, 0, 1));
+        }
+      }
 
       if (c.stopT > 0) { c.stopT -= dt; block = Math.max(block, 0.94); }
 
