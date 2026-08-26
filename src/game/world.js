@@ -2,9 +2,27 @@
 //
 // The map is baked once at load into:
 //   * static meshes split into 200 m chunks so the renderer can frustum-cull blocks,
+//   * a second set of chunks holding just the river, drawn with the wobble shader,
+//   * a third set holding the streetlight pools, drawn only after dark,
 //   * a `distant` mesh that is always drawn (apron, river, far shore, Gatineau hills),
 //   * a uniform grid of wall segments (building footprint edges + poles) for physics,
 //   * a uniform grid of road centrelines for the "am I on tarmac?" test.
+//
+// buildWorld(renderer) returns:
+//   draw(r, model, x, z, drawDist, dt)  everything above in one call: distance +
+//                                       frustum cull, the 0.4 s fog fade-in for
+//                                       newly-arrived chunks (W2), the river, the
+//                                       storefront signs, the lamp pools at night
+//   chunks / waterChunks / nightChunks  the mesh lists, if you want them yourself
+//   poles      [{x,z,kind,h}]  every upright post — streetlights, hydro poles,
+//                              signal masts, stop signs. Collision/damage code
+//                              can look one up here and swap in a fallen mesh.
+//   signals / stopSigns        the plans signals.js drives (see that file)
+//   intersections              how many junction polygons were built (W3)
+//   querySegments / roadAt / waterAt / nearestRoad / bounds / distant / signage
+//
+// Also exported: nightAmount(env) (0 by day, 1 at night) and
+// buildHeadlights(renderer, spec) (the player's night light cones).
 //
 // Coordinates are metres: +X east, +Z south, +Y up. Everything sits at y=0; the
 // only vertical ordering that matters is the small ladder of decal heights below,
@@ -12,17 +30,21 @@
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { mulberry32, clamp, lerp } from '../core/math.js';
 import { MAP } from './mapdata.js';
+import { roadNodes, isJunction, planSignals, planStopSigns, LAMP_DY, HEAD_Y } from './signals.js';
+import { buildSignage } from './signage.js';
 
 const CHUNK = 200;      // world chunk size (metres)
 const SEG_CELL = 32;    // broadphase cell for querySegments
 const ROAD_CELL = 40;   // broadphase cell for roadAt
+const FADE = 0.4;       // seconds a chunk takes to come out of the fog (W2)
 
 // Decal ladder. Note the river sits slightly ABOVE the grass so the shoreline is
-// exact; both are flat so it reads fine.
+// exact; both are flat so it reads fine. `inter` is a hair over `road` so the
+// intersection polygons win the coplanar fight with the road quads they cover.
 const Y = {
   grass: 0.0, park: 0.01, wood: 0.012, sand: 0.015,
   water: 0.02, pitch: 0.02, parking: 0.03, pool: 0.04,
-  service: 0.045, road: 0.05, mark: 0.085,
+  service: 0.045, road: 0.05, inter: 0.058, mark: 0.085, pool2: 0.1,
 };
 
 const C = {
@@ -35,7 +57,12 @@ const C = {
   flatRoof: 0x74726c,
   win: 0x2e3742, pole: 0x6f6d68, lamp: 0xf0e6c0, hydro: 0x6b5a45,
   trunk: 0x5b4632, shore: 0x2a4032, dock: 0x8a6a48,
+  rock: 0x7d7a72, signHead: 0x2c2e2c, lensOff: 0x14150f,
+  stopRed: 0xa8261f, stopRim: 0xe8e4dc, pool: 0xffd9a0,
 };
+
+// Caps for the new furniture so the triangle budget stays where it was.
+const CAP2 = { shoreEdges: 900, rocks: 420 };
 
 // Real Aylmer housing stock, weighted: white vinyl and beige dominate, brick and
 // dark brown are the odd one out on a street.
@@ -121,16 +148,29 @@ export function buildWorld(renderer) {
   const NZ = Math.ceil((B.maxZ - B.minZ) / CHUNK);
 
   const builders = new Map();
+  const waterB = new Map();     // river/pond triangles, drawn with the wobble shader
+  const nightB = new Map();     // streetlight pools, drawn only after dark
   const distant = new MeshBuilder();
 
-  function bAt(x, z) {
+  function chunkKey(x, z) {
     const cx = clamp(Math.floor((x - B.minX) / CHUNK), 0, NX - 1);
     const cz = clamp(Math.floor((z - B.minZ) / CHUNK), 0, NZ - 1);
-    const k = cz * NX + cx;
-    let b = builders.get(k);
-    if (!b) { b = new MeshBuilder(); builders.set(k, b); }
+    return cz * NX + cx;
+  }
+  function pick(map, x, z) {
+    const k = chunkKey(x, z);
+    let b = map.get(k);
+    if (!b) { b = new MeshBuilder(); map.set(k, b); }
     return b;
   }
+  function bAt(x, z) { return pick(builders, x, z); }
+  function wAt(x, z) { return pick(waterB, x, z); }
+  function nAt(x, z) { return pick(nightB, x, z); }
+
+  // Every upright post in town, in one list, so the collision/damage code can
+  // find the one you just hit and swap in a fallen version of it.
+  const poles = [];
+  let poolCount = 0;
 
   // ------------------------------------------------------------ collider grid
   // Segments live in one flat array (ax,az,bx,bz per 4 slots); the grid stores
@@ -175,10 +215,12 @@ export function buildWorld(renderer) {
     }
   }
   // Same, but each triangle lands in the chunk of its own centroid (big polygons).
-  function triScatter(p, t, y, col) {
+  // `get` chooses which set of chunk builders (land, water, night) it lands in.
+  function triScatter(p, t, y, col, get) {
+    const into = get || bAt;
     for (let i = 0; i < t.length; i += 3) {
       const a = p[t[i]], b = p[t[i + 1]], c = p[t[i + 2]];
-      const bd = bAt((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3);
+      const bd = into((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3);
       const cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
       const v0 = bd.vert(a[0], y, a[1], 0, 1, 0, col);
       if (cross > 0) {
@@ -205,8 +247,10 @@ export function buildWorld(renderer) {
   }
 
   // ------------------------------------------------------------ 2. water
+  // Water goes into its OWN chunk meshes so the whole draw can carry the wobble
+  // flag (see gl.js `opts.water`) without every land vertex paying for it.
   const waterCol = rgb(C.water);
-  for (const w of MAP.water) triScatter(w.p, w.t, Y.water, waterCol);
+  for (const w of MAP.water) triScatter(w.p, w.t, Y.water, waterCol, wAt);
 
   // ------------------------------------------------------------ 3. areas
   const AREA = {
@@ -217,7 +261,7 @@ export function buildWorld(renderer) {
   for (const a of MAP.areas) {
     const spec = AREA[a.k];
     if (!spec) continue;
-    triScatter(a.p, a.t, spec[1], rgb(spec[0]));
+    triScatter(a.p, a.t, spec[1], rgb(spec[0]), a.k === 'water' ? wAt : bAt);
   }
 
   // ------------------------------------------------------------ 4. roads
@@ -248,11 +292,87 @@ export function buildWorld(renderer) {
   const roadGrid = new Map();
   const nearSegs = [];         // {ax,az,bx,bz,name} for nearestRoad (non-service)
   let jointCount = 0, sidewalkCount = 0, dashCount = 0;
+  let interCount = 0, cornerCount = 0, stopLineCount = 0;
+
+  // -------------------------------------------------- 4a. intersections (W3)
+  // Every node where three or more road ends meet becomes one convex polygon:
+  // take each branch out to `ext` and both its kerb corners there, hull the lot.
+  // That single shape covers the mitre seams, so no joint disc is needed and the
+  // markings can simply be clipped to `ext` from the node.
+  const NODES = roadNodes();
+  const interExt = new Map();      // osm node id -> how far the polygon reaches
+
+  function convexHull(pts) {
+    pts.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]));
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    for (const p of pts) {
+      while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop();
+      lo.push(p);
+    }
+    for (let i = pts.length - 1; i >= 0; i--) {
+      const p = pts[i];
+      while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop();
+      up.push(p);
+    }
+    lo.pop(); up.pop();
+    return lo.concat(up);
+  }
+
+  const hullPts = [], hullIdx = [];
+  for (const nd of NODES.values()) {
+    if (!isJunction(nd)) continue;
+    const ext = nd.ext;
+    hullPts.length = 0;
+    let rank = 0;
+    for (const b of nd.br) {
+      const px = -b.dz, pz = b.dx;
+      const cx = nd.x + b.dx * ext, cz = nd.z + b.dz * ext;
+      hullPts.push([cx + px * b.hw, cz + pz * b.hw], [cx - px * b.hw, cz - pz * b.hw]);
+      if (b.rank > rank) rank = b.rank;
+    }
+    const ring = convexHull(hullPts.slice());
+    if (ring.length < 3) continue;
+    hullIdx.length = 0;
+    for (let i = 1; i + 1 < ring.length; i++) hullIdx.push(0, i, i + 1);
+    const col = rank >= 3 ? roadCols.trunk : rank >= 2 ? roadCols.tertiary : roadCols.residential;
+    triTo(bAt(nd.x, nd.z), ring, hullIdx, Y.inter, col);
+    interExt.set(nd.id, ext);
+    interCount++;
+
+    // Sidewalk corners: the kerb radius between two paved branches. Without
+    // these the two straight bands leave a notch at every junction.
+    const paved = nd.br.filter((b) => PAVED[b.cls] === 1);
+    if (paved.length >= 2) {
+      paved.sort((a, b) => Math.atan2(a.dx, a.dz) - Math.atan2(b.dx, b.dz));
+      for (let i = 0; i < paved.length; i++) {
+        const a = paved[i], b = paved[(i + 1) % paved.length];
+        let ux = a.dx + b.dx, uz = a.dz + b.dz;
+        const ul = Math.hypot(ux, uz);
+        if (ul < 0.25) continue;                 // straight-through pair: no corner
+        ux /= ul; uz /= ul;
+        const d = ext + 1.9;
+        const cx = nd.x + ux * d, cz = nd.z + uz * d;
+        bAt(cx, cz).tower(cx, 0, cz, 3.6, 3.6, 0.15, walkCol,
+          { yaw: Math.atan2(ux, uz), noBottom: true });
+        cornerCount++;
+      }
+    }
+  }
+  const clearAt = (id) => interExt.get(id) || 0;
+
+  // A white bar across the approach lane, from the centreline to the kerb.
+  function stopLine(x, z, dx, dz, hw, yaw) {
+    const rxx = -dz, rzz = dx;
+    const cx = x + rxx * hw * 0.5, cz = z + rzz * hw * 0.5;
+    bAt(cx, cz).flatRot(cx, cz, hw * 0.9, 0.55, Y.mark, yaw, white);
+    stopLineCount++;
+  }
 
   const lx = [], lz = [], rx = [], rz = [];   // offset polyline scratch
   for (let ri = 0; ri < MAP.roads.length; ri++) {
     const road = MAP.roads[ri];
-    const pts = road.pts, n = pts.length;
+    const pts = road.pts, ids = road.ids, n = pts.length;
     if (n < 2) continue;
     const hw = road.w / 2;
     const isService = road.cls === 'service';
@@ -321,10 +441,17 @@ export function buildWorld(renderer) {
 
     if (isService) continue;   // service roads: no discs, markings or sidewalks
 
+    // How far into each end of a segment the intersection polygon reaches. Every
+    // marking and sidewalk below is clipped to the gap between the two, which is
+    // what stops the dashes crossing the junction (W3).
+    const cut = new Float64Array(n);
+    for (let i = 0; i < n; i++) cut[i] = clearAt(ids ? ids[i] : -1);
+
     // Joint discs hide the seams where ways meet and where a sharp mitre was
     // clamped. Skipped at near-collinear interior vertices, where the mitre is
-    // already exact and the disc would just burn triangles.
+    // already exact, and at junctions, where the intersection polygon covers it.
     for (let i = 0; i < n; i++) {
+      if (cut[i] > 0) continue;               // a real junction: polygon does the job
       if (i > 0 && i < n - 1) {
         const d = dxs[i - 1] * dxs[i] + dzs[i - 1] * dzs[i];
         if (d > 0.99) continue;               // < ~8 degrees of bend
@@ -341,9 +468,11 @@ export function buildWorld(renderer) {
       let carry = 2;
       for (let i = 0; i < n - 1; i++) {
         const L = lens[i], dx = dxs[i], dz = dzs[i];
+        const s0 = cut[i] > 0 ? cut[i] + 0.8 : 0;
+        const s1 = L - (cut[i + 1] > 0 ? cut[i + 1] + 0.8 : 0);
         const yaw = Math.atan2(dx, dz);
-        let s = carry;
-        while (s + 4 <= L) {
+        let s = Math.max(carry, s0);
+        while (s + 4 <= s1) {
           const cx = pts[i][0] + dx * (s + 2), cz = pts[i][1] + dz * (s + 2);
           bAt(cx, cz).flatRot(cx, cz, 0.35, 4, Y.mark, yaw, yellow);
           dashCount++;
@@ -356,12 +485,15 @@ export function buildWorld(renderer) {
     // solid white edge lines, inset 0.5 m from the asphalt edge
     if (major) {
       for (let i = 0; i < n - 1; i++) {
-        const L = lens[i];
+        const s0 = cut[i] > 0 ? cut[i] + 0.8 : 0;
+        const s1 = lens[i] - (cut[i + 1] > 0 ? cut[i + 1] + 0.8 : 0);
+        const L = s1 - s0;
         if (L < 1.5) continue;
         const dx = dxs[i], dz = dzs[i];
         const yaw = Math.atan2(dx, dz);
         const nx = dz, nz = -dx;
-        const mx = (pts[i][0] + pts[i + 1][0]) / 2, mz = (pts[i][1] + pts[i + 1][1]) / 2;
+        const mid = (s0 + s1) / 2;
+        const mx = pts[i][0] + dx * mid, mz = pts[i][1] + dz * mid;
         const off = hw - 0.5;
         for (const s of [1, -1]) {
           const cx = mx + nx * off * s, cz = mz + nz * off * s;
@@ -370,15 +502,18 @@ export function buildWorld(renderer) {
       }
     }
 
-    // concrete sidewalk bands outside the asphalt
+    // concrete sidewalk bands outside the asphalt, stopping at the kerb corners
     if (paved) {
       for (let i = 0; i < n - 1; i++) {
-        const L = lens[i];
+        const s0 = cut[i] > 0 ? cut[i] + 1.4 : 0;
+        const s1 = lens[i] - (cut[i + 1] > 0 ? cut[i + 1] + 1.4 : 0);
+        const L = s1 - s0;
         if (L < 3) continue;
         const dx = dxs[i], dz = dzs[i];
         const yaw = Math.atan2(dx, dz);
         const nx = dz, nz = -dx;
-        const mx = (pts[i][0] + pts[i + 1][0]) / 2, mz = (pts[i][1] + pts[i + 1][1]) / 2;
+        const mid = (s0 + s1) / 2;
+        const mx = pts[i][0] + dx * mid, mz = pts[i][1] + dz * mid;
         const off = hw + 1.1;
         for (const s of [1, -1]) {
           const cx = mx + nx * off * s, cz = mz + nz * off * s;
@@ -387,6 +522,64 @@ export function buildWorld(renderer) {
         }
       }
     }
+  }
+
+  // -------------------------------------------------- 4b. signals & stop signs
+  // Only the *lamp that is lit* moves, so everything else — post, mast arm, the
+  // dark housing, the octagons — is baked into the chunks like any other prop.
+  // signals.js draws one small box per approach on top. (W4)
+  const poleCol = rgb(C.pole), lampCol = rgb(C.lamp), hydroCol = rgb(C.hydro);
+  const headCol = rgb(C.signHead), lensOff = rgb(C.lensOff);
+  const stopRed = rgb(C.stopRed), stopRim = rgb(C.stopRim);
+
+  // A flat octagon standing on its edge, facing `yaw`, drawn from both sides.
+  function octagon(bd, x, y, z, r, yaw, col, off) {
+    const s = Math.sin(yaw), co = Math.cos(yaw);
+    const px = [], py = [];
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+      px.push(Math.cos(a) * r); py.push(Math.sin(a) * r);
+    }
+    for (const sg of [1, -1]) {
+      const ox = s * (off + (sg > 0 ? 0.012 : -0.012)), oz = co * (off + (sg > 0 ? 0.012 : -0.012));
+      const c0 = bd.vert(x + ox, y, z + oz, s * sg, 0, co * sg, col);
+      for (let i = 0; i < 8; i++) {
+        bd.vert(x + px[i] * co + ox, y + py[i], z - px[i] * s + oz, s * sg, 0, co * sg, col);
+      }
+      for (let i = 0; i < 8; i++) {
+        const a = c0 + 1 + i, b = c0 + 1 + ((i + 1) % 8);
+        if (sg > 0) bd.tri(c0, a, b); else bd.tri(c0, b, a);
+      }
+    }
+  }
+
+  const SIGNALS = planSignals();
+  for (const sig of SIGNALS) {
+    for (const a of sig.approaches) {
+      const bd = bAt(a.poleX, a.poleZ);
+      bd.cyl(a.poleX, 3.1, a.poleZ, 0.13, 6.2, 6, poleCol, 'y', false);
+      const mx = (a.poleX + a.headX) / 2, mz = (a.poleZ + a.headZ) / 2;
+      bd.box(mx, 6.18, mz, 0.13, 0.13, a.arm * 0.95, poleCol,
+        { yaw: Math.atan2(a.armX, a.armZ), noBottom: true });
+      bd.box(a.headX, HEAD_Y, a.headZ, 0.52, 1.52, 0.34, headCol, { yaw: a.headYaw });
+      const fx = Math.sin(a.headYaw), fz = Math.cos(a.headYaw);
+      for (let k = 0; k < 3; k++) {
+        bd.box(a.headX + fx * 0.1, HEAD_Y + LAMP_DY[k], a.headZ + fz * 0.1,
+          0.3, 0.3, 0.14, lensOff, { yaw: a.headYaw });
+      }
+      poleCollider(a.poleX, a.poleZ, 'signal', 6.2);
+      stopLine(a.x, a.z, a.dx, a.dz, a.hw, a.yaw);
+    }
+  }
+
+  const STOPS = planStopSigns();
+  for (const s of STOPS) {
+    const bd = bAt(s.poleX, s.poleZ);
+    bd.cyl(s.poleX, 1.15, s.poleZ, 0.065, 2.3, 4, poleCol, 'y', false);
+    octagon(bd, s.poleX, 2.34, s.poleZ, 0.47, s.faceYaw, stopRim, 0.0);
+    octagon(bd, s.poleX, 2.34, s.poleZ, 0.40, s.faceYaw, stopRed, 0.03);
+    poleCollider(s.poleX, s.poleZ, 'stopsign', 2.3);
+    stopLine(s.x, s.z, s.dx, s.dz, s.hw, s.yaw);
   }
 
   // ------------------------------------------------------------ 5. buildings
@@ -601,6 +794,75 @@ export function buildWorld(renderer) {
     return mask[j * wm.w + i] === 1;
   }
 
+  // ------------------------------------------------------------ 5b. shoreline
+  // A sand/gravel strip on the LAND side of every river edge, a scatter of
+  // boulders, and the marina's docks. The land side is found by asking the water
+  // mask, which is exact and saves worrying about ring winding. (W6)
+  const sandCol = rgb(C.sand), dockCol = rgb(C.dock);
+  let shoreCount = 0, rockCount = 0, dockCount = 0;
+  const sr = mulberry32(0x5ea17e);
+
+  function flatQuad(bd, q, y, col) {
+    const cr = (q[1][0] - q[0][0]) * (q[2][1] - q[0][1]) - (q[1][1] - q[0][1]) * (q[2][0] - q[0][0]);
+    const o = cr > 0 ? [q[0], q[3], q[2], q[1]] : q;
+    bd.quad([o[0][0], y, o[0][1]], [o[1][0], y, o[1][1]],
+      [o[2][0], y, o[2][1]], [o[3][0], y, o[3][1]], col, UP);
+  }
+
+  {
+    const rings = [];
+    for (const w of MAP.water) rings.push(w.p);
+    for (const a of MAP.areas) if (a.k === 'water') rings.push(a.p);
+    const edges = [];
+    for (const ring of rings) {
+      for (let i = 0; i < ring.length; i++) {
+        const a = ring[i], b = ring[(i + 1) % ring.length];
+        const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (L < 1 || L > 150) continue;             // 150 m+ edges are the map border
+        const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+        if (mx < B.minX + 6 || mx > B.maxX - 6 || mz < B.minZ + 6 || mz > B.maxZ - 6) continue;
+        edges.push([a, b, L, mx, mz]);
+      }
+    }
+    for (const [a, b, L, mx, mz] of subsample(edges, CAP2.shoreEdges)) {
+      let nx = -(b[1] - a[1]) / L, nz = (b[0] - a[0]) / L;
+      if (waterAt(mx + nx * 4, mz + nz * 4)) { nx = -nx; nz = -nz; }
+      if (waterAt(mx + nx * 4, mz + nz * 4)) continue;      // both sides wet: skip
+      const w = 3.2 + sr() * 1.8;
+      flatQuad(bAt(mx, mz), [
+        [a[0], a[1]], [b[0], b[1]],
+        [b[0] + nx * w, b[1] + nz * w], [a[0] + nx * w, a[1] + nz * w],
+      ], Y.sand, sandCol);
+      shoreCount++;
+      if (rockCount < CAP2.rocks && sr() < 0.34) {
+        const t = 0.2 + sr() * 0.6;
+        const rxp = a[0] + (b[0] - a[0]) * t + nx * (0.4 + sr() * 1.6);
+        const rzp = a[1] + (b[1] - a[1]) * t + nz * (0.4 + sr() * 1.6);
+        const s = 0.5 + sr() * 0.9;
+        bAt(rxp, rzp).box(rxp, s * 0.28, rzp, s, s * 0.75, s * 0.85,
+          shade(C.rock, 0.85 + sr() * 0.3), { yaw: sr() * 3.1, noBottom: true });
+        rockCount++;
+      }
+    }
+
+    // Marina docks: walk south (+Z) from the parking apron until the mask says
+    // water, then run a finger pier out from there. PLACES.marina is (-1766,-88).
+    for (const [sx, sz] of [[-1806, -260], [-1782, -246], [-1756, -232]]) {
+      let z = sz;
+      while (z < sz + 140 && !waterAt(sx, z)) z += 1;
+      if (z >= sz + 140) continue;
+      const len = 26;
+      const bd = bAt(sx, z + len / 2);
+      bd.tower(sx, -0.05, z + len / 2, 2.6, len, 0.5, dockCol, { noBottom: true });
+      for (let t = 2; t < len; t += 6) {
+        for (const s of [-1, 1]) {
+          bd.cyl(sx + s * 1.15, 0.45, z + t, 0.13, 1.5, 5, shade(C.dock, 0.7), 'y', false);
+        }
+      }
+      dockCount++;
+    }
+  }
+
   // ------------------------------------------------------------ 6. trees
   const tr = mulberry32(0x7ee5);
   function tree(x, z, scale, conifer) {
@@ -675,12 +937,25 @@ export function buildWorld(renderer) {
   const treeCount = woodSel.length + parkSel.length + streetSel.length;
 
   // ------------------------------------------------------------ 7. street furniture
-  const poleCol = rgb(C.pole), lampCol = rgb(C.lamp), hydroCol = rgb(C.hydro);
-  function poleCollider(x, z) {
+  function poleCollider(x, z, kind, h) {
+    poles.push({ x, z, kind: kind || 'pole', h: h || 8.4 });
     addSegment(x - 0.15, z - 0.15, x + 0.15, z - 0.15);
     addSegment(x + 0.15, z - 0.15, x + 0.15, z + 0.15);
     addSegment(x + 0.15, z + 0.15, x - 0.15, z + 0.15);
     addSegment(x - 0.15, z + 0.15, x - 0.15, z - 0.15);
+  }
+  // Pool of warm light on the tarmac under the lamp head. Unlit, alpha-blended,
+  // and only ever drawn after dark — the cheapest streetlight there is. (W7)
+  const poolCol = rgb(C.pool);
+  function lightPool(x, z, r) {
+    const bd = nAt(x, z);
+    const c0 = bd.vert(x, Y.pool2, z, 0, 1, 0, poolCol);
+    for (let i = 0; i < DISC; i++) bd.vert(x + discCos[i] * r, Y.pool2, z + discSin[i] * r, 0, 1, 0, poolCol);
+    for (let i = 0; i < DISC; i++) {
+      const a = c0 + 1 + i, b = c0 + 1 + ((i + 1) % DISC);
+      bd.tri(c0, b, a);
+    }
+    poolCount++;
   }
   function streetlight(x, z, dx, dz) {
     const bd = bAt(x, z);
@@ -688,13 +963,14 @@ export function buildWorld(renderer) {
     bd.box(x + dx * 1.5, 8.2, z + dz * 1.5, 3.0, 0.22, 0.22, poleCol,
       { yaw: Math.atan2(-dz, dx), noBottom: true });
     bd.box(x + dx * 3.0, 7.85, z + dz * 3.0, 1.2, 0.4, 1.0, lampCol, { noBottom: true });
-    poleCollider(x, z);
+    poleCollider(x, z, 'streetlight', 8.4);
+    lightPool(x + dx * 3.0, z + dz * 3.0, 7.4);
   }
   function hydroPole(x, z, dx, dz) {
     const bd = bAt(x, z);
     bd.cyl(x, 5.4, z, 0.3, 10.8, 4, hydroCol, 'y', false);
     bd.box(x, 10.0, z, 4.0, 0.28, 0.32, hydroCol, { yaw: Math.atan2(-dz, dx), noBottom: true });
-    poleCollider(x, z);
+    poleCollider(x, z, 'hydro', 10.8);
   }
 
   // gather candidate positions first so the cap spreads across the whole map
@@ -760,34 +1036,128 @@ export function buildWorld(renderer) {
   }
 
   // ------------------------------------------------------------ upload
-  const chunks = [];
   let tris = 0;
-  for (const [k, b] of builders) {
-    if (b.empty) continue;
-    tris += b.i.length / 3;
-    const mesh = renderer.upload(b);
-    const cx = B.minX + ((k % NX) + 0.5) * CHUNK;
-    const cz = B.minZ + (Math.floor(k / NX) + 0.5) * CHUNK;
-    chunks.push({ mesh, min: mesh.min, max: mesh.max, cx, cz });
+  function uploadSet(map) {
+    const out = [];
+    for (const [k, b] of map) {
+      if (b.empty) continue;
+      tris += b.i.length / 3;
+      const mesh = renderer.upload(b);
+      const cx = B.minX + ((k % NX) + 0.5) * CHUNK;
+      const cz = B.minZ + (Math.floor(k / NX) + 0.5) * CHUNK;
+      out.push({ mesh, min: mesh.min, max: mesh.max, cx, cz, fade: 0 });
+    }
+    return out;
   }
+  const chunks = uploadSet(builders);
+  const waterChunks = uploadSet(waterB);
+  const nightChunks = uploadSet(nightB);
   const distantMesh = renderer.upload(distant);
   tris += distant.i.length / 3;
+  const signage = buildSignage(renderer);
 
   const dt = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) | 0;
-  console.log(`world: ${chunks.length} chunks, ${tris | 0} tris, ${buildings.length} buildings, `
-    + `${MAP.roads.length} roads (${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks), `
-    + `${treeCount} trees, ${poleCount} poles, ${segs.length >> 2} collider segments, `
-    + `${signCount} signs, ${winQuads} windows — ${dt} ms`);
+  console.log(`world: ${chunks.length} chunks (+${waterChunks.length} water, ${nightChunks.length} night), `
+    + `${tris | 0} tris, ${buildings.length} buildings, `
+    + `${MAP.roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
+    + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${stopLineCount} stop lines), `
+    + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${poleCount} poles, `
+    + `${shoreCount} shore, ${rockCount} rocks, ${dockCount} docks, ${poolCount} lamp pools, `
+    + `${segs.length >> 2} collider segments, ${signCount} boards, `
+    + `${signage ? signage.names.length : 0} storefronts, ${winQuads} windows — ${dt} ms`);
+
+  // ------------------------------------------------------------ draw
+  // One call from main.js render(): chunk cull + fade-in, the river, the
+  // storefront signs, and the lamp pools after dark. Nothing allocates.
+  const noOpts = {};
+  const fadeOpts = { fogMul: 1 };
+  const waterOpts = { water: true };
+  const poolOpts = { alpha: 0.3, unlit: true, colorMul: new Float32Array([1, 0.86, 0.63]) };
+  const signOpts = { tex: null };
+  let firstFrame = true;
+
+  function draw(r, model, x, z, drawDist, dtSec) {
+    const dd2 = drawDist * drawDist;
+    const step = firstFrame ? 1 : Math.min(1, (dtSec || 0) / FADE);
+    for (let i = 0; i < chunks.length; i++) {
+      const c = chunks[i];
+      const dx = c.cx - x, dz = c.cz - z;
+      if (dx * dx + dz * dz > dd2) { c.fade = 0; continue; }
+      if (c.fade < 1) c.fade = Math.min(1, c.fade + step);
+      if (!r.visible(c.mesh)) continue;
+      if (c.fade >= 1) r.draw(c.mesh, model, noOpts);
+      else {
+        // W2: a new chunk arrives buried in fog and thins out over FADE seconds,
+        // which reads as a fade without paying for a transparent pass.
+        fadeOpts.fogMul = 1 + (1 - c.fade) * 3.2;
+        r.draw(c.mesh, model, fadeOpts);
+      }
+    }
+    for (let i = 0; i < waterChunks.length; i++) {
+      const c = waterChunks[i];
+      const dx = c.cx - x, dz = c.cz - z;
+      if (dx * dx + dz * dz > dd2 * 2.6) continue;      // the river reads from far off
+      if (r.visible(c.mesh)) r.draw(c.mesh, model, waterOpts);
+    }
+    if (signage) {
+      signOpts.tex = signage.tex;
+      if (r.visible(signage.mesh)) r.draw(signage.mesh, model, signOpts);
+    }
+    const night = nightAmount(r.env);
+    if (night > 0.02) {
+      poolOpts.alpha = 0.34 * night;
+      for (let i = 0; i < nightChunks.length; i++) {
+        const c = nightChunks[i];
+        const dx = c.cx - x, dz = c.cz - z;
+        if (dx * dx + dz * dz > 330 * 330) continue;
+        if (r.visible(c.mesh)) r.draw(c.mesh, model, poolOpts);
+      }
+    }
+    firstFrame = false;
+  }
 
   return {
     chunks,
+    waterChunks,
+    nightChunks,
+    signage,
     distant: distantMesh,
+    poles,
+    signals: SIGNALS,
+    stopSigns: STOPS,
+    intersections: interCount,
+    draw,
     querySegments,
     roadAt,
     waterAt,
     nearestRoad,
     bounds: B,
   };
+}
+
+// How dark it is, 0 by day and 1 at night, from the ambient sky colour — so it
+// follows the environment blend instead of needing a flag threaded through.
+export function nightAmount(env) {
+  if (!env) return 0;
+  const s = env.sky;
+  const lum = 0.3 * s[0] + 0.59 * s[1] + 0.11 * s[2];
+  return clamp((0.36 - lum) / 0.2, 0, 1);
+}
+
+// Two translucent wedges in car-local space (nose at +Z), drawn unlit in front
+// of the player at night. One mesh, one draw. (W7)
+export function buildHeadlights(renderer, spec) {
+  const b = new MeshBuilder();
+  const col = [1, 0.95, 0.78];
+  const zf = (spec ? spec.len : 4.4) * 0.5;
+  for (const s of [-1, 1]) {
+    const ox = s * 0.62;
+    // near edge at the lamp, far edge 15 m out and wide, sloping down to the road
+    const p0 = [ox - 0.16, 0.62, zf], p1 = [ox + 0.16, 0.62, zf];
+    const p2 = [ox * 0.4 + 2.6, 0.06, zf + 15], p3 = [ox * 0.4 - 2.6, 0.06, zf + 15];
+    b.quad(p1, p0, p3, p2, col, [0, 1, 0]);
+  }
+  return renderer.upload(b);
 }
 
 // flat [x,z,x,z,...] -> [[x,z],...]

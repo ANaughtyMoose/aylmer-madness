@@ -8,22 +8,27 @@
 //   // translation to the camera position (the dome rides with the eye):
 //   r.draw(sky.mesh,   modelAtCamera, skyOpts(env));    // gl.js turns depth writes
 //                                                      // + culling off for this draw
-//   r.draw(sky.clouds, modelAtCamera, cloudOpts(env));  // optional; alpha < 1 so the
+//   r.draw(sky.clouds, cloudModel(mm, camPos, r.time), cloudOpts(env));
+//                                                      // optional; alpha < 1 so the
 //                                                      // renderer defers it to r.end()
 //
 //   skyOpts(env)   -> { sky: true, skyLo: env.fog, skyHi: env.sky }
+//   cloudModel(out, camPos, seconds) -> the cloud layer's model matrix; it rides
+//                                       with the eye and turns slowly (W8)
 //   cloudOpts(env) -> { alpha, unlit: true, fogMul, colorMul }  (tinted by env.sun/sky)
 //
 // The dome is an inverted hemisphere; vertex colour .r holds the horizon->zenith
 // blend (0 at/below the horizon, 1 straight up) which the shader's sky mode
 // turns into mix(skyLo, skyHi, r) plus a sun disc along env.lightDir.
 import { MeshBuilder } from '../core/mesh.js';
-import { mulberry32 } from '../core/math.js';
+import { m4, mulberry32 } from '../core/math.js';
 
 const RADIUS = 2800;
 const SEGS = 16;      // around
 const RINGS = 6;      // horizon -> zenith
 const CLOUDS = 28;
+const MIN_ELEV = Math.tan(20 * Math.PI / 180);   // clouds stay 20° off the horizon
+const WIND = 0.0022;  // rad/s — a puff 1.5 km out drifts at about 12 km/h
 
 // Push a triangle so that its face normal points along `dir` (dot > 0), whatever
 // order the corners came in. Keeps the dome inward-facing without winding maths.
@@ -96,7 +101,10 @@ export function buildSky(renderer) {
   }
   for (let n = 0; n < CLOUDS; n++) {
     const a = rnd() * Math.PI * 2, d = 400 + rnd() * 1700;
-    const cx = Math.cos(a) * d, cz = Math.sin(a) * d, cy = 720 + rnd() * 160;
+    const cx = Math.cos(a) * d, cz = Math.sin(a) * d;
+    // Never let a puff sit within MIN_ELEV of the horizon: the discs face down,
+    // so one that grazes the skyline shows as a hard grey line on the rim.
+    const cy = Math.max(720 + rnd() * 160, d * MIN_ELEV);
     const r = 90 + rnd() * 170, sh = 0.94 + rnd() * 0.06;
     puff(cx, cy, cz, r, sh);
     puff(cx + (rnd() - 0.5) * r, cy + 1, cz + (rnd() - 0.5) * r * 0.6, r * 0.7, sh);
@@ -109,6 +117,14 @@ export function buildSky(renderer) {
 
 export function skyOpts(env) {
   return { sky: true, skyLo: env.fog, skyHi: env.sky };
+}
+
+// Model matrix for the cloud layer: it rides with the eye like the dome, but
+// turns slowly so the sky is never the same twice. Rotating (rather than
+// sliding) keeps every puff at the elevation it was built at, so none of them
+// can wander down to the horizon. (W8)
+export function cloudModel(out, camPos, time) {
+  return m4.compose(out, camPos[0], 0, camPos[2], time * WIND, 0, 0);
 }
 
 // Clouds are unlit white, dimmed by how bright the sky is (night -> dark grey)
