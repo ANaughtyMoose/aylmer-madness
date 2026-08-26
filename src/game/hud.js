@@ -554,6 +554,38 @@ export class Hud {
     g.fillText(range >= 1000 ? (range / 1000).toFixed(1) + ' km' : Math.round(range) + ' m',
       MAP_R, SIZE - 5);
   }
+
+  // ---- driving agent additions ------------------------------------------
+  // Markup lives at the end of index.html and the styling at the end of
+  // style.css, so this survives a rework of the rest of the HUD.
+
+  /** R4 — the damage bar next to the speedo. `pct` is 0..100. */
+  setDamage(pct) {
+    if (this._dmgFill === undefined) {
+      const $ = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null);
+      this._dmgWrap = $('dmgwrap');
+      this._dmgFill = $('dmgfill');
+    }
+    const v = Math.max(0, Math.min(100, Math.round(pct || 0)));
+    if (v === this._lastDmg) return;
+    this._lastDmg = v;
+    if (this._dmgWrap) this._dmgWrap.classList.toggle('hidden', v <= 0);
+    if (!this._dmgFill) return;
+    this._dmgFill.style.width = v + '%';
+    // green → amber at the cosmetic line → red once it starts to drive badly
+    this._dmgFill.className = v > 60 ? 'bad' : v > 25 ? 'warn' : '';
+  }
+
+  /** D5 — the R on the speedo. */
+  setReverse(on) {
+    if (this._gear === undefined) {
+      this._gear = (typeof document !== 'undefined' ? document.getElementById('gear') : null);
+    }
+    const v = !!on;
+    if (v === this._lastRev) return;
+    this._lastRev = v;
+    if (this._gear) this._gear.classList.toggle('hidden', !v);
+  }
 }
 
 // A footprint worth drawing on a 200 px map: bounding box over ~55 m².

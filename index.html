@@ -98,6 +98,15 @@
   </div>
 </div>
 
+<!-- driving agent (R4 / D5): damage bar and reverse indicator. Kept out of
+     #hud on purpose so a rework of the HUD markup doesn't collide with it;
+     both are positioned from the rules at the end of style.css. -->
+<div id="dmgwrap" class="hidden">
+  <span id="dmglabel">DOMMAGE</span>
+  <u id="dmgbar"><i id="dmgfill"></i></u>
+</div>
+<div id="gear" class="hidden">R</div>
+
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

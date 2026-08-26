@@ -164,12 +164,14 @@ export function buildWorld(renderer) {
     return b;
   }
   function bAt(x, z) { return pick(builders, x, z); }
+  const bKey = chunkKey;
   function wAt(x, z) { return pick(waterB, x, z); }
   function nAt(x, z) { return pick(nightB, x, z); }
 
   // Every upright post in town, in one list, so the collision/damage code can
   // find the one you just hit and swap in a fallen version of it.
   const poles = [];
+  const poleGrid = new Map();
   let poolCount = 0;
 
   // ------------------------------------------------------------ collider grid
@@ -193,6 +195,7 @@ export function buildWorld(renderer) {
         a.push(idx);
       }
     }
+    return idx;
   }
 
   // ------------------------------------------------------------ triangle emit
@@ -719,6 +722,7 @@ export function buildWorld(renderer) {
   // ------------------------------------------------------------ segment query
   const segCount = segs.length >> 2;
   let seen = new Int32Array(segCount + 12000);
+  let segDead = null;          // allocated once the pole count is known
   let stamp = 0;
   const outArr = [];
   const pool = [];
@@ -736,6 +740,7 @@ export function buildWorld(renderer) {
           const idx = arr[k];
           if (seen[idx] === stamp) continue;
           seen[idx] = stamp;
+          if (segDead !== null && segDead[idx]) continue;   // a snapped pole
           const o = idx * 4;
           const ax = segs[o], az = segs[o + 1], bx = segs[o + 2], bz = segs[o + 3];
           if (distPtSeg2(x, z, ax, az, bx, bz) > r2) continue;
@@ -937,12 +942,31 @@ export function buildWorld(renderer) {
   const treeCount = woodSel.length + parkSel.length + streetSel.length;
 
   // ------------------------------------------------------------ 7. street furniture
-  function poleCollider(x, z, kind, h) {
-    poles.push({ x, z, kind: kind || 'pole', h: h || 8.4 });
-    addSegment(x - 0.15, z - 0.15, x + 0.15, z - 0.15);
+  const poleCol = rgb(C.pole), lampCol = rgb(C.lamp), hydroCol = rgb(C.hydro);
+  // R3 — poles are still baked into the chunk mesh (2500 of them as separate
+  // draws would cost more than the whole rest of the frame), but each one now
+  // remembers which chunk it went into, which slice of that chunk's index
+  // buffer it occupies, and which four collider segments are its. Snapping one
+  // is then two O(1) writes: blank those indices on the GPU, mark the segments
+  // dead. No per-frame cost at all for the ones still standing.
+  // (`poles` / `poleGrid` are declared up top so the signal and stop-sign poles,
+  // which are built earlier, can register through poleCollider().)
+  function poleSegs(x, z) {
+    const base = addSegment(x - 0.15, z - 0.15, x + 0.15, z - 0.15);
     addSegment(x + 0.15, z - 0.15, x + 0.15, z + 0.15);
     addSegment(x + 0.15, z + 0.15, x - 0.15, z + 0.15);
     addSegment(x - 0.15, z + 0.15, x - 0.15, z - 0.15);
+    return base;
+  }
+  // Signal / stop-sign poles are built before the chunk bookkeeping exists and
+  // aren't snappable: register them with no mesh slice (k = null, n = 0).
+  function poleCollider(x, z, kind, h) { addPole(x, z, kind || 'pole', h || 8.4, null, 0, 0); }
+  function addPole(x, z, kind, h, k, i0, i1) {
+    const p = { x, z, kind, h, k, i0, n: i1 - i0, seg: poleSegs(x, z), dead: false, mesh: null };
+    poles.push(p);
+    const key = gkey(Math.floor(x / SEG_CELL), Math.floor(z / SEG_CELL));
+    const bucket = poleGrid.get(key);
+    if (bucket) bucket.push(p); else poleGrid.set(key, [p]);
   }
   // Pool of warm light on the tarmac under the lamp head. Unlit, alpha-blended,
   // and only ever drawn after dark — the cheapest streetlight there is. (W7)
@@ -958,19 +982,21 @@ export function buildWorld(renderer) {
     poolCount++;
   }
   function streetlight(x, z, dx, dz) {
-    const bd = bAt(x, z);
+    const k = bKey(x, z), bd = bAt(x, z);
+    const i0 = bd.i.length;
     bd.cyl(x, 4.2, z, 0.2, 8.4, 4, poleCol, 'y', false);
     bd.box(x + dx * 1.5, 8.2, z + dz * 1.5, 3.0, 0.22, 0.22, poleCol,
       { yaw: Math.atan2(-dz, dx), noBottom: true });
     bd.box(x + dx * 3.0, 7.85, z + dz * 3.0, 1.2, 0.4, 1.0, lampCol, { noBottom: true });
-    poleCollider(x, z, 'streetlight', 8.4);
+    addPole(x, z, 'streetlight', 8.4, k, i0, bd.i.length);
     lightPool(x + dx * 3.0, z + dz * 3.0, 7.4);
   }
   function hydroPole(x, z, dx, dz) {
-    const bd = bAt(x, z);
+    const k = bKey(x, z), bd = bAt(x, z);
+    const i0 = bd.i.length;
     bd.cyl(x, 5.4, z, 0.3, 10.8, 4, hydroCol, 'y', false);
     bd.box(x, 10.0, z, 4.0, 0.28, 0.32, hydroCol, { yaw: Math.atan2(-dz, dx), noBottom: true });
-    poleCollider(x, z, 'hydro', 10.8);
+    addPole(x, z, 'hydro', 10.8, k, i0, bd.i.length);
   }
 
   // gather candidate positions first so the cap spreads across the whole map
@@ -1035,23 +1061,67 @@ export function buildWorld(renderer) {
     }
   }
 
+  // ------------------------------------------------------------ pole queries
+  segDead = new Uint8Array(segs.length >> 2);
+  const poleOut = [];
+  function queryPoles(x, z, r) {
+    poleOut.length = 0;
+    const i0 = Math.floor((x - r) / SEG_CELL), i1 = Math.floor((x + r) / SEG_CELL);
+    const j0 = Math.floor((z - r) / SEG_CELL), j1 = Math.floor((z + r) / SEG_CELL);
+    const r2 = r * r;
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        const arr = poleGrid.get(gkey(i, j));
+        if (!arr) continue;
+        for (let k = 0; k < arr.length; k++) {
+          const p = arr[k];
+          if (p.dead || p.k == null) continue;   // meshless (signal/stop) poles are solid
+          const dx = p.x - x, dz = p.z - z;
+          if (dx * dx + dz * dz <= r2) poleOut.push(p);
+        }
+      }
+    }
+    return poleOut;
+  }
+
+  // Snap one. (ux, uz) is the direction the car was travelling, so it goes over
+  // that way. Everything after this is one animation entry the game draws.
+  const fallen = [];
+  function snapPole(p, ux, uz) {
+    if (p.dead) return null;
+    p.dead = true;
+    for (let k = 0; k < 4; k++) segDead[p.seg + k] = 1;
+    if (p.mesh && renderer.blankIndices) renderer.blankIndices(p.mesh, p.i0, p.n);
+    const f = {
+      x: p.x, z: p.z, kind: p.kind, h: p.h,
+      yaw: Math.atan2(ux, uz),    // fall away from the bumper
+      t: 0,                        // 0 -> 1 over half a second
+    };
+    fallen.push(f);
+    if (fallen.length > 40) fallen.shift();   // the town only has so many
+    return f;
+  }
+
   // ------------------------------------------------------------ upload
   let tris = 0;
-  function uploadSet(map) {
+  const meshByKey = new Map();
+  function uploadSet(map, record) {
     const out = [];
     for (const [k, b] of map) {
       if (b.empty) continue;
       tris += b.i.length / 3;
       const mesh = renderer.upload(b);
+      if (record) meshByKey.set(k, mesh);
       const cx = B.minX + ((k % NX) + 0.5) * CHUNK;
       const cz = B.minZ + (Math.floor(k / NX) + 0.5) * CHUNK;
       out.push({ mesh, min: mesh.min, max: mesh.max, cx, cz, fade: 0 });
     }
     return out;
   }
-  const chunks = uploadSet(builders);
+  const chunks = uploadSet(builders, true);
   const waterChunks = uploadSet(waterB);
   const nightChunks = uploadSet(nightB);
+  for (let i = 0; i < poles.length; i++) poles[i].mesh = poles[i].k == null ? null : (meshByKey.get(poles[i].k) || null);
   const distantMesh = renderer.upload(distant);
   tris += distant.i.length / 3;
   const signage = buildSignage(renderer);
@@ -1131,6 +1201,10 @@ export function buildWorld(renderer) {
     roadAt,
     waterAt,
     nearestRoad,
+    queryPoles,
+    snapPole,
+    fallen,                 // poles on their way down / lying there
+    poleCount,
     bounds: B,
   };
 }

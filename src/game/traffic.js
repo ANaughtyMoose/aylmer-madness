@@ -3,6 +3,7 @@
 // for whatever is in front of them, which is all you can see at 50 km/h.
 import { MAP } from './mapdata.js';
 import { CARS } from './cars.js';
+import { collideCars, driftBody, contact } from './collide.js';
 import { clamp, angleDelta, mulberry32 } from '../core/math.js';
 
 const TINTS = [
@@ -22,6 +23,8 @@ const KEEP_CLEAR = 25;   // never pop in this close to the player
 const RESPAWN_COOL = 2;  // seconds between teleports for one car
 const STOP_HOLD = 1.2;   // fake stop sign dwell
 const CELL = 100;        // spatial hash cell for the respawn query
+const STUN = 2.0;        // seconds sitting there after you hit them
+const HONK_AT = 0.30;    // ...and how long before the horn goes
 
 // Right-hand side of a heading (dx,dz) is (-dz,dx): east (1,0) → south (0,1).
 // Québec drives on the right, so that is the side of the centreline we want.
@@ -57,6 +60,7 @@ export class Traffic {
       edges.push({
         a, b, len, dx: dx / len, dz: dz / len,
         off: laneOffset(road.w), cls: road.cls, want: WANT[road.cls] || 10,
+        oneway: !!road.oneway,
       });
       A.out.push(edges.length - 1);
       // What meets at a node tells us whether it deserves a stop sign: three
@@ -87,13 +91,24 @@ export class Traffic {
     this.edges = edges;
 
     // ------------------------------------------------- spatial hash of edges
-    // Bucketed by midpoint; only used to find somewhere to respawn near you.
+    // Bucketed by midpoint; used to find somewhere to respawn near you and to
+    // put a shoved car back on the graph.
+    //
+    // T5: only edges you could legally drive *out of* go in. Edges are already
+    // directed — a one-way road only ever got its forward half linked — so this
+    // is the whole one-way story: pick an edge here and its direction is the
+    // legal direction. What the pool was missing was the other half of it,
+    // namely edges whose far node has no continuation: land on one of those and
+    // the car either stalls at the end or turns around and comes back down the
+    // street it just drove, which on a one-way is exactly the bug.
+    const usable = (i) => nodes[edges[i].b].out.length > 0;
     const b = MAP.bounds;
     this.gx0 = b.minX; this.gz0 = b.minZ;
     this.gw = Math.max(1, Math.ceil((b.maxX - b.minX) / CELL) + 1);
     this.gh = Math.max(1, Math.ceil((b.maxZ - b.minZ) / CELL) + 1);
     this.grid = new Map();
     for (let i = 0; i < edges.length; i++) {
+      if (!usable(i)) continue;
       const e = edges[i], A = nodes[e.a], B = nodes[e.b];
       const k = this.cellKey((A.x + B.x) * 0.5, (A.z + B.z) * 0.5);
       const bucket = this.grid.get(k);
@@ -105,21 +120,29 @@ export class Traffic {
     // main drag; the rest get dropped on side streets.
     const big = [], small = [];
     for (let i = 0; i < edges.length; i++) {
+      if (!usable(i)) continue;
       (edges[i].cls === 'residential' ? small : big).push(i);
     }
     this.cars = [];
     for (let i = 0; i < count; i++) {
       const pool = (rnd() < 0.6 && big.length) ? big : (small.length ? small : big);
       const ei = pool[Math.floor(rnd() * pool.length) % pool.length];
+      const spec = CARS[Math.floor(rnd() * CARS.length)];
       const car = {
         x: 0, z: 0, yaw: 0, spin: 0, speed: 0, horn: 0,
-        spec: CARS[Math.floor(rnd() * CARS.length)],
+        spec,
         tint: TINTS[Math.floor(rnd() * TINTS.length)],
         edge: ei,
         want: 10,
         pace: 0.88 + rnd() * 0.24,
         stopT: 0,
         respawnT: 0,   // cooldown, so a car cannot ping-pong across the map
+        // R3: a traffic car is a rigid body the moment you touch it. `vx/vz`
+        // and `yawSpin` are its own, `stunT` is how long it sits there
+        // collecting itself, `honk` fires once when it finds its horn.
+        vx: 0, vz: 0, yawSpin: 0, stunT: 0, honkT: 0, honk: 0,
+        len: spec.len, wid: spec.wid, mass: spec.mass,
+        hitBy: 0,      // approach speed of the last hit, m/s (main.js reads it)
       };
       this.place(car, ei, rnd());
       car.speed = car.want * 0.7;
@@ -150,6 +173,44 @@ export class Traffic {
     car.yaw = Math.atan2(e.dx, e.dz);
     car.want = e.want * car.pace;
     car.stopT = 0;
+    car.vx = 0; car.vz = 0; car.yawSpin = 0;
+    car.stunT = 0; car.honkT = 0; car.honk = 0; car.hitBy = 0;
+  }
+
+  // After a shunt: find the nearest lane the car could legally be driving and
+  // adopt it, without teleporting. Only edges in the grid are considered, which
+  // is already the one-way-clean, no-dead-end set (see the constructor), and
+  // ones pointing roughly the way the car is facing are preferred so a spun car
+  // does not set off the wrong way down Wilfrid-Lavigne.
+  reacquire(car) {
+    const cx = Math.floor((car.x - this.gx0) / CELL);
+    const cz = Math.floor((car.z - this.gz0) / CELL);
+    const fx = Math.sin(car.yaw), fz = Math.cos(car.yaw);
+    let best = -1, bestScore = Infinity;
+    for (let iz = cz - 1; iz <= cz + 1; iz++) {
+      if (iz < 0 || iz >= this.gh) continue;
+      for (let ix = cx - 1; ix <= cx + 1; ix++) {
+        if (ix < 0 || ix >= this.gw) continue;
+        const bucket = this.grid.get(iz * this.gw + ix);
+        if (!bucket) continue;
+        for (let i = 0; i < bucket.length; i++) {
+          const e = this.edges[bucket[i]];
+          const A = this.nodes[e.a];
+          const rx = car.x - A.x - (-e.dz * e.off), rz = car.z - A.z - (e.dx * e.off);
+          const t = clamp(rx * e.dx + rz * e.dz, 0, e.len);
+          const px = rx - e.dx * t, pz = rz - e.dz * t;
+          const d2 = px * px + pz * pz;
+          const align = e.dx * fx + e.dz * fz;         // 1 = same way, -1 = head-on
+          const score = d2 * (1.9 - align);
+          if (score < bestScore) { bestScore = score; best = bucket[i]; }
+        }
+      }
+    }
+    if (best < 0) return false;
+    car.edge = best;
+    car.want = this.edges[best].want * car.pace;
+    car.stopT = 0;
+    return true;
   }
 
   // Next edge out of the node we just reached. Mostly carry straight on.
@@ -210,12 +271,31 @@ export class Traffic {
   update(dt, player) {
     this.time += dt;
     const tgt = [0, 0];
+    this.crash = 0;
     for (const c of this.cars) {
       if (c.respawnT > 0) c.respawnT -= dt;
+      c.honk = 0;
 
       // Keep the traffic where you can see it: a 5 km map is mostly elsewhere.
       const away = Math.hypot(c.x - player.x, c.z - player.z);
       if (away > CULL && c.respawnT <= 0) this.respawn(c, player);
+
+      // R3 — knocked about. For two seconds this is not a driver, it is a
+      // 1.1 tonne object sliding to a halt. Then it finds its horn, works out
+      // where the road went, and carries on like nothing happened.
+      if (c.stunT > 0) {
+        c.stunT -= dt;
+        c.speed = 0;
+        driftBody(c, dt, 2.6, 2.4);
+        c.spin += (Math.hypot(c.vx, c.vz) / c.spec.wheelR) * dt;
+        if (c.honkT > 0) {
+          c.honkT -= dt;
+          if (c.honkT <= 0) c.honk = 1;
+        }
+        if (c.stunT <= 0) { this.reacquire(c); c.hitBy = 0; }
+        this.collidePlayer(c, player);
+        continue;
+      }
 
       let e = this.edges[c.edge];
       this.laneAt(e, 1, tgt);
@@ -275,19 +355,36 @@ export class Traffic {
       c.x += fx * c.speed * dt;
       c.z += fz * c.speed * dt;
       c.spin += (c.speed / c.spec.wheelR) * dt;
+      // A driving car carries the graph velocity, so an impact solved against
+      // it starts from the right relative speed.
+      c.vx = fx * c.speed; c.vz = fz * c.speed;
 
-      // Shove the player if they park in a lane; they shove back harder.
-      const px = player.x - c.x, pz = player.z - c.z;
-      const pd = Math.hypot(px, pz);
-      const minD = (player.spec.wid + c.spec.wid) * 0.5 + 1.4;
-      if (pd < minD && pd > 0.001) {
-        const nx = px / pd, nz = pz / pd, pen = minD - pd;
-        c.x -= nx * pen * 0.35; c.z -= nz * pen * 0.35;
-        player.nudge(nx, nz, pen * 0.65);
-        c.speed *= 0.5;
-        c.horn = 1;
-      }
+      this.collidePlayer(c, player);
+      if (c.stunT <= 0) c.yawSpin = 0;   // only a stunned car spends its spin
       c.horn = Math.max(0, c.horn - dt);
+    }
+  }
+
+  // R3 — the real thing, both ways: an impulse along the contact normal from
+  // the relative velocity, friction across it, and the yaw that falls out of
+  // hitting a two-tonne rectangle anywhere but dead centre.
+  collidePlayer(c, player) {
+    if (!player || player.mass === undefined) return;
+    const closing = collideCars(player, c);
+    if (closing <= 0) return;
+    const nx = contact.nx, nz = contact.nz;
+    player.hit(closing, nx, nz);
+    if (player.syncFrame) player.syncFrame();
+    c.hitBy = Math.max(c.hitBy, closing);
+    this.crash = Math.max(this.crash, closing);
+    if (closing > 1.2) {
+      c.stunT = STUN;
+      c.honkT = HONK_AT;
+      c.horn = 1;
+      c.speed = 0;
+    } else {
+      c.speed *= 0.5;
+      c.horn = 1;
     }
   }
 }

@@ -93,6 +93,29 @@ export const CARS = [
     spoiler: true,
   },
 ];
+// D2 — what the handbrake leaves you. `hbGrip` scales lateral grip while the
+// lever is up and `hbYaw` scales the yaw the steering asks for: the Ranger is
+// tall and dumb and just ploughs, the Civic pivots on its nose.
+const HANDBRAKE = {
+  ranger:  { hbGrip: 0.72, hbYaw: 1.06 },
+  saturn:  { hbGrip: 0.42, hbYaw: 1.42 },
+  civic:   { hbGrip: 0.24, hbYaw: 1.82 },
+  sunfire: { hbGrip: 0.36, hbYaw: 1.52 },
+};
+// C5 — the procedural engine, per car. `f0`/`span` are the fundamental in Hz at
+// idle and at the redline; `sub` is the octave-down square's ratio, `o2g` how
+// much of it you hear; `cut0`/`cutSpan` open the lowpass with revs; `rattle` is
+// the Sunfire's blown door speaker, which only buzzes once you're moving.
+const SOUND = {
+  ranger:  { f0: 32, span: 132, sub: 0.50, o2g: 0.64, cut0: 235, cutSpan: 1250, gain: 1.15,
+             type1: 'sawtooth', type2: 'square', rattle: 0, rattleFrom: 0 },
+  saturn:  { f0: 44, span: 205, sub: 0.50, o2g: 0.46, cut0: 340, cutSpan: 2100, gain: 1.00,
+             type1: 'sawtooth', type2: 'square', rattle: 0, rattleFrom: 0 },
+  civic:   { f0: 54, span: 335, sub: 0.50, o2g: 0.20, cut0: 430, cutSpan: 3050, gain: 0.92,
+             type1: 'sawtooth', type2: 'sawtooth', rattle: 0, rattleFrom: 0 },
+  sunfire: { f0: 46, span: 240, sub: 0.50, o2g: 0.32, cut0: 365, cutSpan: 2350, gain: 1.02,
+             type1: 'sawtooth', type2: 'square', rattle: 0.55, rattleFrom: 40 },
+};
 const WHEEL_W = (s) => (s.style === 'truck' ? 0.24 : 0.20);
 const WHEEL_PROUD = 0.07;   // tyre outer face this far outside the body at the axle
 for (const c of CARS) {
@@ -101,6 +124,8 @@ for (const c of CARS) {
   const rearOverhang = c.len - c.wheelbase - c.overhangF;
   const hwAxle = Math.max(pl(c.plan, rearOverhang / c.len), pl(c.plan, (rearOverhang + c.wheelbase) / c.len));
   c.track = Math.round(2 * (hwAxle + WHEEL_PROUD - WHEEL_W(c) / 2) * 100) / 100;
+  Object.assign(c, HANDBRAKE[c.id]);
+  c.sound = SOUND[c.id];
 }
 
 export const carById = (id) => CARS.find((c) => c.id === id) || CARS[0];
@@ -372,6 +397,108 @@ export function buildCarBody(s, opts = {}) {
   return mb;
 }
 
+// ---------------------------------------------------------------- C4: lamps
+// Where each car's lenses live: [ |x|, y, z, width, height ], mirrored on ±X.
+// These shadow the boxes addDetails() already bakes into the body; the meshes
+// below sit a few centimetres proud of them so switching a lamp on is one extra
+// draw with a colour multiplier, and switching it off is drawing nothing.
+export function carLampBoxes(s) {
+  const z = (t) => tToZ(s, t);
+  const zR = tToZ(s, 0);
+  const hwR = pl(s.plan, 0.012);
+  if (s.id === 'ranger') {
+    return {
+      head: [[0.44, 0.84, z(0.992), 0.34, 0.15]],
+      tail: [[hwR - 0.10, 0.93, zR + 0.012, 0.17, 0.40]],
+      rev:  [[hwR - 0.10, 0.60, zR + 0.012, 0.15, 0.11]],
+    };
+  }
+  if (s.id === 'saturn') {
+    return {
+      head: [[0.46, 0.74, z(0.978), 0.44, 0.13]],
+      tail: [[hwR - 0.26, 0.80, zR + 0.005, 0.44, 0.18]],
+      rev:  [[hwR - 0.62, 0.80, zR + 0.005, 0.13, 0.14]],
+    };
+  }
+  if (s.id === 'civic') {
+    return {
+      head: [[0.48, 0.72, z(0.982), 0.46, 0.13]],
+      tail: [[hwR - 0.27, 0.80, zR + 0.012, 0.46, 0.19]],
+      rev:  [[hwR - 0.66, 0.66, zR + 0.012, 0.12, 0.13]],
+    };
+  }
+  return {
+    head: [[0.44, 0.73, z(0.975), 0.40, 0.12]],
+    tail: [[hwR - 0.28, 0.78, zR + 0.005, 0.44, 0.18]],
+    rev:  [[hwR - 0.66, 0.78, zR + 0.005, 0.12, 0.13]],
+  };
+}
+
+/**
+ * Six tiny meshes per car, all painted white so the draw-time colour multiplier
+ * decides what they are: headlamps (left and right separately, because damage
+ * takes one out), tail/brake lenses, reversing lamps, and two soft glow cards
+ * that only come out after dark.
+ * Returns MeshBuilders; the caller uploads them.
+ */
+export function buildCarLamps(s) {
+  const L = carLampBoxes(s);
+  const white = rgb(0xffffff);
+  const lens = (list, dir, side) => {
+    const mb = new MeshBuilder();
+    for (const [ax, y, zz, w, h] of list) {
+      for (const sx of (side === 0 ? [1, -1] : [side])) {
+        mb.box(sx * ax, y, zz + dir * 0.030, w * 0.92, h * 0.78, 0.05, white);
+      }
+    }
+    return mb;
+  };
+  // Glow: an unlit card standing off the lens, drawn with alpha at night.
+  const glow = (list, dir, side, sw, sh) => {
+    const mb = new MeshBuilder();
+    const n = [0, 0, dir];
+    for (const [ax, y, zz, w, h] of list) {
+      for (const sx of (side === 0 ? [1, -1] : [side])) {
+        const cx = sx * ax, cz = zz + dir * 0.075;
+        const hw = w * sw * 0.5, hh = h * sh * 0.5;
+        const p = (px, py) => [cx + px, y + py, cz];
+        if (dir > 0) mb.quad(p(hw, -hh), p(hw, hh), p(-hw, hh), p(-hw, -hh), white, n);
+        else mb.quad(p(-hw, -hh), p(-hw, hh), p(hw, hh), p(hw, -hh), white, n);
+      }
+    }
+    return mb;
+  };
+  return {
+    headL: lens(L.head, 1, 1),
+    headR: lens(L.head, 1, -1),
+    tail: lens(L.tail, -1, 0),
+    rev: lens(L.rev, -1, 0),
+    glowHeadL: glow(L.head, 1, 1, 2.6, 3.4),
+    glowHeadR: glow(L.head, 1, -1, 2.6, 3.4),
+    glowTail: glow(L.tail, -1, 0, 2.0, 2.0),
+  };
+}
+
+// A dented bumper cap, drawn over the crumpled end of a damaged car. One mesh
+// for every car: it is scaled to the body's width at draw time.
+export function buildCrumple() {
+  const mb = new MeshBuilder();
+  const c = rgb(0x2a2b2e);
+  for (let i = -2; i <= 2; i++) {
+    const w = 0.20, y = 0.34 + (i & 1 ? 0.05 : -0.03);
+    mb.box(i * 0.21, y, 0, w, 0.30 + (i & 1 ? 0.06 : 0), 0.14 + Math.abs(i) * 0.04, c,
+      { yaw: i * 0.16 });
+  }
+  return mb;
+}
+
+// One steam puff: a cheap unlit box, scaled and faded as it rises.
+export function buildPuff() {
+  const mb = new MeshBuilder();
+  mb.box(0, 0, 0, 1, 1, 1, rgb(0xd8dde2));
+  return mb;
+}
+
 // A flat polygon on the wheel face (YZ plane at x), fanned from its first
 // point. `pts` are [y, z] in CCW order seen from +X; flipped for the far face.
 function facePoly(mb, x, dir, pts, c) {
@@ -468,26 +595,58 @@ export function buildShadow() {
 
 const RESET_CLEARANCE = 3;
 
+// R4 — the damage ladder. Below COSMETIC the car is fine; past it you lose a
+// headlight and the bumper folds; past PERF it will not pull and it will not
+// steer straight; at DEAD the job is over and somebody comes to get you.
+export const DAMAGE = { COSMETIC: 25, PERF: 60, DEAD: 100 };
+
+const GRASS = 0.72;                     // surface multiplier off the asphalt
+const SURF_RAMP = (1 - GRASS) / 0.5;    // D4: the full penalty takes half a second
+const CURB_Y = 0.15;                    // how tall the sidewalk actually is
+
 export class Vehicle {
   constructor(spec) {
     this.spec = spec;
     this.reset(0, 0, 0);
     this.passengers = 0;
     this.assist = true;
+    // R4 state — deliberately NOT cleared by reset(), so a recover() or a
+    // teleport does not quietly fix your bumper.
+    this.damage = 0;
+    this.deformF = 0; this.deformR = 0;
+    this.headOut = 0;      // 0 none, +1 the left lamp is out, -1 the right
+    this.pull = 0;         // which way a hurt car wanders
+    this.misfire = false;
+    this.steamT = 0;
   }
+
+  // The collide.js body contract, straight off the spec sheet.
+  get len() { return this.spec.len; }
+  get wid() { return this.spec.wid; }
+  get mass() { return this.spec.mass; }
 
   reset(x, z, yaw) {
     this.x = x; this.z = z; this.yaw = yaw;
     this.vx = 0; this.vz = 0;
     this.vLong = 0; this.vLat = 0;
     this.steer = 0; this.yawRate = 0;
+    this.yawSpin = 0;                    // spin left over from an impact
     this.spin = 0; this.roll = 0; this.pitch = 0;
+    this.y = 0; this.vy = 0;             // D3: the hop over a curb
+    this.surface = 1;                    // D4: ramped grip/drag penalty
+    this.onRoad = true;
     this.skid = 0; this.impact = 0; this.drowning = 0;
+    this.reversing = false; this.braking = false;
+    this.curb = 0;
+    this.lastHit = 0;
+    this.misfireT = 0;
     this.lastSafe = { x, z, yaw };
   }
 
   get speedKmh() { return Math.abs(this.vLong) * 3.6; }
   get forward() { return [Math.sin(this.yaw), Math.cos(this.yaw)]; }
+  // Top speed and grip after the dents. Used by the HUD and the AI alike.
+  get hurt() { return this.damage > DAMAGE.PERF; }
 
   update(dt, ctl, world) {
     const s = this.spec;
@@ -499,11 +658,18 @@ export class Vehicle {
     let vLat = this.vx * rx + this.vz * rz;
 
     const onRoad = world.roadAt(this.x, this.z);
-    const surface = onRoad ? 1 : 0.72;          // grass and gravel are slippery and slow
+    // D4: grass and gravel still cut the grip the instant you leave the road,
+    // but the drag ramps in over half a second instead of hitting a wall.
+    const wantSurf = onRoad ? 1 : GRASS;
+    this.surface += clamp(wantSurf - this.surface, -SURF_RAMP * dt, SURF_RAMP * dt);
+    const surface = this.surface;
+    const gripSurf = onRoad ? 1 : GRASS;
+    const offRoad = (1 - surface) / (1 - GRASS);      // 0 on tarmac, 1 fully off it
     const inWater = world.waterAt(this.x, this.z);
+    const topSpeed = s.topSpeed * (this.hurt ? 0.85 : 1);   // R4: −15 % once it's bad
 
     // Engine: force tapers off as you approach terminal speed, like a tired 4-banger.
-    const frac = clamp(vLong / s.topSpeed, -1, 1);
+    const frac = clamp(vLong / topSpeed, -1, 1);
     let a = 0;
     if (ctl.throttle > 0 && vLong > -1.5) {
       a += ctl.throttle * s.accel * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
@@ -515,29 +681,77 @@ export class Vehicle {
     if (ctl.handbrake && vLong > 0.5) a -= s.brake * 0.55;
     // Rolling resistance is a near-constant drag; aero grows with the square.
     // Top speed then falls out of where the power curve meets it.
-    if (Math.abs(vLong) > 0.2) a -= Math.sign(vLong) * (onRoad ? 0.28 : 1.7);
+    if (Math.abs(vLong) > 0.2) a -= Math.sign(vLong) * (0.28 + 1.42 * offRoad);
     a -= vLong * Math.abs(vLong) * 0.0006;
     if (inWater) a -= vLong * 4.5;
+    // R4: a sick engine coughs. One skipped stroke, roughly once a second.
+    this.misfire = false;
+    if (this.hurt && ctl.throttle > 0.1) {
+      this.misfireT -= dt;
+      if (this.misfireT <= 0) {
+        this.misfireT = 0.4 + Math.random() * 1.3;
+        this.misfire = true;
+        a -= s.accel * 0.5;
+      }
+    }
     vLong += a * dt;
     if (ctl.throttle === 0 && ctl.brake === 0 && Math.abs(vLong) < 0.25) vLong = 0;
 
+    // D3 — the curb. The sidewalk is 0.15 m of concrete and it should cost you
+    // a hop and a slice of speed, whichever way you cross it.
+    if (onRoad !== this.onRoad) {
+      const spd = Math.abs(vLong);
+      if (spd > 2.2 && this.y < 0.02) {
+        const k = clamp(spd / 14, 0, 1);
+        this.vy = 1.0 + 2.0 * k;
+        this.pitch += (onRoad ? -0.055 : 0.075) * k;
+        vLong *= 1 - 0.10 * k;                      // scrub
+        vLat *= 1 - 0.18 * k;
+        this.curb = k;
+        this.impact = Math.max(this.impact, k * 0.22);
+      }
+      this.onRoad = onRoad;
+    }
+    this.curb *= Math.exp(-9 * dt);
+    if (this.vy !== 0 || this.y > 0) {
+      this.vy -= 17 * dt;
+      this.y += this.vy * dt;
+      if (this.y <= 0) {
+        this.y = 0;
+        this.vy = this.vy < -1.4 ? -this.vy * 0.24 : 0;
+        if (Math.abs(this.vy) < 0.4) this.vy = 0;
+      } else if (this.y > CURB_Y * 6) {
+        this.y = CURB_Y * 6;                        // it is a curb, not a ramp
+      }
+    }
+
     // Steering: less lock the faster you go, so a keyboard tap can't spin you.
-    const speedFrac = clamp(Math.abs(vLong) / s.topSpeed, 0, 1);
+    const speedFrac = clamp(Math.abs(vLong) / topSpeed, 0, 1);
     let lock = s.steerMax * (0.42 + 0.58 / (1 + Math.abs(vLong) / 14));
     if (this.assist) lock *= 1 - 0.28 * speedFrac;
-    const target = ctl.steer * lock;
+    let target = ctl.steer * lock;
+    // R4: a bent car pulls. Enough to notice, not enough to be unplayable.
+    if (this.hurt) target += this.pull * lock * 0.20 * clamp((this.damage - DAMAGE.PERF) / 40, 0, 1);
     this.steer += (target - this.steer) * Math.min(1, 12 * dt);
 
-    // Bicycle model yaw. Handbrake lets the back end come around.
-    const grip = s.grip * surface * (ctl.handbrake ? 0.30 : 1) * (inWater ? 0.3 : 1);
+    // Bicycle model yaw. Handbrake lets the back end come around — how far is
+    // a per-car number now (D2): the Ranger keeps most of its grip and ploughs.
+    const hbGrip = s.hbGrip != null ? s.hbGrip : 0.30;
+    const grip = s.grip * gripSurf * (ctl.handbrake ? hbGrip : 1) * (inWater ? 0.3 : 1);
     // Negative: positive yaw swings the nose toward local +X, which is left.
     this.yawRate = -(vLong / s.wheelbase) * Math.tan(this.steer);
-    if (ctl.handbrake) this.yawRate *= 1.55;
+    if (ctl.handbrake) this.yawRate *= (s.hbYaw != null ? s.hbYaw : 1.55);
     if (this.assist) {
       // Gentle counter-steer: pull the heading toward the direction of travel.
       this.yawRate += vLat * 0.045 * (1 - speedFrac * 0.5);
     }
     this.yaw += this.yawRate * dt;
+    // R3: the spin an impact put into the car, bleeding off as the tyres bite.
+    if (this.yawSpin) {
+      this.yaw += this.yawSpin * dt;
+      this.yawSpin *= Math.exp(-(1.1 + 2.8 * grip) * dt);
+      if (Math.abs(this.yawSpin) < 0.012) this.yawSpin = 0;
+    }
 
     // Lateral grip pulls the car's travel direction toward where it points.
     const bite = 1 - Math.exp(-9.5 * grip * dt);
@@ -553,7 +767,12 @@ export class Vehicle {
     this.vLong = vLong; this.vLat = vLat;
 
     this.impact *= Math.exp(-4 * dt);
+    this.steamT = Math.max(0, this.steamT - dt);
     this.collide(world);
+
+    // D5: which way the box is in, for the speedo and the hood camera.
+    this.reversing = this.vLong < -0.4;
+    this.braking = (ctl.brake > 0.05 && this.vLong > -0.05) || !!ctl.handbrake;
 
     // Cosmetic body attitude — a truck should visibly lean.
     const heavy = s.mass / 1100;
@@ -574,9 +793,57 @@ export class Vehicle {
     this.z = clamp(this.z, W.minZ + 6, W.maxZ - 6);
   }
 
+  /**
+   * R4 — every impact in the game funnels through here. `closing` is the
+   * approach speed in m/s along the contact normal; (nx, nz) points from
+   * whatever we hit toward us. Returns the damage actually added.
+   */
+  hit(closing, nx = 0, nz = 0) {
+    const force = Math.min(1, Math.abs(closing) / 18);
+    this.impact = Math.max(this.impact, force);
+    this.lastHit = Math.max(this.lastHit, force);
+    const add = Math.max(0, force - 0.055) * 46;
+    if (add <= 0) return 0;
+    const before = this.damage;
+    this.damage = clamp(this.damage + add, 0, DAMAGE.DEAD);
+    const gained = this.damage - before;
+    // Which end folded: n points at us, so a nose-on hit has n against forward.
+    const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
+    const fwd = nx * fx + nz * fz;
+    if (fwd < -0.35) this.deformF = Math.min(1, this.deformF + gained / 55);
+    else if (fwd > 0.35) this.deformR = Math.min(1, this.deformR + gained / 55);
+    // Local +X is the driver's left; the lamp on the side that took the hit goes.
+    if (this.damage > DAMAGE.COSMETIC && !this.headOut && fwd < -0.15) {
+      const lat = nx * Math.cos(this.yaw) - nz * Math.sin(this.yaw);
+      this.headOut = lat < 0 ? 1 : -1;
+    }
+    if (before <= DAMAGE.PERF && this.damage > DAMAGE.PERF && !this.pull) {
+      this.pull = Math.random() < 0.5 ? -1 : 1;
+    }
+    if (this.damage > DAMAGE.COSMETIC) this.steamT = Math.max(this.steamT, 1.4);
+    return gained;
+  }
+
+  // Re-resolve world velocity into the car's own frame. Anything that shoves
+  // vx/vz from outside update() (the car solver, the parked-car pass) calls
+  // this so the speedo and the next frame's physics agree with what happened.
+  syncFrame() {
+    this.vLong = this.vx * Math.sin(this.yaw) + this.vz * Math.cos(this.yaw);
+    this.vLat = this.vx * Math.cos(this.yaw) - this.vz * Math.sin(this.yaw);
+  }
+
+  // The tow truck's invoice: everything back to zero.
+  repair() {
+    this.damage = 0;
+    this.deformF = 0; this.deformR = 0;
+    this.headOut = 0; this.pull = 0;
+    this.steamT = 0; this.misfire = false;
+  }
+
   // Two probe circles (front axle, rear axle) against nearby wall segments.
   collide(world) {
     const s = this.spec;
+    if (world.queryPoles) this.collidePoles(world);
     const r = s.wid * 0.52;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
     const segs = world.querySegments(this.x, this.z, s.len * 0.6 + 3);
@@ -600,7 +867,7 @@ export class Vehicle {
         const vn = this.vx * nx + this.vz * nz;
         if (vn < 0) {
           const force = Math.min(1, -vn / 18);
-          this.impact = Math.max(this.impact, force);
+          this.hit(-vn, nx, nz);
           this.vx -= vn * nx * 1.25; this.vz -= vn * nz * 1.25;   // bounce, mostly absorbed
           const fwdDot = fx * nx + fz * nz;
           this.yaw += (nx * fz - nz * fx) * force * 0.35;          // glance off walls
@@ -613,7 +880,44 @@ export class Vehicle {
     this.vLat = this.vx * Math.cos(this.yaw) - this.vz * Math.sin(this.yaw);
   }
 
-  // Nudge from another car (traffic). Cheap circle-vs-circle.
+  // R3 — 200 mm of hydro pole against 1.2 tonnes of Ranger. The pole loses:
+  // hit one with any speed on and it snaps, the collider goes with it, and you
+  // drive through with a dent and a scrub. Slower than that and it holds, in
+  // which case the wall pass below treats it as the fence post it is.
+  collidePoles(world) {
+    const s = this.spec;
+    const list = world.queryPoles(this.x, this.z, s.len * 0.55 + 1.2);
+    if (!list || !list.length) return;
+    const r = s.wid * 0.5;
+    const off = Math.max(0.05, s.len * 0.5 - r);
+    const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (p.dead) continue;
+      for (let k = 1; k >= -1; k -= 2) {
+        const cx = this.x + fx * off * k, cz = this.z + fz * off * k;
+        const dx = p.x - cx, dz = p.z - cz;
+        const d = Math.hypot(dx, dz);
+        if (d > r + 0.24) continue;
+        const nl = d > 1e-4 ? d : 1;
+        const ux = dx / nl, uz = dz / nl;
+        const into = this.vx * ux + this.vz * uz;     // speed straight at it
+        if (into < 3) break;                          // a nudge leaves it standing
+        world.snapPole(p, ux, uz);
+        this.hit(into * 0.55, -ux, -uz);
+        const scrub = clamp(1 - 1.9 / Math.max(2.5, Math.abs(this.vLong)), 0.60, 0.94);
+        this.vx *= scrub; this.vz *= scrub;
+        const lat = dx * Math.cos(this.yaw) - dz * Math.sin(this.yaw);
+        this.yawSpin -= Math.sign(lat) * Math.min(1.1, into * 0.035);
+        break;
+      }
+    }
+    this.vLong = this.vx * Math.sin(this.yaw) + this.vz * Math.cos(this.yaw);
+    this.vLat = this.vx * Math.cos(this.yaw) - this.vz * Math.sin(this.yaw);
+  }
+
+  // Nudge from another car. Superseded by collide.js for real contacts, kept
+  // for anything that only wants to push the player out of the way.
   nudge(nx, nz, strength) {
     this.x += nx * strength; this.z += nz * strength;
     this.vx = this.vx * 0.8 + nx * strength * 6;
