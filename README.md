@@ -110,7 +110,7 @@ chimneys, further out a cheap silhouette. See `docs/HOUSES.md` for the plan,
 data sources and what is still rough.
 
 - **You** live at 299 Chemin Fraser; **Sayyad** (the Civic) at 75 Denise-Friend.
-  Margaret's Saturn is on Bancroft in old Aylmer; Dave's Sunfire is out on Chemin
+  Margaret's Saturn is in the driveway next to your Ranger at 299 Fraser; Dave's Sunfire is out on Chemin
   Vanier in Deschênes ("il habite loin").
 - Landmarks are the actual ones: Galeries d'Aylmer, the Tim Hortons on
   Principale, the McDo on Chemin d'Aylmer, Aréna Frank-Robinson, Dépanneur

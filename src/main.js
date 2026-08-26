@@ -100,7 +100,8 @@ const introCard = new IntroCard();
 hud.setSize(MAP_SIZES[G.mapPrefs.size]);
 hud.setRange(G.mapPrefs.range);
 // Whose driveway each car lives in.
-const OWNER = { ranger: 'home', saturn: 'marc', civic: 'steph', sunfire: 'dave' };
+// Margaret's Saturn lives in the same driveway as your Ranger at 299 Fraser.
+const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'dave' };
 
 function loadBest() {
   try { return JSON.parse(localStorage.getItem('aylmer.best') || '{}') || {}; } catch (e) { return {}; }
@@ -280,7 +281,12 @@ function enterDrive() {
   G.health = {}; G.repair.t = 0; G.towed = false;
   audio.setEngineProfile(spec.sound);
   G.parked = {};
-  for (const c of CARS) if (c.id !== spec.id) G.parked[c.id] = curbSpot(PLACES[OWNER[c.id]]);
+  const slots = {};
+  for (const c of CARS) {
+    const k = OWNER[c.id];
+    const slot = (slots[k] = (slots[k] || 0) + 1) - 1;   // your own car takes slot 0
+    if (c.id !== spec.id) G.parked[c.id] = curbSpot(PLACES[k], slot);
+  }
   // Where you left the other three last session, if you took the same car out.
   const saved = loadGarage();
   if (saved.carId === spec.id) {
@@ -330,9 +336,11 @@ function saveGarageNow() {
 }
 
 // A parking spot at the curb in front of a place, nose along the street.
-function curbSpot(p) {
+function curbSpot(p, slot = 0) {
   const dx = p.bx - p.x, dz = p.bz - p.z, d = Math.hypot(dx, dz) || 1;
-  return { x: p.x + (dx / d) * 2.6, z: p.z + (dz / d) * 2.6, yaw: p.a || 0 };
+  // `slot` spaces cars parked at the same address along the street.
+  const a = p.a || 0, tx = Math.sin(a) * 6.5 * slot, tz = Math.cos(a) * 6.5 * slot;
+  return { x: p.x + (dx / d) * 2.6 + tx, z: p.z + (dz / d) * 2.6 + tz, yaw: a };
 }
 
 function swapCar(id) {

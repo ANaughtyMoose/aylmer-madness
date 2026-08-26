@@ -71,8 +71,8 @@ const CORE_MISSIONS = [
     timeOfDay: 'day',
     build(ctx) {
       const marc = {
-        text: 'Chez Margaret', sub: 'elle est dehors depuis vingt minutes',
-        at: 'marc', radius: 13, toast: 'Margaret embarque', passengers: +1,
+        text: 'Chez Margaret', sub: 'elle attend dans l’entrée, à côté de ton char',
+        at: 'home', radius: 13, toast: 'Margaret embarque', passengers: +1,
       };
       const steph = {
         text: 'Chez Sayyad', sub: "il amène le radio pis les cassettes",
