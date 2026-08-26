@@ -3,23 +3,32 @@
 // drawImage plus a handful of dots.
 
 import { MAP } from './mapdata.js';
+import { MAP_SIZES, MAP_RANGE } from './store.js';
 
 const TAU = Math.PI * 2;
-const MAP_CSS = 200;              // #minimap is 200x200 CSS px
-const MAP_R = MAP_CSS / 2;
-const STATIC_PX = 1400;           // target width of the pre-rendered layer
+const DEFAULT_SIZE = MAP_SIZES[0];   // #minimap starts at 200x200 CSS px
+const STATIC_PX = 1400;              // target width of the pre-rendered layer
 // ~0.275 px/m over the ~5.1 km wide clip rectangle.
 const STATIC_SCALE = STATIC_PX / (MAP.bounds.maxX - MAP.bounds.minX);
-const DEFAULT_RANGE = 220;        // world radius shown on the live minimap
+const DEFAULT_RANGE = MAP_RANGE.dflt;  // world radius shown on the live minimap
+const LARGE_MIN_PX = 260;            // at or above this the minimap redraws at 30 Hz
+const GAUGE_PX = 132;                // speedo gauge, CSS px
+const GAUGE_MAX = 180;               // km/h at the end of the sweep
 
+// Minimap palette. Named for what they are on the map, not for whatever
+// places.js used to call them.
 const C = {
   land: '#22301f',
   water: '#23485c',
   sand: '#8a7d5c',
   building: '#5e5950',
   traffic: '#d9d9d9',
-  objective: '#ffc94d',
-  mission: '#ffffff',
+  job: '#ffffff',        // job start you have not taken (white ring)
+  objective: '#ffc94d',  // the thing you are driving to right now
+  waypoint: '#4fd3ff',
+  car: '#8fe38f',        // a friend's parked car
+  route: '#4fd3ff',
+  player: '#ffc94d',
 };
 
 // Ground cover fills, by MAP.areas kind.
@@ -45,6 +54,53 @@ const ROAD_ORDER = [
   ['trunk', '#7a7a86'],
 ];
 
+// ---------------------------------------------------------------- toasts
+
+// FIFO with at most `max` on screen at once. Time is passed in rather than
+// read, so the ordering and the durations are testable without a clock.
+export class ToastQueue {
+  constructor(max = 2) {
+    this.max = max;
+    this.active = [];     // [{ text, ms, until }] oldest first
+    this.pending = [];    // [{ text, ms }] FIFO
+    this.dirty = false;
+  }
+
+  push(text, ms = 2200) {
+    this.pending.push({ text: String(text ?? ''), ms: Math.max(1, ms | 0) });
+    this.dirty = true;
+    return this;
+  }
+
+  // Expire what is done, promote what fits. Returns true if the screen changed.
+  step(now) {
+    let changed = false;
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      if (this.active[i].until <= now) { this.active.splice(i, 1); changed = true; }
+    }
+    while (this.active.length < this.max && this.pending.length) {
+      const it = this.pending.shift();
+      this.active.push({ text: it.text, ms: it.ms, until: now + it.ms });
+      changed = true;
+    }
+    if (changed) this.dirty = false;
+    return changed;
+  }
+
+  // ms until the next expiry, or Infinity when nothing is showing.
+  nextDeadline(now) {
+    let best = Infinity;
+    for (const a of this.active) best = Math.min(best, a.until - now);
+    return best;
+  }
+
+  texts() { return this.active.map((a) => a.text); }
+
+  clear() { this.active.length = 0; this.pending.length = 0; }
+}
+
+// ---------------------------------------------------------------- HUD
+
 export class Hud {
   constructor() {
     const $ = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null);
@@ -58,20 +114,41 @@ export class Hud {
     this.elPrompt = $('prompt');
     this.el = { street: $('street') };
     this.canvas = $('minimap');
+    this.gauge = $('gauge');
 
     this.ctx = this.canvas && this.canvas.getContext ? this.canvas.getContext('2d') : null;
-    this.dpr = 1;
-    if (this.canvas && this.ctx) {
-      this.dpr = Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2) || 1;
-      this.canvas.width = Math.round(MAP_CSS * this.dpr);
-      this.canvas.height = Math.round(MAP_CSS * this.dpr);
-    }
+    this.dpr = Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2) || 1;
+    this.size = DEFAULT_SIZE;
+    this.setSize(DEFAULT_SIZE);
 
+    // Two toast slots, built here so index.html stays a single <div id="toast">.
+    this.toasts = new ToastQueue(2);
+    this.slots = [];
+    if (this.elToast && typeof document !== 'undefined' && document.createElement) {
+      for (let i = 0; i < 2; i++) {
+        const d = document.createElement('div');
+        d.className = 'toastline';
+        this.elToast.appendChild(d);
+        this.slots.push(d);
+      }
+    }
     this._toastTimer = 0;
+
     this._lastKmh = -1;
     this._lastTimer = '';
+    this._gear = 1;
+    this._reverse = false;
+    this._gaugeKmh = -1;
+    this._lastMapDraw = 0;
     this.range = DEFAULT_RANGE;
     this.staticMap = this._buildStatic();
+    this._gaugeFace = null;
+    this.gctx = this.gauge && this.gauge.getContext ? this.gauge.getContext('2d') : null;
+    if (this.gauge && this.gctx) {
+      this.gauge.width = Math.round(GAUGE_PX * this.dpr);
+      this.gauge.height = Math.round(GAUGE_PX * this.dpr);
+      this._gaugeFace = this._buildGaugeFace();
+    }
   }
 
   // ---- text HUD ----------------------------------------------------------
@@ -117,6 +194,16 @@ export class Hud {
     if (v === this._lastKmh) return;
     this._lastKmh = v;
     if (this.elKmh) this.elKmh.textContent = String(v);
+    this._drawGauge(v);
+  }
+
+  // 1..5 for the fake five-speed main.js already computes for the engine note.
+  // Accepts a string too, so 'R'/'N' work.
+  setGear(gear) {
+    if (gear === this._gear) return;
+    this._gear = gear;
+    this._gaugeKmh = -1;                 // force the centre digit to repaint
+    this._drawGauge(this._lastKmh < 0 ? 0 : this._lastKmh);
   }
 
   setCar(name) {
@@ -131,16 +218,97 @@ export class Hud {
     el.classList.remove('hidden');
   }
 
+  // Queued: at most two on screen, oldest on top, the rest wait their turn.
   toast(text, ms = 2200) {
-    const el = this.elToast;
-    if (!el) return;
+    this.toasts.push(text, ms);
+    this._pumpToasts();
+  }
+
+  _pumpToasts() {
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (this.toasts.step(now) && this.slots.length) {
+      const lines = this.toasts.texts();
+      for (let i = 0; i < this.slots.length; i++) {
+        const el = this.slots[i];
+        el.textContent = lines[i] ?? '';
+        el.classList.toggle('show', i < lines.length);
+      }
+      if (this.elToast) this.elToast.classList.toggle('show', lines.length > 0);
+    }
     if (this._toastTimer) { clearTimeout(this._toastTimer); this._toastTimer = 0; }
-    el.textContent = text ?? '';
-    el.classList.add('show');
-    this._toastTimer = setTimeout(() => {
-      el.classList.remove('show');
-      this._toastTimer = 0;
-    }, ms);
+    const next = this.toasts.nextDeadline(now);
+    if (next < Infinity && typeof setTimeout === 'function') {
+      this._toastTimer = setTimeout(() => { this._toastTimer = 0; this._pumpToasts(); },
+        Math.max(16, Math.min(next, 5000)));
+    }
+  }
+
+  // ---- speedo gauge ------------------------------------------------------
+
+  // Ticks and the arc never change, so they live on their own canvas and the
+  // live gauge is one drawImage plus a needle.
+  _buildGaugeFace() {
+    if (typeof document === 'undefined' || !document.createElement) return null;
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(GAUGE_PX * this.dpr);
+    cv.height = Math.round(GAUGE_PX * this.dpr);
+    const g = cv.getContext && cv.getContext('2d');
+    if (!g) return null;
+    g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const R = GAUGE_PX / 2, cx = R, cy = R;
+    const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;   // 270° sweep, gap at the bottom
+    g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 12;
+    g.beginPath(); g.arc(cx, cy, R - 9, a0, a1); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.20)'; g.lineWidth = 2;
+    g.beginPath(); g.arc(cx, cy, R - 9, a0, a1); g.stroke();
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let v = 0; v <= GAUGE_MAX; v += 20) {
+      const a = a0 + (a1 - a0) * (v / GAUGE_MAX);
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const major = v % 40 === 0;
+      g.strokeStyle = v >= 140 ? 'rgba(255,95,77,.85)' : 'rgba(255,255,255,.6)';
+      g.lineWidth = major ? 2 : 1;
+      g.beginPath();
+      g.moveTo(cx + ca * (R - 16), cy + sa * (R - 16));
+      g.lineTo(cx + ca * (R - (major ? 24 : 21)), cy + sa * (R - (major ? 24 : 21)));
+      g.stroke();
+      if (major && v > 0) {
+        g.fillStyle = 'rgba(255,255,255,.55)';
+        g.font = '600 9px Helvetica, Arial, sans-serif';
+        g.fillText(String(v), cx + ca * (R - 33), cy + sa * (R - 33));
+      }
+    }
+    return cv;
+  }
+
+  _drawGauge(kmh) {
+    const g = this.gctx;
+    if (!g || !this._gaugeFace) return;
+    if (kmh === this._gaugeKmh) return;
+    this._gaugeKmh = kmh;
+    g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    g.clearRect(0, 0, GAUGE_PX, GAUGE_PX);
+    g.drawImage(this._gaugeFace, 0, 0, GAUGE_PX, GAUGE_PX);
+    const R = GAUGE_PX / 2, cx = R, cy = R;
+    const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;
+    const frac = Math.min(1, Math.max(0, kmh / GAUGE_MAX));
+    const a = a0 + (a1 - a0) * frac;
+    g.save();
+    g.translate(cx, cy);
+    g.rotate(a);
+    g.fillStyle = kmh >= 140 ? '#ff5f4d' : '#ffc94d';
+    g.beginPath();
+    g.moveTo(-6, 3); g.lineTo(-6, -3); g.lineTo(R - 18, -1.4); g.lineTo(R - 18, 1.4);
+    g.closePath(); g.fill();
+    g.restore();
+    g.fillStyle = 'rgba(255,255,255,.85)';
+    g.beginPath(); g.arc(cx, cy, 4.5, 0, TAU); g.fill();
+    // Gear in the well below the hub.
+    const gear = this._reverse ? 'R' : String(this._gear ?? 1);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = this._reverse ? '#ff9f8d' : 'rgba(255,255,255,.75)';
+    g.font = '800 19px Helvetica, Arial, sans-serif';
+    g.fillText(gear, cx, cy + 26);
   }
 
   // ---- minimap -----------------------------------------------------------
@@ -152,7 +320,25 @@ export class Hud {
   }
 
   setRange(metres) {
-    if (metres > 0) this.range = metres;
+    if (metres > 0) this.range = Math.min(MAP_RANGE.max, Math.max(MAP_RANGE.min, metres));
+    return this.range;
+  }
+
+  // Corner minimap size in CSS px. The static layer is resolution-independent,
+  // so only the visible canvas and the street label move.
+  setSize(px) {
+    const s = Math.max(120, Math.round(px || DEFAULT_SIZE));
+    this.size = s;
+    const cv = this.canvas;
+    if (cv) {
+      if (cv.style) { cv.style.width = s + 'px'; cv.style.height = s + 'px'; }
+      cv.width = Math.round(s * this.dpr);
+      cv.height = Math.round(s * this.dpr);
+    }
+    const st = this.el && this.el.street;
+    if (st && st.style) st.style.left = (20 + s + 16) + 'px';
+    this._lastMapDraw = 0;
+    return s;
   }
 
   _buildStatic() {
@@ -193,6 +379,20 @@ export class Hud {
     g.fillStyle = C.water;
     for (const wtr of MAP.water) if (ring(wtr.p)) g.fill();
 
+    // Footprints go UNDER the roads and stay faint: on a 200 px minimap the
+    // 9,000 houses were reading as one grey mass with the streets lost in it.
+    // Sheds and the smallest garages are dropped outright.
+    g.save();
+    for (const b of MAP.buildings) {
+      if (b.k === 'shed') continue;
+      const small = b.k === 'house' || b.k === 'terrace';
+      if (small && !bigEnough(b.p)) continue;
+      g.globalAlpha = small ? 0.34 : 0.6;
+      g.fillStyle = C.building;
+      if (ring(b.p)) g.fill();
+    }
+    g.restore();
+
     // Roads: minors first so majors win at intersections.
     g.lineCap = 'round';
     g.lineJoin = 'round';
@@ -211,13 +411,6 @@ export class Hud {
       }
     }
 
-    // Building footprints.
-    g.fillStyle = C.building;
-    for (const b of MAP.buildings) {
-      if (b.k === 'shed') continue;
-      if (ring(b.p)) g.fill();
-    }
-
     return cv;
   }
 
@@ -225,16 +418,24 @@ export class Hud {
     const g = this.ctx;
     if (!g || !state) return;
 
+    const SIZE = this.size, MAP_R = SIZE / 2;
+    // The big corner map costs ~3x the small one; 30 Hz is plenty for it.
+    const nowMs = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (SIZE >= LARGE_MIN_PX) {
+      if (nowMs - this._lastMapDraw < 32) return;
+    }
+    this._lastMapDraw = nowMs;
+
     const range = state.range > 0 ? state.range : this.range;
     const px = state.x || 0, pz = state.z || 0, yaw = state.yaw || 0;
     const s = MAP_R / range;                 // px per world unit on screen
     // yaw 0 faces +Z; rotating by (yaw - PI) puts the heading at screen-up.
     const a = yaw - Math.PI;
     const ca = Math.cos(a), sa = Math.sin(a);
-    const t = (typeof performance !== 'undefined' ? performance.now() : Date.now()) * 0.001;
+    const t = nowMs * 0.001;
 
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    g.clearRect(0, 0, MAP_CSS, MAP_CSS);
+    g.clearRect(0, 0, SIZE, SIZE);
     g.save();
     g.beginPath();
     g.arc(MAP_R, MAP_R, MAP_R, 0, TAU);
@@ -257,7 +458,7 @@ export class Hud {
 
     const route = state.route;
     if (route && route.length > 1) {
-      g.strokeStyle = '#4fd3ff'; g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.strokeStyle = C.route; g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round';
       g.beginPath();
       for (let i = 0; i < route.length; i++) {
         const dx = route[i][0] - px, dz = route[i][1] - pz;
@@ -290,7 +491,7 @@ export class Hud {
         const dx = tg.x - px, dz = tg.z - pz;
         const d = Math.hypot(dx, dz);
         const obj = tg.kind !== 'mission';
-        const col = tg.kind === 'waypoint' ? '#4fd3ff' : tg.kind === 'car' ? '#8fe38f' : obj ? C.objective : C.mission;
+        const col = tg.kind === 'waypoint' ? C.waypoint : tg.kind === 'car' ? C.car : obj ? C.objective : C.job;
 
         if (d <= range) {
           const x = toX(dx, dz), y = toY(dx, dz);
@@ -334,7 +535,7 @@ export class Hud {
     }
 
     // Player: fixed yellow arrow at the centre, always pointing up.
-    g.fillStyle = C.objective;
+    g.fillStyle = C.player;
     g.beginPath();
     g.moveTo(MAP_R, MAP_R - 7);
     g.lineTo(MAP_R + 5, MAP_R + 6);
@@ -344,5 +545,26 @@ export class Hud {
     g.fill();
 
     g.restore();
+
+    // Scale readout, so + / − mean something.
+    g.fillStyle = 'rgba(255,255,255,.55)';
+    g.font = '600 10px Helvetica, Arial, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'alphabetic';
+    g.fillText(range >= 1000 ? (range / 1000).toFixed(1) + ' km' : Math.round(range) + ' m',
+      MAP_R, SIZE - 5);
   }
+}
+
+// A footprint worth drawing on a 200 px map: bounding box over ~55 m².
+function bigEnough(p) {
+  if (!p || p.length < 3) return false;
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const q of p) {
+    if (q[0] < x0) x0 = q[0];
+    if (q[0] > x1) x1 = q[0];
+    if (q[1] < z0) z0 = q[1];
+    if (q[1] > z1) z1 = q[1];
+  }
+  return (x1 - x0) * (z1 - z0) > 55;
 }
