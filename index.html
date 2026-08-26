@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aylmer Madness</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="topleft">
+    <div id="objective">Free roam</div>
+    <div id="sub"></div>
+  </div>
+  <div id="timer" class="hidden">0:00</div>
+  <div id="speedo">
+    <div id="kmh">0</div><div id="unit">km/h</div>
+    <div id="carname">—</div>
+  </div>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="street"></div>
+  <div id="toast"></div>
+  <div id="prompt" class="hidden"></div>
+</div>
+
+<div id="menu">
+  <div id="menuinner">
+    <h1>AYLMER<span>MADNESS</span></h1>
+    <p class="tag">Aylmer, Québec &middot; summer &rsquo;99 &middot; you have a licence and half a tank</p>
+    <div id="cars"></div>
+    <div id="opts">
+      <label><input type="checkbox" id="optAssist" checked> Driving assists (easier)</label>
+      <label><input type="checkbox" id="optAudio" checked> Sound</label>
+      <label>Graphics
+        <select id="optQuality">
+          <option value="low">Low (max battery)</option>
+          <option value="med" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+    </div>
+    <button id="start">DRIVE</button>
+    <p class="keys">WASD / arrows &middot; Space handbrake &middot; Tab map &middot; E take a job or a friend's car &middot; C camera &middot; Shift look back &middot; Esc pause</p>
+  </div>
+</div>
+
+<canvas id="bigmap" class="hidden"></canvas>
+
+<div id="pause" class="hidden">
+  <div class="panel">
+    <h2>Pause</h2>
+    <div id="jobs"></div>
+    <div class="row">
+      <button id="resume">Continuer</button>
+      <button id="mapbtn">Carte</button>
+      <button id="garage">Menu</button>
+      <button id="wipe">Effacer la progression</button>
+    </div>
+    <p class="keys">W/S gaz-frein · A/D volant · Espace frein à main · Shift regarder derrière · C caméra ·
+      Tab carte · E/Entrée prendre une job ou un char · Q autre job · Backspace abandonner · R remettre sur la route · H klaxon · M son</p>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

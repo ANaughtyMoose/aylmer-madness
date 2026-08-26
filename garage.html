@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Aylmer Madness — garage</title>
+<style>
+html,body{margin:0;height:100%;background:#1a2028;color:#fff;font-family:Helvetica,Arial,sans-serif;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#ui{position:fixed;top:14px;left:16px;font-size:14px;opacity:.85;line-height:1.6}
+#ui b{font-size:18px;display:block}
+</style></head><body>
+<canvas id="gl"></canvas>
+<div id="ui"><b id="name"></b><span id="info"></span><br><small>← → change car · S skin/loft · drag to orbit</small></div>
+<script type="module">
+import { Renderer } from './src/core/gl.js';
+import { MeshBuilder, rgb } from './src/core/mesh.js';
+import { m4 } from './src/core/math.js';
+import { CARS, buildCarBody, buildWheel } from './src/game/cars.js';
+import { loadCarSkin } from './src/game/carskin.js';
+const r = new Renderer(document.getElementById('gl'));
+r.setEnvironment({ sky:[0.62,0.7,0.82], ground:[0.28,0.3,0.3], sun:[0.85,0.8,0.72], lightDir:[0.4,0.8,0.45], fog:[0.1,0.125,0.16], fogDensity:0.004 });
+const bodies = {}, wheels = {}, skins = {};
+for (const c of CARS) { bodies[c.id] = r.upload(buildCarBody(c)); wheels[c.id] = r.upload(buildWheel(c)); loadCarSkin(r, c).then(s => { if (s) skins[c.id] = s; }); }
+const floor = new MeshBuilder(); floor.flat(-30,-30,30,30,0,rgb(0x2a3038)); const floorM = r.upload(floor);
+let idx = 0, useSkin = true, yaw = 0.7, pitch = -0.28, dist = 8.5, drag = null;
+addEventListener('keydown', e => { if (e.code==='ArrowRight') idx=(idx+1)%CARS.length; if (e.code==='ArrowLeft') idx=(idx+3)%CARS.length; if (e.code==='KeyS') useSkin=!useSkin; });
+addEventListener('pointerdown', e => drag=[e.clientX,e.clientY]); addEventListener('pointerup', ()=>drag=null);
+addEventListener('pointermove', e => { if(!drag) return; yaw += (e.clientX-drag[0])*0.008; pitch = Math.max(-1.2, Math.min(-0.05, pitch + (e.clientY-drag[1])*0.005)); drag=[e.clientX,e.clientY]; });
+addEventListener('wheel', e => dist = Math.max(4, Math.min(20, dist + e.deltaY*0.01)));
+const mm = m4.create();
+function frame(t) {
+  requestAnimationFrame(frame);
+  const spec = CARS[idx]; const skin = useSkin && skins[spec.id];
+  document.getElementById('name').textContent = spec.name + (skin ? '  (photo skin)' : '  (lofted model)');
+  document.getElementById('info').textContent = `${spec.len} m long · ${spec.wid} m wide · ${spec.h} m tall · wheelbase ${spec.wheelbase} m`;
+  const spin = yaw + (drag ? 0 : t * 0.00025);
+  const cp = [Math.sin(spin)*dist*Math.cos(pitch), 1.2 - Math.sin(pitch)*dist, Math.cos(spin)*dist*Math.cos(pitch)];
+  r.begin(cp, spin, pitch, 0.9);
+  m4.identity(mm); r.draw(floorM, mm);
+  m4.compose(mm, 0, 0, 0, 0, 0, 0); r.draw(skin ? skin.mesh : bodies[spec.id], mm, skin ? { tex: skin.tex } : undefined);
+  const wr = skin ? skin.wheelR : spec.wheelR, k = wr / spec.wheelR;
+  for (const sz of [1,-1]) for (const sx of [-1,1]) { const z = skin ? (sz>0?skin.wheelZ[0]:skin.wheelZ[1]) : sz*spec.axleZ; m4.compose(mm, sx*spec.track/2, wr, z, 0, t*0.002, 0, 1, k, k); r.draw(wheels[spec.id], mm); }
+  r.end();
+}
+requestAnimationFrame(frame);
+</script></body></html>
