@@ -40,7 +40,7 @@ export const CARS = [
     cladding: { rocker: 0, bumper: 0.30, tRear: 0.02, tFront: 0.98, color: 0x3a3c40 },
   },
   {
-    id: 'saturn', name: '1997 Saturn SL 4-door', who: "Marc's",
+    id: 'saturn', name: '1997 Saturn SL 4-door', who: "Margaret's",
     body: 0x2f5fa8, seats: 3, style: 'sedan',
     flavour: 'Polymer door panels, so the parking-lot dings pop back out. Gutless, but it never quits.',
     len: 4.49, wid: 1.70, h: 1.39, wheelbase: 2.60, overhangF: 0.95, track: 1.64, wheelR: 0.30,
@@ -57,7 +57,7 @@ export const CARS = [
     cladding: { rocker: 0.10, bumper: 0.42, tRear: 0.03, tFront: 0.962, color: 0x50545a },
   },
   {
-    id: 'civic', name: '1988 Honda Civic Si', who: "Steph's",
+    id: 'civic', name: '1988 Honda Civic Si', who: "Sayyad's",
     body: 0xa8322b, seats: 3, style: 'hatch',
     flavour: 'Two thousand pounds of nothing, a 1.6 that begs for 7000, and a hatch you could sleep in.',
     len: 3.99, wid: 1.67, h: 1.33, wheelbase: 2.50, overhangF: 0.83, track: 1.61, wheelR: 0.29,

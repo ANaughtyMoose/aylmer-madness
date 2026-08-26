@@ -8,8 +8,10 @@ import { MAP } from './mapdata.js';
 export const PLACES = {
   // The four homes.
   home:      { x: 932.9, z: 143.9, label: '299 Chemin Fraser', snap: true },
-  steph:     { x: -720.5, z: -465.4, label: '75 Denise-Friend', snap: true },
-  marc:      { x: -870.5, z: 60.2, label: '27 Bancroft', snap: true },
+  // Keys are historical (steph/marc); the people are Sayyad and Margaret.
+  steph:     { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
+  marc:      { x: -870.5, z: 60.2, label: '27 Bancroft (Margaret)', snap: true },
+  margaret:  { x: -870.5, z: 60.2, label: '27 Bancroft (Margaret)', snap: true },
   dave:      { x: 2389.2, z: 1384.6, label: '20 Chemin Vanier (Deschênes)', snap: true },
   // Landmarks.
   mall:      { x: -18.9, z: -331.2, label: 'Galeries d’Aylmer', snap: true, lot: true },

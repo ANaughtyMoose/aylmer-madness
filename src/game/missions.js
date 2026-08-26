@@ -66,17 +66,17 @@ const CORE_MISSIONS = [
   {
     id: 'gang',
     title: 'Ramasser la gang',
-    brief: 'Marc, Steph pis Dave veulent chill au parc. Devine qui a le char.',
+    brief: 'Margaret, Sayyad pis Dave veulent chill au parc. Devine qui a le char.',
     giver: 'principale',
     timeOfDay: 'day',
     build(ctx) {
       const marc = {
-        text: 'Chez Marc', sub: 'il est dehors depuis vingt minutes',
-        at: 'marc', radius: 13, toast: 'Marc embarque', passengers: +1,
+        text: 'Chez Margaret', sub: 'elle est dehors depuis vingt minutes',
+        at: 'marc', radius: 13, toast: 'Margaret embarque', passengers: +1,
       };
       const steph = {
-        text: 'Chez Steph', sub: "elle amène le radio pis les cassettes",
-        at: 'steph', radius: 13, toast: 'Steph embarque', passengers: +1,
+        text: 'Chez Sayyad', sub: "il amène le radio pis les cassettes",
+        at: 'steph', radius: 13, toast: 'Sayyad embarque', passengers: +1,
       };
       const dave = {
         text: 'Chez Dave', sub: 'il habite loin, on le sait, il le sait',
@@ -94,7 +94,7 @@ const CORE_MISSIONS = [
       if (ctx.seats < 3) {
         return [
           marc,
-          { ...steph, sub: "trois sur le banc, c'est pas légal — elle s'assoit au milieu pareil" },
+          { ...steph, sub: "trois sur le banc, c'est pas légal — il s'assoit au milieu pareil" },
           beach('dépose-les, tranquille, y a des kids', -2),
           { ...dave, sub: 'deuxième voyage, il a même pas remarqué' },
           beach('pour de vrai cette fois', -1),
@@ -119,7 +119,7 @@ const CORE_MISSIONS = [
           toast: 'Deux poutines. Sauce à part, comme demandé.',
         },
         {
-          text: 'Chez Steph',
+          text: 'Chez Sayyad',
           sub: `avant que le fromage arrête de faire scouic dans le ${ctx.carName}`,
           at: 'steph', radius: 13, time: 95, maxSpeed: 40,
           toast: 'Livrées encore chaudes. Légende.',

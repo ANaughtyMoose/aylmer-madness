@@ -45,7 +45,7 @@ through the keys once; the pause menu has a keyboard diagram and a Settings tab
 - **Tab** opens the whole town with street names and landmarks; click anywhere
   to drop a waypoint.
 - **Switching cars**: the Saturn, Civic and Sunfire are parked in front of
-  Marc's, Steph's and Dave's houses. Pull up next to one, press **E**, and your
+  Margaret's, Sayyad's and Dave's houses. Pull up next to one, press **E**, and your
   car stays where you left it. Jobs that depend on seats (the Ranger's bench)
   re-plan for whatever you're driving.
 - Best times per job are kept in the pause menu.
@@ -109,8 +109,8 @@ Wychwood hip-roof bungalows, Deschênes cottages, split-levels and colonials,
 chimneys, further out a cheap silhouette. See `docs/HOUSES.md` for the plan,
 data sources and what is still rough.
 
-- **You** live at 299 Chemin Fraser; **Steph** (the Civic) at 75 Denise-Friend.
-  Marc's Saturn is on Bancroft in old Aylmer; Dave's Sunfire is out on Chemin
+- **You** live at 299 Chemin Fraser; **Sayyad** (the Civic) at 75 Denise-Friend.
+  Margaret's Saturn is on Bancroft in old Aylmer; Dave's Sunfire is out on Chemin
   Vanier in Deschênes ("il habite loin").
 - Landmarks are the actual ones: Galeries d'Aylmer, the Tim Hortons on
   Principale, the McDo on Chemin d'Aylmer, Aréna Frank-Robinson, Dépanneur
