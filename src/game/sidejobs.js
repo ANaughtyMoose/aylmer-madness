@@ -151,6 +151,8 @@ const canot = {
         sub: 'W pagaie, S recule, A/D barre. 1,2 km d’eau pis un trou dans la coque.',
         at: 'island', radius: 34, focus: 'boat', noRoute: true,
         toast: 'L’ÎLE. Le canot a fait la traversée. Quarante-cinq piasses bien placées.',
+        // Un gars campé sur l'île le rachète sur le champ. Quatre-vingt-dix.
+        money: 90,
         onEnter(G, m) {
           const q = repairState(m).quality || 0.35;
           G.props.removePrefix(P + 'canoe');

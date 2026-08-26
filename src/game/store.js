@@ -4,6 +4,8 @@
 //   aylmer.settings   language, look-back mode, steering sensitivity, FOV, assists, sound
 //   aylmer.map        minimap size index + zoom range in metres
 //   aylmer.garage     current car, where the other three are parked, per-car damage
+//   aylmer.cars       which cars you have been lent or have bought (game/garage.js)
+//   aylmer.radio      the radio deck: on/off, station, volume (game/radio.js)
 //   aylmer.tutorial   "1" once the first-drive tutorial has been finished
 //   aylmer.legend     "0" if the key legend is collapsed
 //
@@ -13,6 +15,8 @@ export const KEYS = {
   settings: 'aylmer.settings',
   map: 'aylmer.map',
   garage: 'aylmer.garage',
+  cars: 'aylmer.cars',
+  radio: 'aylmer.radio',
   tutorial: 'aylmer.tutorial',
   legend: 'aylmer.legend',
 };
@@ -132,4 +136,25 @@ export function saveGarage(g) {
 
 export function clearGarage() {
   try { store()?.removeItem(KEYS.garage); } catch { /* private mode */ }
+  try { store()?.removeItem(KEYS.cars); } catch { /* private mode */ }
+}
+
+// ---------------------------------------------------------------- radio
+
+// { on, station, volume } — game/radio.js owns the meaning; this only clamps.
+export function loadRadio() {
+  const raw = readJSON(KEYS.radio, {});
+  return {
+    on: !!raw.on,
+    station: Number.isInteger(raw.station) ? Math.max(0, Math.min(3, raw.station)) : 0,
+    volume: num(raw.volume, 0, 1, 0.55),
+  };
+}
+
+export function saveRadio(r) {
+  return writeJSON(KEYS.radio, {
+    on: !!r.on,
+    station: Math.max(0, Math.min(3, r.station | 0)),
+    volume: num(r.volume, 0, 1, 0.55),
+  });
 }

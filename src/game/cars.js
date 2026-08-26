@@ -92,6 +92,77 @@ export const CARS = [
     cladding: { rocker: 0.12, bumper: 0.40, tRear: 0.03, tFront: 0.962, color: 0x1a7f75, ribbed: true },
     spoiler: true,
   },
+
+  // ---------------------------------------------------------------- the lot
+  // Four beaters on the gravel next to the Canadian Tire on chemin d'Aylmer.
+  // Nobody lends you these; you buy them. See game/garage.js for the prices.
+  {
+    id: 'cutlass', name: '1987 Oldsmobile Cutlass Ciera', who: 'Le lot',
+    body: 0x6b5334, seats: 4, style: 'sedan', lot: true,
+    flavour: 'Brun. Banquette en avant, suspension en guimauve, pis un cendrier plein.',
+    len: 4.78, wid: 1.76, h: 1.37, wheelbase: 2.68, overhangF: 0.94, track: 1.68, wheelR: 0.33,
+    topSpeed: 39.0, accel: 3.6, brake: 7.8, grip: 0.76, steerMax: 0.47, mass: 1310,
+    seatY: 1.04, seatZ: 0.05, seatX: 0.42, clearance: 0.22,
+    // GM A-body: flat hood, formal upright roof, long square deck, big glass
+    top: [[0, 0.96], [0.02, 1.00], [0.05, 1.015], [0.20, 1.02], [0.235, 1.05], [0.27, 1.22],
+          [0.315, 1.345], [0.35, 1.37], [0.42, 1.375], [0.58, 1.375], [0.635, 1.36], [0.675, 1.24],
+          [0.715, 1.10], [0.75, 1.02], [0.80, 1.005], [0.92, 0.995], [0.97, 0.94], [0.99, 0.84], [1, 0.60]],
+    belt: [[0, 0.96], [0.20, 0.985], [0.27, 1.03], [0.665, 1.03], [0.76, 1.00], [1, 1.00]],
+    plan: [[0, 0.78], [0.03, 0.85], [0.09, 0.875], [0.86, 0.875], [0.94, 0.855], [0.975, 0.82], [1, 0.76]],
+    roofK: 0.86, tuck: 0.02,
+    glassTop: [[0.235, 0.35], [0.635, 0.755]], glassSide: [0.285, 0.66],
+    cladding: { rocker: 0.06, bumper: 0.34, tRear: 0.025, tFront: 0.972, color: 0x4a4136 },
+  },
+  {
+    id: 'cavalier', name: '1991 Chevrolet Cavalier Z24', who: 'Le lot', lot: true,
+    body: 0xb01d1d, seats: 3, style: 'coupe',
+    flavour: 'Le Z24 avec le V6 pis le spoiler. Ça rattle en dessous de 60 pis ça rattle en haut de 60.',
+    len: 4.50, wid: 1.72, h: 1.34, wheelbase: 2.57, overhangF: 0.94, track: 1.66, wheelR: 0.31,
+    topSpeed: 43.0, accel: 4.8, brake: 9.0, grip: 0.93, steerMax: 0.58, mass: 1185,
+    seatY: 1.0, seatZ: 0.05, seatX: 0.40, clearance: 0.20,
+    // J-body coupe: wedge nose, long doors, notchback deck with the lip spoiler
+    top: [[0, 0.90], [0.02, 0.94], [0.06, 0.965], [0.155, 0.975], [0.20, 1.00], [0.245, 1.12],
+          [0.30, 1.245], [0.35, 1.315], [0.41, 1.34], [0.50, 1.34], [0.56, 1.32], [0.61, 1.24],
+          [0.68, 1.10], [0.735, 1.00], [0.79, 0.965], [0.90, 0.885], [0.965, 0.79], [0.985, 0.70], [1, 0.52]],
+    belt: [[0, 0.90], [0.16, 0.935], [0.24, 0.98], [0.645, 0.98], [0.75, 0.955], [1, 0.955]],
+    plan: [[0, 0.71], [0.03, 0.80], [0.09, 0.845], [0.83, 0.845], [0.92, 0.815], [0.97, 0.765], [1, 0.68]],
+    roofK: 0.80, tuck: 0.045,
+    glassTop: [[0.20, 0.41], [0.56, 0.735]], glassSide: [0.255, 0.63],
+    cladding: { rocker: 0.10, bumper: 0.38, tRear: 0.03, tFront: 0.962, color: 0x232528 },
+    spoiler: true,
+  },
+  {
+    id: 'caravan', name: '1988 Dodge Caravan', who: 'Le lot', lot: true,
+    body: 0xc9c3b4, seats: 6, style: 'van',
+    flavour: 'Sept places, deux portes coulissantes, zéro chevaux. La gang rentre au complet en un voyage.',
+    len: 4.47, wid: 1.79, h: 1.72, wheelbase: 2.85, overhangF: 0.82, track: 1.70, wheelR: 0.32,
+    topSpeed: 37.0, accel: 3.2, brake: 7.6, grip: 0.74, steerMax: 0.50, mass: 1580,
+    seatY: 1.30, seatZ: 0.20, seatX: 0.46, clearance: 0.26,
+    // one-box: short steep nose straight into a tall flat roof, square tail
+    top: [[0, 1.12], [0.02, 1.36], [0.05, 1.55], [0.09, 1.64], [0.16, 1.675], [0.62, 1.68],
+          [0.68, 1.655], [0.72, 1.56], [0.775, 1.34], [0.82, 1.14], [0.855, 1.02], [0.93, 0.98],
+          [0.968, 0.94], [0.986, 0.84], [1, 0.62]],
+    belt: [[0, 1.10], [0.05, 1.10], [0.09, 1.12], [0.78, 1.12], [0.86, 1.02], [1, 1.02]],
+    plan: [[0, 0.82], [0.03, 0.88], [0.08, 0.895], [0.84, 0.895], [0.93, 0.865], [0.975, 0.83], [1, 0.76]],
+    roofK: 0.90, tuck: 0.02,
+    glassTop: [[0.02, 0.085, 1.20], [0.72, 0.83]], glassSide: [0.10, 0.71],
+    cladding: { rocker: 0.08, bumper: 0.30, tRear: 0.025, tFront: 0.975, color: 0x3e4044 },
+  },
+  {
+    id: 'bus', name: 'Orion I — ex-transport urbain', who: 'Le lot', lot: true,
+    body: 0xd8d5cd, seats: 39, style: 'bus',
+    flavour: 'Quarante places, un diesel qui claque, pis une pancarte HORS SERVICE en avant. Passe pas sur Bancroft.',
+    len: 12.00, wid: 2.59, h: 3.10, wheelbase: 6.20, overhangF: 2.00, track: 2.44, wheelR: 0.53,
+    topSpeed: 24.0, accel: 1.55, brake: 6.0, grip: 0.62, steerMax: 0.34, mass: 12000,
+    seatY: 2.40, seatZ: 0.60, seatX: 0.80, clearance: 0.42,
+    // a box on wheels: flat front, flat roof, flat back, one long window band
+    top: [[0, 2.86], [0.006, 3.06], [0.02, 3.10], [0.975, 3.10], [0.99, 3.06], [1, 2.80]],
+    belt: [[0, 1.62], [0.03, 1.62], [0.05, 1.66], [0.95, 1.66], [0.97, 1.60], [1, 1.60]],
+    plan: [[0, 1.18], [0.008, 1.27], [0.02, 1.295], [0.98, 1.295], [0.992, 1.27], [1, 1.18]],
+    roofK: 0.96, tuck: 0.015,
+    glassTop: [[0.955, 0.985, 1.90]], glassSide: [0.055, 0.94],
+    cladding: { rocker: 0.30, bumper: 0.42, tRear: 0.012, tFront: 0.988, color: 0x2b6ea8 },
+  },
 ];
 // D2 — what the handbrake leaves you. `hbGrip` scales lateral grip while the
 // lever is up and `hbYaw` scales the yaw the steering asks for: the Ranger is
@@ -101,22 +172,119 @@ const HANDBRAKE = {
   saturn:  { hbGrip: 0.42, hbYaw: 1.42 },
   civic:   { hbGrip: 0.24, hbYaw: 1.82 },
   sunfire: { hbGrip: 0.36, hbYaw: 1.52 },
+  cutlass: { hbGrip: 0.55, hbYaw: 1.20 },
+  cavalier:{ hbGrip: 0.34, hbYaw: 1.58 },
+  caravan: { hbGrip: 0.66, hbYaw: 1.08 },
+  bus:     { hbGrip: 0.88, hbYaw: 0.92 },
 };
-// C5 — the procedural engine, per car. `f0`/`span` are the fundamental in Hz at
-// idle and at the redline; `sub` is the octave-down square's ratio, `o2g` how
-// much of it you hear; `cut0`/`cutSpan` open the lowpass with revs; `rattle` is
-// the Sunfire's blown door speaker, which only buzzes once you're moving.
+// C5 — the procedural engine, per car. These are the parameters core/audio.js's
+// pulse-train synth reads; see the header there for what the graph does with
+// them. The numbers that matter most:
+//
+//   cyl / idle / redline   set the firing frequency, rpm/120·cyl. A four at
+//                          750 rpm fires at 25 Hz; at 3000 rpm, 100 Hz.
+//   decay / uneven / tilt  the shape of one combustion pulse, how much stronger
+//                          cylinder 1 is than the rest (lumpiness), and how
+//                          fast the harmonics roll off (dull vs. brassy).
+//   exh* / int*            the two parallel bandpasses: exhaust follows the
+//                          firing note, intake is the hollow induction honk.
+//   hissG / raspG / rasp   intake hiss with throttle, exhaust rasp above
+//                          `raspFrom`, and how hard the waveshaper bites.
+//   boom*                  the body/cabin resonance that drones in third.
+//   tick*                  valvetrain tick at rpm/60·8 — the tick-over.
+//   rattle                 the Sunfire's blown door speaker (and the Z24's dash).
 const SOUND = {
-  ranger:  { f0: 32, span: 132, sub: 0.50, o2g: 0.64, cut0: 235, cutSpan: 1250, gain: 1.15,
-             type1: 'sawtooth', type2: 'square', rattle: 0, rattleFrom: 0 },
-  saturn:  { f0: 44, span: 205, sub: 0.50, o2g: 0.46, cut0: 340, cutSpan: 2100, gain: 1.00,
-             type1: 'sawtooth', type2: 'square', rattle: 0, rattleFrom: 0 },
-  civic:   { f0: 54, span: 335, sub: 0.50, o2g: 0.20, cut0: 430, cutSpan: 3050, gain: 0.92,
-             type1: 'sawtooth', type2: 'sawtooth', rattle: 0, rattleFrom: 0 },
-  sunfire: { f0: 46, span: 240, sub: 0.50, o2g: 0.32, cut0: 365, cutSpan: 2350, gain: 1.02,
-             type1: 'sawtooth', type2: 'square', rattle: 0.55, rattleFrom: 40 },
+  // 2.3 L Lima SOHC, 100 hp, single exhaust. Agricultural idle, flat drone.
+  ranger:  { cyl: 4, idle: 750, redline: 5200, limiter: 5200,
+             decay: 6.0, uneven: 0.22, tilt: 0.24, harm: 208,
+             exhQ: 0.80, exhG: 1.15, intF0: 780, intSpan: 1500, intQ: 1.0, intG: 0.40,
+             hissG: 0.20, raspG: 0.26, raspFrom: 3500, rasp: 0.50, raspK: 2.8,
+             boomF: 128, boomQ: 5.5, boomDb: 9, tickF: 3600, tickG: 0.046,
+             lumpy: 0.015, pop: 1.15, gain: 1.10, rattle: 0, rattleFrom: 0 },
+  // 1.9 SOHC. Coarse, and the polymer panels ring — a narrow plasticky boom.
+  saturn:  { cyl: 4, idle: 800, redline: 6300, limiter: 6400,
+             decay: 7.5, uneven: 0.18, tilt: 0.30, harm: 192,
+             exhQ: 0.90, exhG: 1.00, intF0: 900, intSpan: 2300, intQ: 1.2, intG: 0.55,
+             hissG: 0.18, raspG: 0.24, raspFrom: 4000, rasp: 0.55, raspK: 3.0,
+             boomF: 165, boomQ: 7.0, boomDb: 10, tickF: 3800, tickG: 0.030,
+             lumpy: 0.010, pop: 0.9, gain: 1.00, rattle: 0, rattleFrom: 0 },
+  // D16 1.6. Little exhaust, huge buzzy induction, spins to 7200.
+  civic:   { cyl: 4, idle: 850, redline: 7200, limiter: 7300,
+             decay: 9.0, uneven: 0.10, tilt: 0.55, harm: 176,
+             exhQ: 1.00, exhG: 0.85, intF0: 1100, intSpan: 3200, intQ: 1.4, intG: 0.90,
+             hissG: 0.26, raspG: 0.16, raspFrom: 5200, rasp: 0.35, raspK: 2.4,
+             boomF: 210, boomQ: 3.0, boomDb: 4, tickF: 4200, tickG: 0.020,
+             lumpy: 0.006, pop: 0.8, gain: 0.95, rattle: 0, rattleFrom: 0 },
+  // 2.2 OHV. Lazy, and one door speaker that has been blown since 1998.
+  sunfire: { cyl: 4, idle: 720, redline: 5800, limiter: 5900,
+             decay: 6.5, uneven: 0.14, tilt: 0.40, harm: 192,
+             exhQ: 0.85, exhG: 1.05, intF0: 820, intSpan: 2000, intQ: 1.0, intG: 0.45,
+             hissG: 0.15, raspG: 0.18, raspFrom: 4200, rasp: 0.35, raspK: 2.6,
+             boomF: 145, boomQ: 4.5, boomDb: 6, tickF: 3300, tickG: 0.026,
+             lumpy: 0.010, pop: 1.0, gain: 1.02, rattle: 0.55, rattleFrom: 40 },
+  // 2.8 V6 — six pulses a cycle, so it fires at rpm/20. Soft and far away.
+  cutlass: { cyl: 6, idle: 700, redline: 4800, limiter: 4900,
+             decay: 5.5, uneven: 0.10, tilt: 0.55, harm: 216,
+             exhQ: 0.70, exhG: 1.10, intF0: 640, intSpan: 1300, intQ: 0.9, intG: 0.30,
+             hissG: 0.10, raspG: 0.10, raspFrom: 4000, rasp: 0.22, raspK: 2.2,
+             boomF: 112, boomQ: 4.0, boomDb: 8, tickF: 2900, tickG: 0.018,
+             lumpy: 0.012, pop: 0.7, gain: 1.05, rattle: 0, rattleFrom: 0 },
+  // 3.1 V6 in a J-body. Keen, and everything inside it buzzes.
+  cavalier:{ cyl: 6, idle: 780, redline: 5800, limiter: 5900,
+             decay: 7.5, uneven: 0.12, tilt: 0.35, harm: 192,
+             exhQ: 0.95, exhG: 1.00, intF0: 950, intSpan: 2400, intQ: 1.2, intG: 0.60,
+             hissG: 0.20, raspG: 0.24, raspFrom: 4200, rasp: 0.50, raspK: 2.8,
+             boomF: 155, boomQ: 6.0, boomDb: 7, tickF: 3700, tickG: 0.034,
+             lumpy: 0.010, pop: 1.0, gain: 1.00, rattle: 0.35, rattleFrom: 55 },
+  // 3.0 Mitsubishi V6 through a three-speed slushbox. Big empty box behind it.
+  caravan: { cyl: 6, idle: 730, redline: 5200, limiter: 5300,
+             decay: 6.2, uneven: 0.10, tilt: 0.50, harm: 200,
+             exhQ: 0.80, exhG: 1.00, intF0: 700, intSpan: 1500, intQ: 1.0, intG: 0.35,
+             hissG: 0.12, raspG: 0.12, raspFrom: 4200, rasp: 0.28, raspK: 2.2,
+             boomF: 120, boomQ: 5.0, boomDb: 9, tickF: 3100, tickG: 0.020,
+             lumpy: 0.010, pop: 0.7, gain: 1.02, rattle: 0, rattleFrom: 0 },
+  // Diesel straight-six: slow, enormous pulses at rpm/20, and it clatters.
+  bus:     { cyl: 6, idle: 620, redline: 2400, limiter: 2450,
+             decay: 4.0, uneven: 0.28, tilt: 0.15, harm: 240,
+             exhQ: 0.70, exhG: 1.30, intF0: 420, intSpan: 700, intQ: 0.8, intG: 0.45,
+             hissG: 0.30, raspG: 0.35, raspFrom: 1600, rasp: 0.60, raspK: 3.4,
+             boomF: 92, boomQ: 4.0, boomDb: 10, tickF: 2600, tickG: 0.070,
+             lumpy: 0.020, pop: 0.5, gain: 1.15, rattle: 0, rattleFrom: 0 },
 };
-const WHEEL_W = (s) => (s.style === 'truck' ? 0.24 : 0.20);
+
+// The actual gearboxes. game/gearbox.js turns road speed into rpm with these,
+// which is why the Ranger drones at 2000 rpm in third at fifty and the Civic
+// does not shut up until 7200. Ratios are the real ones where I could find
+// them; `tyre` is the rolling diameter in metres.
+const DRIVE = {
+  // Mazda M5OD five-speed, 3.73 axle, P225/70R14 ≈ 27".
+  ranger:  { gears: [3.97, 2.14, 1.42, 1.00, 0.85], reverse: 3.99, final: 3.73, tyre: 0.6858,
+             idle: 750, redline: 5200, limiter: 5200,
+             shiftUp: 4800, shiftUpLight: 3000, shiftDown: 1600, launch: 2100, shiftTime: 0.25 },
+  saturn:  { gears: [3.25, 1.96, 1.30, 0.94, 0.72], reverse: 3.14, final: 3.55, tyre: 0.601,
+             idle: 800, redline: 6300, limiter: 6400,
+             shiftUp: 5800, shiftUpLight: 2800, shiftDown: 1800, launch: 2300, shiftTime: 0.22 },
+  civic:   { gears: [3.25, 1.89, 1.25, 0.90, 0.71], reverse: 3.15, final: 4.25, tyre: 0.577,
+             idle: 850, redline: 7200, limiter: 7300,
+             shiftUp: 6800, shiftUpLight: 3600, shiftDown: 2100, launch: 2800, shiftTime: 0.18 },
+  sunfire: { gears: [3.50, 2.05, 1.38, 1.03, 0.72], reverse: 3.42, final: 3.63, tyre: 0.629,
+             idle: 720, redline: 5800, limiter: 5900,
+             shiftUp: 5200, shiftUpLight: 2900, shiftDown: 1700, launch: 2200, shiftTime: 0.24 },
+  // Three-speed automatics: long, lazy, and they take an age to swap.
+  cutlass: { gears: [2.84, 1.60, 1.00], reverse: 2.07, final: 2.84, tyre: 0.660,
+             idle: 700, redline: 4800, limiter: 4900,
+             shiftUp: 4300, shiftUpLight: 2400, shiftDown: 1300, launch: 1900, shiftTime: 0.40 },
+  cavalier:{ gears: [3.53, 2.04, 1.35, 1.03, 0.72], reverse: 3.42, final: 3.94, tyre: 0.607,
+             idle: 780, redline: 5800, limiter: 5900,
+             shiftUp: 5400, shiftUpLight: 3000, shiftDown: 1750, launch: 2400, shiftTime: 0.20 },
+  caravan: { gears: [2.69, 1.55, 1.00], reverse: 2.10, final: 3.19, tyre: 0.640,
+             idle: 730, redline: 5200, limiter: 5300,
+             shiftUp: 4600, shiftUpLight: 2500, shiftDown: 1350, launch: 1900, shiftTime: 0.42 },
+  bus:     { gears: [3.45, 2.24, 1.41, 1.00], reverse: 5.00, final: 5.29, tyre: 1.050,
+             idle: 620, redline: 2400, limiter: 2450,
+             shiftUp: 2200, shiftUpLight: 1600, shiftDown: 900, launch: 1200, shiftTime: 0.55 },
+};
+const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24 : 0.20);
 const WHEEL_PROUD = 0.07;   // tyre outer face this far outside the body at the axle
 for (const c of CARS) {
   c.axleZ = c.wheelbase / 2;
@@ -126,6 +294,7 @@ for (const c of CARS) {
   c.track = Math.round(2 * (hwAxle + WHEEL_PROUD - WHEEL_W(c) / 2) * 100) / 100;
   Object.assign(c, HANDBRAKE[c.id]);
   c.sound = SOUND[c.id];
+  c.drive = DRIVE[c.id];
 }
 
 export const carById = (id) => CARS.find((c) => c.id === id) || CARS[0];
@@ -281,7 +450,9 @@ export function addDetails(mb, s, opts = {}) {
     const tMirror = s.style === 'truck' ? 0.69 : s.glassSide[1] - 0.03;   // front of the door glass
     both((sx) => mb.box(sx * (hwAt(s, tMirror) + 0.09), beltAt(s, tMirror) + 0.08, z(tMirror), 0.16, 0.10, 0.13, dark));
   }
-  const handles = s.style === 'sedan' ? [0.33, 0.56] : s.style === 'truck' ? [0.49] : s.style === 'hatch' ? [0.30] : [0.34];
+  const handles = s.style === 'sedan' ? [0.33, 0.56] : s.style === 'truck' ? [0.49]
+    : s.style === 'hatch' ? [0.30] : s.style === 'van' ? [0.30, 0.55]
+    : s.style === 'bus' ? [] : [0.34];
   for (const th of handles) {
     both((sx) => mb.box(sx * (hwAt(s, th) + 0.006), beltAt(s, th) - 0.13, z(th), 0.012, 0.03, 0.14, dark));
   }
@@ -388,6 +559,100 @@ export function addDetails(mb, s, opts = {}) {
       }
     });
   }
+
+  // ---- the used lot ---------------------------------------------------
+  if (s.id === 'cutlass') {
+    // sealed-beam quads either side of a chrome eggcrate grille, chrome strips
+    const zH = z(0.985), yH = 0.84;
+    both((sx) => {
+      mb.box(sx * 0.30, yH, zH, 0.24, 0.16, 0.06, lamp);
+      mb.box(sx * 0.58, yH, zH, 0.24, 0.16, 0.06, lamp);
+      mb.box(sx * (hwAt(s, 0.975) - 0.05), yH - 0.14, zH - 0.03, 0.13, 0.10, 0.06, amber);
+    });
+    mb.box(0, yH, zH - 0.01, 0.32, 0.20, 0.05, shade(TRIM, 0.75));
+    for (let k = -1; k <= 1; k++) mb.box(0, yH + k * 0.08, zH + 0.005, 0.34, 0.02, 0.05, chrome);
+    mb.box(0, s.clearance + 0.13, zF - 0.02, s.wid * 0.95, 0.16, 0.10, chrome);
+    mb.box(0, s.clearance + 0.13, zR + 0.02, s.wid * 0.93, 0.16, 0.10, chrome);
+    // tall square tail lamps wrapping the corners, chrome beltline strip
+    both((sx) => mb.box(sx * (hwR - 0.24), 0.86, zR + 0.012, 0.42, 0.26, 0.04, tail));
+    mb.box(0, 0.86, zR + 0.010, 0.44, 0.20, 0.03, shade(TRIM, 0.9));
+    mb.box(0, 0.62, zR + 0.010, 0.34, 0.14, 0.03, rgb(PLATE));
+    both((sx) => mb.box(sx * (hwAt(s, 0.5) + 0.006), beltAt(s, 0.5) - 0.06, z(0.5), 0.012, 0.025, s.len * 0.55, chrome));
+    // opera-ish rear quarter: a vinyl-look band under the backlight
+    mb.box(0, topAt(s, 0.64) - 0.02, z(0.64), hwAt(s, 0.64) * 1.62, 0.05, 0.10, shade(TRIM, 0.85));
+  }
+
+  if (s.id === 'cavalier') {
+    // composite lamps with the bowtie bar, twin exhaust, lip spoiler
+    const zH = z(0.978), yH = 0.75;
+    both((sx) => {
+      mb.box(sx * 0.45, yH, zH, 0.42, 0.14, 0.08, lamp);
+      mb.box(sx * (hwAt(s, 0.968) + 0.004), yH - 0.02, z(0.962), 0.01, 0.10, 0.14, amber);
+    });
+    mb.box(0, yH, zH - 0.01, 0.40, 0.06, 0.08, dark);
+    mb.box(0, yH, zH + 0.02, 0.10, 0.045, 0.02, rgb(0xe8c33a));               // bowtie
+    mb.box(0, yH - 0.16, z(0.972), 0.86, 0.05, 0.06, shade(TRIM, 0.85));
+    both((sx) => mb.box(sx * (hwR - 0.25), 0.80, zR + 0.012, 0.46, 0.22, 0.04, tail));
+    both((sx) => mb.box(sx * (hwR - 0.50), 0.80, zR + 0.014, 0.10, 0.22, 0.03, amber));
+    mb.box(0, 0.80, zR + 0.010, 0.34, 0.18, 0.03, shade(TRIM, 0.9));
+    mb.box(0, 0.58, zR + 0.010, 0.34, 0.14, 0.03, rgb(PLATE));
+    const ts = 0.05, zs = z(ts), yTop = topAt(s, ts), hws = hwAt(s, ts);
+    mb.box(0, yTop + 0.055, zs - 0.01, hws * 2 * 0.92, 0.05, 0.20, bodyC);
+    both((sx) => mb.box(sx * hws * 0.66, yTop + 0.025, zs, 0.09, 0.06, 0.09, bodyC));
+    mb.box(-0.30, s.clearance + 0.07, zR + 0.06, 0.09, 0.09, 0.16, shade(CHROME, 0.7));
+  }
+
+  if (s.id === 'caravan') {
+    // upright quad lamps, big flat grille, sliding-door track, roof rack rails
+    const zH = z(0.966), yH = 0.92;
+    both((sx) => {
+      mb.box(sx * 0.50, yH, zH, 0.36, 0.20, 0.07, lamp);
+      mb.box(sx * (hwAt(s, 0.955) - 0.06), yH - 0.16, zH - 0.02, 0.13, 0.10, 0.06, amber);
+    });
+    mb.box(0, yH, zH - 0.01, 0.62, 0.24, 0.05, shade(TRIM, 0.75));
+    for (let k = -1; k <= 1; k++) mb.box(0, yH + k * 0.09, zH + 0.004, 0.64, 0.02, 0.05, shade(s.body, 0.7));
+    mb.box(0, s.clearance + 0.11, zF - 0.02, s.wid * 0.94, 0.16, 0.10, rgb(s.cladding.color));
+    // sliding door track on the right (driver's -X side is the kerb here)
+    mb.box(-(hwAt(s, 0.45) + 0.006), beltAt(s, 0.45) - 0.30, z(0.45), 0.012, 0.03, s.len * 0.34, shade(TRIM, 0.9));
+    // tall vertical tail lamps flanking the hatch, plus the wiper
+    both((sx) => mb.box(sx * (hwR - 0.11), 1.02, zR + 0.012, 0.19, 0.52, 0.04, tail));
+    mb.box(0, 0.70, zR + 0.012, 0.36, 0.14, 0.03, rgb(PLATE));
+    mb.box(0.10, 1.36, zR + 0.02, 0.55, 0.02, 0.02, dark);
+    // roof rack: two rails on four feet
+    both((sx) => mb.box(sx * 0.62, topAt(s, 0.42) + 0.02, z(0.42), 0.05, 0.03, s.len * 0.40, dark));
+  }
+
+  if (s.id === 'bus') {
+    // The whole point of a bus is the window band, the doors and the destination
+    // sign. Everything is a box; there is nothing subtle about an Orion I.
+    const zH = z(0.994), yH = 0.90;
+    both((sx) => {
+      mb.box(sx * 0.86, yH, zH, 0.40, 0.24, 0.06, lamp);
+      mb.box(sx * 0.86, yH - 0.30, zH, 0.34, 0.16, 0.06, amber);
+      mb.box(sx * (hwAt(s, 0.985) + 0.004), 1.30, z(0.982), 0.012, 0.18, 0.24, amber);
+    });
+    // destination sign over the windshield, dark with a lit panel
+    mb.box(0, 2.86, z(0.984), 1.90, 0.30, 0.05, shade(TRIM, 0.6));
+    mb.box(0, 2.86, z(0.984) + 0.02, 1.70, 0.20, 0.02, rgb(0x2b2f16));
+    // window pillars down both sides, so the glass band reads as windows
+    for (let k = 0; k < 9; k++) {
+      const tw = 0.10 + k * 0.093;
+      both((sx) => mb.box(sx * (hwAt(s, tw) + 0.008), (1.66 + 2.62) / 2, z(tw), 0.02, 2.62 - 1.66, 0.07, shade(s.body, 0.8)));
+    }
+    // front and centre doors: dark folding leaves
+    for (const td of [0.90, 0.50]) {
+      mb.box(-(hwAt(s, td) + 0.010), (1.60 + 2.60) / 2, z(td), 0.02, 1.00, 0.94, shade(GLASS, 0.85));
+      mb.box(-(hwAt(s, td) + 0.014), 0.90, z(td), 0.02, 1.40, 0.98, shade(TRIM, 0.85));
+    }
+    // skirt band in transit blue, roof hatches, and a square tail
+    both((sx) => mb.box(sx * (hwAt(s, 0.5) + 0.012), s.clearance + 0.34, z(0.5), 0.024, 0.34, s.len * 0.90, rgb(s.cladding.color)));
+    for (const th of [0.34, 0.70]) mb.box(0, 3.11, z(th), 0.70, 0.05, 0.70, shade(TRIM, 0.8));
+    both((sx) => mb.box(sx * (hwR - 0.26), 1.10, zR + 0.014, 0.34, 0.62, 0.05, tail));
+    mb.box(0, 0.70, zR + 0.014, 0.44, 0.18, 0.03, rgb(PLATE));
+    mb.box(0, 2.30, zR + 0.014, 1.60, 0.90, 0.03, shade(GLASS, 0.9));         // rear window
+    // engine grille on the tail — it is a pusher
+    for (let k = -1; k <= 1; k++) mb.box(0, 1.55 + k * 0.14, zR + 0.010, 1.40, 0.08, 0.03, shade(TRIM, 0.7));
+  }
 }
 
 export function buildCarBody(s, opts = {}) {
@@ -425,6 +690,34 @@ export function carLampBoxes(s) {
       head: [[0.48, 0.72, z(0.982), 0.46, 0.13]],
       tail: [[hwR - 0.27, 0.80, zR + 0.012, 0.46, 0.19]],
       rev:  [[hwR - 0.66, 0.66, zR + 0.012, 0.12, 0.13]],
+    };
+  }
+  if (s.id === 'cutlass') {
+    return {
+      head: [[0.30, 0.84, z(0.985), 0.24, 0.16], [0.58, 0.84, z(0.985), 0.24, 0.16]],
+      tail: [[hwR - 0.24, 0.86, zR + 0.012, 0.42, 0.26]],
+      rev:  [[hwR - 0.60, 0.86, zR + 0.012, 0.13, 0.15]],
+    };
+  }
+  if (s.id === 'cavalier') {
+    return {
+      head: [[0.45, 0.75, z(0.978), 0.42, 0.14]],
+      tail: [[hwR - 0.25, 0.80, zR + 0.012, 0.46, 0.22]],
+      rev:  [[hwR - 0.62, 0.80, zR + 0.012, 0.12, 0.15]],
+    };
+  }
+  if (s.id === 'caravan') {
+    return {
+      head: [[0.50, 0.92, z(0.966), 0.36, 0.20]],
+      tail: [[hwR - 0.11, 1.02, zR + 0.012, 0.19, 0.52]],
+      rev:  [[hwR - 0.11, 0.68, zR + 0.012, 0.17, 0.12]],
+    };
+  }
+  if (s.id === 'bus') {
+    return {
+      head: [[0.86, 0.90, z(0.994), 0.40, 0.24]],
+      tail: [[hwR - 0.26, 1.10, zR + 0.014, 0.34, 0.62]],
+      rev:  [[hwR - 0.70, 0.80, zR + 0.014, 0.26, 0.18]],
     };
   }
   return {

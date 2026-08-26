@@ -1,0 +1,319 @@
+{
+ "ranger": {
+  "pull": {
+   "file": "docs/audio/ranger.wav",
+   "kb": 517,
+   "peak": 0.37,
+   "rms": [
+    0.0053,
+    0.0056,
+    0.0148,
+    0.0459,
+    0.0698,
+    0.1031,
+    0.0756,
+    0.1245,
+    0.0932,
+    0.0599,
+    0.0389,
+    0.0171
+   ],
+   "idleHz": 25,
+   "holdHz": 100,
+   "cruiseHz": null,
+   "topHz": 173.3,
+   "shifts": 4,
+   "plateauRpm": 3000,
+   "cyl": 4,
+   "gears": [
+    "0s g1 750rpm",
+    "6s g2 2856rpm",
+    "8.6s g3 3344rpm",
+    "11.8s g2 665rpm"
+   ]
+  },
+  "cruise": {
+   "file": "docs/audio/ranger-cruise.wav",
+   "kb": 345,
+   "peak": 0.171,
+   "rms": [
+    0.0478,
+    0.0528,
+    0.0522,
+    0.05,
+    0.0483,
+    0.0475,
+    0.0487,
+    0.051
+   ],
+   "idleHz": null,
+   "holdHz": null,
+   "cruiseHz": 68.3,
+   "topHz": 0,
+   "shifts": 2,
+   "plateauRpm": null,
+   "cyl": 4,
+   "gears": [
+    "0s g3 2049rpm"
+   ]
+  }
+ },
+ "civic": {
+  "pull": {
+   "file": "docs/audio/civic.wav",
+   "kb": 517,
+   "peak": 0.217,
+   "rms": [
+    0.0034,
+    0.0036,
+    0.0087,
+    0.0286,
+    0.0473,
+    0.0669,
+    0.0571,
+    0.0715,
+    0.0592,
+    0.0429,
+    0.0262,
+    0.0079
+   ],
+   "idleHz": 28.3,
+   "holdHz": 100,
+   "cruiseHz": null,
+   "topHz": 222.6,
+   "shifts": 4,
+   "plateauRpm": 3000,
+   "cyl": 4,
+   "gears": [
+    "0s g1 850rpm",
+    "6.2s g2 4284rpm",
+    "8.5s g3 4644rpm",
+    "11.2s g2 2622rpm",
+    "11.7s g1 850rpm"
+   ]
+  },
+  "cruise": {
+   "file": "docs/audio/civic-cruise.wav",
+   "kb": 345,
+   "peak": 0.089,
+   "rms": [
+    0.0264,
+    0.0289,
+    0.0285,
+    0.0275,
+    0.0265,
+    0.026,
+    0.027,
+    0.028
+   ],
+   "idleHz": null,
+   "holdHz": null,
+   "cruiseHz": 81.4,
+   "topHz": 0,
+   "shifts": 2,
+   "plateauRpm": null,
+   "cyl": 4,
+   "gears": [
+    "0s g3 2442rpm"
+   ]
+  }
+ },
+ "saturn": {
+  "pull": {
+   "file": "docs/audio/saturn.wav",
+   "kb": 517,
+   "peak": 0.365,
+   "rms": [
+    0.004,
+    0.0043,
+    0.0102,
+    0.037,
+    0.0649,
+    0.1224,
+    0.0667,
+    0.1468,
+    0.0839,
+    0.0464,
+    0.0271,
+    0.0099
+   ],
+   "idleHz": 26.6,
+   "holdHz": 100,
+   "cruiseHz": null,
+   "topHz": 188.1,
+   "shifts": 6,
+   "plateauRpm": 3000,
+   "cyl": 4,
+   "gears": [
+    "0s g1 800rpm",
+    "6.3s g2 3756rpm",
+    "8.6s g3 4039rpm",
+    "10.6s g4 1915rpm",
+    "11s g3 2179rpm",
+    "11.6s g2 1342rpm",
+    "11.8s g1 800rpm"
+   ]
+  },
+  "cruise": {
+   "file": "docs/audio/saturn-cruise.wav",
+   "kb": 345,
+   "peak": 0.107,
+   "rms": [
+    0.0296,
+    0.0321,
+    0.0319,
+    0.0309,
+    0.0299,
+    0.0296,
+    0.0303,
+    0.0314
+   ],
+   "idleHz": null,
+   "holdHz": null,
+   "cruiseHz": 67.9,
+   "topHz": 0,
+   "shifts": 2,
+   "plateauRpm": null,
+   "cyl": 4,
+   "gears": [
+    "0s g3 2037rpm"
+   ]
+  }
+ },
+ "sunfire": {
+  "pull": {
+   "file": "docs/audio/sunfire.wav",
+   "kb": 517,
+   "peak": 0.33,
+   "rms": [
+    0.0045,
+    0.0048,
+    0.0115,
+    0.0347,
+    0.0609,
+    0.099,
+    0.0578,
+    0.1067,
+    0.0836,
+    0.0525,
+    0.0313,
+    0.0095
+   ],
+   "idleHz": 24,
+   "holdHz": 100,
+   "cruiseHz": null,
+   "topHz": 170.7,
+   "shifts": 6,
+   "plateauRpm": 3000,
+   "cyl": 4,
+   "gears": [
+    "0s g1 720rpm",
+    "6.2s g2 3276rpm",
+    "8.6s g3 3676rpm",
+    "10.6s g4 1967rpm",
+    "11.2s g3 1905rpm",
+    "11.7s g2 636rpm",
+    "11.9s g1 720rpm"
+   ]
+  },
+  "cruise": {
+   "file": "docs/audio/sunfire-cruise.wav",
+   "kb": 345,
+   "peak": 0.141,
+   "rms": [
+    0.0421,
+    0.0464,
+    0.0459,
+    0.0442,
+    0.0421,
+    0.0417,
+    0.0428,
+    0.0449
+   ],
+   "idleHz": null,
+   "holdHz": null,
+   "cruiseHz": 70.4,
+   "topHz": 0,
+   "shifts": 2,
+   "plateauRpm": null,
+   "cyl": 4,
+   "gears": [
+    "0s g3 2113rpm"
+   ]
+  }
+ },
+ "radio": {
+  "pop": {
+   "file": "docs/audio/radio-pop.wav",
+   "kb": 345,
+   "bpm": 118,
+   "peak": 0.647,
+   "rms": [
+    0.0633,
+    0.0669,
+    0.076,
+    0.0761,
+    0.0764,
+    0.0758,
+    0.0758,
+    0.076
+   ],
+   "title": "Toute la nuit",
+   "artist": "Les Mardis Soir"
+  },
+  "metal": {
+   "file": "docs/audio/radio-metal.wav",
+   "kb": 345,
+   "bpm": 148,
+   "peak": 0.644,
+   "rms": [
+    0.0765,
+    0.0797,
+    0.0902,
+    0.079,
+    0.0896,
+    0.0806,
+    0.09,
+    0.0792
+   ],
+   "title": "Chrome et Asphalte",
+   "artist": "Bourrasque"
+  },
+  "boom": {
+   "file": "docs/audio/radio-boom.wav",
+   "kb": 345,
+   "bpm": 92,
+   "peak": 0.582,
+   "rms": [
+    0.0533,
+    0.0596,
+    0.0653,
+    0.0642,
+    0.0505,
+    0.0722,
+    0.0545,
+    0.0785
+   ],
+   "title": "Deux Piastres",
+   "artist": "DJ Vanier"
+  },
+  "folk": {
+   "file": "docs/audio/radio-folk.wav",
+   "kb": 345,
+   "bpm": 126,
+   "peak": 0.547,
+   "rms": [
+    0.0601,
+    0.0544,
+    0.0596,
+    0.064,
+    0.0543,
+    0.0665,
+    0.053,
+    0.0622
+   ],
+   "title": "La Reel du Chemin d’Aylmer",
+   "artist": "La Sacoche"
+  }
+ }
+}

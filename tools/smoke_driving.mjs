@@ -231,9 +231,13 @@ function shunt(player, car) {
   const grips = CARS.map((c) => c.hbGrip);
   ok('every car has its own handbrake grip', new Set(grips).size === CARS.length,
     grips.map((g, i) => `${CARS[i].id} ${g}`).join(', '));
-  ok('the Ranger keeps the most grip under the lever',
-    carById('ranger').hbGrip === Math.max(...grips));
-  ok('the Civic keeps the least', carById('civic').hbGrip === Math.min(...grips));
+  // Of the four you get lent, the Ranger is the one that just ploughs; the
+  // beaters on the used lot go further still (a twelve-tonne bus does not drift).
+  const lent = ['ranger', 'saturn', 'civic', 'sunfire'].map((id) => carById(id).hbGrip);
+  ok('the Ranger keeps the most grip under the lever of the four',
+    carById('ranger').hbGrip === Math.max(...lent));
+  ok('the Civic keeps the least of anything', carById('civic').hbGrip === Math.min(...grips));
+  ok('and the bus does not drift at all', carById('bus').hbGrip === Math.max(...grips));
 
   // Drive each one into a full-lock handbrake turn and see how far it comes round.
   const swing = (id) => {
@@ -291,12 +295,21 @@ function shunt(player, car) {
 
 {
   const ids = CARS.map((c) => c.id);
-  ok('C5: every car carries an engine profile', CARS.every((c) => c.sound && c.sound.f0 > 0));
+  // The profile is now the pulse-train synth's: cylinders, idle and redline set
+  // the firing frequency (rpm / 120 * cyl), the rest is the filtering.
+  const firing = (c, rpm) => (rpm / 120) * c.sound.cyl;
+  ok('C5: every car carries an engine profile',
+    CARS.every((c) => c.sound && c.sound.cyl >= 4 && c.sound.idle > 400 && c.sound.redline > c.sound.idle));
   ok('C5: they are all different notes',
-    new Set(CARS.map((c) => c.sound.f0 + ':' + c.sound.span)).size === CARS.length,
-    ids.map((id) => `${id} ${carById(id).sound.f0}Hz`).join(', '));
-  ok('C5: only the Sunfire rattles',
-    CARS.filter((c) => c.sound.rattle > 0).map((c) => c.id).join() === 'sunfire');
+    new Set(CARS.map((c) => `${c.sound.cyl}:${c.sound.idle}:${c.sound.redline}`)).size === CARS.length,
+    ids.map((id) => `${id} ${firing(carById(id), carById(id).sound.idle).toFixed(1)}Hz idle`).join(', '));
+  ok('C5: the Ranger idles at 25 Hz',
+    Math.abs(firing(carById('ranger'), 750) - 25) < 0.01,
+    String(firing(carById('ranger'), 750)));
+  ok('C5: and every four-cylinder is 100 Hz at 3000 rpm',
+    CARS.filter((c) => c.sound.cyl === 4).every((c) => Math.abs(firing(c, 3000) - 100) < 0.01));
+  ok('C5: the Sunfire and the Z24 are the ones that rattle',
+    CARS.filter((c) => c.sound.rattle > 0).map((c) => c.id).join() === 'sunfire,cavalier');
 }
 
 console.log(out.join('\n'));
