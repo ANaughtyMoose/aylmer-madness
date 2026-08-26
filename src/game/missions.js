@@ -2,6 +2,7 @@
 // only shared state is localStorage, and that is always optional.
 import { PLACES } from './places.js';
 import { SIDE_MISSIONS } from './sidejobs.js';
+import { RACE_MISSIONS } from './racejobs.js';
 
 // lightDir points TOWARD the light, unit length. Ambient is hemispheric, so the
 // sky/ground pair is doing most of the mood work — night leans on it hard so the
@@ -240,7 +241,9 @@ const CORE_MISSIONS = [
 
 // The side jobs (canoe / Sayyad / couch) are the ones that need stateful stages,
 // so they are built in sidejobs.js. They are ordinary MISSIONS entries here.
-export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS];
+// The four races (racejobs.js) are the same again: a grid stage and one long
+// stage that owns the countdown, the checkpoints and the rivals.
+export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS];
 
 const KEY = 'aylmer.progress';
 

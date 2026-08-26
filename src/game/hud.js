@@ -29,6 +29,8 @@ const C = {
   car: '#8fe38f',        // a friend's parked car
   route: '#4fd3ff',
   player: '#ffc94d',
+  rival: '#ff8a3d',      // a friend you are racing
+  cop: '#6fb2ff',        // an auto-patrouille
 };
 
 // Ground cover fills, by MAP.areas kind.
@@ -482,6 +484,24 @@ export class Hud {
       g.fill();
     }
 
+    // Race agent: rivals and cruisers, same shape as a traffic dot but bigger
+    // and in their own colour. Cops blink so they read as cops at a glance.
+    const blob = (list, colour, rad) => {
+      if (!list || !list.length) return;
+      g.fillStyle = colour;
+      g.beginPath();
+      for (let i = 0; i < list.length; i++) {
+        const dx = list[i].x - px, dz = list[i].z - pz;
+        if (dx * dx + dz * dz > range * range) continue;
+        const x = toX(dx, dz), y = toY(dx, dz);
+        g.moveTo(x + rad, y);
+        g.arc(x, y, rad, 0, TAU);
+      }
+      g.fill();
+    };
+    blob(state.rivals, C.rival, 2.8);
+    blob(state.cops, (t * 5) % 1 < 0.5 ? C.cop : '#ff5f4d', 3.0);
+
     const targets = state.targets;
     let objShown = false;
     if (targets && targets.length) {
@@ -574,6 +594,26 @@ export class Hud {
     this._dmgFill.style.width = v + '%';
     // green → amber at the cosmetic line → red once it starts to drive badly
     this._dmgFill.className = v > 60 ? 'bad' : v > 25 ? 'warn' : '';
+  }
+
+  /**
+   * Race agent (G4) — the wanted meter next to the speedo: 0 to 3 stars.
+   * Markup is one <div id="stars"> at the end of index.html and the styling is
+   * at the end of style.css, so this survives a rework of the rest of the HUD.
+   */
+  setStars(n) {
+    if (this._starsEl === undefined) {
+      this._starsEl = (typeof document !== 'undefined' ? document.getElementById('stars') : null);
+    }
+    const v = Math.max(0, Math.min(3, Math.round(n || 0)));
+    if (v === this._lastStars) return v;
+    this._lastStars = v;
+    const el = this._starsEl;
+    if (!el) return v;
+    el.classList.toggle('hidden', v <= 0);
+    el.textContent = '\u2605'.repeat(v) + '\u2606'.repeat(3 - v);
+    el.classList.toggle('hot', v >= 3);
+    return v;
   }
 
   /** D5 — the R on the speedo. */

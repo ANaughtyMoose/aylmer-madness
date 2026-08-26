@@ -387,4 +387,20 @@ export class Traffic {
       c.horn = 1;
     }
   }
+
+  // Race agent, additive: run one non-player body — an AI rival, a cruiser —
+  // against every traffic car through exactly the path the player takes. The
+  // body only needs the collide.js contract (x/z/yaw/vx/vz/mass/len/wid and
+  // hit()), which a Vehicle already satisfies.
+  collideBody(body) {
+    if (!body) return 0;
+    let worst = 0;
+    for (const c of this.cars) {
+      const before = this.crash;
+      this.collidePlayer(c, body);
+      worst = Math.max(worst, this.crash);
+      this.crash = before;              // the player's crash meter is not ours
+    }
+    return worst;
+  }
 }

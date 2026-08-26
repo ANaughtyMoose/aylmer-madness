@@ -145,6 +145,37 @@ export class Audio {
     o.start(); o2.start();
     o.stop(t + dur + 0.02); o2.stop(t + dur + 0.02);
   }
+  // The race agent: a two-tone siren. Two square oscillators an interval apart,
+  // gated in alternation at 1.6 Hz through the same kind of lowpass the engine
+  // uses, so it is a wail from a block away rather than a dentist's drill.
+  siren(on) {
+    if (!this.ok) return;
+    if (on && !this._siren) {
+      const t = this.ctx.currentTime;
+      const f = this.ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 1500;
+      const g = this.ctx.createGain();
+      g.gain.value = 0;
+      const o = this.ctx.createOscillator();
+      o.type = 'square'; o.frequency.setValueAtTime(660, t);
+      // The alternation: a slow square LFO on the pitch, hi-lo-hi-lo.
+      const lfo = this.ctx.createOscillator();
+      lfo.type = 'square'; lfo.frequency.value = 1.6;
+      const lg = this.ctx.createGain(); lg.gain.value = 150;
+      lfo.connect(lg); lg.connect(o.frequency);
+      o.connect(f); f.connect(g); g.connect(this.master);
+      o.start(); lfo.start();
+      g.gain.setTargetAtTime(this.enabled ? 0.035 : 0, t, 0.25);
+      this._siren = { o, lfo, g, f };
+    } else if (!on && this._siren) {
+      const s = this._siren; this._siren = null;
+      s.g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
+      setTimeout(() => { try { s.o.stop(); s.lfo.stop(); } catch (e) { /* already gone */ } }, 700);
+    } else if (on && this._siren) {
+      this._siren.g.gain.setTargetAtTime(this.enabled ? 0.035 : 0, this.ctx.currentTime, 0.2);
+    }
+  }
+
   // R4: the cough of an engine that has been through a hedge.
   misfire() {
     if (!this.ok || !this.enabled) return;
