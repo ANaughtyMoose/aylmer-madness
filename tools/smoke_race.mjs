@@ -269,9 +269,9 @@ group('the wanted meter fills');
   G.traffic.crash = 0;
 
   // Near-misses, if the props agent is exposing them.
-  G.stats = { nearMisses: 0 };
+  G.stats = { nearMiss: 0 };
   C.update(1 / 60, G);
-  G.stats.nearMisses = 4;
+  G.stats.nearMiss = 4;
   C.update(1 / 60, G);
   ok(C.stars === 2, 'four near-misses inside the window tips it to two stars', `${r1(C.heat)}`);
   ok(C.units.length === Math.min(2, MAX_UNITS), 'two cruisers');
