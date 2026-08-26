@@ -71,6 +71,7 @@ const input = new Input();
 const audio = new Audio();
 const hud = new Hud();
 
+const STATS0 = { dist: 0, nearMiss: 0, pedsDived: 0, propsSmashed: 0, bestStreak: 0, streak: 0, airtime: 0, jumps: 0, bigAir: 0, landings: 0, hardest: 0 };
 const G = {
   mode: 'menu',
   carId: 'ranger',
@@ -402,7 +403,9 @@ function enterDrive(save = null) {
   G.done = new Set(save ? save.progress : []);
   G.best = save ? { ...save.best } : {};
   G.playtime = save ? save.playtime : 0;
-  G.stats = save && save.stats ? { dist: 0, ...save.stats } : { dist: 0 };
+  // Every counter the systems keep (distance, near misses, streaks, airtime...),
+  // zeroed for a new game and overlaid with whatever the save recorded.
+  G.stats = { ...STATS0, ...((save && save.stats) || {}) };
   G.slot = save ? (save.slot || null) : null;
   try { if (save && save.unlocks) G.garage?.restore?.(save.unlocks); } catch (e) { console.warn('unlocks', e); }
   G.waypoint = null; G.route = null; G.routeKey = '';
