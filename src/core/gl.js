@@ -32,7 +32,7 @@ void main(){
 }`;
 
 const FS = `#version 300 es
-precision mediump float;
+precision highp float;   // must match the vertex shader: shared uniforms may not differ in precision (ANGLE link error)
 in vec3 vNor; in vec3 vCol; in float vDist; in vec2 vUV; in highp vec3 vRel;
 uniform vec3 uLightDir, uSun, uSky, uGround, uFogColor, uColorMul, uSkyLo, uSkyHi, uEye;
 uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode;
