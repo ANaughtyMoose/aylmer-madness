@@ -14,6 +14,13 @@ import { buildSky, skyOpts, cloudOpts } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
 import { MISSIONS, TIME_OF_DAY, loadProgress, saveProgress, resetProgress } from './game/missions.js';
 import { PLACES, resolvePlaces } from './game/places.js';
+// Side jobs: props, the canoe, and the extended stage model. Everything below
+// hooks in through G — main.js does not know what a doughnut is.
+import { Props, buildPropMeshes, ISLAND, MIKE_TREE } from './game/props.js';
+import { Wallet, START as START_CASH } from './game/money.js';
+import {
+  stageTarget, stageEnter, stageExit, stageStep, stageSettle, missionCleanup,
+} from './game/missionkit.js';
 
 const STEP = 1 / 60;
 // drawDist is the chunk cutoff; fogMul thickens the fog so the cutoff hides in it.
@@ -54,6 +61,9 @@ const G = {
   best: loadBest(),
   street: '', streetTimer: 0,
   lookBack: false,
+  // side-job state: hand-placed props, the canoe, who the camera follows, cash
+  props: null, boat: null, focus: null, wallet: null,
+  hud, audio, input,
 };
 // Whose driveway each car lives in.
 const OWNER = { ranger: 'home', saturn: 'marc', civic: 'steph', sunfire: 'dave' };
@@ -152,6 +162,10 @@ function loadWorld() {
   const ring = new MeshBuilder();
   ring.flat(-1, -1, 1, 1, 0, rgb(0xffffff));
   G.meshes.ring = r.upload(ring);
+  // Hand-placed props (canoe, couch, Île Aylmer, Mike's maple...). Built and
+  // uploaded once, here; nothing in props.js ever builds geometry per frame.
+  G.propMeshes = buildPropMeshes(r);
+  G.props = new Props(r, G.propMeshes);
 }
 
 function enterDrive() {
@@ -168,6 +182,15 @@ function enterDrive() {
   G.camPos = [G.veh.x, 4, G.veh.z];
   setEnv('day', true);
   G.mission = null;
+  G.boat = null; G.focus = null;
+  if (!G.wallet) G.wallet = new Wallet($('money'));
+  G.wallet.render();
+  if (G.props) {
+    G.props.clear();
+    // Permanent scenery the map data has no idea about.
+    G.props.add({ id: 'island', mesh: 'island', x: ISLAND.x, z: ISLAND.z, yaw: ISLAND.yaw, far: 2200 });
+    G.props.add({ id: 'miketree', mesh: 'bigtree', x: MIKE_TREE.x, z: MIKE_TREE.z, far: 500 });
+  }
   G.mode = 'drive';
   $('menu').classList.add('hidden');
   $('pause').classList.add('hidden');
@@ -224,14 +247,12 @@ function stepEnv(dt) {
 
 // ---------------------------------------------------------------- missions
 
-function resolve(at) {
-  if (typeof at === 'string') return PLACES[at];
-  return at;
-}
-
 function startMission(def) {
   const spec = G.veh.spec;
-  const stages = def.build({ carId: spec.id, carName: spec.name, seats: spec.seats });
+  const stages = def.build({
+    carId: spec.id, carName: spec.name, seats: spec.seats,
+    money: G.wallet ? G.wallet.value : 0,
+  });
   G.mission = { def, stages, idx: 0, timeLeft: null, failed: false, elapsed: 0 };
   G.waypoint = null;
   G.veh.passengers = 0;
@@ -244,16 +265,18 @@ function startMission(def) {
 function applyStage() {
   const m = G.mission;
   const st = m.stages[m.idx];
-  const p = resolve(st.at);
   hud.setObjective(st.text, st.sub || '');
   m.timeLeft = st.time != null ? st.time : null;
-  m.target = { x: p.x, z: p.z, r: st.radius || 14 };
+  m.target = stageTarget(G, m, st);
   G.routeKey = '';
+  stageEnter(G, m, st);
 }
 
 function failMission(why) {
   hud.toast('RATÉ\n' + why, 3000);
   audio.chime(false);
+  missionCleanup(G, G.mission, true);
+  hud.prompt(null);
   G.mission = null;
   G.veh.passengers = 0;
   setEnv('day');
@@ -299,53 +322,59 @@ function updateMission(dt) {
     if (G.wantStart) { G.wantStart = false; hud.prompt(null); startMission(G.offer); }
     return;
   }
-  G.wantStart = false; G.wantCycle = false;
+  G.wantCycle = false;
 
   m.elapsed += dt;
+  const st = m.stages[m.idx];
   if (m.timeLeft != null) {
     m.timeLeft -= dt;
     hud.setTimer(Math.max(0, m.timeLeft));
-    if (m.timeLeft <= 0) { failMission('Trop tard, mon chum.'); return; }
+    if (m.timeLeft <= 0) { failMission(st.failWhy || 'Trop tard, mon chum.'); return; }
   } else hud.setTimer(null);
 
-  const st = m.stages[m.idx];
-  const d = Math.hypot(v.x - m.target.x, v.z - m.target.z);
-  if (d < m.target.r) {
-    if (st.maxSpeed && v.speedKmh > st.maxSpeed) {
-      hud.prompt(`Ralentis — ${Math.round(st.maxSpeed)} km/h max ici`);
-      return;
-    }
-    hud.prompt(null);
-    if (st.passengers) v.passengers = clamp(v.passengers + st.passengers, 0, v.spec.seats);
-    if (st.toast) hud.toast(st.toast, 2000);
-    audio.blip(880, 0.14, 'triangle', 0.2);
-    m.idx++;
-    if (m.idx >= m.stages.length) {
-      const def = m.def;
-      G.done.add(def.id); saveProgress(def.id);
-      audio.chime(true);
-      const prev = G.best[def.id];
-      const record = prev == null || m.elapsed < prev;
-      if (record) { G.best[def.id] = m.elapsed; saveBest(); }
-      hud.toast('FINI — ' + def.title + '\n' + fmtTime(m.elapsed) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')')
-        + '\n' + G.done.size + '/' + MISSIONS.length + ' jobs faites', 3800);
-      G.mission = null;
-      v.passengers = 0;
-      setEnv('day');
-      hud.setTimer(null);
-      hud.setObjective('Free roam', 'Trouve un autre marqueur jaune');
-      return;
-    }
-    applyStage();
-  } else if (st.maxSpeed) hud.prompt(null);
+  // Everything a stage can be — radius, timer, speed cap, a held E, a price, a
+  // custom condition — lives in missionkit.js. This is just the plumbing.
+  const res = stageStep(G, m, st, dt);
+  G.wantStart = false;
+  if (!res) return;
+  if (res.fail) { failMission(res.fail); return; }
+
+  hud.prompt(null);
+  if (st.passengers) v.passengers = clamp(v.passengers + st.passengers, 0, v.spec.seats);
+  if (st.toast) hud.toast(st.toast, 2400);
+  stageSettle(G, m, st);
+  audio.blip(880, 0.14, 'triangle', 0.2);
+  stageExit(G, m, st);
+  m.idx++;
+  if (m.idx >= m.stages.length) {
+    const def = m.def;
+    G.done.add(def.id); saveProgress(def.id);
+    audio.chime(true);
+    const prev = G.best[def.id];
+    const record = prev == null || m.elapsed < prev;
+    if (record) { G.best[def.id] = m.elapsed; saveBest(); }
+    hud.toast('FINI — ' + def.title + '\n' + fmtTime(m.elapsed) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')')
+      + '\n' + G.done.size + '/' + MISSIONS.length + ' jobs faites', 3800);
+    missionCleanup(G, m, false);
+    G.mission = null;
+    v.passengers = 0;
+    setEnv('day');
+    hud.setTimer(null);
+    hud.setObjective('Free roam', 'Trouve un autre marqueur jaune');
+    return;
+  }
+  applyStage();
 }
 
 // GPS: route to the mission target, else to the waypoint. Re-plans when you
 // wander more than ~45 m off the line.
 function updateRoute(dt) {
   const v = G.veh;
-  const tgt = G.mission ? G.mission.target : G.waypoint;
-  if (!tgt) { G.route = null; G.routeKey = ''; return; }
+  const tgt = (G.mission && G.mission.target) ? G.mission.target : (G.mission ? null : G.waypoint);
+  // Stages that happen off the road graph (the paddle) ask for no GPS line.
+  if (!tgt || (G.mission && G.mission.stages[G.mission.idx].noRoute)) {
+    G.route = null; G.routeKey = ''; return;
+  }
   if (G.waypoint && !G.mission && Math.hypot(v.x - tgt.x, v.z - tgt.z) < 22) {
     G.waypoint = null; G.route = null; hud.toast('Arrivé au waypoint', 1200); return;
   }
@@ -372,7 +401,8 @@ function updateRoute(dt) {
 function openMap(on) {
   if (on) {
     G.mode = 'map';
-    G.bigmap.open(G.veh.x, G.veh.z);
+    const f = G.focus || G.veh;
+    G.bigmap.open(f.x, f.z);
     $('bigmap').classList.remove('hidden');
     $('pause').classList.add('hidden');
     audio.engine(0, 0); audio.skid(0); audio.horn(false);
@@ -383,7 +413,7 @@ function openMap(on) {
 }
 
 function mapState() {
-  const v = G.veh;
+  const v = G.focus || G.veh;
   return {
     x: v.x, z: v.z, yaw: v.yaw, route: G.route, waypoint: G.waypoint,
     target: G.mission ? G.mission.target : null,
@@ -444,12 +474,20 @@ function handleKeys() {
 
 function tick(dt) {
   const v = G.veh;
-  const ctl = {
-    steer: input.steer, throttle: input.throttle,
-    brake: input.brake, handbrake: input.handbrake,
-  };
+  // While you are in the canoe the car sits where you parked it and the steering
+  // wheel goes to the paddle.
+  const inBoat = !!(G.boat && G.boat.active);
+  const ctl = inBoat
+    ? { steer: 0, throttle: 0, brake: 0, handbrake: true }
+    : {
+      steer: input.steer, throttle: input.throttle,
+      brake: input.brake, handbrake: input.handbrake,
+    };
   const preImpact = v.impact;
   v.update(dt, ctl, G.phys);
+  if (inBoat) {
+    G.boat.update(dt, { steer: input.steer, throttle: input.throttle, brake: input.brake });
+  }
   G.traffic.update(dt, v);
   if (v.impact > preImpact + 0.08) audio.crash(v.impact);
 
@@ -465,6 +503,7 @@ function tick(dt) {
     if (d < minD && d > 0.001) v.nudge(dx / d, dz / d, (minD - d) * 0.8);
   }
   updateMission(dt);
+  if (G.props) G.props.update(dt, G);
   G.time += dt;
 
   G.streetTimer -= dt;
@@ -486,25 +525,28 @@ const white = new Float32Array([1, 1, 1]);
 
 function render(dt) {
   const r = G.renderer, v = G.veh, cam = CAMS[G.cam];
+  // The camera follows whatever the current stage put in focus — the car, or the
+  // canoe. Anything with x/z/yaw/vLong/vLat/spec works.
+  const f = G.focus || v;
 
   // Chase camera: yaw eases toward the car, and a slide swings it wide.
-  const want = v.yaw + (G.lookBack ? 0 : Math.PI) - clamp(v.vLat * 0.02, -0.35, 0.35);
+  const want = f.yaw + (G.lookBack ? 0 : Math.PI) - clamp(f.vLat * 0.02, -0.35, 0.35);
   G.camYaw += angleDelta(want, G.camYaw) * Math.min(1, dt * (cam.name === 'hood' || G.lookBack ? 22 : 5.5));
-  const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
-  const back = cam.dist + Math.abs(v.vLong) * 0.09;
+  const fx = Math.sin(f.yaw), fz = Math.cos(f.yaw);
+  const back = cam.dist + Math.abs(f.vLong) * 0.09;
   const cx = Math.sin(G.camYaw + Math.PI), cz = Math.cos(G.camYaw + Math.PI);
   let px, pz;
   if (cam.name === 'hood') {
-    px = v.x + fx * cam.dist; pz = v.z + fz * cam.dist;
+    px = f.x + fx * cam.dist; pz = f.z + fz * cam.dist;
   } else {
-    px = v.x - cx * back; pz = v.z - cz * back;
+    px = f.x - cx * back; pz = f.z - cz * back;
   }
-  const py = cam.height + Math.abs(v.vLong) * 0.012;
+  const py = cam.height + Math.abs(f.vLong) * 0.012;
   G.camPos[0] = lerp(G.camPos[0], px, Math.min(1, dt * 9));
   G.camPos[1] = lerp(G.camPos[1], py, Math.min(1, dt * 6));
   G.camPos[2] = lerp(G.camPos[2], pz, Math.min(1, dt * 9));
 
-  const fov = QUALITY[G.quality].fov + cam.fovAdd + clamp(Math.abs(v.vLong) / v.spec.topSpeed, 0, 1) * 0.09;
+  const fov = QUALITY[G.quality].fov + cam.fovAdd + clamp(Math.abs(f.vLong) / f.spec.topSpeed, 0, 1) * 0.09;
   r.setEnvironment(G.env);
   r.begin(G.camPos, G.camYaw, cam.pitch, fov);
 
@@ -515,7 +557,7 @@ function render(dt) {
   r.draw(G.world.distant, mm, { fogMul: 0.28 });
   const dd = QUALITY[G.quality].drawDist, dd2 = dd * dd;
   for (const c of G.world.chunks) {
-    const dx = c.cx - v.x, dz = c.cz - v.z;
+    const dx = c.cx - f.x, dz = c.cz - f.z;
     if (dx * dx + dz * dz > dd2) continue;
     if (r.visible(c.mesh)) r.draw(c.mesh, mm);
   }
@@ -530,13 +572,14 @@ function render(dt) {
     if (Math.hypot(p.x - v.x, p.z - v.z) > 320) continue;
     drawCar(carById(id), p.x, p.z, p.yaw, 0, 0, 0, 0, null, 0);
   }
+  if (G.props) G.props.draw(r, f);
   drawMarkers();
 
   r.end();
 
-  hud.setSpeed(v.speedKmh);
+  hud.setSpeed(f.speedKmh);
   hud.draw({
-    x: v.x, z: v.z, yaw: v.yaw,
+    x: f.x, z: f.z, yaw: f.yaw,
     targets: markerList(),
     traffic: G.traffic.cars,
     route: G.route,
@@ -579,7 +622,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers) {
 function markerList() {
   const out = [];
   if (G.mission) {
-    out.push({ x: G.mission.target.x, z: G.mission.target.z, kind: 'objective' });
+    if (G.mission.target) out.push({ x: G.mission.target.x, z: G.mission.target.z, kind: 'objective' });
   } else {
     for (const def of MISSIONS) {
       const p = PLACES[def.giver];
@@ -599,13 +642,13 @@ function drawMarkers() {
     m4.compose(mm, G.waypoint.x, 0, G.waypoint.z, 0, 0, 0, 6, 9 + pulse * 2, 6);
     r.draw(G.meshes.marker, mm, { alpha: 0.22, unlit: true, colorMul: cyan });
   }
-  if (G.mission) {
+  if (G.mission && G.mission.target) {
     const t = G.mission.target;
     m4.compose(mm, t.x, 0, t.z, 0, 0, 0, t.r, 7 + pulse * 2, t.r);
     r.draw(G.meshes.marker, mm, { alpha: 0.22, unlit: true, colorMul: yellow });
     m4.compose(mm, t.x, 0.09, t.z, 0, 0, 0, t.r, 1, t.r);
     r.draw(G.meshes.ring, mm, { alpha: 0.3, unlit: true, colorMul: yellow });
-  } else {
+  } else if (!G.mission) {
     for (const def of MISSIONS) {
       const p = PLACES[def.giver];
       if (Math.hypot(p.x - v.x, p.z - v.z) > 600) continue;
@@ -652,6 +695,7 @@ $('garage').onclick = () => {
 };
 $('wipe').onclick = () => {
   resetProgress(); G.done = new Set();
+  if (G.wallet) G.wallet.set(START_CASH);
   hud.toast('Progression effacée', 1600);
   pause(false);
 };

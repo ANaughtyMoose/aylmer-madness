@@ -1,6 +1,7 @@
 // Missions and lighting presets. Everything here is data + pure builders; the
 // only shared state is localStorage, and that is always optional.
 import { PLACES } from './places.js';
+import { SIDE_MISSIONS } from './sidejobs.js';
 
 // lightDir points TOWARD the light, unit length. Ambient is hemispheric, so the
 // sky/ground pair is doing most of the mood work — night leans on it hard so the
@@ -43,7 +44,7 @@ export const TIME_OF_DAY = {
   },
 };
 
-export const MISSIONS = [
+const CORE_MISSIONS = [
   {
     id: 'school',
     title: 'Première période',
@@ -236,6 +237,10 @@ export const MISSIONS = [
     },
   },
 ];
+
+// The side jobs (canoe / Sayyad / couch) are the ones that need stateful stages,
+// so they are built in sidejobs.js. They are ordinary MISSIONS entries here.
+export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS];
 
 const KEY = 'aylmer.progress';
 

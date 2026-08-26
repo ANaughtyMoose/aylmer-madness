@@ -28,6 +28,19 @@ export const PLACES = {
   // Heritage College is on Cité-des-Jeunes in Hull, past the east edge of the
   // map: the marker is the way out of town on Chemin d'Aylmer.
   heritage:  { road: "Chemin d'Aylmer", x: 2520, z: -250, label: 'Sortie vers Hull — Heritage', snap: true },
+
+  // ---- side jobs -------------------------------------------------------
+  // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.
+  ctire:     { poi: 'Canadian Tire', x: 429.2, z: -242.8, label: 'Canadian Tire, chemin d’Aylmer', snap: true, lot: true },
+  // The garage sale: 41 Promenade Wychwood, a real footprint on a real street.
+  yardsale:  { road: 'Promenade Wychwood', x: -523.8, z: 219.8, label: '41 Promenade Wychwood', snap: true },
+  // Sayyad lives at Steph's address — same house, same coordinates, and the
+  // label keeps "Denise" in it so mapState()'s home-address filter still hides it.
+  sayyad:    { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
+  // 129 avenue Frank-Robinson, west side, just south of rue Smiley.
+  mike:      { x: -428.3, z: 58.3, label: '129 Frank-Robinson (Mike)', snap: true },
+  // Île Aylmer, out in Lac Deschênes. Deliberately NOT snapped to a road.
+  island:    { x: -1227, z: 612, label: 'Île Aylmer' },
 };
 
 // Closest point on a road with the given name, or (name=null) on any road
