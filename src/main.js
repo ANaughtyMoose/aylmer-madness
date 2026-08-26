@@ -34,6 +34,8 @@ import { Signals } from './game/signals.js';
 // Side jobs: props, the canoe, and the extended stage model. Everything below
 // hooks in through G — main.js does not know what a doughnut is.
 import { Props, buildPropMeshes, ISLAND, MIKE_TREE } from './game/props.js';
+// The reactive world: pedestrians, knock-over street furniture, debris.
+import { Reactive } from './game/reactive.js';
 import { Wallet, START as START_CASH } from './game/money.js';
 import {
   stageTarget, stageEnter, stageExit, stageStep, stageSettle, missionCleanup,
@@ -93,6 +95,8 @@ const G = {
   // Progression + the deck. `gearbox` turns road speed into rpm for the engine
   // note (game/gearbox.js); `garage` says which cars you are allowed to drive.
   gearbox: null, garage: null, radio: null,
+  // What the reactive world (peds/streetprops/debris) is keeping score of.
+  reactive: null, stats: { nearMiss: 0, pedsDived: 0, propsSmashed: 0, bestStreak: 0, streak: 0 },
   hud, audio, input,
 };
 setLang(G.settings.lang);
@@ -320,6 +324,7 @@ function worldStages() {
       // uploaded once, here; nothing in props.js ever builds geometry per frame.
       G.propMeshes = buildPropMeshes(r);
       G.props = new Props(r, G.propMeshes);
+      G.reactive = new Reactive(r, G.world);
     }],
     [t('load.ready'), () => {}],
   ];
@@ -852,6 +857,7 @@ function tick(dt) {
   if (G.signals.playerRanRed(v)) hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700);
   updateMission(dt);
   if (G.props) G.props.update(dt, G);
+  if (G.reactive) G.reactive.update(dt, G);
   G.time += dt;
 
   G.streetTimer -= dt;
@@ -935,6 +941,7 @@ function render(dt) {
     drawCar(carById(id), p.x, p.z, p.yaw, 0, 0, 0, 0, null, 0);
   }
   if (G.props) G.props.draw(r, f);
+  if (G.reactive) G.reactive.draw(r, f, QUALITY[G.quality].drawDist);
   drawMarkers();
   if (G.fx) G.fx.render(v, G.world, G.night, G.traffic.cars);
 

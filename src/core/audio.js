@@ -189,6 +189,78 @@ export class Audio {
     o.connect(f); f.connect(g); g.connect(this.fx);
     o.start(); o.stop(t + 0.14);
   }
+
+  // ---- the reactive world (peds.js / streetprops.js) ---------------------
+
+  // « Heille! » — a two-formant vowel yelp, no samples. A sawtooth larynx with
+  // a pitch scoop runs through two resonant bandpasses parked on F1/F2 of /ɛ/
+  // gliding toward /j/, which is enough of a diphthong for the ear to hear a
+  // person rather than a beep. Voices vary a little so a street of them is not
+  // one man shouting forty times.
+  heille() {
+    if (!this.ok || !this.enabled) return;
+    const t = this.ctx.currentTime;
+    const ctx = this.ctx;
+    const f0 = 168 + Math.random() * 105;          // low male .. high female
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0 * 0.86, t);
+    o.frequency.linearRampToValueAtTime(f0 * 1.18, t + 0.08);
+    o.frequency.linearRampToValueAtTime(f0 * 0.80, t + 0.34);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.20, t + 0.035);
+    g.gain.setValueAtTime(0.20, t + 0.16);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.36);
+    // F1 stays put; F2 climbs into the -ille.
+    const f1 = ctx.createBiquadFilter();
+    f1.type = 'bandpass'; f1.frequency.value = 600 + Math.random() * 90; f1.Q.value = 7;
+    const f2 = ctx.createBiquadFilter();
+    f2.type = 'bandpass'; f2.Q.value = 11;
+    f2.frequency.setValueAtTime(1750, t);
+    f2.frequency.linearRampToValueAtTime(2320, t + 0.30);
+    const g2 = ctx.createGain(); g2.gain.value = 0.65;
+    o.connect(f1); f1.connect(g);
+    o.connect(f2); f2.connect(g2); g2.connect(g);
+    g.connect(this.master);
+    o.start(); o.stop(t + 0.42);
+  }
+
+  // A prop going over. `kind` is what it is made of: 'bin' (hollow plastic),
+  // 'metal' (a mailbox, a cart), 'wood' (terrasse furniture), 'glass'.
+  // One noise burst shaped by a filter plus a body resonance, ~0.2 s.
+  thud(kind = 'bin', vol = 1) {
+    if (!this.ok || !this.enabled) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    if (!this._thudBuf) {
+      const n = (ctx.sampleRate * 0.3) | 0;
+      const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      this._thudBuf = buf;
+    }
+    const P = THUD[kind] || THUD.bin;
+    const src = ctx.createBufferSource();
+    src.buffer = this._thudBuf;
+    src.playbackRate.value = 0.85 + Math.random() * 0.4;
+    const f = ctx.createBiquadFilter();
+    f.type = P.type; f.frequency.value = P.freq * (0.9 + Math.random() * 0.2); f.Q.value = P.q;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(P.vol * vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + P.dur);
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(t); src.stop(t + P.dur + 0.02);
+    // The body of the thing: one decaying sine at its own note.
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(P.body * (0.92 + Math.random() * 0.16), t);
+    o.frequency.exponentialRampToValueAtTime(P.body * 0.72, t + P.dur);
+    og.gain.setValueAtTime(P.vol * 0.8 * vol, t);
+    og.gain.exponentialRampToValueAtTime(0.0005, t + P.dur * 1.2);
+    o.connect(og); og.connect(this.master);
+    o.start(t); o.stop(t + P.dur * 1.3);
+  }
 }
 
 // ---------------------------------------------------------------- the voice
@@ -506,4 +578,12 @@ export const DEFAULT_ENGINE = {
   tickF: 3400, tickG: 0.030,
   lumpy: 0.012, pop: 1,
   gain: 1, rattle: 0, rattleFrom: 0,
+// What each material sounds like when a Ranger finds it.
+const THUD = {
+  bin:   { type: 'lowpass',  freq: 520,  q: 1.0, body: 96,  dur: 0.24, vol: 0.20 },
+  metal: { type: 'bandpass', freq: 1750, q: 2.4, body: 210, dur: 0.20, vol: 0.16 },
+  wood:  { type: 'bandpass', freq: 780,  q: 1.6, body: 150, dur: 0.14, vol: 0.15 },
+  glass: { type: 'highpass', freq: 2600, q: 1.0, body: 640, dur: 0.26, vol: 0.12 },
+};
+
 };
