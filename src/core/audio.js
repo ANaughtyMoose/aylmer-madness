@@ -37,20 +37,48 @@ export class Audio {
     this.nf.type = 'bandpass'; this.nf.frequency.value = 1400; this.nf.Q.value = 1.6;
     this.ng = ctx.createGain(); this.ng.gain.value = 0;
     this.noise.connect(this.nf); this.nf.connect(this.ng); this.ng.connect(this.master);
+
+    // C5: a second tap off the same noise, narrow and low — the Sunfire's blown
+    // door speaker. Silent on every other car.
+    this.rf = ctx.createBiquadFilter();
+    this.rf.type = 'bandpass'; this.rf.frequency.value = 190; this.rf.Q.value = 9;
+    this.rg = ctx.createGain(); this.rg.gain.value = 0;
+    this.noise.connect(this.rf); this.rf.connect(this.rg); this.rg.connect(this.master);
+
     this.noise.start();
     this.ok = true;
+    if (this.ep) this.setEngineProfile(this.ep);
   }
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
 
-  engine(rpm01, load) {
+  // C5 — swap the engine's character when you swap cars. See cars.js SOUND for
+  // the shape of `p`; passing nothing goes back to the generic four-cylinder.
+  setEngineProfile(p) {
+    this.ep = p || null;
     if (!this.ok) return;
+    const e = this.ep || DEFAULT_ENGINE;
+    this.osc1.type = e.type1 || 'sawtooth';
+    this.osc2.type = e.type2 || 'square';
+    this.o2g.gain.setTargetAtTime(e.o2g, this.ctx.currentTime, 0.05);
+  }
+
+  // `kmh` is only used by the rattle; leave it out and there simply isn't one.
+  engine(rpm01, load, kmh = 0) {
+    if (!this.ok) return;
+    const e = this.ep || DEFAULT_ENGINE;
     const g = this.enabled ? 1 : 0;
-    const f = 45 + rpm01 * 210;
+    const f = e.f0 + rpm01 * e.span;
     const t = this.ctx.currentTime;
     this.osc1.frequency.setTargetAtTime(f, t, 0.04);
-    this.osc2.frequency.setTargetAtTime(f * 0.5, t, 0.04);
-    this.filt.frequency.setTargetAtTime(320 + rpm01 * 2200 + load * 900, t, 0.06);
-    this.eg.gain.setTargetAtTime(g * (0.035 + load * 0.075 + rpm01 * 0.03), t, 0.06);
+    this.osc2.frequency.setTargetAtTime(f * e.sub, t, 0.04);
+    this.filt.frequency.setTargetAtTime(e.cut0 + rpm01 * e.cutSpan + load * 900, t, 0.06);
+    this.eg.gain.setTargetAtTime(g * e.gain * (0.035 + load * 0.075 + rpm01 * 0.03), t, 0.06);
+    if (this.rg) {
+      const on = e.rattle > 0 && kmh > e.rattleFrom
+        ? Math.min(1, (kmh - e.rattleFrom) / 25) * e.rattle : 0;
+      this.rg.gain.setTargetAtTime(g * on * 0.055, t, 0.09);
+      if (on) this.rf.frequency.setTargetAtTime(150 + rpm01 * 190, t, 0.12);
+    }
   }
   skid(amount) {
     if (!this.ok) return;
@@ -100,4 +128,41 @@ export class Audio {
     o.connect(f); f.connect(g); g.connect(this.master);
     o.start(); o.stop(t + 0.4);
   }
+  // R3: somebody else's horn. Same two-saw shape as yours, pitched wherever the
+  // caller likes, and it lets go on its own.
+  honk(freq = 330, dur = 0.55, vol = 0.07) {
+    if (!this.ok || !this.enabled) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), o2 = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = freq;
+    o2.type = 'sawtooth'; o2.frequency.value = freq * 1.26;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.002, vol), t + 0.03);
+    g.gain.setValueAtTime(Math.max(0.002, vol), t + dur - 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); o2.connect(g); g.connect(this.master);
+    o.start(); o2.start();
+    o.stop(t + dur + 0.02); o2.stop(t + dur + 0.02);
+  }
+  // R4: the cough of an engine that has been through a hedge.
+  misfire() {
+    if (!this.ok || !this.enabled) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
+    o.type = 'square'; o.frequency.setValueAtTime(92 + Math.random() * 40, t);
+    o.frequency.exponentialRampToValueAtTime(40, t + 0.09);
+    f.type = 'lowpass'; f.frequency.value = 620;
+    g.gain.setValueAtTime(0.09, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+    o.connect(f); f.connect(g); g.connect(this.master);
+    o.start(); o.stop(t + 0.14);
+  }
 }
+
+// What the engine sounds like when nobody has said otherwise: the note the
+// game shipped with.
+const DEFAULT_ENGINE = {
+  f0: 45, span: 210, sub: 0.5, o2g: 0.35, cut0: 320, cutSpan: 2200, gain: 1,
+  type1: 'sawtooth', type2: 'square', rattle: 0, rattleFrom: 0,
+};

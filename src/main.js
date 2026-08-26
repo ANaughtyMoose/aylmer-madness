@@ -5,7 +5,9 @@ import { Audio } from './core/audio.js';
 import { MeshBuilder, rgb } from './core/mesh.js';
 import { m4, clamp, lerp, angleDelta } from './core/math.js';
 import { buildWorld } from './game/world.js';
-import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow } from './game/cars.js';
+import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow, DAMAGE } from './game/cars.js';
+import { asBody, collideCars, driftBody, contact } from './game/collide.js';
+import { DriveFx, updateRepair, restoreDamage } from './game/damage.js';
 import { Traffic } from './game/traffic.js';
 import { Hud } from './game/hud.js';
 import { loadCarSkin } from './game/carskin.js';
@@ -54,6 +56,11 @@ const G = {
   best: loadBest(),
   street: '', streetTimer: 0,
   lookBack: false,
+  // R3/R4 (driving agent). `health` is damage 0-100 per car for the session;
+  // `envKey` is the current TIME_OF_DAY key and `night` is the lights-on flag
+  // other systems can read; `fx` owns steam, crumples, lamps and fallen poles.
+  health: {}, envKey: 'day', night: false,
+  fx: null, repair: { t: 0 }, towed: false,
 };
 // Whose driveway each car lives in.
 const OWNER = { ranger: 'home', saturn: 'marc', civic: 'steph', sunfire: 'dave' };
@@ -121,6 +128,8 @@ function loadWorld() {
     roadAt: (x, z) => G.world.roadAt(x, z),
     querySegments: (x, z, rad) => G.world.querySegments(x, z, rad),
     waterAt: (x, z) => G.world.waterAt(x, z),
+    queryPoles: (x, z, rad) => G.world.queryPoles(x, z, rad),
+    snapPole: (p, ux, uz) => G.world.snapPole(p, ux, uz),
     bounds: G.world.bounds,
   };
   resolvePlaces(G.world);
@@ -152,6 +161,7 @@ function loadWorld() {
   const ring = new MeshBuilder();
   ring.flat(-1, -1, 1, 1, 0, rgb(0xffffff));
   G.meshes.ring = r.upload(ring);
+  G.fx = new DriveFx(r);
 }
 
 function enterDrive() {
@@ -160,6 +170,8 @@ function enterDrive() {
   G.veh.assist = G.assist;
   const h = PLACES[OWNER[spec.id]];
   G.veh.reset(h.x, h.z, h.a);
+  G.health = {}; G.repair.t = 0; G.towed = false;
+  audio.setEngineProfile(spec.sound);
   G.parked = {};
   for (const c of CARS) if (c.id !== spec.id) G.parked[c.id] = curbSpot(PLACES[OWNER[c.id]]);
   G.waypoint = null; G.route = null; G.routeKey = '';
@@ -189,6 +201,7 @@ function curbSpot(p) {
 function swapCar(id) {
   const v = G.veh, spot = G.parked[id];
   if (!spot) return;
+  G.health[v.spec.id] = v.damage;
   G.parked[v.spec.id] = { x: v.x, z: v.z, yaw: v.yaw };
   delete G.parked[id];
   const spec = carById(id);
@@ -196,6 +209,9 @@ function swapCar(id) {
   G.veh = new Vehicle(spec);
   G.veh.assist = G.assist;
   G.veh.reset(spot.x, spot.z, spot.yaw);
+  restoreDamage(G.veh, G.health[id]);
+  audio.setEngineProfile(spec.sound);
+  G.repair.t = 0;
   hud.setCar(spec.name);
   hud.toast(`${spec.who === 'Yours' ? 'Ton' : spec.who.replace("'s", '') + ' te passe son'} ${spec.name}`, 1800);
   audio.blip(520, 0.12, 'triangle', 0.15);
@@ -211,6 +227,8 @@ function cloneEnv(e) {
 }
 function setEnv(key, instant) {
   const t = TIME_OF_DAY[key] || TIME_OF_DAY.day;
+  G.envKey = TIME_OF_DAY[key] ? key : 'day';
+  G.night = G.envKey === 'night' || G.envKey === 'dusk';   // C4: headlights on
   G.envTarget = cloneEnv(t);
   if (instant || !G.env) { G.env = cloneEnv(t); G.env.fogDensity *= QUALITY[G.quality].fogMul; }
 }
@@ -439,7 +457,43 @@ function handleKeys() {
   if (input.hit('Enter', 'KeyE')) G.wantStart = true;
   if (input.hit('KeyQ')) G.wantCycle = true;
   if (input.hit('KeyM')) { audio.enabled = !audio.enabled; hud.toast(audio.enabled ? 'Son ON' : 'Son OFF', 900); }
-  audio.horn(input.down('KeyH'));
+  audio.horn(input.down('KeyH') || input.padHorn);
+}
+
+// R3/R4 — everything the crash work needs out of the loop, in one place so the
+// rest of tick() stays the shape it was.
+function driveHooks(dt, v) {
+  for (const t of G.traffic.cars) {          // somebody leaning on the horn
+    if (!t.honk) continue;
+    const d = Math.hypot(t.x - v.x, t.z - v.z);
+    if (d < 90) audio.honk(296 + (t.spec.mass % 6) * 24, 0.5, 0.075 * (1 - d / 90));
+  }
+  if (v.misfire) audio.misfire();
+  if (v.lastHit > 0.12) input.rumble(v.lastHit, 90 + v.lastHit * 200);
+  v.lastHit = 0;
+  G.fx.tick(dt, v, G.world);
+  G.health[v.spec.id] = v.damage;
+
+  // Repairs at the Petro-Canada: pull in, stop, count to five.
+  const rep = updateRepair(G.repair, dt, v, PLACES.gas);
+  if (rep === 'start') hud.toast('Reste là cinq secondes,\non te r’garde ça', 2200);
+  else if (rep === 'done') {
+    v.repair(); G.health[v.spec.id] = 0;
+    hud.toast('Comme neuf.\nFais attention à c’t’heure', 2400);
+    audio.blip(760, 0.16, 'triangle', 0.18);
+  }
+
+  // Dead: the job is gone and so is the car, until the flatbed drops it home.
+  if (v.damage >= DAMAGE.DEAD && !G.towed) {
+    G.towed = true;
+    const home = PLACES[OWNER[v.spec.id]];
+    if (G.mission) failMission('Le char est fini. Remorqué.');
+    else { hud.toast('LE CHAR EST FINI\nRemorqué chez vous, pis réparé', 3200); audio.chime(false); }
+    v.reset(home.x, home.z, home.a);
+    v.repair();
+    G.health[v.spec.id] = 0;
+    G.repair.t = 0;
+  } else if (v.damage < DAMAGE.DEAD) G.towed = false;
 }
 
 function tick(dt) {
@@ -451,19 +505,22 @@ function tick(dt) {
   const preImpact = v.impact;
   v.update(dt, ctl, G.phys);
   G.traffic.update(dt, v);
-  if (v.impact > preImpact + 0.08) audio.crash(v.impact);
 
   if (v.drowning > 1.4) {
     v.recover();
     hud.toast('L’Outaouais, c’est pas une route', 1800);
   }
-  // Parked cars are solid-ish: same circle shove traffic uses.
+  // R3 — parked cars are rigid bodies too: shove one and it stays shoved, and
+  // its new spot is what G.parked remembers.
   for (const id of Object.keys(G.parked)) {
-    const p = G.parked[id], c = carById(id);
-    const dx = v.x - p.x, dz = v.z - p.z, d = Math.hypot(dx, dz);
-    const minD = (v.spec.wid + c.wid) * 0.5 + 1.2;
-    if (d < minD && d > 0.001) v.nudge(dx / d, dz / d, (minD - d) * 0.8);
+    const p = asBody(G.parked[id], carById(id));
+    driftBody(p, dt, 4.5, 4.0);
+    const closing = collideCars(v, p, 0.22, 0.70);
+    if (closing > 0) { v.hit(closing, contact.nx, contact.nz); v.syncFrame(); }
   }
+  // Walls, poles, traffic and parked cars have all had their say by now.
+  if (v.impact > preImpact + 0.08) audio.crash(v.impact);
+  driveHooks(dt, v);
   updateMission(dt);
   G.time += dt;
 
@@ -475,7 +532,7 @@ function tick(dt) {
   const frac = clamp(Math.abs(v.vLong) / v.spec.topSpeed, 0, 1);
   const gear = Math.min(4, Math.floor(frac * 4.4));
   const rpm = clamp(0.18 + ((frac * 4.4) - gear) * 0.82, 0, 1);
-  audio.engine(rpm, ctl.throttle * 0.7 + Math.min(0.3, frac));
+  audio.engine(rpm, ctl.throttle * 0.7 + Math.min(0.3, frac), v.speedKmh);
   audio.skid(v.skid);
 }
 
@@ -488,14 +545,16 @@ function render(dt) {
   const r = G.renderer, v = G.veh, cam = CAMS[G.cam];
 
   // Chase camera: yaw eases toward the car, and a slide swings it wide.
-  const want = v.yaw + (G.lookBack ? 0 : Math.PI) - clamp(v.vLat * 0.02, -0.35, 0.35);
+  const revCam = cam.name === 'hood' && v.reversing;   // D5: look where you're going
+  const want = v.yaw + (G.lookBack || revCam ? 0 : Math.PI) - clamp(v.vLat * 0.02, -0.35, 0.35);
   G.camYaw += angleDelta(want, G.camYaw) * Math.min(1, dt * (cam.name === 'hood' || G.lookBack ? 22 : 5.5));
   const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
   const back = cam.dist + Math.abs(v.vLong) * 0.09;
   const cx = Math.sin(G.camYaw + Math.PI), cz = Math.cos(G.camYaw + Math.PI);
   let px, pz;
   if (cam.name === 'hood') {
-    px = v.x + fx * cam.dist; pz = v.z + fz * cam.dist;
+    const hd = revCam ? -cam.dist - 1.7 : cam.dist;
+    px = v.x + fx * hd; pz = v.z + fz * hd;
   } else {
     px = v.x - cx * back; pz = v.z - cz * back;
   }
@@ -520,7 +579,7 @@ function render(dt) {
     if (r.visible(c.mesh)) r.draw(c.mesh, mm);
   }
 
-  drawCar(v.spec, v.x, v.z, v.yaw, v.pitch, v.roll, v.spin, v.steer, null, v.passengers);
+  drawCar(v.spec, v.x, v.z, v.yaw, v.pitch, v.roll, v.spin, v.steer, null, v.passengers, v.y);
   for (const t of G.traffic.cars) {
     if (Math.hypot(t.x - v.x, t.z - v.z) > 320) continue;
     drawCar(t.spec, t.x, t.z, t.yaw, 0, 0, t.spin, 0, t.tint, 0);
@@ -531,10 +590,13 @@ function render(dt) {
     drawCar(carById(id), p.x, p.z, p.yaw, 0, 0, 0, 0, null, 0);
   }
   drawMarkers();
+  if (G.fx) G.fx.render(v, G.world, G.night, G.traffic.cars);
 
   r.end();
 
   hud.setSpeed(v.speedKmh);
+  hud.setDamage(v.damage);
+  hud.setReverse(v.reversing);
   hud.draw({
     x: v.x, z: v.z, yaw: v.yaw,
     targets: markerList(),
@@ -543,12 +605,12 @@ function render(dt) {
   });
 }
 
-function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers) {
+function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y = 0) {
   const r = G.renderer;
   const skin = G.meshes.skins[spec.id];
   const opts = tint ? { colorMul: tint } : {};
   if (skin) opts.tex = skin.tex;
-  m4.compose(mm, x, 0, z, yaw, pitch, roll);
+  m4.compose(mm, x, y, z, yaw, pitch, roll);
   r.draw(skin ? skin.mesh : G.meshes.cars[spec.id], mm, opts);
 
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
@@ -559,7 +621,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers) {
     const lx = sx * hx, lz = skin ? (sz > 0 ? skin.wheelZ[0] : skin.wheelZ[1]) : sz * spec.axleZ;
     const wx = x + lx * cy + lz * sy;
     const wz = z - lx * sy + lz * cy;
-    m4.compose(mm, wx, wheelR, wz, yaw - (sz > 0 ? steer : 0), spin, 0, 1, wheelR / spec.wheelR, wheelR / spec.wheelR);
+    m4.compose(mm, wx, y + wheelR, wz, yaw - (sz > 0 ? steer : 0), spin, 0, 1, wheelR / spec.wheelR, wheelR / spec.wheelR);
     r.draw(G.meshes.wheels[spec.id], mm, wopts);
   }
 
@@ -567,7 +629,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers) {
     const seats = Vehicle.prototype.seatPositions.call({ spec });
     for (let i = 0; i < Math.min(passengers, seats.length); i++) {
       const [lx, ly, lz] = seats[i];
-      m4.compose(mm, x + lx * cy + lz * sy, ly, z - lx * sy + lz * cy, yaw, 0, 0, 1, 1, 1);
+      m4.compose(mm, x + lx * cy + lz * sy, y + ly, z - lx * sy + lz * cy, yaw, 0, 0, 1, 1, 1);
       r.draw(G.meshes.head, mm);
     }
   }

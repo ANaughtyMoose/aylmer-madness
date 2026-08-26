@@ -144,9 +144,23 @@ export class Renderer {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(builder.i), gl.STATIC_DRAW);
     gl.bindVertexArray(null);
     return {
-      vao, count: builder.i.length,
+      vao, ibo: ib, count: builder.i.length,
       min: builder.min.slice(), max: builder.max.slice(),
     };
+  }
+
+  // Collapse `count` indices starting at `start` to degenerate triangles, so a
+  // baked-in piece of a chunk mesh can be made to disappear without rebuilding
+  // the chunk. One bufferSubData; nothing costs anything per frame afterwards.
+  // (world.js uses it when you take out a hydro pole.)
+  blankIndices(mesh, start, count) {
+    if (!mesh || !mesh.ibo || count <= 0) return;
+    const gl = this.gl;
+    if (!this._blank || this._blank.length < count) this._blank = new Uint32Array(count);
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.ibo);
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, start * 4, this._blank, 0, count);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
 
   setEnvironment(env) { this.env = env; }

@@ -123,10 +123,13 @@ export function buildWorld(renderer) {
   const builders = new Map();
   const distant = new MeshBuilder();
 
-  function bAt(x, z) {
+  function bKey(x, z) {
     const cx = clamp(Math.floor((x - B.minX) / CHUNK), 0, NX - 1);
     const cz = clamp(Math.floor((z - B.minZ) / CHUNK), 0, NZ - 1);
-    const k = cz * NX + cx;
+    return cz * NX + cx;
+  }
+  function bAt(x, z) {
+    const k = bKey(x, z);
     let b = builders.get(k);
     if (!b) { b = new MeshBuilder(); builders.set(k, b); }
     return b;
@@ -153,6 +156,7 @@ export function buildWorld(renderer) {
         a.push(idx);
       }
     }
+    return idx;
   }
 
   // ------------------------------------------------------------ triangle emit
@@ -526,6 +530,7 @@ export function buildWorld(renderer) {
   // ------------------------------------------------------------ segment query
   const segCount = segs.length >> 2;
   let seen = new Int32Array(segCount + 12000);
+  let segDead = null;          // allocated once the pole count is known
   let stamp = 0;
   const outArr = [];
   const pool = [];
@@ -543,6 +548,7 @@ export function buildWorld(renderer) {
           const idx = arr[k];
           if (seen[idx] === stamp) continue;
           seen[idx] = stamp;
+          if (segDead !== null && segDead[idx]) continue;   // a snapped pole
           const o = idx * 4;
           const ax = segs[o], az = segs[o + 1], bx = segs[o + 2], bz = segs[o + 3];
           if (distPtSeg2(x, z, ax, az, bx, bz) > r2) continue;
@@ -676,25 +682,43 @@ export function buildWorld(renderer) {
 
   // ------------------------------------------------------------ 7. street furniture
   const poleCol = rgb(C.pole), lampCol = rgb(C.lamp), hydroCol = rgb(C.hydro);
+  // R3 — poles are still baked into the chunk mesh (2500 of them as separate
+  // draws would cost more than the whole rest of the frame), but each one now
+  // remembers which chunk it went into, which slice of that chunk's index
+  // buffer it occupies, and which four collider segments are its. Snapping one
+  // is then two O(1) writes: blank those indices on the GPU, mark the segments
+  // dead. No per-frame cost at all for the ones still standing.
+  const poles = [];
+  const poleGrid = new Map();
   function poleCollider(x, z) {
-    addSegment(x - 0.15, z - 0.15, x + 0.15, z - 0.15);
+    const base = addSegment(x - 0.15, z - 0.15, x + 0.15, z - 0.15);
     addSegment(x + 0.15, z - 0.15, x + 0.15, z + 0.15);
     addSegment(x + 0.15, z + 0.15, x - 0.15, z + 0.15);
     addSegment(x - 0.15, z + 0.15, x - 0.15, z - 0.15);
+    return base;
+  }
+  function addPole(x, z, kind, h, k, i0, i1) {
+    const p = { x, z, kind, h, k, i0, n: i1 - i0, seg: poleCollider(x, z), dead: false, mesh: null };
+    poles.push(p);
+    const key = gkey(Math.floor(x / SEG_CELL), Math.floor(z / SEG_CELL));
+    const bucket = poleGrid.get(key);
+    if (bucket) bucket.push(p); else poleGrid.set(key, [p]);
   }
   function streetlight(x, z, dx, dz) {
-    const bd = bAt(x, z);
+    const k = bKey(x, z), bd = bAt(x, z);
+    const i0 = bd.i.length;
     bd.cyl(x, 4.2, z, 0.2, 8.4, 4, poleCol, 'y', false);
     bd.box(x + dx * 1.5, 8.2, z + dz * 1.5, 3.0, 0.22, 0.22, poleCol,
       { yaw: Math.atan2(-dz, dx), noBottom: true });
     bd.box(x + dx * 3.0, 7.85, z + dz * 3.0, 1.2, 0.4, 1.0, lampCol, { noBottom: true });
-    poleCollider(x, z);
+    addPole(x, z, 'light', 8.4, k, i0, bd.i.length);
   }
   function hydroPole(x, z, dx, dz) {
-    const bd = bAt(x, z);
+    const k = bKey(x, z), bd = bAt(x, z);
+    const i0 = bd.i.length;
     bd.cyl(x, 5.4, z, 0.3, 10.8, 4, hydroCol, 'y', false);
     bd.box(x, 10.0, z, 4.0, 0.28, 0.32, hydroCol, { yaw: Math.atan2(-dz, dx), noBottom: true });
-    poleCollider(x, z);
+    addPole(x, z, 'hydro', 10.8, k, i0, bd.i.length);
   }
 
   // gather candidate positions first so the cap spreads across the whole map
@@ -759,17 +783,61 @@ export function buildWorld(renderer) {
     }
   }
 
+  // ------------------------------------------------------------ pole queries
+  segDead = new Uint8Array(segs.length >> 2);
+  const poleOut = [];
+  function queryPoles(x, z, r) {
+    poleOut.length = 0;
+    const i0 = Math.floor((x - r) / SEG_CELL), i1 = Math.floor((x + r) / SEG_CELL);
+    const j0 = Math.floor((z - r) / SEG_CELL), j1 = Math.floor((z + r) / SEG_CELL);
+    const r2 = r * r;
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        const arr = poleGrid.get(gkey(i, j));
+        if (!arr) continue;
+        for (let k = 0; k < arr.length; k++) {
+          const p = arr[k];
+          if (p.dead) continue;
+          const dx = p.x - x, dz = p.z - z;
+          if (dx * dx + dz * dz <= r2) poleOut.push(p);
+        }
+      }
+    }
+    return poleOut;
+  }
+
+  // Snap one. (ux, uz) is the direction the car was travelling, so it goes over
+  // that way. Everything after this is one animation entry the game draws.
+  const fallen = [];
+  function snapPole(p, ux, uz) {
+    if (p.dead) return null;
+    p.dead = true;
+    for (let k = 0; k < 4; k++) segDead[p.seg + k] = 1;
+    if (p.mesh && renderer.blankIndices) renderer.blankIndices(p.mesh, p.i0, p.n);
+    const f = {
+      x: p.x, z: p.z, kind: p.kind, h: p.h,
+      yaw: Math.atan2(ux, uz),    // fall away from the bumper
+      t: 0,                        // 0 -> 1 over half a second
+    };
+    fallen.push(f);
+    if (fallen.length > 40) fallen.shift();   // the town only has so many
+    return f;
+  }
+
   // ------------------------------------------------------------ upload
   const chunks = [];
+  const meshByKey = new Map();
   let tris = 0;
   for (const [k, b] of builders) {
     if (b.empty) continue;
     tris += b.i.length / 3;
     const mesh = renderer.upload(b);
+    meshByKey.set(k, mesh);
     const cx = B.minX + ((k % NX) + 0.5) * CHUNK;
     const cz = B.minZ + (Math.floor(k / NX) + 0.5) * CHUNK;
     chunks.push({ mesh, min: mesh.min, max: mesh.max, cx, cz });
   }
+  for (let i = 0; i < poles.length; i++) poles[i].mesh = meshByKey.get(poles[i].k) || null;
   const distantMesh = renderer.upload(distant);
   tris += distant.i.length / 3;
 
@@ -786,6 +854,10 @@ export function buildWorld(renderer) {
     roadAt,
     waterAt,
     nearestRoad,
+    queryPoles,
+    snapPole,
+    fallen,                 // poles on their way down / lying there
+    poleCount,
     bounds: B,
   };
 }
