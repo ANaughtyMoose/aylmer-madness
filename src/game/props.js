@@ -350,7 +350,8 @@ export class Props {
       const [lx, ly, lz] = p.off;
       p.x = h.x + lx * cy + lz * sy;
       p.z = h.z - lx * sy + lz * cy;
-      p.y = ly;
+      // Ride with the host: over a jump the couch goes up with the truck.
+      p.y = ly + (h.bodyY != null ? h.bodyY : (h.y || 0));
       p.yaw = h.yaw;
       p.pitch = h.pitch || 0;
       p.roll = h.roll || 0;

@@ -2,6 +2,7 @@
 // Local car space: +Z is forward, +X is the driver's LEFT (right-handed GL axes), y=0 ground.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { clamp } from '../core/math.js';
+import { SURF, FLAT } from './terrain.js';
 
 const TIRE = 0x17181a, GLASS = 0x26313b, CHROME = 0xd4d6d8;
 const LAMP = 0xfff3c4, TAIL = 0xc0332a, AMBER = 0xf0a030, PLATE = 0xe8e6dc, TRIM = 0x2e3033;
@@ -897,6 +898,41 @@ const GRASS = 0.72;                     // surface multiplier off the asphalt
 const SURF_RAMP = (1 - GRASS) / 0.5;    // D4: the full penalty takes half a second
 const CURB_Y = 0.15;                    // how tall the sidewalk actually is
 
+// --------------------------------------------------------------- air & landing
+// Vertical dynamics. The car is a point mass in y: it sits ON world.groundAt()
+// while the surface can hold it, and goes ballistic the moment the ground falls
+// away faster than gravity can pull it down. That single rule is what turns
+// every ramp, berm and loading dock in terrain.js into a jump.
+const GRAV = 9.81;
+// The car is flying once it is separating from the deck faster than this, in
+// m/s. Kept as a rate rather than a distance so the test is the honest physical
+// one — "is the ground falling away faster than gravity can follow it" — at any
+// timestep, and so a smooth crest launches exactly when it should.
+const AIR_EPS = 0.04;
+// Real flight, as far as the driving model is concerned: below this the wheels
+// are still close enough to the ground to steer and to bite.
+const AIR_CLEAR = 0.08;
+// Downward speed a landing has to carry before it is worth a sound, a squat or
+// a puff of dust; and the speed above which it starts to cost bodywork.
+const LAND_MIN = 1.5;
+const LAND_SAFE = 4.0;
+const LAND_DMG = 0.75;
+// Suspension: a spring/damper on the visible body only — the wheels stay on the
+// deck. ω ≈ 14.5 rad/s, ζ ≈ 0.82, so a landing settles in about 0.4 s.
+const SUSP_K = 210, SUSP_C = 24;
+const SUSP_TRAVEL = 0.13;
+// A step in the ground the wheels climb rather than ramp over: a driveway lip, a
+// dock edge, the side of an apron. Costs speed the way a kerb does.
+const STEP_BUMP = 0.06;
+// Kerbs (D3, rebuilt). Below 30 km/h crossing one is a thud; above it the nose
+// gets kicked and the car takes a little air. Numbers picked so a 43 km/h hop
+// peaks at ~0.34 m and a 70 km/h one at ~0.75 m.
+const CURB_FAST = 8.33;                 // m/s == 30 km/h
+const CURB_KICK0 = 0.56, CURB_KICK1 = 0.169, CURB_KICK_MAX = 4.2;
+// Wall colliders are 1.6 m of fence and hoarding; clear that much and you are
+// over them. This is what lets the Galeries dock jump clear the service fence.
+const AIR_OVER_WALLS = 1.6;
+
 export class Vehicle {
   constructor(spec) {
     this.spec = spec;
@@ -925,7 +961,19 @@ export class Vehicle {
     this.steer = 0; this.yawRate = 0;
     this.yawSpin = 0;                    // spin left over from an impact
     this.spin = 0; this.roll = 0; this.pitch = 0;
-    this.y = 0; this.vy = 0;             // D3: the hop over a curb
+    // Vertical state. `y` is where the wheels are — the ground height under the
+    // car, or wherever the ballistic arc has got to. `susp` is the body on top
+    // of that, which is what the renderer should draw (see `bodyY`).
+    this.y = 0; this.vy = 0;
+    this.gh = 0;                         // ground height under the car right now
+    this.air = false;                    // integrating ballistically
+    this.inAir = false;                  // ...and far enough up to have lost the tyres
+    this.airT = 0;                       // seconds into the current flight
+    this.lastAir = 0;                    // how long the last completed flight was
+    this.landed = 0;                     // landing speed, for ONE tick after touchdown
+    this.susp = 0; this.suspV = 0;       // suspension travel (negative == squat)
+    this.shake = 0;                      // washboard rattle, 0..1 (stairs, gravel)
+    this.kind = 'asphalt';               // surface under the wheels
     this.surface = 1;                    // D4: ramped grip/drag penalty
     this.onRoad = true;
     this.skid = 0; this.impact = 0; this.drowning = 0;
@@ -938,6 +986,11 @@ export class Vehicle {
 
   get speedKmh() { return Math.abs(this.vLong) * 3.6; }
   get forward() { return [Math.sin(this.yaw), Math.cos(this.yaw)]; }
+  // Where to DRAW the body: the contact height plus whatever the springs are
+  // doing. `y` alone is the wheels, and is what the physics reasons about.
+  get bodyY() { return this.y + this.susp; }
+  // How far the underside is off the deck. Zero on the ground, metres in flight.
+  get clearance() { return this.y - this.gh; }
   // Top speed and grip after the dents. Used by the HUD and the AI alike.
   get hurt() { return this.damage > DAMAGE.PERF; }
 
@@ -951,30 +1004,43 @@ export class Vehicle {
     let vLat = this.vx * rx + this.vz * rz;
 
     const onRoad = world.roadAt(this.x, this.z);
+    // The height field (terrain.js). `groundAt` hands back a shared record, so
+    // everything wanted out of it is copied into locals right here.
+    const G0 = world.groundAt ? world.groundAt(this.x, this.z) : FLAT;
+    // A feature's own surface wins; away from one it is tarmac or grass exactly
+    // as it always was, which is what keeps the flat town byte-for-byte the same.
+    const kind = G0.kind || (onRoad ? 'asphalt' : 'grass');
+    this.kind = kind;
+    const sd = SURF[kind] || SURF.grass;
+    const inAir = this.inAir;
     // D4: grass and gravel still cut the grip the instant you leave the road,
-    // but the drag ramps in over half a second instead of hitting a wall.
-    const wantSurf = onRoad ? 1 : GRASS;
+    // but the drag ramps in over half a second instead of hitting a wall. The
+    // per-kind table generalises that without moving asphalt or grass.
+    const wantSurf = sd.power;
     this.surface += clamp(wantSurf - this.surface, -SURF_RAMP * dt, SURF_RAMP * dt);
     const surface = this.surface;
-    const gripSurf = onRoad ? 1 : GRASS;
+    const gripSurf = inAir ? 0 : sd.grip;
     const offRoad = (1 - surface) / (1 - GRASS);      // 0 on tarmac, 1 fully off it
-    const inWater = world.waterAt(this.x, this.z);
+    const inWater = world.waterAt(this.x, this.z) && !inAir;
     const topSpeed = s.topSpeed * (this.hurt ? 0.85 : 1);   // R4: −15 % once it's bad
 
     // Engine: force tapers off as you approach terminal speed, like a tired 4-banger.
     const frac = clamp(vLong / topSpeed, -1, 1);
     let a = 0;
-    if (ctl.throttle > 0 && vLong > -1.5) {
-      a += ctl.throttle * s.accel * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+    if (!inAir) {
+      if (ctl.throttle > 0 && vLong > -1.5) {
+        a += ctl.throttle * s.accel * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+      }
+      if (ctl.brake > 0) {
+        if (vLong > 0.6) a -= ctl.brake * s.brake * surface;
+        else a -= ctl.brake * s.accel * 0.55 * (1 - Math.max(0, -frac));  // reverse
+      }
+      if (ctl.handbrake && vLong > 0.5) a -= s.brake * 0.55;
+      // Rolling resistance is a near-constant drag; aero grows with the square.
+      // Top speed then falls out of where the power curve meets it.
+      if (Math.abs(vLong) > 0.2) a -= Math.sign(vLong) * (0.28 + 1.42 * offRoad * sd.drag);
     }
-    if (ctl.brake > 0) {
-      if (vLong > 0.6) a -= ctl.brake * s.brake * surface;
-      else a -= ctl.brake * s.accel * 0.55 * (1 - Math.max(0, -frac));  // reverse
-    }
-    if (ctl.handbrake && vLong > 0.5) a -= s.brake * 0.55;
-    // Rolling resistance is a near-constant drag; aero grows with the square.
-    // Top speed then falls out of where the power curve meets it.
-    if (Math.abs(vLong) > 0.2) a -= Math.sign(vLong) * (0.28 + 1.42 * offRoad);
+    // Aero never stops, on the ground or off it. Nothing else acts in flight.
     a -= vLong * Math.abs(vLong) * 0.0006;
     if (inWater) a -= vLong * 4.5;
     // R4: a sick engine coughs. One skipped stroke, roughly once a second.
@@ -990,33 +1056,32 @@ export class Vehicle {
     vLong += a * dt;
     if (ctl.throttle === 0 && ctl.brake === 0 && Math.abs(vLong) < 0.25) vLong = 0;
 
-    // D3 — the curb. The sidewalk is 0.15 m of concrete and it should cost you
-    // a hop and a slice of speed, whichever way you cross it.
+    // D3 — the kerb, rebuilt. It is 0.15 m of concrete: take it at a walk and it
+    // is a thud, take it at 30 km/h and the front wheels get thrown up and you
+    // are briefly off the ground. Either way it costs you speed. The sidewalk
+    // is not in the height field (it is a decal on flat ground), so this still
+    // hangs off the road/off-road transition the way it always did.
     if (onRoad !== this.onRoad) {
       const spd = Math.abs(vLong);
-      if (spd > 2.2 && this.y < 0.02) {
+      if (spd > 2.2 && this.clearance < 0.02) {
         const k = clamp(spd / 14, 0, 1);
-        this.vy = 1.0 + 2.0 * k;
-        this.pitch += (onRoad ? -0.055 : 0.075) * k;
-        vLong *= 1 - 0.10 * k;                      // scrub
-        vLat *= 1 - 0.18 * k;
+        if (spd > CURB_FAST) {
+          this.vy = Math.min(CURB_KICK_MAX, CURB_KICK0 + CURB_KICK1 * spd);
+          this.pitch += (onRoad ? -0.075 : 0.10) * k;
+          vLong *= 1 - 0.09 * k;                    // scrub
+          vLat *= 1 - 0.18 * k;
+        } else {                                     // a thud, and it stops you more
+          this.vy = 0.30 + 0.06 * spd;
+          this.pitch += (onRoad ? -0.04 : 0.055) * k;
+          vLong *= 1 - 0.16 * k;
+          vLat *= 1 - 0.26 * k;
+        }
         this.curb = k;
         this.impact = Math.max(this.impact, k * 0.22);
       }
       this.onRoad = onRoad;
     }
     this.curb *= Math.exp(-9 * dt);
-    if (this.vy !== 0 || this.y > 0) {
-      this.vy -= 17 * dt;
-      this.y += this.vy * dt;
-      if (this.y <= 0) {
-        this.y = 0;
-        this.vy = this.vy < -1.4 ? -this.vy * 0.24 : 0;
-        if (Math.abs(this.vy) < 0.4) this.vy = 0;
-      } else if (this.y > CURB_Y * 6) {
-        this.y = CURB_Y * 6;                        // it is a curb, not a ramp
-      }
-    }
 
     // Steering: less lock the faster you go, so a keyboard tap can't spin you.
     const speedFrac = clamp(Math.abs(vLong) / topSpeed, 0, 1);
@@ -1038,6 +1103,9 @@ export class Vehicle {
       // Gentle counter-steer: pull the heading toward the direction of travel.
       this.yawRate += vLat * 0.045 * (1 - speedFrac * 0.5);
     }
+    // Nothing to steer against once the wheels are off the ground: the heading
+    // freezes and the stick only leans the body, Midtown Madness style.
+    if (inAir) this.yawRate = 0;
     this.yaw += this.yawRate * dt;
     // R3: the spin an impact put into the car, bleeding off as the tyres bite.
     if (this.yawSpin) {
@@ -1061,24 +1129,115 @@ export class Vehicle {
 
     this.impact *= Math.exp(-4 * dt);
     this.steamT = Math.max(0, this.steamT - dt);
-    this.collide(world);
+
+    // ------------------------------------------------------------- vertical
+    // Done after the horizontal step so the ground under the car is the ground
+    // it actually ended the frame on.
+    const G = world.groundAt ? world.groundAt(this.x, this.z) : FLAT;
+    let gh = G.h;
+    const gnx = G.nx, gny = G.ny, gnz = G.nz;
+    // Stairs and washboard gravel are modelled as a ripple the springs feel
+    // rather than as geometry — 5 cm, deterministic in x/z so replays match.
+    if (sd.shake > 0.5) gh += 0.05 * sd.shake * Math.sin(0.9 * (this.x + this.z));
+    // How fast the surface itself is rising under the car. Taken from the
+    // analytic normal, NOT from the frame-to-frame height difference, so a step
+    // (a dock edge, a driveway lip) reads as a step and only a real slope
+    // launches anything.
+    const climb = gny > 1e-6 ? -(gnx * this.vx + gnz * this.vz) / gny : 0;
+    const wasAir = this.air;
+    const yWas = this.y;
+    this.landed = 0;
+    this.vy -= GRAV * dt;
+    const yFree = this.y + this.vy * dt;
+    if (yFree > gh + AIR_EPS * dt) {
+      this.y = yFree;
+      this.air = true;
+      this.airT += dt;
+    } else {
+      // What the deck actually absorbs is the DIFFERENCE between the vertical
+      // speed the car had and the vertical speed the surface is moving at. On a
+      // steady slope that is one frame of gravity and nothing happens; out of
+      // the air, or into the dip at the foot of a ramp, it is the whole landing.
+      const drop = climb - this.vy;
+      this.y = gh;
+      this.vy = climb;
+      this.air = false;
+      if (wasAir && this.airT > 0.05) this.lastAir = this.airT;
+      this.airT = 0;
+      let scrubL = 1, scrubT = 1;
+      if (drop > LAND_MIN) {
+        this.landed = drop;
+        this.suspV -= Math.min(drop * 0.30, 3.0);
+        if (drop > LAND_SAFE) this.hit((drop - LAND_SAFE) * LAND_DMG);
+        this.impact = Math.max(this.impact, clamp(drop / 14, 0, 1));
+        scrubL = 1 - clamp((drop - LAND_SAFE) * 0.02, 0, 0.18);
+      }
+      // A step the wheels have to climb rather than ramp over: a driveway lip, a
+      // dock edge. `climb * dt` is what a slope would have accounted for, so
+      // what is left over is genuinely a step. It costs speed like a kerb does.
+      const step = gh - yWas - Math.max(0, climb) * dt;
+      if (step > STEP_BUMP) {
+        const k = clamp(step / 0.5, 0, 1) * clamp(Math.abs(vLong) / 10, 0, 1);
+        scrubL *= 1 - 0.14 * k;
+        scrubT *= 1 - 0.22 * k;
+        this.impact = Math.max(this.impact, k * 0.25);
+      }
+      if (scrubL !== 1 || scrubT !== 1) {
+        vLong *= scrubL; vLat *= scrubT;
+        this.vx = fx * vLong + rx * vLat;
+        this.vz = fz * vLong + rz * vLat;
+        this.vLong = vLong; this.vLat = vLat;
+      }
+    }
+    this.gh = gh;
+    this.inAir = this.y - gh > AIR_CLEAR;
+    // Springs. The wheels are on the deck; this is the body on top of them.
+    this.suspV += (-SUSP_K * this.susp - SUSP_C * this.suspV) * dt;
+    this.susp += this.suspV * dt;
+    const travel = s.suspension != null ? s.suspension : SUSP_TRAVEL;
+    if (this.susp < -travel) { this.susp = -travel; if (this.suspV < 0) this.suspV = 0; }
+    else if (this.susp > travel * 0.5) { this.susp = travel * 0.5; if (this.suspV > 0) this.suspV = 0; }
+    // Rattle, for the camera and anyone drawing dust.
+    const wantShake = this.inAir ? 0 : sd.shake * clamp(Math.abs(vLong) / 12, 0, 1);
+    this.shake += (wantShake - this.shake) * Math.min(1, 10 * dt);
+
+    // Walls and poles: skip them entirely once the car is over fence height —
+    // that is what makes a jump a shortcut instead of a bounce.
+    if (this.y - gh < AIR_OVER_WALLS) this.collide(world);
 
     // D5: which way the box is in, for the speedo and the hood camera.
     this.reversing = this.vLong < -0.4;
     this.braking = (ctl.brake > 0.05 && this.vLong > -0.05) || !!ctl.handbrake;
 
-    // Cosmetic body attitude — a truck should visibly lean.
+    // Cosmetic body attitude — a truck should visibly lean, and on a slope it
+    // sits along the slope. Negative pitch is nose-up; positive roll leans right.
     const heavy = s.mass / 1100;
     const latA = vLong * this.yawRate;
-    this.roll += (clamp(latA * 0.016 * heavy, -0.13, 0.13) - this.roll) * Math.min(1, 8 * dt);
-    this.pitch += (clamp(-a * 0.010 * heavy, -0.07, 0.07) - this.pitch) * Math.min(1, 7 * dt);
+    if (this.inAir) {
+      // In the air the stick is worth a little attitude and nothing else.
+      this.pitch = clamp(this.pitch + (ctl.brake - ctl.throttle) * 0.55 * dt, -0.55, 0.55);
+      this.roll = clamp(this.roll - ctl.steer * 0.70 * dt, -0.5, 0.5);
+    } else {
+      // Ground slope resolved into the car's own frame: how much the deck rises
+      // ahead of the nose, and how much it rises to the driver's left.
+      let tPitch = 0, tRoll = 0;
+      if (gny < 0.99999) {
+        const dhx = -gnx / gny, dhz = -gnz / gny;
+        tPitch = -Math.atan(dhx * fx + dhz * fz);
+        tRoll = Math.atan(dhx * rx + dhz * rz);
+      }
+      this.roll += (clamp(latA * 0.016 * heavy, -0.13, 0.13) + tRoll - this.roll) * Math.min(1, 8 * dt);
+      this.pitch += (clamp(-a * 0.010 * heavy, -0.07, 0.07) + tPitch - this.pitch) * Math.min(1, 7 * dt);
+    }
     this.spin += (vLong / s.wheelR) * dt;
 
     if (inWater) {
       this.drowning += dt;
     } else {
       this.drowning = 0;
-      if (onRoad && Math.abs(vLong) > 2) { this.lastSafe = { x: this.x, z: this.z, yaw: this.yaw }; }
+      if (onRoad && !this.inAir && Math.abs(vLong) > 2) {
+        this.lastSafe = { x: this.x, z: this.z, yaw: this.yaw };
+      }
     }
     // Keep everyone inside the map.
     const W = world.bounds;

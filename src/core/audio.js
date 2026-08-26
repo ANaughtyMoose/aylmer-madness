@@ -207,6 +207,62 @@ export class Audio {
     }
   }
 
+  // A landing: the thump of the springs bottoming out, plus a scuff of tyre.
+  // `force` is the vertical speed killed, in m/s — about 2 for a kerb hop and
+  // 9 for coming off the rail berm at 70.
+  land(force) {
+    if (!this.ok || !this.enabled) return;
+    const f = Math.min(1, Math.max(0, force / 10));
+    const t = this.ctx.currentTime;
+    // body: a short filtered thud that drops in pitch
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain(), lp = this.ctx.createBiquadFilter();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(120 - 40 * f, t);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.16);
+    lp.type = 'lowpass'; lp.frequency.value = 420;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.03 + 0.16 * f, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.20 + 0.12 * f);
+    o.connect(lp); lp.connect(g); g.connect(this.master);
+    o.start(); o.stop(t + 0.36);
+    // grit: a puff of filtered noise for the tyres scrubbing on touchdown
+    if (this.noiseBuf) {
+      const n = this.ctx.createBufferSource();
+      n.buffer = this.noiseBuf; n.loop = true;
+      const bp = this.ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 900 + 700 * f; bp.Q.value = 0.7;
+      const ng = this.ctx.createGain();
+      ng.gain.setValueAtTime(0.0001, t);
+      ng.gain.exponentialRampToValueAtTime(0.006 + 0.05 * f, t + 0.02);
+      ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+      n.connect(bp); bp.connect(ng); ng.connect(this.master);
+      n.start(); n.stop(t + 0.32);
+    }
+  }
+
+  // Wind over the roof while the wheels are off the ground. Call it every frame
+  // with 0..1; it opens and closes one long-lived noise voice rather than
+  // starting a new one, so holding a jump costs nothing.
+  whoosh(amount) {
+    if (!this.ok || !this.enabled || !this.noiseBuf) return;
+    const a = Math.min(1, Math.max(0, amount));
+    if (!this._air) {
+      if (a <= 0) return;
+      const n = this.ctx.createBufferSource();
+      n.buffer = this.noiseBuf; n.loop = true;
+      const bp = this.ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 620; bp.Q.value = 0.5;
+      const g = this.ctx.createGain();
+      g.gain.value = 0.0001;
+      n.connect(bp); bp.connect(g); g.connect(this.master);
+      n.start();
+      this._air = { n, g, bp };
+    }
+    const t = this.ctx.currentTime;
+    this._air.g.gain.setTargetAtTime(Math.max(0.0001, a * 0.075), t, 0.05);
+    this._air.bp.frequency.setTargetAtTime(520 + a * 900, t, 0.08);
+  }
+
   // R4: the cough of an engine that has been through a hedge.
   misfire() {
     if (!this.ok || !this.enabled) return;
