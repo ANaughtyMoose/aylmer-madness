@@ -187,6 +187,9 @@ export class BigMap {
     }
     g.font = 'bold 12px Helvetica, Arial, sans-serif';
     for (const p of state.parked || []) pin(sx(p.x), sy(p.z), '#8fe38f', p.name, true);
+    // race agent: who you are racing, and who is chasing you
+    for (const p of state.rivals || []) pin(sx(p.x), sy(p.z), '#ff8a3d', p.name || 'Rival', true);
+    for (const p of state.cops || []) pin(sx(p.x), sy(p.z), '#6fb2ff', 'Police', true);
     if (state.waypoint) pin(sx(state.waypoint.x), sy(state.waypoint.z), '#4fd3ff', 'Waypoint', true);
     if (state.target) pin(sx(state.target.x), sy(state.target.z), COL.label, 'Objectif', true);
     // player

@@ -40,6 +40,10 @@ import { Wallet, START as START_CASH } from './game/money.js';
 import {
   stageTarget, stageEnter, stageExit, stageStep, stageSettle, missionCleanup,
 } from './game/missionkit.js';
+// Race agent: AI rivals (race.js), the four races (racejobs.js) and the police
+// (cops.js). All three reach in through G; main.js only owns the hook lines.
+import { updateRivals } from './game/race.js';
+import { Cops, installCopMeshes } from './game/cops.js';
 
 const STEP = 1 / 60;
 // drawDist is the chunk cutoff; fogMul thickens the fog so the cutoff hides in it.
@@ -97,6 +101,8 @@ const G = {
   gearbox: null, garage: null, radio: null,
   // What the reactive world (peds/streetprops/debris) is keeping score of.
   reactive: null, stats: { nearMiss: 0, pedsDived: 0, propsSmashed: 0, bestStreak: 0, streak: 0 },
+  // race agent: the friends you are racing, the cars they borrowed, the police
+  rivals: [], raceParked: {}, cops: null, ranRed: false,
   hud, audio, input,
 };
 setLang(G.settings.lang);
@@ -313,6 +319,7 @@ function worldStages() {
         }).catch((e) => console.warn('skin failed', c.id, e));
       }
       G.meshes.shadow = r.upload(buildShadow());
+      installCopMeshes(r, G.meshes);          // the cruiser + its two light-bar pods
       const mk = new MeshBuilder();
       mk.cyl(0, 0.5, 0, 1, 1, 14, rgb(0xffffff), 'y', false);
       G.meshes.marker = r.upload(mk);
@@ -375,6 +382,9 @@ function enterDrive() {
   setEnv('day', true);
   G.mission = null;
   G.boat = null; G.focus = null;
+  G.rivals = []; G.raceParked = {}; G.ranRed = false;
+  if (!G.cops) G.cops = new Cops(); else G.cops.reset();
+  hud.setStars(0);
   if (!G.wallet) G.wallet = new Wallet($('money'));
   G.wallet.render();
   if (G.props) {
@@ -522,6 +532,9 @@ function failMission(why) {
   hud.setTimer(null);
   hud.setObjective(t('hud.freeroam'), t('hud.freeroam.again'));
 }
+
+// cops.js writes a ticket and takes the job with it.
+G.failMission = failMission;
 
 function updateMission(dt) {
   const m = G.mission;
@@ -694,6 +707,8 @@ function mapState() {
     target: G.mission ? G.mission.target : null,
     missions: G.mission ? [] : MISSIONS.map((d) => ({ x: PLACES[d.giver].x, z: PLACES[d.giver].z, title: d.title, place: PLACES[d.giver].label, done: G.done.has(d.id) })),
     parked: Object.keys(G.parked).map((id) => ({ x: G.parked[id].x, z: G.parked[id].z, name: carById(id).name })),
+    rivals: G.rivals.map((rv) => ({ x: rv.x, z: rv.z, name: rv.name })),
+    cops: [...G.cops.units.map((u) => ({ x: u.x, z: u.z })), ...G.cops.blocks.map((b) => ({ x: b.x, z: b.z }))],
     places: Object.values(PLACES).filter((p) => p.label && !/Chemin Fraser|Denise|Bancroft|Vanier/.test(p.label)),
   };
 }
@@ -837,6 +852,10 @@ function tick(dt) {
     G.boat.update(dt, { steer: input.steer, throttle: input.throttle, brake: input.brake });
   }
   G.traffic.update(dt, v);
+  // Race agent: the friends first (they are ordinary cars), then the police,
+  // which read G.traffic.crash from the line above and G.ranRed from last tick.
+  updateRivals(G, dt);
+  G.cops.update(dt, G);
 
   if (v.drowning > 1.4) {
     v.recover();
@@ -854,7 +873,7 @@ function tick(dt) {
   if (v.impact > preImpact + 0.08) audio.crash(v.impact);
   driveHooks(dt, v);
   G.signals.update(dt);
-  if (G.signals.playerRanRed(v)) hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700);
+  if (G.signals.playerRanRed(v)) { G.ranRed = true; hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700); }
   updateMission(dt);
   if (G.props) G.props.update(dt, G);
   if (G.reactive) G.reactive.update(dt, G);
@@ -940,6 +959,12 @@ function render(dt) {
     if (Math.hypot(p.x - v.x, p.z - v.z) > 320) continue;
     drawCar(carById(id), p.x, p.z, p.yaw, 0, 0, 0, 0, null, 0);
   }
+  for (const rv of G.rivals) {                     // race agent: the friends
+    const c = rv.veh;
+    if (Math.hypot(c.x - v.x, c.z - v.z) > 400) continue;
+    drawCar(rv.spec, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y);
+  }
+  G.cops.draw(G, drawCar);                          // ...and the police
   if (G.props) G.props.draw(r, f);
   if (G.reactive) G.reactive.draw(r, f, QUALITY[G.quality].drawDist);
   drawMarkers();
@@ -954,6 +979,8 @@ function render(dt) {
     x: f.x, z: f.z, yaw: f.yaw,
     targets: markerList(),
     traffic: G.traffic.cars,
+    rivals: G.rivals,
+    cops: G.cops.units,
     route: G.route,
   });
 }
@@ -1220,6 +1247,10 @@ window.AYLMER = {
   // Debug/screenshot hooks: force a time of day, and read back what the last
   // frame actually drew (see world.js `stats`).
   env(name = 'day') { setEnv(name, true); return name; },
+  // Race agent: what the tests poke at.
+  cops: () => G.cops,
+  rivals: () => G.rivals,
+  heat(v) { if (v != null) G.cops.heat = v; return G.cops.heat; },
   stats() {
     const w = G.world && G.world.stats;
     return w ? { ...w, drawCalls: G.renderer.stats.draws, rendererTris: G.renderer.stats.tris } : null;
