@@ -9,7 +9,9 @@ const url = process.argv[2] || 'http://localhost:8123/index.html';
 const seconds = Number(process.argv[3] || 3);
 const shot = process.argv[4] || '';
 const scriptIdx = process.argv.indexOf('--script');
-const fresh = process.argv.includes('--fresh');   // wipe the origin's storage before loading (no saved garage/progress)
+const fresh = process.argv.includes('--fresh');
+const menuOnly = process.argv.includes('--menu');   // screenshot the menu; don't click DRIVE
+const sizeArg = process.argv.find((a) => /^--size=\d+x\d+$/.test(a)); const [VW, VH] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1280, 800];   // wipe the origin's storage before loading (no saved garage/progress)
 const script = scriptIdx > 0 ? await import('node:fs').then((fs) => fs.readFileSync(process.argv[scriptIdx + 1], 'utf8')) : '';
 
 const list = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then((r) => r.json());
@@ -46,7 +48,7 @@ await send('Log.enable');
 await send('Page.enable');
 await send('Network.enable');
 await send('Network.setCacheDisabled', { cacheDisabled: true });
-await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+await send('Emulation.setDeviceMetricsOverride', { width: VW, height: VH, deviceScaleFactor: 1, mobile: false });
 
 const evaluate = async (expression, awaitPromise = true) => {
   const r = await send('Runtime.evaluate', { expression, awaitPromise, returnByValue: true });
@@ -60,7 +62,7 @@ try {
 if (fresh) await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
 await send('Page.navigate', { url });
 await sleep(1500);
-const boot = await evaluate(`(async () => {
+const boot = menuOnly ? 'menu only' : await evaluate(`(async () => {
   const b = document.getElementById('start'); if (!b) return 'no #start';
   b.click();
   for (let i = 0; i < 200; i++) { await new Promise(r => setTimeout(r, 100)); if (window.AYLMER?.G?.mode === 'drive') return 'drive after ' + (i * 100) + ' ms'; }
@@ -68,7 +70,7 @@ const boot = await evaluate(`(async () => {
 })()`);
 console.log('boot:', boot);
 // Step the sim deterministically, then let a few real frames render.
-const stepped = await evaluate(`(() => { const A = window.AYLMER; if (!A) return 'no AYLMER';
+const stepped = menuOnly ? 'skipped' : await evaluate(`(() => { const A = window.AYLMER; if (!A) return 'no AYLMER';
   const n = Math.round(${seconds} * 60); for (let i = 0; i < n; i++) A.step(1/60); A.render();
   const G = A.G, v = G.veh; return JSON.stringify({ mode: G.mode, fps: Math.round(G.fps), x: +v.x.toFixed(1), z: +v.z.toFixed(1), car: G.carId, time: +G.time.toFixed(2) }); })()`);
 console.log('after steps:', stepped);
