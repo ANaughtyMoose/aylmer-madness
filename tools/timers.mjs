@@ -49,7 +49,13 @@ export function measure(def, nav, ctx) {
   const out = [];
   for (let i = 0; i < stages.length; i++) {
     const st = stages[i];
-    const p = resolveAt(st.at);
+    // Side jobs may target a function, a `noTarget` stage or an `anywhere`
+    // stage — nothing to route to; report them as unrouted and stay put.
+    const p = typeof st.at === 'function' ? null : resolveAt(st.at);
+    if (!p || p.x == null || st.noTarget || st.anywhere) {
+      out.push({ i, text: st.text, metres: NaN, time: st.time ?? null, maxSpeed: st.maxSpeed ?? null, radius: st.radius || 14, routed: false });
+      continue;
+    }
     const path = nav.route(x, z, p.x, p.z);
     const metres = path ? routeLength(path, x, z) : NaN;
     out.push({

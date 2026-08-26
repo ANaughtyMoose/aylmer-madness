@@ -192,7 +192,7 @@ const CORE_MISSIONS = [
       return [{
         text: 'Chez vous',
         sub: `traverse la ville — le ${ctx.carName} fait trop de bruit dans l'entrée`,
-        at: 'home', radius: 14, time: 140, maxSpeed: 35,
+        at: 'home', radius: 14, time: 210, maxSpeed: 35,
         toast: 'Lumière de la cuisine éteinte. Tu es correct.',
       }];
     },
@@ -209,28 +209,28 @@ const CORE_MISSIONS = [
         {
           text: 'Le phare de la marina',
           sub: 'le meilleur point de vue sur l’Outaouais',
-          at: 'lookout', radius: 16, time: 36,
+          at: 'lookout', radius: 16, time: 100,
         },
         {
           text: 'Aréna d’Aylmer',
           sub: 'fermé pour l’été, le stationnement est à nous',
-          at: 'arena', radius: 18, time: 32,
+          at: 'arena', radius: 18, time: 95,
         },
         {
           // Chemin d'Aylmer runs at z = -40; this sits in front of the Galeries.
           text: "Chemin d'Aylmer",
           sub: 'devant les Galeries, fenêtres baissées',
-          at: { x: 236, z: -40 }, radius: 16, time: 34,
+          at: { x: 236, z: -40 }, radius: 16, time: 95,
         },
         {
           text: 'Rue Principale',
           sub: 'le vieux Aylmer au complet en une passe',
-          at: 'principale', radius: 15, time: 30,
+          at: 'principale', radius: 15, time: 125,
         },
         {
           text: 'Parc des Cèdres',
           sub: 'dernier arrêt — le soleil tombe dans la rivière',
-          at: 'beach', radius: 20, time: 28,
+          at: 'beach', radius: 20, time: 100,
           toast: 'Tu connais ta ville, là.',
         },
       ];
