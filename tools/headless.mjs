@@ -1,7 +1,7 @@
 // Headless smoke run of the real game in Chrome over the DevTools protocol.
 // No dependencies: Node >= 22 (global WebSocket) and a Chrome started with
 //   "Google Chrome" --headless=new --remote-debugging-port=9222 --use-angle=swiftshader
-// Usage: node tools/headless.mjs [url] [seconds] [screenshot.png] [--script file.js]
+// Usage: node tools/headless.mjs [url] [seconds] [screenshot.png] [--script file.js] [--fresh]
 // Prints every console message / uncaught exception, boots the game (click DRIVE),
 // steps the sim for `seconds` of game time, runs an optional script in the page
 // (it can use window.AYLMER), and writes a screenshot.
@@ -9,6 +9,7 @@ const url = process.argv[2] || 'http://localhost:8123/index.html';
 const seconds = Number(process.argv[3] || 3);
 const shot = process.argv[4] || '';
 const scriptIdx = process.argv.indexOf('--script');
+const fresh = process.argv.includes('--fresh');   // wipe the origin's storage before loading (no saved garage/progress)
 const script = scriptIdx > 0 ? await import('node:fs').then((fs) => fs.readFileSync(process.argv[scriptIdx + 1], 'utf8')) : '';
 
 const list = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then((r) => r.json());
@@ -56,6 +57,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let failed = null;
 try {
+if (fresh) await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
 await send('Page.navigate', { url });
 await sleep(1500);
 const boot = await evaluate(`(async () => {
