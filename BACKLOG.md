@@ -1,7 +1,7 @@
 # Aylmer Madness — backlog
 
 Priority: **P1** next session · **P2** soon · **P3** when it matters. Effort: S (< 1 h), M (half day), L (day+).
-Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) Phases 1–3 are in; remaining bits are listed in docs/HOUSES.md.
+Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) Phases 1–3 are in (docs/HOUSES.md). Second pass (2026-08-26): pedestrians + props, races + cops, unlocks + radio + real engine synth, terrain/jumps, save slots + options.
 
 ## Requested
 
@@ -18,7 +18,7 @@ Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (house
 |---|------|-----|-----|-------|
 | ~~D1~~ | ✅ Wheels don't turn with steering on the skinned model until the loft is re-lofted | P2 | S | Visible on `garage.html`; also front wheels should steer in the garage. **Done:** garage wheels steer; skinned-model wheel loft still pending |
 | ~~D2~~ | ✅ Handbrake turns are too easy to spin out without assists | P2 | S | Tune `grip` multiplier under handbrake per car (Ranger should just plough). |
-| ~~D3~~ | ✅ Curb/sidewalk: no bump when climbing it | P2 | M | Sidewalk is a 0.15 m tower with no collider; add a small vertical hop + speed scrub on transition. |
+| ~~D3~~ | ✅ Curb/sidewalk: no bump when climbing it | P2 | M | Sidewalk is a 0.15 m tower with no collider; add a small vertical hop + speed scrub on transition. **Done properly: real kerb step, launches above 30 km/h (terrain.js).** |
 | ~~D4~~ | ✅ Grass slows too abruptly (`surface 0.72`) | P3 | S | Ramp the penalty over 0.5 s; keep the slip. |
 | ~~D5~~ | ✅ Reverse camera / reverse gear indicator | P3 | S | Show `R` on the speedo; hood cam swings when reversing. |
 | ~~D6~~ | ✅ Gamepad mapping untested on a real pad | P2 | S | Verify Xbox/PS layouts in Chrome, add rumble on impact. **Done:** mapping verified against the spec + rumble; untested on a real pad |
@@ -43,9 +43,9 @@ Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (house
 | # | Item | Pri | Eff | Notes |
 |---|------|-----|-----|-------|
 | ~~G1~~ | ✅ Mission timers never tuned by a real player | P1 | S | Drive each job once, set timers at ~1.3× my time. `tour` checkpoints and `dep` are the tight ones. **Done:** tour/curfew retimed from the route table; still to be driven by a human |
-| G2 | Fail states are only "too late" | P2 | M | Add: damage kills the poutine ("sauce partout dans le char"), passengers bail if you crash > N times, cops after 3 red lights (see W4). |
-| ~~G3~~ | ✅ More jobs | P2 | M | Ideas: drive-in at the Aylmer cinema, Sunday hockey at the arena, the ferry-less run to Quyon, snow tires at Canadian Tire, "return the Sunfire before Dave's dad gets home". **Done:** three side jobs shipped (canoe, Sayyad, couch); the other ideas remain |
-| G4 | Cops (Midtown Madness staple) | P3 | L | One cruiser spawns after reckless driving; chases on the road graph; lose it out of sight for 10 s. |
+| ~~G2~~ | ✅ Fail states are only "too late" | P2 | M | Add: damage kills the poutine ("sauce partout dans le char"), passengers bail if you crash > N times, cops after 3 red lights (see W4). **Partly: damage fails the canoe/couch stages, cops fail the job on a bust; passengers bailing not done.** |
+| ~~G3~~ | ✅ More jobs | P2 | M | Ideas: drive-in at the Aylmer cinema, Sunday hockey at the arena, the ferry-less run to Quyon, snow tires at Canadian Tire, "return the Sunfire before Dave's dad gets home". **Done:** three side jobs shipped (canoe, Sayyad, couch); the other ideas remain **Done: three side jobs + four races.** |
+| ~~G4~~ | ✅ Cops (Midtown Madness staple) | P3 | L | One cruiser spawns after reckless driving; chases on the road graph; lose it out of sight for 10 s. **Done: wanted meter, cruisers, roadblocks, tickets (src/game/cops.js).** |
 | G5 | Passengers visible are just heads | P3 | S | Small torsos, and they lean in corners. |
 | ~~G6~~ | ✅ Mission intro card | P2 | S | 2-second card with title, brief, timer, and a route preview on the map before the timer starts. |
 | ~~G7~~ | ✅ Parked-car positions and current car don't persist across reloads | P2 | S | Save `G.parked` + `G.carId` + damage to localStorage. |

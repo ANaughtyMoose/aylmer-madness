@@ -129,6 +129,19 @@ headlight goes and the bumper crumples, past 60 it pulls to one side and
 misfires, at 100 the job is over and the flatbed drops it back at its owner's.
 Repairs: pull into the Petro-Canada and wait five seconds.
 
+## Air
+
+The ground is not flat any more. The old rail embankment crosses the whole
+town north of chemin d'Aylmer — every street that crosses it is a jump at
+speed (Chemin Fraser at 80 km/h is a second and a half in the air). There are
+loading-dock ramps behind the Galeries that clear the fence, a boat launch at
+the marina that ends in the river, a gravel pile in the arena lot, Auberge
+Symmes' terrace steps, a dirt jump off rue Court, driveable paths and a
+mound at Parc des Cèdres, and driveway aprons that kick. Kerbs launch you above
+30 km/h; grass, gravel, sand and dirt each have their own grip; landings cost
+damage past 4 m/s of drop. The suspension is real, so the car squats and
+pitches.
+
 ## Saving, and the options
 
 Nothing is saved behind your back. **Esc → Sauvegarde** writes one of three
@@ -222,6 +235,7 @@ src/game/gearbox.js real gear ratios → rpm for the engine note
 src/game/radio.js   CKOI 102.1 (synthesized loops) and the cassette deck
 src/game/save.js    save slots, autosave, legacy migration
 src/game/options.js the options screen and applySettings()
+src/game/terrain.js the height field: 20 hand-placed ramps, berms, mounds, stairs; per-surface grip
 src/game/hud.js     gauge speedo, damage bar, objectives, timer, toast queue, rotating minimap with GPS line
 src/game/bigmap.js  full-screen map: pan/zoom, street names, click-to-waypoint
 src/game/ui.js      key legend, tutorial, loading screen, intro card, settings, keyboard diagram
@@ -247,8 +261,8 @@ put you back on the road.
 
 ## Testing
 
-`node tools/smoke.mjs`, `smoke_ui.mjs`, `smoke_world.mjs`, `smoke_driving.mjs`
-run under plain node (no browser) and bot-play the jobs, the collision solver,
+`node tools/smoke*.mjs` — twelve suites (missions, UI, world, driving, houses,
+atlas, audio, garage, race, react, save, terrain) — run under plain node (no browser) and bot-play the jobs, the collision solver,
 the world build and the UI plumbing. `node tools/headless.mjs` boots the real
 game in a headless Chrome (start one with `--headless=new
 --remote-debugging-port=9222 --use-angle=swiftshader`), steps the sim, runs an
