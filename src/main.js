@@ -384,7 +384,6 @@ function enterDrive(save = null) {
     if (p) G.parked[c.id] = { x: p.x, z: p.z, yaw: p.yaw };
   }
   G.gearbox = new Gearbox(spec.drive);
-  }
   const start = (save && save.parked && save.parked[spec.id]) || home[spec.id] || homeSpot(spec.id);
   G.veh.reset(start.x, start.z, start.yaw);
   G.health = save ? { ...save.health } : {};
