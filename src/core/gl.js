@@ -10,7 +10,7 @@ layout(location=1) in vec3 aNor;
 layout(location=2) in vec3 aCol;
 layout(location=3) in vec2 aUV;
 // Atlas sub-rect (u0, v0, du, dv) this vertex tiles inside; du == 0 means the
-// UV is absolute. Constant across a face, hence `flat` — see mesh.js.
+// UV is absolute. Constant across a face, hence flat — see mesh.js.
 layout(location=4) in vec4 aRect;
 uniform mat4 uVP, uModel;
 uniform vec3 uEye;
