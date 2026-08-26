@@ -190,7 +190,7 @@ export class BigMap {
     if (state.waypoint) pin(sx(state.waypoint.x), sy(state.waypoint.z), '#4fd3ff', 'Waypoint', true);
     if (state.target) pin(sx(state.target.x), sy(state.target.z), COL.label, 'Objectif', true);
     // player
-    g.save(); g.translate(sx(state.x), sy(state.z)); g.rotate(state.yaw + Math.PI);
+    g.save(); g.translate(sx(state.x), sy(state.z)); g.rotate(Math.PI - state.yaw);   // forward = (sin yaw, cos yaw), +Z is south = screen-down
     g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(0, 4); g.lineTo(-7, 8); g.closePath();
     g.fillStyle = '#ffc94d'; g.fill(); g.lineWidth = 1.5; g.strokeStyle = '#000'; g.stroke();
     g.restore();
