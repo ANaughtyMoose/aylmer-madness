@@ -16,33 +16,47 @@
   </div>
   <div id="timer" class="hidden">0:00</div>
   <div id="speedo">
-    <div id="kmh">0</div><div id="unit">km/h</div>
-    <div id="carname">—</div>
+    <canvas id="gauge" width="132" height="132"></canvas>
+    <div id="speedtext">
+      <div id="kmh">0</div><div id="unit">km/h</div>
+      <div id="carname">—</div>
+    </div>
   </div>
   <canvas id="minimap" width="200" height="200"></canvas>
   <div id="street"></div>
   <div id="toast"></div>
   <div id="prompt" class="hidden"></div>
+  <div id="tuto" class="hidden"><span class="cap"></span><span class="txt"></span></div>
+  <div id="legend">
+    <div id="legendhead">Touches</div>
+    <div id="legendrows"></div>
+  </div>
 </div>
 
 <div id="menu">
   <div id="menuinner">
     <h1>AYLMER<span>MADNESS</span></h1>
-    <p class="tag">Aylmer, Québec &middot; summer &rsquo;99 &middot; you have a licence and half a tank</p>
+    <p class="tag" id="menutag">Aylmer, Québec &middot; été &rsquo;99 &middot; t&rsquo;as ton permis pis un demi-réservoir</p>
     <div id="cars"></div>
     <div id="opts">
-      <label><input type="checkbox" id="optAssist" checked> Driving assists (easier)</label>
-      <label><input type="checkbox" id="optAudio" checked> Sound</label>
-      <label>Graphics
+      <label><input type="checkbox" id="optAssist" checked> <span id="lblAssist">Aides à la conduite (plus facile)</span></label>
+      <label><input type="checkbox" id="optAudio" checked> <span id="lblAudio">Son</span></label>
+      <label><span id="lblQuality">Graphiques</span>
         <select id="optQuality">
           <option value="low">Low (max battery)</option>
           <option value="med" selected>Medium</option>
           <option value="high">High</option>
         </select>
       </label>
+      <label><span id="lblLang">Langue</span>
+        <select id="optLang">
+          <option value="fr" selected>Français</option>
+          <option value="en">English</option>
+        </select>
+      </label>
     </div>
-    <button id="start">DRIVE</button>
-    <p class="keys">WASD / arrows &middot; Space handbrake &middot; Tab map &middot; E take a job or a friend's car &middot; C camera &middot; Shift look back &middot; Esc pause</p>
+    <button id="start">EMBARQUE</button>
+    <div id="menukeys"></div>
   </div>
 </div>
 
@@ -50,16 +64,37 @@
 
 <div id="pause" class="hidden">
   <div class="panel">
-    <h2>Pause</h2>
-    <div id="jobs"></div>
+    <h2 id="pausetitle">Pause</h2>
+    <div id="ptabs"></div>
+    <div id="tabjobs" class="ptab">
+      <div id="jobs"></div>
+      <p class="hint" id="jobshint"></p>
+    </div>
+    <div id="tabkeys" class="ptab hidden"></div>
+    <div id="tabset" class="ptab hidden"></div>
     <div class="row">
       <button id="resume">Continuer</button>
       <button id="mapbtn">Carte</button>
       <button id="garage">Menu</button>
       <button id="wipe">Effacer la progression</button>
     </div>
-    <p class="keys">W/S gaz-frein · A/D volant · Espace frein à main · Shift regarder derrière · C caméra ·
-      Tab carte · E/Entrée prendre une job ou un char · Q autre job · Backspace abandonner · R remettre sur la route · H klaxon · M son</p>
+  </div>
+</div>
+
+<div id="loading" class="hidden">
+  <div class="lbox">
+    <div class="ltitle">ON BÂTIT AYLMER</div>
+    <div class="lbar"><i></i></div>
+    <div class="lstage">Rues…</div>
+  </div>
+</div>
+
+<div id="intro" class="hidden">
+  <div class="icard">
+    <div class="ititle"></div>
+    <div class="ibrief"></div>
+    <div class="itime"></div>
+    <canvas class="iroute" width="360" height="210"></canvas>
   </div>
 </div>
 
