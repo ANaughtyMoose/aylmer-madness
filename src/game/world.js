@@ -942,7 +942,6 @@ export function buildWorld(renderer) {
   const treeCount = woodSel.length + parkSel.length + streetSel.length;
 
   // ------------------------------------------------------------ 7. street furniture
-  const poleCol = rgb(C.pole), lampCol = rgb(C.lamp), hydroCol = rgb(C.hydro);
   // R3 — poles are still baked into the chunk mesh (2500 of them as separate
   // draws would cost more than the whole rest of the frame), but each one now
   // remembers which chunk it went into, which slice of that chunk's index
