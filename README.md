@@ -29,6 +29,7 @@ not work. Any static server does; `serve.sh` just wraps `python3 -m http.server`
 | **C** | camera (chase / close / far / hood) |
 | **?** | show / hide the on-screen key legend |
 | **R** | radio: CKOI 102.1 → cassette → off |
+| **F5** | quick-save to the last slot you used |
 | **H** horn · **T** put the car back on the road · **0** mute · **Esc** pause (jobs, controls, settings, best times) |
 
 A gamepad works too: left stick steers, triggers are throttle and brake, A is
@@ -82,11 +83,11 @@ between tracks; the cassette deck plays your own files — drop them in
 
 ## The jobs
 
-Ten of them, marked by yellow pillars on the map. The original seven: getting to
-first period at Heritage College, hauling the gang to Parc des Cèdres, a poutine
-run from the Galeries food court, a slush run to the dep, dropping résumés,
-beating curfew home from the marina at night, and a five-checkpoint sunset tour
-of the town. Then the side jobs:
+Fourteen of them, marked by yellow pillars on the map. The original seven:
+getting to first period at Heritage College, hauling the gang to Parc des
+Cèdres, a poutine run from the Galeries food court, a slush run to the dep,
+dropping résumés, beating curfew home from the marina at night, and a
+five-checkpoint sunset tour of the town. Then the side jobs:
 
 - **Le canot à 45 piasses** — a garage sale on Promenade Wychwood is selling a
   canoe that "floats". $45. Bondo is $21 at the Canadian Tire on chemin
@@ -98,14 +99,48 @@ of the town. Then the side jobs:
   in the maple on the front lawn. Load it, hit the tree at 35 km/h, physics
   does the rest. Three tries.
 
-You start with $80 (mowing lawns). Each job shows a 2-second intro card with a
-route preview; progress, best times and the wallet are saved in `localStorage`.
+And the races — your friends drive their own cars, with real steering and
+just enough rubber-band to keep it honest:
+
+- **Dave jusqu'aux Galeries** — 4.3 km from Deschênes vs Dave's Sunfire.
+- **La Civic de Sayyad à la marina** — through the Vieux; he barely lifts.
+- **Circuit du Vieux-Aylmer** — three laps, Principale → Frank-Robinson → du
+  Patrimoine → Bancroft, vs Margaret and Dave. Best lap is kept.
+- **Blitz: le tour de l'île** — six checkpoints against the clock, +15 s each.
+
+Every job pays. You start with $80 (mowing lawns) and spend it at the garage
+sale, the Canadian Tire and the used lot. Each job shows a 2-second intro card
+with a route preview; a 3-2-1 countdown starts the races.
+
+## The town fights back
+
+Pedestrians walk every sidewalk and dive out of the way, yelling, when you
+come at them — you can't hit them, but you can frôler them, and the game keeps
+count. Bins on garbage day, mailboxes, newspaper boxes, Canada Post relay
+boxes, terrasse chairs on Principale and shopping carts at the Galeries all go
+flying and stay where they land. Traffic obeys the eight traffic lights and 140
+stop signs; run a red at speed and the police show up: a wanted meter fills to
+three stars, cruisers chase and ram, and at three stars there's a roadblock at
+the next lights. Lose them by getting out of sight for twelve seconds; get
+boxed in and it's a $150 ticket and the job.
 
 Every car has a health bar. Walls, poles and other cars cost you: past 25 a
 headlight goes and the bumper crumples, past 60 it pulls to one side and
 misfires, at 100 the job is over and the flatbed drops it back at its owner's.
-Repairs: pull into the Petro-Canada and wait five seconds. Traffic obeys the
-eight traffic lights and 140 stop signs; you get a toast if you don't.
+Repairs: pull into the Petro-Canada and wait five seconds.
+
+## Saving, and the options
+
+Nothing is saved behind your back. **Esc → Sauvegarde** writes one of three
+slots (or **F5** for the last one you used); autosave, if left on, writes its
+own slot only when a job finishes or you buy a car. The main menu offers
+*Continuer*, *Nouvelle partie* and *Charger*. « Remettre les chars chez eux »
+(Options → Gameplay, or the pause menu) sends every car back to its owner's
+driveway and repairs it, nothing else. **Options** (main menu or Esc) covers
+audio (master / engine / effects / radio), video (quality preset, render
+scale, pixel ratio, draw distance, fog, FOV, camera, minimap size, HUD, legend,
+fullscreen, FPS counter), controls (steering sensitivity, assists, look-back,
+rumble) and gameplay (French/English, autosave, difficulty, tutorial reset).
 
 ## The map
 
@@ -171,10 +206,22 @@ src/game/traffic.js ambient traffic driving the real road graph, on the right, o
 src/game/missions.js the core jobs, and the time-of-day lighting presets
 src/game/missionkit.js the stage model (hold/cost/condition/onTick...) the runner understands
 src/game/sidejobs.js the canoe, Sayyad, and Mike's couch
+src/game/racejobs.js the four races
+src/game/race.js    AI rivals: pure-pursuit steering on Nav routes, rubber-band, positions, laps
+src/game/cops.js    the wanted meter, cruisers, roadblocks, tickets
+src/game/peds.js    pedestrians: sidewalk walkers who dive and yell
+src/game/streetprops.js knockable street furniture, baked per chunk, knocked into debris
+src/game/debris.js  rigid debris bodies, tyre smoke, sparks, glass
+src/game/reactive.js glue for the three above + G.stats and the streak counter
 src/game/props.js   hand-placed props: canoe, couch, Île Aylmer, Mike's maple, the yard sale
 src/game/boat.js    the canoe: paddling, drift, the leak
 src/game/stunts.js  doughnut counting and the couch's ballistic arc
 src/game/money.js   the wallet
+src/game/garage.js  which cars you have: lent by friends, bought at the lot
+src/game/gearbox.js real gear ratios → rpm for the engine note
+src/game/radio.js   CKOI 102.1 (synthesized loops) and the cassette deck
+src/game/save.js    save slots, autosave, legacy migration
+src/game/options.js the options screen and applySettings()
 src/game/hud.js     gauge speedo, damage bar, objectives, timer, toast queue, rotating minimap with GPS line
 src/game/bigmap.js  full-screen map: pan/zoom, street names, click-to-waypoint
 src/game/ui.js      key legend, tutorial, loading screen, intro card, settings, keyboard diagram
