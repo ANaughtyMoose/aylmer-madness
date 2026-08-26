@@ -235,8 +235,8 @@ ok('T3 MAP keeps the shape nav/bigmap/hud/places read', () => {
 });
 
 // ------------------------------------------------- budget
-ok('triangle budget still under 450k', () => {
-  assert.ok(r.tris < 450000, `${r.tris | 0} triangles`);
+ok('triangle budget still under 500k', () => {
+  assert.ok(r.tris < 500000, `${r.tris | 0} triangles`);
 });
 
 console.log(`\n${checks - fails.length}/${checks} checks passed`);

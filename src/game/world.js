@@ -32,6 +32,8 @@ import { mulberry32, clamp, lerp } from '../core/math.js';
 import { MAP } from './mapdata.js';
 import { roadNodes, isJunction, planSignals, planStopSigns, LAMP_DY, HEAD_Y } from './signals.js';
 import { buildSignage } from './signage.js';
+import { buildHouse, makeStreetYawIndex } from './houses.js';
+import MATS from './materials_stub.js';
 
 const CHUNK = 200;      // world chunk size (metres)
 const SEG_CELL = 32;    // broadphase cell for querySegments
@@ -586,6 +588,14 @@ export function buildWorld(renderer) {
   }
 
   // ------------------------------------------------------------ 5. buildings
+  // Houses and terraces go through the parametric archetypes in houses.js
+  // (era / storeys / roof form from Phase 1 data or inference); everything else
+  // keeps the extrude-and-cap below. lod 1 = real heights, roofs, garage wings,
+  // driveways; lod 0 adds windows, doors, porches, chimneys (see docs/HOUSES.md).
+  const streetYawAt = makeStreetYawIndex(MAP.roads);
+  const HOUSEY = { house: 1, terrace: 1 };
+  const HOUSE_LOD = 1;
+  let houseCount = 0, houseTris = 0;
   const buildings = MAP.buildings;
   const gableCols = ROOF.map(rgb);
   const flatRoofCol = rgb(C.flatRoof);
@@ -611,6 +621,15 @@ export function buildWorld(renderer) {
     const p = b.p, n = p.length, h = b.h, c = b.c;
     const rnd = mulberry32((bi * 2654435761 + 0x9e3779b9) >>> 0);
     const bd = bAt(c[0], c[1]);
+    if (HOUSEY[b.k] === 1) {
+      const hr = buildHouse(bd, b, b.hs || null, MATS, rnd, {
+        lod: HOUSE_LOD, index: bi,
+        streetYaw: streetYawAt(c[0], c[1], -b.a),
+        addSegment,                 // one call per footprint edge, same order as before
+      });
+      houseCount++; houseTris += hr.tris || 0;
+      continue;
+    }
 
     // wall colour
     let wallHex;
@@ -1127,7 +1146,7 @@ export function buildWorld(renderer) {
 
   const dt = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) | 0;
   console.log(`world: ${chunks.length} chunks (+${waterChunks.length} water, ${nightChunks.length} night), `
-    + `${tris | 0} tris, ${buildings.length} buildings, `
+    + `${tris | 0} tris, ${buildings.length} buildings (${houseCount} archetype houses, ${houseTris | 0} tris), `
     + `${MAP.roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
     + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${stopLineCount} stop lines), `
     + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${poleCount} poles, `
