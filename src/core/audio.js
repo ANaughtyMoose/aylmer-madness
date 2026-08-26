@@ -292,6 +292,11 @@ export class Audio {
     o.connect(og); og.connect(this.master);
     o.start(t); o.stop(t + P.dur * 1.3);
   }
+
+  // Options-screen fallback: the master trim alone. The mixer above owns it.
+  setMaster(v) {
+    return this.setVolume({ master: typeof v === 'number' && isFinite(v) ? v : 1 }).master;
+  }
 }
 
 // ---------------------------------------------------------------- the voice

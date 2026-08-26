@@ -38,25 +38,20 @@
   <div id="menuinner">
     <h1>AYLMER<span>MADNESS</span></h1>
     <p class="tag" id="menutag">Aylmer, Québec &middot; été &rsquo;99 &middot; t&rsquo;as ton permis pis un demi-réservoir</p>
-    <div id="cars"></div>
-    <div id="opts">
-      <label><input type="checkbox" id="optAssist" checked> <span id="lblAssist">Aides à la conduite (plus facile)</span></label>
-      <label><input type="checkbox" id="optAudio" checked> <span id="lblAudio">Son</span></label>
-      <label><span id="lblQuality">Graphiques</span>
-        <select id="optQuality">
-          <option value="low">Low (max battery)</option>
-          <option value="med" selected>Medium</option>
-          <option value="high">High</option>
-        </select>
-      </label>
-      <label><span id="lblLang">Langue</span>
-        <select id="optLang">
-          <option value="fr" selected>Français</option>
-          <option value="en">English</option>
-        </select>
-      </label>
+    <div id="menucols">
+      <div id="menuside">
+        <button id="btnContinue" class="ghost">Continuer</button>
+        <button id="start">Nouvelle partie</button>
+        <button id="btnLoad" class="ghost">Charger</button>
+        <button id="btnOptions" class="ghost">Options</button>
+        <a id="btnGarage" class="ghost" href="garage.html">Le garage</a>
+        <div id="contmeta"></div>
+      </div>
+      <div id="menumain">
+        <div id="carspick">Choisis ton char</div>
+        <div id="cars"></div>
+      </div>
     </div>
-    <button id="start">EMBARQUE</button>
     <div id="menukeys"></div>
   </div>
 </div>
@@ -70,17 +65,36 @@
     <div id="tabjobs" class="ptab">
       <div id="jobs"></div>
       <p class="hint" id="jobshint"></p>
+      <div class="row"><button id="carshome" class="ghost">Remettre les chars chez eux</button></div>
     </div>
+    <div id="tabsave" class="ptab hidden"></div>
+    <div id="tabopt" class="ptab hidden"></div>
     <div id="tabkeys" class="ptab hidden"></div>
-    <div id="tabset" class="ptab hidden"></div>
     <div class="row">
       <button id="resume">Continuer</button>
       <button id="mapbtn">Carte</button>
       <button id="garage">Menu</button>
-      <button id="wipe">Effacer la progression</button>
     </div>
   </div>
 </div>
+
+<div id="options" class="hidden">
+  <div class="panel wide">
+    <h2 id="opttitle">Options</h2>
+    <div id="optbody"></div>
+    <div class="row"><button id="optback">Retour</button></div>
+  </div>
+</div>
+
+<div id="loadscr" class="hidden">
+  <div class="panel wide">
+    <h2 id="loadtitle">Charger</h2>
+    <div id="loadbody"></div>
+    <div class="row"><button id="loadback">Retour</button></div>
+  </div>
+</div>
+
+<div id="fps" class="hidden">60 fps</div>
 
 <div id="loading" class="hidden">
   <div class="lbox">

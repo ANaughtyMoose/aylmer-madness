@@ -4,7 +4,8 @@
 
 import { t, KEYMAP, languages } from './i18n.js';
 import { MAP } from './mapdata.js';
-import { KEYS, readFlag, writeFlag, loadSettings, saveSettings } from './store.js';
+import { KEYS, readFlag, writeFlag } from './store.js';
+import { fmtWhen, fmtPlaytime, carName } from './save.js';
 
 const $ = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -150,51 +151,74 @@ export function keyboardHTML() {
     `<p class="hint">${esc(t('k.pad'))}</p>`;
 }
 
-// Settings form. `onChange(settings)` fires on every edit; the values are
-// already clamped and persisted by then.
-export function settingsHTML(s) {
-  const opts = languages().map(([k, n]) =>
-    `<option value="${k}"${s.lang === k ? ' selected' : ''}>${esc(n)}</option>`).join('');
-  return `
-  <div class="sform">
-    <label class="srow"><span>${esc(t('set.lang'))}</span>
-      <select id="setLang">${opts}</select></label>
-    <label class="srow"><span>${esc(t('set.lookback'))}</span>
-      <input type="checkbox" id="setLook"${s.lookBackToggle ? ' checked' : ''}></label>
-    <label class="srow"><span>${esc(t('set.steer'))}</span>
-      <input type="range" id="setSteer" min="0.5" max="1.6" step="0.05" value="${s.steerSens}">
-      <b id="setSteerV">${s.steerSens.toFixed(2)}×</b></label>
-    <label class="srow"><span>${esc(t('set.fov'))}</span>
-      <input type="range" id="setFov" min="-0.15" max="0.20" step="0.01" value="${s.fov}">
-      <b id="setFovV">${(s.fov >= 0 ? '+' : '') + s.fov.toFixed(2)}</b></label>
-    <label class="srow"><span>${esc(t('set.assist'))}</span>
-      <input type="checkbox" id="setAssist"${s.assist ? ' checked' : ''}></label>
-    <label class="srow"><span>${esc(t('set.audio'))}</span>
-      <input type="checkbox" id="setAudio"${s.audio ? ' checked' : ''}></label>
-  </div>`;
+// ---------------------------------------------------------------- save slots
+
+// Three slots plus the autosave, drawn the same way in the pause menu (where
+// you can write into them) and on the main menu's Charger screen (where you
+// can only read and delete). `rows` is save.js's listSlots().
+//
+// Deleting asks a second time on the button itself: no window.confirm anywhere
+// in this game — a modal dialog freezes the headless harness.
+export function slotsHTML(rows, mode = 'load') {
+  const cells = rows.map((r) => {
+    const auto = r.slot === 'auto';
+    const title = auto ? t('save.autoslot') : t('save.slot') + ' ' + r.slot;
+    if (r.empty) {
+      return `<div class="slot empty" data-slot="${esc(r.slot)}">` +
+        `<div class="sname">${esc(title)}</div>` +
+        `<div class="smeta">${esc(t('save.empty'))}</div>` +
+        (mode === 'save' && !auto
+          ? `<div class="sbtns"><button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button></div>`
+          : '<div class="sbtns"></div>') +
+        `</div>`;
+    }
+    const meta = [
+      r.name ? esc(r.name) : '',
+      esc(fmtWhen(r.savedAt)),
+      esc(carName(r.carId)),
+      '$' + Math.round(r.money),
+      r.jobs + ' ' + esc(t('save.jobs')),
+      esc(fmtPlaytime(r.playtime)) + ' ' + esc(t('save.playtime')),
+    ].filter(Boolean).join(' · ');
+    const btns = [
+      mode === 'save' && !auto
+        ? `<button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button>` : '',
+      `<button class="loadslot" data-slot="${esc(r.slot)}">${esc(t('save.load'))}</button>`,
+      `<button class="delslot danger" data-slot="${esc(r.slot)}">${esc(t('save.delete'))}</button>`,
+    ].join('');
+    return `<div class="slot" data-slot="${esc(r.slot)}">` +
+      `<div class="sname">${esc(title)}</div>` +
+      `<div class="smeta">${meta}</div><div class="sbtns">${btns}</div></div>`;
+  }).join('');
+  const empty = rows.every((r) => r.empty) && mode !== 'save';
+  return `<div class="slots">${cells}</div>` +
+    `<p class="hint">${esc(empty ? t('save.none') : t('save.hint'))}</p>`;
 }
 
-export function wireSettings(root, current, onChange) {
-  if (!root) return;
-  const g = (id) => root.querySelector('#' + id);
-  const emit = () => {
-    const s = {
-      lang: g('setLang') ? g('setLang').value : current.lang,
-      lookBackToggle: g('setLook') ? g('setLook').checked : current.lookBackToggle,
-      steerSens: g('setSteer') ? parseFloat(g('setSteer').value) : current.steerSens,
-      fov: g('setFov') ? parseFloat(g('setFov').value) : current.fov,
-      assist: g('setAssist') ? g('setAssist').checked : current.assist,
-      audio: g('setAudio') ? g('setAudio').checked : current.audio,
-    };
-    saveSettings(s);
-    const fresh = loadSettings();
-    if (g('setSteerV')) g('setSteerV').textContent = fresh.steerSens.toFixed(2) + '×';
-    if (g('setFovV')) g('setFovV').textContent = (fresh.fov >= 0 ? '+' : '') + fresh.fov.toFixed(2);
-    onChange(fresh);
+// `handlers` = { save(slot), load(slot), del(slot) }. Delete arms first.
+export function wireSlots(root, handlers = {}) {
+  if (!root || !root.querySelectorAll) return;
+  const bind = (sel, fn) => {
+    for (const b of root.querySelectorAll(sel)) b.onclick = () => fn(b.dataset.slot);
   };
-  for (const id of ['setLang', 'setLook', 'setSteer', 'setFov', 'setAssist', 'setAudio']) {
-    const el = g(id);
-    if (el) { el.oninput = emit; el.onchange = emit; }
+  bind('button.saveslot', (s) => handlers.save?.(s));
+  bind('button.loadslot', (s) => handlers.load?.(s));
+  for (const b of root.querySelectorAll('button.delslot')) {
+    const label = b.textContent;
+    let armed = false, timer = 0;
+    b.onclick = () => {
+      if (!armed) {
+        armed = true;
+        b.textContent = t('opt.confirm');
+        b.classList.add('armed');
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { armed = false; b.textContent = label; b.classList.remove('armed'); }, 4000);
+        return;
+      }
+      armed = false;
+      if (timer) { clearTimeout(timer); timer = 0; }
+      handlers.del?.(b.dataset.slot);
+    };
   }
 }
 

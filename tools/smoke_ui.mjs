@@ -158,21 +158,29 @@ group('localStorage round-trips');
   localStorage.setItem('aylmer.map', '{not json');
   eq(store.loadMapPrefs(), { size: 0, range: store.MAP_RANGE.dflt }, 'corrupt map prefs fall back');
 
-  // -- settings
+  // -- settings. The options screen (options.js) grew the settings object well
+  // past these six keys; smoke_save.mjs covers the rest, this still covers the
+  // ones that predate it, plus the promise that unknown keys never survive.
   localStorage.clear();
   eq(store.loadSettings(), store.DEFAULT_SETTINGS, 'settings default');
   const want = { lang: 'en', lookBackToggle: true, steerSens: 1.3, fov: 0.12, assist: false, audio: false };
-  store.saveSettings(want);
-  eq(store.loadSettings(), want, 'settings round-trip');
-  store.saveSettings({ ...want, steerSens: 9, fov: -5, lang: 'xx' });
+  store.saveSettings({ ...store.DEFAULT_SETTINGS, ...want });
+  const got = store.loadSettings();
+  eq(Object.fromEntries(Object.keys(want).map((k) => [k, got[k]])), want, 'settings round-trip');
+  eq(Object.keys(got).sort(), Object.keys(store.DEFAULT_SETTINGS).sort(),
+    'a stored settings object has exactly the known keys');
+  store.saveSettings({ ...want, steerSens: 9, fov: -5, lang: 'xx', bogus: 1 });
   const clamped = store.loadSettings();
   eq(clamped.steerSens, 1.6, 'steering sensitivity clamps high');
   eq(clamped.fov, -0.15, 'FOV clamps low');
   eq(clamped.lang, 'fr', 'an unknown language stores as French');
+  ok(!('bogus' in clamped), 'an unknown setting is dropped, not stored');
   localStorage.setItem('aylmer.settings', 'null');
   eq(store.loadSettings(), store.DEFAULT_SETTINGS, 'corrupt settings fall back');
 
-  // -- parked cars / current car / damage
+  // -- parked cars / current car / damage. This is the LEGACY aylmer.garage
+  // format: nothing writes it any more (save slots replaced it), but save.js's
+  // one-shot migration still reads it, so it still has to parse and clamp.
   localStorage.clear();
   eq(store.loadGarage(), { carId: null, parked: {}, health: {} }, 'garage default');
   const garage = {
@@ -195,6 +203,17 @@ group('localStorage round-trips');
 
   store.clearGarage();
   eq(store.loadGarage(), { carId: null, parked: {}, health: {} }, 'clearGarage wipes it');
+
+  // The auto-restore is gone: booting the game does not read aylmer.garage any
+  // more, so a stale one cannot decide where your cars are. Only the migration
+  // touches it, and only when there is no save slot at all.
+  const saveMod = await import('../src/game/save.js');
+  localStorage.clear();
+  localStorage.setItem('aylmer.garage', JSON.stringify({ carId: 'civic', parked: { ranger: { x: 900, z: 900, yaw: 0 } }, health: {} }));
+  saveMod.writeSlot('1', saveMod.newSave('mine'));
+  ok(saveMod.migrateLegacy() === null, 'an existing save slot beats a stale aylmer.garage');
+  eq(saveMod.readSlot('1').carId, 'ranger', 'and the slot decides which car you are in');
+  localStorage.clear();
 
   // -- flags
   localStorage.clear();

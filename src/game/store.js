@@ -1,15 +1,21 @@
 // Every localStorage key the UI owns, in one place, with defaults that survive
 // private mode (where setItem throws) and a corrupted / hand-edited store.
 //
-//   aylmer.settings   language, look-back mode, steering sensitivity, FOV, assists, sound
+//   aylmer.settings   audio / video / controls / gameplay options (see below)
 //   aylmer.map        minimap size index + zoom range in metres
-//   aylmer.garage     current car, where the other three are parked, per-car damage
+//   aylmer.garage     LEGACY. Read once by save.js's migration, never written.
 //   aylmer.cars       which cars you have been lent or have bought (game/garage.js)
 //   aylmer.radio      the radio deck: on/off, station, volume (game/radio.js)
 //   aylmer.tutorial   "1" once the first-drive tutorial has been finished
 //   aylmer.legend     "0" if the key legend is collapsed
 //
-// (aylmer.progress and aylmer.best predate this file and stay where they are.)
+// Game state (where the cars are, money, jobs, records) is NOT here any more:
+// it lives in explicit save slots, aylmer.save.1/2/3/auto — see save.js.
+// aylmer.progress / aylmer.money / aylmer.best are legacy scratch keys that the
+// migration reads once and nothing reads afterwards.
+//
+// Settings are the exception to "nothing is written unless the player saves":
+// an option takes effect and is persisted the moment you move the slider.
 
 export const KEYS = {
   settings: 'aylmer.settings',
@@ -47,40 +53,98 @@ export function writeFlag(key, on) {
 
 // ---------------------------------------------------------------- settings
 
+// Everything the options screen can set, with the value it has out of the box.
+// Ranges live in LIMITS below and are enforced on both read and write, so a
+// hand-edited store or an old build's file can never hand the game a bad number.
 export const DEFAULT_SETTINGS = {
-  lang: 'fr',
-  lookBackToggle: false,   // false = hold Shift, true = Shift latches the view
-  steerSens: 1,            // 0.5 .. 1.6 multiplier on the steering input
+  // ---- audio
+  audio: true,             // the 0 key's master mute
+  volMaster: 1,
+  volEngine: 1,
+  volEffects: 1,
+  volRadio: 0.7,
+  engineSpeed: true,       // engine note volume follows speed (if audio supports it)
+  // ---- video
+  quality: 'med',          // preset; it seeds the four numbers below
+  renderScale: 0.85,       // 0.5 .. 1 of the CSS resolution
+  maxDpr: 1.5,             // 1 / 1.5 / 2
+  drawDist: 720,           // metres, 400 .. 1200
+  fogMul: 1.45,            // 0.5 .. 2 x the time-of-day fog density
   fov: 0,                  // -0.15 .. 0.20 radians added to the camera FOV
+  cam: 0,                  // default camera index (chase / close / far / hood)
+  mapSize: 0,              // index into MAP_SIZES
+  showLegend: true,
+  showHud: true,
+  showFps: false,
+  // ---- controls
+  steerSens: 1,            // 0.5 .. 1.6 multiplier on the steering input
   assist: true,
-  audio: true,
+  lookBackToggle: false,   // false = hold Shift, true = Shift latches the view
+  invertLook: false,       // the camera looks back until you hold Shift
+  rumble: true,
+  // ---- gameplay
+  lang: 'fr',
+  autosave: true,
+  difficulty: 'normal',    // easy / normal / hard — for the AI agent, if it wants it
 };
 
-const num = (v, lo, hi, dflt) => (typeof v === 'number' && isFinite(v) ? Math.min(hi, Math.max(lo, v)) : dflt);
+export const LIMITS = {
+  volMaster: [0, 1], volEngine: [0, 1], volEffects: [0, 1], volRadio: [0, 1],
+  renderScale: [0.5, 1], drawDist: [400, 1200], fogMul: [0.5, 2],
+  fov: [-0.15, 0.2], steerSens: [0.5, 1.6],
+};
+const QUALITIES = ['low', 'med', 'high'];
+const DIFFICULTIES = ['easy', 'normal', 'hard'];
+const DPRS = [1, 1.5, 2];
 
-export function loadSettings() {
-  const raw = readJSON(KEYS.settings, {});
+const num = (v, lo, hi, dflt) => (typeof v === 'number' && isFinite(v) ? Math.min(hi, Math.max(lo, v)) : dflt);
+const bool = (v, dflt) => (v === undefined ? dflt : !!v);
+const pick = (v, list, dflt) => (list.includes(v) ? v : dflt);
+const lim = (k, v) => num(typeof v === 'string' ? parseFloat(v) : v, LIMITS[k][0], LIMITS[k][1], DEFAULT_SETTINGS[k]);
+
+// One shape function for both directions: whatever comes in, a valid settings
+// object comes out. Unknown keys are dropped.
+export function normalizeSettings(raw) {
+  const s = raw && typeof raw === 'object' ? raw : {};
+  const D = DEFAULT_SETTINGS;
   return {
-    lang: raw.lang === 'en' ? 'en' : 'fr',
-    lookBackToggle: !!raw.lookBackToggle,
-    steerSens: num(raw.steerSens, 0.5, 1.6, DEFAULT_SETTINGS.steerSens),
-    fov: num(raw.fov, -0.15, 0.2, DEFAULT_SETTINGS.fov),
-    assist: raw.assist === undefined ? true : !!raw.assist,
-    audio: raw.audio === undefined ? true : !!raw.audio,
+    audio: bool(s.audio, D.audio),
+    volMaster: lim('volMaster', s.volMaster),
+    volEngine: lim('volEngine', s.volEngine),
+    volEffects: lim('volEffects', s.volEffects),
+    volRadio: lim('volRadio', s.volRadio),
+    engineSpeed: bool(s.engineSpeed, D.engineSpeed),
+
+    quality: pick(s.quality, QUALITIES, D.quality),
+    renderScale: lim('renderScale', s.renderScale),
+    maxDpr: pick(Number(s.maxDpr), DPRS, D.maxDpr),
+    drawDist: Math.round(lim('drawDist', s.drawDist)),
+    fogMul: lim('fogMul', s.fogMul),
+    fov: lim('fov', s.fov),
+    cam: Number.isInteger(s.cam) ? Math.min(3, Math.max(0, s.cam)) : D.cam,
+    mapSize: Number.isInteger(s.mapSize) ? Math.min(MAP_SIZES.length - 1, Math.max(0, s.mapSize)) : D.mapSize,
+    showLegend: bool(s.showLegend, D.showLegend),
+    showHud: bool(s.showHud, D.showHud),
+    showFps: bool(s.showFps, D.showFps),
+
+    steerSens: lim('steerSens', s.steerSens),
+    assist: bool(s.assist, D.assist),
+    lookBackToggle: bool(s.lookBackToggle, D.lookBackToggle),
+    invertLook: bool(s.invertLook, D.invertLook),
+    rumble: bool(s.rumble, D.rumble),
+
+    lang: s.lang === 'en' ? 'en' : 'fr',
+    autosave: bool(s.autosave, D.autosave),
+    difficulty: pick(s.difficulty, DIFFICULTIES, D.difficulty),
   };
 }
 
-export function saveSettings(s) { return writeJSON(KEYS.settings, loadSettingsShape(s)); }
+export function loadSettings() { return normalizeSettings(readJSON(KEYS.settings, {})); }
 
-function loadSettingsShape(s) {
-  return {
-    lang: s.lang === 'en' ? 'en' : 'fr',
-    lookBackToggle: !!s.lookBackToggle,
-    steerSens: num(s.steerSens, 0.5, 1.6, 1),
-    fov: num(s.fov, -0.15, 0.2, 0),
-    assist: !!s.assist,
-    audio: !!s.audio,
-  };
+export function saveSettings(s) {
+  const clean = normalizeSettings(s);
+  writeJSON(KEYS.settings, clean);
+  return clean;
 }
 
 // ---------------------------------------------------------------- minimap
@@ -102,8 +166,13 @@ export function saveMapPrefs(p) {
   });
 }
 
-// ---------------------------------------------------------------- garage
+// ---------------------------------------------------------------- garage (legacy)
 
+// The pre-save-slot format: the game used to write this every time you paused,
+// which is exactly the "my cars are wherever I dropped them, forever" problem
+// the save slots fix. Nothing writes it now — save.js reads it once, folds it
+// into the 'auto' slot, and never looks again. Kept (with its tests) because
+// that migration has to keep working for anyone with an old localStorage.
 // { carId, parked: { id: {x,z,yaw} }, health: { id: 0..100 } }
 export function loadGarage() {
   const raw = readJSON(KEYS.garage, {});
