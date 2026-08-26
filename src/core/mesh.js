@@ -17,6 +17,14 @@ export class MeshBuilder {
     this.v = [];
     this.i = [];
     this.uv = [];      // optional, 2 per vertex; only used by textured meshes
+    // Optional, 4 per vertex: the atlas sub-rect (u0, v0, du, dv) this vertex
+    // tiles inside. The shader does uv = rect.xy + fract(uvLocal) * rect.zw, so
+    // a material can repeat any number of times inside its atlas cell without a
+    // second draw call. All-zero (du == 0) means "use the UV as-is" — that is
+    // the path car skins and decals take. Set `curRect` (see materials.js) and
+    // every vertex emitted afterwards carries it.
+    this.rect = [];
+    this.curRect = null;
     this.textured = false;
     this.min = [1e9, 1e9, 1e9];
     this.max = [-1e9, -1e9, -1e9];
@@ -31,6 +39,11 @@ export class MeshBuilder {
       while (this.uv.length < (this.v.length / STRIDE - 1) * 2) this.uv.push(0, 0);
       this.uv.push(u, v);
     }
+    if (this.curRect || this.rect.length) {
+      while (this.rect.length < (this.v.length / STRIDE - 1) * 4) this.rect.push(0, 0, 0, 0);
+      const r = this.curRect;
+      if (r) this.rect.push(r[0], r[1], r[2], r[3]); else this.rect.push(0, 0, 0, 0);
+    }
     if (x < this.min[0]) this.min[0] = x; if (x > this.max[0]) this.max[0] = x;
     if (y < this.min[1]) this.min[1] = y; if (y > this.max[1]) this.max[1] = y;
     if (z < this.min[2]) this.min[2] = z; if (z > this.max[2]) this.max[2] = z;
@@ -38,6 +51,18 @@ export class MeshBuilder {
   }
 
   tri(a, b, c) { this.i.push(a, b, c); }
+
+  // Pad the optional streams so every vertex has one. A mesh that mixes
+  // textured and untextured geometry (a chunk of houses plus its roads) stops
+  // filling uv/rect after the last textured vertex, and WebGL rejects a draw
+  // whose attribute buffer is short. Called by Renderer.upload().
+  finish() {
+    const n = this.vertCount;
+    if (this.uv.length) while (this.uv.length < n * 2) this.uv.push(0, 0);
+    if (this.rect.length) while (this.rect.length < n * 4) this.rect.push(0, 0, 0, 0);
+    this.curRect = null;
+    return this;
+  }
 
   // Quad given four corner points in CCW order (seen from the front face).
   quad(p0, p1, p2, p3, c, nOverride) {
@@ -180,6 +205,10 @@ export class MeshBuilder {
     if (other.uv.length || this.uv.length) {
       while (this.uv.length < off * 2) this.uv.push(0, 0);
       for (let k = 0; k < other.vertCount * 2; k++) this.uv.push(other.uv[k] || 0);
+    }
+    if (other.rect.length || this.rect.length) {
+      while (this.rect.length < off * 4) this.rect.push(0, 0, 0, 0);
+      for (let k = 0; k < other.vertCount * 4; k++) this.rect.push(other.rect[k] || 0);
     }
     for (let k = 0; k < other.v.length; k++) this.v.push(other.v[k]);
     for (let k = 0; k < other.i.length; k++) this.i.push(other.i[k] + off);

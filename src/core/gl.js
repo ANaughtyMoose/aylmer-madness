@@ -9,11 +9,16 @@ layout(location=0) in vec3 aPos;
 layout(location=1) in vec3 aNor;
 layout(location=2) in vec3 aCol;
 layout(location=3) in vec2 aUV;
+// Atlas sub-rect (u0, v0, du, dv) this vertex tiles inside; du == 0 means the
+// UV is absolute. Constant across a face, hence `flat` — see mesh.js.
+layout(location=4) in vec4 aRect;
 uniform mat4 uVP, uModel;
 uniform vec3 uEye;
-out vec3 vNor; out vec3 vCol; out float vDist; out vec2 vUV; out vec3 vRel;
+out vec3 vNor; out vec3 vCol; out float vDist; out highp vec2 vUV; out vec3 vRel;
+flat out highp vec4 vRect;
 void main(){
   vUV = aUV;
+  vRect = aRect;
   vec4 wp = uModel * vec4(aPos,1.0);
   vNor = mat3(uModel) * aNor;
   vCol = aCol;
@@ -24,7 +29,8 @@ void main(){
 
 const FS = `#version 300 es
 precision mediump float;
-in vec3 vNor; in vec3 vCol; in float vDist; in vec2 vUV; in highp vec3 vRel;
+in vec3 vNor; in vec3 vCol; in float vDist; in highp vec2 vUV; in highp vec3 vRel;
+flat in highp vec4 vRect;
 uniform vec3 uLightDir, uSun, uSky, uGround, uFogColor, uColorMul, uSkyLo, uSkyHi;
 uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode;
 uniform sampler2D uTex;
@@ -43,8 +49,22 @@ void main(){
   vec3 n = normalize(vNor);
   float d = max(dot(n, uLightDir), 0.0);
   vec3 amb = mix(uGround, uSky, n.y * 0.5 + 0.5);
-  vec4 tx = texture(uTex, vUV);
-  vec3 base = mix(vCol, tx.rgb, uUseTex);
+  // Tiling inside an atlas cell: wrap the local UV into the cell's sub-rect.
+  // fract() breaks the implicit derivatives at the wrap, so hand the gradients
+  // of the *unwrapped* UV to textureGrad or every repeat boundary picks the
+  // blurriest mip and shows up as a seam.
+  vec4 tx;
+  if (vRect.z > 0.0) {
+    highp vec2 gx = dFdx(vUV) * vRect.zw;
+    highp vec2 gy = dFdy(vUV) * vRect.zw;
+    tx = textureGrad(uTex, vRect.xy + fract(vUV) * vRect.zw, gx, gy);
+  } else {
+    tx = texture(uTex, vUV);
+  }
+  // Texture MULTIPLIES the vertex colour (white texel => vertex colour as it
+  // was), so a chunk can mix textured houses and untextured scenery in one
+  // draw and builders can tint a material (vinyl_white x tint = any siding).
+  vec3 base = vCol * mix(vec3(1.0), tx.rgb, uUseTex);
   if (uUseTex > 0.5 && tx.a < 0.35) discard;
   vec3 lit = base * uColorMul * (amb + uSun * d);
   vec3 col = mix(lit, base * uColorMul, uUnlit);
@@ -82,6 +102,8 @@ export class Renderer {
     }
     gl.uniform1i(this.u.uTex, 0);
     gl.uniform1f(this.u.uSkyMode, 0);
+    // Default for meshes with no per-vertex rect: sample the UV as-is.
+    gl.vertexAttrib4f(4, 0, 0, 0, 0);
 
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
@@ -122,6 +144,7 @@ export class Renderer {
 
   upload(builder) {
     const gl = this.gl;
+    if (builder.finish) builder.finish();
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
     const vb = gl.createBuffer();
@@ -138,6 +161,17 @@ export class Renderer {
       gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 0, 0);
     } else {
       gl.disableVertexAttribArray(3);
+    }
+    // Per-vertex atlas sub-rect (materials.js). 16 bytes a vertex, and only on
+    // meshes that actually tile a material — everything else leaves attribute 4
+    // disabled and reads the constant (0,0,0,0) set in the constructor.
+    if (builder.rect && builder.rect.length) {
+      const rb = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, rb);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(builder.rect), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.FLOAT, false, 0, 0);
+    } else {
+      gl.disableVertexAttribArray(4);
     }
     const ib = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
@@ -182,7 +216,12 @@ export class Renderer {
   }
 
   // Upload an image as an RGBA texture (mipmapped, clamped).
-  texture(image) {
+  // opts.aniso: anisotropy to ask for, clamped to what the driver offers
+  // (default 4; the material atlas asks for the maximum — house walls are the
+  // one thing you see at a grazing angle all game long).
+  // opts.maxLevel: cap the mip chain (atlas cells stop being independent once a
+  // texel averages more than the bleed ring, see tools/make_atlas.py).
+  texture(image, opts = {}) {
     const gl = this.gl;
     const t = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, t);
@@ -193,8 +232,15 @@ export class Renderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    if (opts.maxLevel !== undefined) {
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, opts.maxLevel);
+    }
     const ext = gl.getExtension('EXT_texture_filter_anisotropic');
-    if (ext) gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, 4);
+    if (ext) {
+      const want = opts.aniso || 4;
+      const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) || 1;
+      gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(want, max));
+    }
     return t;
   }
 
