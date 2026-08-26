@@ -578,13 +578,13 @@ export class Hud {
 
   /** D5 — the R on the speedo. */
   setReverse(on) {
-    if (this._gear === undefined) {
-      this._gear = (typeof document !== 'undefined' ? document.getElementById('gear') : null);
+    if (this._revEl === undefined) {
+      this._revEl = (typeof document !== 'undefined' ? document.getElementById('gear') : null);
     }
     const v = !!on;
     if (v === this._lastRev) return;
     this._lastRev = v;
-    if (this._gear) this._gear.classList.toggle('hidden', !v);
+    if (this._revEl) this._revEl.classList.toggle('hidden', !v);
   }
 }
 

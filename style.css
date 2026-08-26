@@ -190,3 +190,6 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
 #gear{position:fixed;right:26px;bottom:150px;z-index:5;font-size:22px;font-weight:800;
   letter-spacing:2px;color:#ffc94d;text-shadow:0 2px 10px rgba(0,0,0,.9);pointer-events:none}
 #gear.hidden{display:none}
+/* wallet (side jobs) */
+#money{position:absolute;right:22px;top:22px;font-size:20px;font-weight:800;letter-spacing:.5px;
+  color:#9ce8a4;text-shadow:0 2px 8px rgba(0,0,0,.85);font-variant-numeric:tabular-nums}

@@ -33,7 +33,8 @@ ws.onmessage = (ev) => {
     logs.push(`[${m.params.type}] ${txt}`);
   } else if (m.method === 'Runtime.exceptionThrown') {
     const d = m.params.exceptionDetails;
-    logs.push(`[EXCEPTION] ${d.text} ${d.exception?.description || ''} @${d.url}:${d.lineNumber}`);
+    const fr = (d.stackTrace?.callFrames || []).slice(0, 4).map((f) => `${f.functionName || '?'} ${f.url.split('/').slice(-2).join('/')}:${f.lineNumber + 1}`).join(' < ');
+    logs.push(`[EXCEPTION] ${d.text} ${d.exception?.description?.split('\n')[0] || ''} @${d.url}:${d.lineNumber} ${fr}`);
   } else if (m.method === 'Log.entryAdded') {
     const e = m.params.entry;
     if (e.level === 'error' || e.level === 'warning') logs.push(`[${e.level}] ${e.text} ${e.url || ''}`);
@@ -42,6 +43,8 @@ ws.onmessage = (ev) => {
 await send('Runtime.enable');
 await send('Log.enable');
 await send('Page.enable');
+await send('Network.enable');
+await send('Network.setCacheDisabled', { cacheDisabled: true });
 await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
 
 const evaluate = async (expression, awaitPromise = true) => {
