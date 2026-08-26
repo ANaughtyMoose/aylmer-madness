@@ -35,8 +35,8 @@ const FS = `#version 300 es
 precision mediump float;
 in vec3 vNor; in vec3 vCol; in float vDist; in vec2 vUV; in highp vec3 vRel;
 uniform vec3 uLightDir, uSun, uSky, uGround, uFogColor, uColorMul, uSkyLo, uSkyHi, uEye;
-uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode, uWater;
-uniform highp float uTime;
+uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode;
+uniform highp float uTime, uWater;
 uniform sampler2D uTex;
 out vec4 outColor;
 void main(){
