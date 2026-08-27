@@ -1,7 +1,7 @@
 # Aylmer Madness — backlog
 
 Priority: **P1** next session · **P2** soon · **P3** when it matters. Effort: S (< 1 h), M (half day), L (day+).
-Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) Phases 1–3 are in (docs/HOUSES.md). Second pass (2026-08-26): pedestrians + props, races + cops, unlocks + radio + real engine synth, terrain/jumps, save slots + options.
+Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) Phases 1–3 are in (docs/HOUSES.md). Second pass (2026-08-26): pedestrians + props, races + cops, unlocks + radio + real engine synth, terrain/jumps, save slots + options. Third pass (2026-08-27): reverse/forward as one press, discoverable repairs, story opener + per-stage guidance, Québécois heckles, the golf cart, a 38-step playtest (docs/PLAYTEST.md — open items: mid-job saves don't carry the job, clubhouse has no roof, tutorial timer margin).
 
 ## Requested
 

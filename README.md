@@ -17,7 +17,7 @@ not work. Any static server does; `serve.sh` just wraps `python3 -m http.server`
 
 | | |
 |---|---|
-| **W / S** or **↑ / ↓** | throttle / brake (hold brake at a stop to reverse — an **R** shows on the speedo) |
+| **W / S** or **↑ / ↓** | throttle / brake — hold **S** and you're in reverse (25 km/h max, **R** on the speedo); **W** while backing up brakes and goes, no stop needed |
 | **A / D** or **← / →** | steer |
 | **Space** | handbrake — this is how you get the back end out |
 | **Tab** | full-screen map (north-up): drag/arrows to pan, wheel to zoom, **click to set a GPS waypoint** |
@@ -65,6 +65,9 @@ You start with one. The rest you earn or buy, and they do not drive alike.
   « Poutine express ». Light, revvy, best grip and turn-in.
 - **1997 Pontiac Sunfire** (teal) — Dave's, out in Deschênes. After « Avant
   minuit ». Quick in a straight line, lazier in corners.
+- **The Club's golf cart** sits on the apron at Club de Golf Gatineau, up Rue
+  du Golf — free to take with **E**: electric whine, bike-bell horn, 24 km/h,
+  hopeless on asphalt and brilliant on grass and paths.
 - **The used lot** on chemin d'Aylmer, past the Canadian Tire — press **E**
   beside one: a 1987 Oldsmobile Cutlass Ciera ($300, brown, floaty V6 and a
   three-speed slushbox), a 1991 Chevy Cavalier Z24 ($450, quick-ish, rattles
@@ -83,7 +86,7 @@ between tracks; the cassette deck plays your own files — drop them in
 
 ## The jobs
 
-Fourteen of them, marked by yellow pillars on the map. The original seven:
+Fifteen of them, marked by yellow pillars on the map. The original seven:
 getting to first period at Heritage College, hauling the gang to Parc des
 Cèdres, a poutine run from the Galeries food court, a slush run to the dep,
 dropping résumés, beating curfew home from the marina at night, and a
@@ -107,6 +110,8 @@ just enough rubber-band to keep it honest:
 - **Circuit du Vieux-Aylmer** — three laps, Principale → Frank-Robinson → du
   Patrimoine → Bancroft, vs Margaret and Dave. Best lap is kept.
 - **Blitz: le tour de l'île** — six checkpoints against the clock, +15 s each.
+- **Le cart du Club** — the members' carts keep ending up at the school down
+  the street. Bring one back before the marshal's round.
 
 Every job pays. You start with $80 (mowing lawns) and spend it at the garage
 sale, the Canadian Tire and the used lot. Each job shows a 2-second intro card
@@ -124,10 +129,16 @@ three stars, cruisers chase and ram, and at three stars there's a roadblock at
 the next lights. Lose them by getting out of sight for twelve seconds; get
 boxed in and it's a $150 ticket and the job.
 
+Pedestrians and drivers yell at you in Québécois when you drive like that
+(« Heille, le cave! », « C'est vert, tabarnak! ») — 59 lines, off in Options if
+you'd rather. Friends talk at the start and end of every job.
+
 Every car has a health bar. Walls, poles and other cars cost you: past 25 a
 headlight goes and the bumper crumples, past 60 it pulls to one side and
 misfires, at 100 the job is over and the flatbed drops it back at its owner's.
-Repairs: pull into the Petro-Canada and wait five seconds.
+Repairs: your own driveway at 299 Fraser (free, 10 s, press **E**), or the
+Petro-Canada / Canadian Tire (4 s, about 20 % of the damage in dollars). Past
+25 % the HUD tells you where the nearest one is and the map gets a wrench.
 
 ## Air
 
@@ -261,8 +272,9 @@ put you back on the road.
 
 ## Testing
 
-`node tools/smoke*.mjs` — twelve suites (missions, UI, world, driving, houses,
-atlas, audio, garage, race, react, save, terrain) — run under plain node (no browser) and bot-play the jobs, the collision solver,
+`node tools/smoke*.mjs` — sixteen suites (missions, UI, world, driving, houses,
+atlas, audio, garage, race, react, save, terrain, story, repair, cart) —
+`docs/PLAYTEST.md` is the last new-player playtest — run under plain node (no browser) and bot-play the jobs, the collision solver,
 the world build and the UI plumbing. `node tools/headless.mjs` boots the real
 game in a headless Chrome (start one with `--headless=new
 --remote-debugging-port=9222 --use-angle=swiftshader`), steps the sim, runs an

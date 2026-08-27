@@ -227,6 +227,7 @@ const REVERSE = {
   saturn:  { revTop: 6.94, revEngage: 0.20 },
   civic:   { revTop: 6.94, revEngage: 0.20 },
   sunfire: { revTop: 6.94, revEngage: 0.21 },
+  cart:    { revTop: 3.0, revEngage: 0.20 },   // 11 km/h backwards; a contactor, not a clutch
   cutlass: { revTop: 6.94, revEngage: 0.24 },
   cavalier:{ revTop: 6.94, revEngage: 0.21 },
   caravan: { revTop: 6.94, revEngage: 0.28 },

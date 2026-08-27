@@ -386,7 +386,7 @@ function shunt(player, car) {
   ok('FEEL: the bus only backs up at 15 km/h',
     near(carById('bus').revTop * 3.6, 15, 0.1), `${r2(carById('bus').revTop * 3.6)} km/h`);
   ok('FEEL: everyone else backs up at 25',
-    CARS.filter((c) => c.id !== 'bus').every((c) => near(c.revTop * 3.6, 25, 0.1)));
+    CARS.filter((c) => c.id !== 'bus' && c.id !== 'cart').every((c) => near(c.revTop * 3.6, 25, 0.1)));
 
   {
     // Measured, not just declared: from a standstill, S held, how long until it

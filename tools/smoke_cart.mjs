@@ -270,9 +270,9 @@ group('two seats');
 
   // The bench sits the passenger beside you, not 1.1 m behind the seat.
   const seats = Vehicle.prototype.seatPositions.call({ spec: cart });
-  ok(seats.length === 2, 'two seat positions');
-  ok(Math.abs(seats[0][2] - seats[1][2]) < 0.01, 'side by side on the bench, not one behind the other');
-  ok(seats.every((s) => s[1] > 0.5 && s[1] < cart.h), 'both of them under the canopy');
+  ok(seats.length === 1, 'one passenger seat (driver + one on the bench)');
+  ok(Math.abs(seats[0][2] - cart.seatZ) < 0.6, 'beside the driver on the bench, not behind');
+  ok(seats.every((s) => s[1] > 0.5 && s[1] < cart.h), 'under the canopy');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
