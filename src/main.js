@@ -51,6 +51,15 @@ import {
 // (cops.js). All three reach in through G; main.js only owns the hook lines.
 import { updateRivals } from './game/race.js';
 import { Cops, installCopMeshes } from './game/cops.js';
+// Story agent: the new-game opener, the always-on guidance lines, the stuck
+// detector and the friends' dialogue (story.js), plus the town's opinion of how
+// you drive (heckle.js). main.js owns the hook lines; neither file draws or
+// steps anything of its own.
+import {
+  StoryOpener, freeRoamLines, nearestJob, updateStuck, friendLines,
+  shortCarName, carArticle,
+} from './game/story.js';
+import { heckle } from './game/heckle.js';
 
 const STEP = 1 / 60;
 // The QUALITY presets live in options.js now, because the options screen can
@@ -124,7 +133,10 @@ const legend = new Legend();
 const tutorial = new Tutorial();
 const loading = new Loading();
 const introCard = new IntroCard();
+const story = new StoryOpener();
 G.legend = legend;
+G.story = story;
+G.heckle = heckle;
 hud.setRange(G.mapPrefs.range);
 // Whose driveway each car lives in.
 // Margaret's Saturn lives in the same driveway as your Ranger at 299 Fraser.
@@ -443,7 +455,7 @@ function enterDrive(save = null) {
   hud.setCar(spec.name);
   hud.setSize(MAP_SIZES[G.settings.mapSize]);
   hud.setRange(G.mapPrefs.range);
-  hud.setObjective(t('hud.freeroam'), t('hud.freeroam.sub'));
+  refreshFreeRoam();
   hud.setTimer(null);
   hud.setGear(1);
   hud.toast(save
@@ -456,6 +468,56 @@ function enterDrive(save = null) {
   radio.loadTape().then(() => paintRadio()).catch(() => {});
   paintRadio();
   applySettings(G, G.settings);   // hud size, legend, volumes, fps counter
+  // Story agent: the town gets its voice back, and a brand new game gets the
+  // four opening cards — once ever, then only from Options > Jeu.
+  heckle.bind(G);
+  heckle.reset();
+  story.hide();
+  G.stuck = null;
+  if (!save && !G.settings.storySeen) playStory();
+}
+
+// ---------------------------------------------------------------- story
+
+// The opener. It owns the keyboard while it is up (see handleKeys), and when it
+// is done it drops a waypoint on the nearest job so the very first thing the
+// player sees is a blue line going somewhere.
+function playStory() {
+  story.show(() => {
+    if (!G.settings.storySeen) onSettings(saveSettings({ ...G.settings, storySeen: true }));
+    const j = nearestJob(G);
+    // Only worth a waypoint if it is somewhere else; updateRoute() eats one you
+    // are already standing on, and the toast pair reads like a bug.
+    if (j && j.dist > 40) {
+      G.waypoint = { x: j.place.x, z: j.place.z };
+      G.routeKey = '';
+      hud.toast('Waypoint \u2014 ' + j.def.title + '\n' + j.place.label, 2600);
+      audio.blip(660, 0.1, 'triangle', 0.14);
+    }
+    refreshFreeRoam();
+  });
+}
+
+// GOAL A rule: the objective line is NEVER « Free roam ». Off a job it is the
+// nearest job you have not done, how far it is and which key takes it — or, if
+// you are standing beside a friend's car, that car and the key that takes it.
+let freeRoamT = 0;
+function refreshFreeRoam(dt = 0) {
+  if (!G.veh || G.mission) return;
+  freeRoamT -= dt;
+  if (dt > 0 && freeRoamT > 0) return;
+  freeRoamT = 0.3;
+  const l = freeRoamLines(G, garage);
+  hud.setObjective(l.text, l.sub);
+}
+
+// Two or three lines from whoever's job this is, as bubbles so the name is in
+// bold and they stay out of the mission toast's way.
+function sayFriend(def, which) {
+  if (!def) return 0;
+  const lines = friendLines(def.id, which);
+  for (const [who, text] of lines) heckle.line(who, text, 3000);
+  return lines.length;
 }
 
 // A row of parking spots along the kerb — the used lot, where four beaters sit
@@ -587,6 +649,8 @@ function startMission(def) {
   }, 2);
   G.introUntil = G.time + 2;
   G.tutoJobTaken = true;
+  G.stuck = null;
+  sayFriend(def, 'start');
 }
 
 function applyStage() {
@@ -610,7 +674,8 @@ function failMission(why) {
   G.veh.passengers = 0;
   setEnv('day');
   hud.setTimer(null);
-  hud.setObjective(t('hud.freeroam'), t('hud.freeroam.again'));
+  G.stuck = null;
+  refreshFreeRoam();
 }
 
 // cops.js writes a ticket and takes the job with it.
@@ -620,6 +685,7 @@ function updateMission(dt) {
   const m = G.mission;
   const v = G.veh;
   if (!m) {
+    refreshFreeRoam(dt);
     // Several missions share a start marker, so offer one and let Tab cycle.
     const near = MISSIONS.filter((d) => {
       const p = PLACES[d.giver];
@@ -641,7 +707,8 @@ function updateMission(dt) {
           // thing you are buying drives away.
           const cost = garage.cost(carId);
           const can = garage.canBuy(carId, G.wallet, G.done);
-          hud.prompt(`E  \u2014  acheter ${c.name}   \u00b7   ${cost} $` + (can.ok ? '' : `   (${can.why})`));
+          hud.prompt(`E  \u2014  acheter ${carArticle(carId)} ${shortCarName(carId, c)}   \u00b7   ${cost} $`
+            + (can.ok ? '' : `   (${can.why})`));
           if (G.wantStart) {
             G.wantStart = false;
             const r = garage.buy(carId, G.wallet, G.done);
@@ -653,7 +720,9 @@ function updateMission(dt) {
             } else hud.toast(r.why, 2400);
           }
         } else {
-          hud.prompt(`E  —  prendre ${c.who === 'Yours' ? 'ton' : 'le'} ${c.name}${c.who === 'Yours' ? '' : ' de ' + c.who.replace("'s", '')}`);
+          const art = c.who === 'Yours' ? 'ton' : carArticle(carId);
+          hud.prompt(`E  —  prendre ${art} ${shortCarName(carId, c)}`
+            + (c.who === 'Yours' || c.who === 'Le lot' ? '' : ' de ' + c.who.replace("'s", '')));
           if (G.wantStart) { G.wantStart = false; hud.prompt(null); swapCar(carId); }
         }
       } else hud.prompt(null);
@@ -675,6 +744,11 @@ function updateMission(dt) {
   G.wantCycle = false;
   // The intro card is up: show the clock but do not run it.
   if (G.introUntil && G.time < G.introUntil) { G.wantStart = false; hud.setTimer(m.timeLeft); return; }
+
+  // Twenty seconds without twenty metres: the stage's hint comes back and the
+  // objective line flashes. It is the same text that has been on screen all
+  // along — the point is that you look at it again.
+  updateStuck(G, dt, hud);
 
   m.elapsed += dt;
   const st = m.stages[m.idx];
@@ -725,7 +799,9 @@ function updateMission(dt) {
     v.passengers = 0;
     setEnv('day');
     hud.setTimer(null);
-    hud.setObjective(t('hud.freeroam'), t('hud.freeroam.next'));
+    G.stuck = null;
+    sayFriend(def, 'end');
+    refreshFreeRoam();
     autosave('job');   // one of exactly two events that write without being asked
     return;
   }
@@ -831,6 +907,14 @@ function frame(now) {
 }
 
 function handleKeys() {
+  // The story opener owns the keyboard while it is up: E / Enter / Espace turn
+  // the page, Escape skips the rest of it.
+  if (story.active) {
+    if (input.hit('Escape')) story.finish();
+    else if (input.hit('Enter', 'KeyE', 'Space')) story.advance();
+    G.wantStart = false;
+    return;
+  }
   if (input.hit('Escape')) { pause(true); return; }
   if (input.hit('Tab')) { openMap(true); return; }
   if (input.hit('KeyC')) G.cam = (G.cam + 1) % CAMS.length;
@@ -964,14 +1048,22 @@ function tick(dt) {
     const p = asBody(G.parked[id], carById(id));
     driftBody(p, dt, 4.5, 4.0);
     const closing = collideCars(v, p, 0.22, 0.70);
-    if (closing > 0) { v.hit(closing, contact.nx, contact.nz); v.syncFrame(); }
+    if (closing > 0) {
+      v.hit(closing, contact.nx, contact.nz); v.syncFrame();
+      if (closing > 1.4) heckle.say('Voisin', 'parked');    // MON CHAR!
+    }
   }
   // Walls, poles, traffic and parked cars have all had their say by now.
   if (v.impact > preImpact + 0.08) audio.crash(v.impact);
   driveHooks(dt, v);
   G.signals.update(dt);
-  if (G.signals.playerRanRed(v)) { G.ranRed = true; hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700); }
+  if (G.signals.playerRanRed(v)) {
+    G.ranRed = true;
+    hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700);
+    heckle.say('Chauffeur', 'red');
+  }
   updateMission(dt);
+  heckle.update(dt, G);
   if (G.props) G.props.update(dt, G);
   if (G.reactive) G.reactive.update(dt, G);
   G.time += dt;
@@ -1327,6 +1419,11 @@ function optionsCtx() {
     actions: {
       fullscreen: () => toggleFullscreen(),
       tutorial: () => { tutorial.reset(); hud.toast(t('toast.tutorial'), 1400); },
+      story: () => {
+        openOptions(false);
+        if (G.mode === 'paused') pause(false);
+        if (G.mode === 'drive') playStory();
+      },
       resetCars: () => { if (G.veh) resetCarLocations(); },
       wipeSaves: () => {
         deleteAllSaves();
@@ -1355,7 +1452,7 @@ function onSettings(s) {
       if (tab === 'save') buildSaveTab();
     }
     legend.render();
-    if (!G.mission && G.mode === 'drive') hud.setObjective(t('hud.freeroam'), t('hud.freeroam.sub'));
+    if (!G.mission && G.mode === 'drive') refreshFreeRoam();
   }
 }
 
@@ -1469,6 +1566,10 @@ window.AYLMER = {
   // Debug/screenshot hooks: force a time of day, and read back what the last
   // frame actually drew (see world.js `stats`).
   env(name = 'day') { setEnv(name, true); return name; },
+  // Story agent: the opener, the guidance line and the heckles.
+  story, heckle,
+  freeRoam: () => freeRoamLines(G, garage),
+  playStory,
   // Race agent: what the tests poke at.
   cops: () => G.cops,
   rivals: () => G.rivals,

@@ -56,7 +56,8 @@ const canot = {
       {
         kind: 'buy',
         text: 'Vente de garage — 41 Promenade Wychwood',
-        sub: 'Le monsieur sort du garage toute sa vie. Y a un canot sur le gazon.',
+        sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour acheter le canot (45 $)',
+        hint: 'Promenade Wychwood. Faut être arrêté dans le pilier avant que le E marche.',
         at: 'yardsale', radius: 13, hold: true, cost: 45,
         holdText: 'E — acheter le canot   ·   45 $',
         brokeText: 'Quarante-cinq piasses. T’en as pas quarante-cinq. Va tondre des gazons.',
@@ -78,7 +79,8 @@ const canot = {
       {
         kind: 'buy',
         text: 'Canadian Tire — 225 chemin d’Aylmer',
-        sub: `Du Bondo. Le vrai. Pis attache-le comme du monde sur le ${ctx.carName}.`,
+        sub: `GPS jusqu’au pilier, arrête-toi, pis E pour acheter du Bondo (21 $) — le canot est attaché sur le ${ctx.carName}`,
+        hint: 'Chemin d’Aylmer, le gros magasin rouge. Arrête-toi dans le pilier, pis E.',
         at: 'ctire', radius: 20, hold: true, cost: 21,
         holdText: 'E — acheter du Bondo   ·   21 $',
         brokeText: 'Vingt-et-une piasses pour du Bondo. T’es cassé.',
@@ -95,7 +97,8 @@ const canot = {
       {
         kind: 'repair',
         text: 'Plage des Cèdres — patcher le canot',
-        sub: 'Stationne-toi, sors le Bondo, pis fais ça comme du monde.',
+        sub: 'Arrête-toi dans le pilier, E pour sortir le Bondo, pis E dans le vert ×3',
+        hint: 'Faut être arrêté (moins de 7 km/h) DANS le pilier. E sort le Bondo, E encore quand le curseur est dans le vert.',
         at: 'beach', radius: 22, stopped: 7,
         condition: (G, m) => repairState(m).done,
         prompt(G, m) {
@@ -147,8 +150,9 @@ const canot = {
       // ---- d/e. the crossing, and Île Aylmer ----------------------------
       {
         kind: 'paddle',
-        text: 'Île Aylmer',
-        sub: 'W pagaie, S recule, A/D barre. 1,2 km d’eau pis un trou dans la coque.',
+        text: 'Île Aylmer — 1,2 km d’eau',
+        sub: 'W pagaie, S recule, A/D tourne — l’île est droit devant, suis la flèche',
+        hint: 'La flèche ▲ dans le prompt veut dire « t’es dans la bonne direction ». ◀ ou ▶ veut dire tourne avec A/D.',
         at: 'island', radius: 34, focus: 'boat', noRoute: true,
         toast: 'L’ÎLE. Le canot a fait la traversée. Quarante-cinq piasses bien placées.',
         // Un gars campé sur l'île le rachète sur le champ. Quatre-vingt-dix.
@@ -232,19 +236,21 @@ const sayyad = {
     return [
       {
         kind: 'drive',
-        text: 'Chez Sayyad — 75 Denise-Friend',
-        sub: 'Coupe le moteur deux rues avant. Non, en fait, coupe rien.',
+        text: 'Rends-toi chez Sayyad — 75 Denise-Friend',
+        sub: 'Suis la ligne bleue du GPS jusqu’au pilier jaune devant sa maison',
+        hint: 'Denise-Friend, dans le Vieux-Aylmer, au sud-ouest. Tab ouvre la grande carte.',
         at: 'sayyad', radius: 30,
-        toast: 'Sa fenêtre est en haut à gauche. Il dort comme une roche.',
+        toast: 'Sa fenêtre est en haut à gauche. Il dort comme une roche.\nÀ toi de sonner.',
       },
       {
         kind: 'doughnuts',
-        text: '3 doughnuts dans la rue devant chez Sayyad',
-        sub: `Espace pis le volant. Le ${ctx.carName} va comprendre.`,
+        text: 'Fais 3 doughnuts devant chez lui — 0/3',
+        sub: 'Espace (frein à main) + A/D pour braquer, pis garde le gaz W',
+        hint: 'Reste dans la rue devant le 75. Tiens Espace ET W en même temps, pis braque à fond avec A ou D.',
         at: 'sayyad', radius: DONUT.radius, anywhere: true, noRoute: true,
         condition: (G, m) => m.donut && m.donut.meter.count >= 3 && m.donut.grace <= 0,
         onEnter(G, m) {
-          m.donut = { meter: new DoughnutMeter(), grace: GRACE, lit: false };
+          m.donut = { meter: new DoughnutMeter(), grace: GRACE, lit: false, shown: -1 };
         },
         prompt(G, m) {
           const d = m.donut;
@@ -252,12 +258,18 @@ const sayyad = {
           const n = d.meter.count;
           if (n >= 3) return `Doughnuts: ${n}/3   ·   ${d.meter.state().sliding ? 'ENCORE' : 'décrisse dans ' + Math.ceil(d.grace) + ' s'}`;
           const bar = fillBar(d.meter.state().progress, 8);
-          return `Doughnuts: ${n}/3   ${bar}` + (d.meter.state().sliding ? '' : '   ·   Espace + volant');
+          return `Doughnuts: ${n}/3   ${bar}   ·   Espace + A/D` + (d.meter.state().sliding ? '   ·   TIENS ÇA' : '');
         },
         onTick(G, m, st, dt) {
           const d = m.donut;
           if (!d) return null;
           const p = PLACES.sayyad;
+          // The counter is live on the objective line too, not just in the
+          // prompt: the top-left is where a lost player looks first.
+          if (d.shown !== d.meter.count && G.hud && G.hud.setObjective) {
+            d.shown = d.meter.count;
+            G.hud.setObjective(`Fais 3 doughnuts devant chez lui — ${Math.min(3, d.meter.count)}/3`, st.sub);
+          }
           const s = d.meter.update(dt, G.veh, {
             handbrake: !!(G.input && G.input.handbrake), cx: p.x, cz: p.z,
           });
@@ -291,8 +303,9 @@ const sayyad = {
       },
       {
         kind: 'escape',
-        text: 'Décrisse',
-        sub: '300 m avant que quelqu’un compose le 9-1-1',
+        text: 'Sacre ton camp! 300 m en 25 s',
+        sub: 'W à fond, n’importe quelle direction — 300 m avant que quelqu’un compose le 9-1-1',
+        hint: 'Peu importe où: c’est la distance en ligne droite depuis chez Sayyad qui compte. Fonce.',
         noTarget: true, noRoute: true, time: 25,
         failWhy: 'Les voisins ont eu le temps de noter la plaque.',
         condition: (G) => Math.hypot(G.veh.x - PLACES.sayyad.x, G.veh.z - PLACES.sayyad.z) > ESCAPE_M,
@@ -327,7 +340,8 @@ const divan = {
       {
         kind: 'load',
         text: 'Chez Mike — 129 avenue Frank-Robinson',
-        sub: 'Il est déjà dehors avec le divan. Il a l’air très sûr de lui.',
+        sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour charger le divan',
+        hint: 'Frank-Robinson, au nord de la Principale. Faut être arrêté dans le pilier pour que le E marche.',
         at: 'mike', radius: 14, hold: true,
         holdText: `E — charger le divan sur le ${ctx.carName}`,
         toast: 'Le divan est sur le toit. Mike tient une corde. C’est tout.',
@@ -342,7 +356,8 @@ const divan = {
       {
         kind: 'couch',
         text: 'Le divan dans l’arbre',
-        sub: 'Le gros érable devant le 129. Au moins 35 km/h, pis vise le tronc.',
+        sub: 'Vise le tronc de l’érable à 35+ km/h — recule, W à fond, pas de frein',
+        hint: 'Recule d’une trentaine de mètres, aligne le gros érable devant le 129, pis rentre dedans à plus de 35 km/h. Si le divan tombe: E à côté pour le remonter.',
         at: MIKE_TREE, radius: 10, anywhere: true, noRoute: true,
         money: 30,
         toast: 'La mère de Mike te donne 30 $ pour le trouble.\n+30 $',

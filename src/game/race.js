@@ -21,6 +21,8 @@
 import { Vehicle } from './cars.js';
 import { collideCars, contact } from './collide.js';
 import { clamp, angleDelta } from '../core/math.js';
+// Story agent: a friend going by you has something to say about it.
+import { heckle } from './heckle.js';
 
 // Per-driver tuning.
 //   cruise    speed on a straight, m/s
@@ -314,6 +316,7 @@ export function updateRivals(G, dt) {
     rv.ctx.traffic = traffic;
     rv.ctx.band = rv.band;
     rv.update(dt, G.phys, rv.ctx);
+    sassOnPass(G, rv);
     const closing = collideRivals(G.veh, rv.veh);
     if (closing > 0.9 && G.audio) G.audio.crash(Math.min(1, closing / 18));
     if (G.traffic && G.traffic.collideBody) G.traffic.collideBody(rv.veh);
@@ -322,6 +325,28 @@ export function updateRivals(G, dt) {
 }
 
 // ---------------------------------------------------------------- the track
+
+/**
+ * Story agent: the moment a rival goes from behind you to in front of you —
+ * measured along YOUR nose, not the track, so it reads the way it looks from
+ * the driver's seat — he gets one line in. The 30 m band stops a car running
+ * beside you from setting it off every second, and heckle.js's own limiter
+ * takes care of the rest.
+ */
+const PASS_BAND = 30;
+function sassOnPass(G, rv) {
+  const v = G.veh, c = rv.veh;
+  if (!v || !c) return;
+  const ahead = (c.x - v.x) * Math.sin(v.yaw) + (c.z - v.z) * Math.cos(v.yaw);
+  const near = Math.hypot(c.x - v.x, c.z - v.z) < 90;
+  if (rv.wasAhead === undefined) { rv.wasAhead = ahead > 0; return; }
+  if (!rv.wasAhead && ahead > PASS_BAND) {
+    rv.wasAhead = true;
+    if (near && v.speedKmh > 25) heckle.say(rv.name, 'rival');
+  } else if (rv.wasAhead && ahead < -PASS_BAND) {
+    rv.wasAhead = false;
+  }
+}
 
 /**
  * A checkpoint chain, one or more laps of it. Everybody in the race — you and

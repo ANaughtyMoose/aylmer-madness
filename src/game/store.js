@@ -86,6 +86,9 @@ export const DEFAULT_SETTINGS = {
   lang: 'fr',
   autosave: true,
   difficulty: 'normal',    // easy / normal / hard — for the AI agent, if it wants it
+  // ---- story (game/story.js, game/heckle.js)
+  storySeen: false,        // the new-game opener has played once
+  heckles: true,           // « Les gens gueulent »: the town yells at bad driving
 };
 
 export const LIMITS = {
@@ -136,6 +139,9 @@ export function normalizeSettings(raw) {
     lang: s.lang === 'en' ? 'en' : 'fr',
     autosave: bool(s.autosave, D.autosave),
     difficulty: pick(s.difficulty, DIFFICULTIES, D.difficulty),
+
+    storySeen: bool(s.storySeen, D.storySeen),
+    heckles: bool(s.heckles, D.heckles),
   };
 }
 

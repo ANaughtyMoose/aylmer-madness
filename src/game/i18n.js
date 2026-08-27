@@ -80,6 +80,8 @@ const FR = {
   'opt.diff.normal': 'Normal',
   'opt.diff.hard': 'Méchant',
   'opt.tutorial': 'Recommencer le tutoriel',
+  'opt.heckles': 'Les gens gueulent (piétons, chauffeurs, police)',
+  'opt.story': 'Revoir l’intro',
   'opt.resetCars': 'Remettre les chars chez eux',
   'opt.wipeSaves': 'Effacer toutes les sauvegardes',
   'opt.confirm': 'Sûr? Clique encore',
@@ -285,6 +287,8 @@ const EN = {
   'load.cars': 'Cars…',
   'load.ready': 'Ready.',
 
+  'opt.heckles': 'People yell at you (walkers, drivers, cops)',
+  'opt.story': 'Replay the intro',
   'hud.freeroam': 'Free roam',
   'hud.freeroam.sub': 'Drive to a yellow marker to pick up a job',
   'hud.freeroam.again': 'Go back to the marker to try again',

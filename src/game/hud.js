@@ -626,6 +626,46 @@ export class Hud {
     this._lastRev = v;
     if (this._revEl) this._revEl.classList.toggle('hidden', !v);
   }
+
+  // ---- story agent additions --------------------------------------------
+  // Same deal as the block above: the styling is at the end of style.css.
+
+  /**
+   * Story agent — the objective lines flash amber for a moment. game/story.js
+   * calls it when you have not moved twenty metres in twenty seconds, right
+   * after it toasts the stage's hint at you, so the eye goes back to the line
+   * that has been telling you what to do the whole time.
+   */
+  pulseObjective(times = 1) {
+    if (this._topleft === undefined) {
+      this._topleft = (typeof document !== 'undefined' ? document.getElementById('topleft') : null);
+    }
+    const el = this._topleft;
+    if (!el || !el.classList) return false;
+    el.classList.remove('pulse');
+    // Force a reflow so re-adding the class restarts the animation.
+    if (typeof el.offsetWidth === 'number') void el.offsetWidth;
+    el.classList.add('pulse');
+    if (this._pulseT) clearTimeout(this._pulseT);
+    if (typeof setTimeout === 'function') {
+      this._pulseT = setTimeout(() => {
+        this._pulseT = 0;
+        if (el.classList) el.classList.remove('pulse');
+      }, 2300 * Math.max(1, times));
+    }
+    return true;
+  }
+
+  /** Is the objective line currently pulsing? (The smoke test asks.) */
+  get pulsing() {
+    return !!(this._topleft && this._topleft.classList && this._topleft.classList.contains('pulse'));
+  }
+
+  /** What the objective line says right now — for tests and for the save name. */
+  objectiveText() {
+    return [this.elObjective ? this.elObjective.textContent : '',
+      this.elSub ? this.elSub.textContent : ''];
+  }
 }
 
 // A footprint worth drawing on a 200 px map: bounding box over ~55 m².

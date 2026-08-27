@@ -5,6 +5,9 @@ import { MAP } from './mapdata.js';
 import { CARS } from './cars.js';
 import { collideCars, driftBody, contact } from './collide.js';
 import { clamp, angleDelta, mulberry32 } from '../core/math.js';
+// Story agent: somebody you shoved, or somebody stuck behind you, has something
+// to say about it. heckle.js does the rate limiting.
+import { heckle } from './heckle.js';
 
 const TINTS = [
   [1, 1, 1], [0.72, 0.74, 0.8], [0.55, 0.6, 0.68], [0.9, 0.82, 0.66],
@@ -269,6 +272,9 @@ export class Traffic {
   }
 
   update(dt, player) {
+    // Remembered so collidePlayer() can tell "the player hit me" from "a rival
+    // hit me" — only the first one is worth yelling about.
+    this.player = player;
     this.time += dt;
     const tgt = [0, 0];
     this.crash = 0;
@@ -294,7 +300,7 @@ export class Traffic {
         c.spin += (Math.hypot(c.vx, c.vz) / c.spec.wheelR) * dt;
         if (c.honkT > 0) {
           c.honkT -= dt;
-          if (c.honkT <= 0) c.honk = 1;
+          if (c.honkT <= 0) { c.honk = 1; heckle.say('Chauffeur', 'honk'); }
         }
         if (c.stunT <= 0) { this.reacquire(c); c.hitBy = 0; }
         this.collidePlayer(c, player);
@@ -386,6 +392,7 @@ export class Traffic {
       c.honkT = HONK_AT;
       c.horn = 1;
       c.speed = 0;
+      if (player === this.player) heckle.say('Chauffeur', 'shove');
     } else {
       c.speed *= 0.5;
       c.horn = 1;

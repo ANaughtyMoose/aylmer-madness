@@ -27,6 +27,8 @@ import { m4, clamp } from '../core/math.js';
 import { pl, buildCarBody, buildWheel, tToZ } from './cars.js';
 import { asBody, collideCars, driftBody, contact } from './collide.js';
 import { Rival, SKILL, collideRivals } from './race.js';
+// Story agent: the megaphone.
+import { heckle } from './heckle.js';
 
 // ---------------------------------------------------------------- the car
 
@@ -294,6 +296,7 @@ export class Cops {
     else G.ranRed = false;
 
     const stars = clamp(Math.floor(this.heat), 0, 3);
+    if (stars > this._lastStars) heckle.say('Police', 'cop');
     if (stars > this._lastStars && G.hud) {
       G.hud.toast(stars === 1
         ? 'UNE AUTO-PATROUILLE\nÇa commence, ' + (this.why || 'ça') + '.'

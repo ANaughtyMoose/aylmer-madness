@@ -17,6 +17,9 @@
 //   GETUP  up, shake a fist at you, walk on
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { m4, clamp, mulberry32 } from '../core/math.js';
+// Story agent: the dive already plays heille(); this is what the man actually
+// said. Rate-limited inside heckle.js, so calling it on every dive is fine.
+import { heckle } from './heckle.js';
 
 const POOL = 60;            // records built once, alive or not
 const TARGET = 52;          // how many we try to keep alive around you
@@ -342,6 +345,7 @@ export class Peds {
         G.audio.heille();
       }
       if (this.onDive) this.onDive(p, t.ref, t.player);
+      if (t.player) heckle.say('Piéton', 'dive');
       return;
     }
   }

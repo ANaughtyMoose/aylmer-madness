@@ -5,7 +5,14 @@
 // six original jobs are untouched — but a stage is now a small state machine so
 // a job can ask for more than a radius:
 //
-//   text, sub            objective lines (unchanged)
+//   text, sub            objective lines. The rule the story layer holds every
+//                        stage to: `text` is the goal, `sub` is HOW — and `sub`
+//                        names the key that does it (E, W/S, A/D, Espace, GPS).
+//   hint                 the same thing said a third way, for a player who has
+//                        stopped moving: it comes up in the prompt after
+//                        HINT_AFTER seconds in the stage, and story.js's stuck
+//                        detector toasts it again after twenty seconds of not
+//                        going anywhere.
 //   at, radius           the circle to reach; `at` is a PLACES key, an {x,z},
 //                        or a function (G) => {x,z}. Omit for no destination.
 //   time                 seconds for this stage (unchanged)
@@ -32,6 +39,20 @@
 //
 // A mission may also carry `cleanup(G)`, called whenever it ends for any reason.
 import { PLACES } from './places.js';
+
+// Seconds in a stage before its `hint` starts showing up in the prompt. Long
+// enough that a player who knows what he is doing never sees it.
+export const HINT_AFTER = 6;
+
+/**
+ * « Psst: ... » — the stage's hint, once the player has been sitting in this
+ * stage long enough to look lost. Null when there is no hint or it is too soon.
+ */
+export function stageHint(m, st) {
+  if (!st || !st.hint) return null;
+  if (!m || (m.stageTime || 0) < HINT_AFTER) return null;
+  return 'Psst: ' + st.hint;
+}
 
 export function resolveAt(at, G) {
   if (at == null) return null;
@@ -99,9 +120,12 @@ export function stageStep(G, m, st, dt) {
     return null;
   }
 
+  // A stage that has been sitting still for a while starts whispering.
+  const hint = stageHint(m, st);
   if (!inPlace) {
-    if (promptSet) hud?.prompt(promptText ?? null);
-    else if (st.maxSpeed || st.hold || stopAt != null) hud?.prompt(null);
+    if (promptSet) hud?.prompt(promptText ?? hint ?? null);
+    else if (st.maxSpeed || st.hold || stopAt != null) hud?.prompt(hint ?? null);
+    else if (hint) hud?.prompt(hint);
     return null;
   }
 

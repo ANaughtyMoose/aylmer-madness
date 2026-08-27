@@ -134,6 +134,22 @@
   <span id="radiotrack"></span>
 </div>
 
+<!-- story agent: the new-game opener (game/story.js). A sibling of the mission
+     intro card that waits for the player instead of a timer — E / Enter /
+     Espace / click turns the page, Escape skips the rest. -->
+<div id="story" class="hidden">
+  <div class="scard">
+    <div class="stitle"></div>
+    <div class="sbody"></div>
+    <div class="sfoot"><span class="sdots"></span><span class="skey"></span></div>
+  </div>
+</div>
+
+<!-- story agent: the heckles (game/heckle.js). Speech bubbles from whoever you
+     just scared, and the friends' dialogue at the start and the end of a job.
+     Two at a time, near the top, out of the toast's way. -->
+<div id="heckles"></div>
+
 <script type="module" src="src/main.js"></script>
 </body>
 </html>
