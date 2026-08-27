@@ -397,7 +397,7 @@ group('the four races are wired up');
   const circuit = RACE_MISSIONS.find((m) => m.id === 'circuit');
   ok(circuit.build({ carName: 'x', seats: 3 })[1].money === 40, 'the circuit pays 40 $');
   ok(RACE_MISSIONS.find((m) => m.id === 'racedave').build({ carName: 'x', seats: 3 })[1].money === 25,
-    'Dave pays 25 $');
+    'Adam pays 25 $');
 }
 
 // ---- a runner, cut down from main.js's, so the races actually get played ----
@@ -458,24 +458,24 @@ function play(G, def, pilot, maxSteps = 60 * 600) {
   return { done: false, failed: 'ran out of steps at stage ' + m.idx, log, m };
 }
 
-group('playthrough: Dave, and you never leave the driveway');
+group('playthrough: Adam, and you never leave the driveway');
 {
   const G = makeG('ranger');
   const def = RACE_MISSIONS.find((d) => d.id === 'racedave');
   G.veh.reset(PLACES.dave.x, PLACES.dave.z, PLACES.dave.a || 0);
-  ok(!!G.parked.sunfire, 'Dave’s Sunfire starts parked at his house');
+  ok(!!G.parked.sunfire, 'Adam’s Sunfire starts parked at his house');
   const res = play(G, def, (g, m, st) => {
     if (st.kind === 'grid') { g.veh.reset(PLACES.dave.x, PLACES.dave.z, PLACES.dave.a || 0); g.wantStart = true; }
     // ...and then you just sit there.
   }, 60 * 500);
   ok(!res.done, 'sitting on the line does not win a race');
-  ok(/Dave/.test(res.failed || ''), 'and Dave has something to say about it', res.failed);
+  ok(/Adam/.test(res.failed || ''), 'and Adam has something to say about it', res.failed);
   ok(res.t > 60, 'it took him a while to get there', `${Math.round(res.t)} s`);
   ok(!!G.parked.sunfire, 'his car is back in his driveway afterwards');
   ok(G.rivals.length === 0, 'and the rival is off the road');
 }
 
-group('playthrough: Dave, driven properly');
+group('playthrough: Adam, driven properly');
 {
   const G = makeG('civic');
   const def = RACE_MISSIONS.find((d) => d.id === 'racedave');
@@ -518,7 +518,7 @@ group('playthrough: abandoning a race gives the car back');
   G.mission = m;
   m.target = stageTarget(G, m, m.stages[0]);
   stageEnter(G, m, m.stages[0]);
-  ok(G.rivals.length === 2, 'Margaret and Dave are on the grid', G.rivals.map((r) => r.name).join(' + '));
+  ok(G.rivals.length === 2, 'Margaret and Adam are on the grid', G.rivals.map((r) => r.name).join(' + '));
   ok(!G.parked.saturn && !G.parked.sunfire, 'their cars are off the street while they race');
   missionCleanup(G, m, true);                       // Backspace
   ok(!!G.parked.saturn && !!G.parked.sunfire, 'abandoning puts both cars back');

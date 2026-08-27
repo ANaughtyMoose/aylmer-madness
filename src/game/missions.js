@@ -70,7 +70,7 @@ const CORE_MISSIONS = [
   {
     id: 'gang',
     title: 'Ramasser la gang',
-    brief: 'Margaret, Sayyad pis Dave veulent chill au parc. Devine qui a le char.',
+    brief: 'Margaret, Sayyad pis Adam veulent chill au parc. Devine qui a le char.',
     giver: 'principale',
     timeOfDay: 'day',
     build(ctx) {
@@ -89,10 +89,10 @@ const CORE_MISSIONS = [
         onExit: (G) => { if (G && G.radio) G.radio.power(true); },
       };
       const dave = {
-        text: 'Ramasse Dave — 20 chemin Vanier, Deschênes',
+        text: 'Ramasse Adam — 20 chemin Vanier, Deschênes',
         sub: 'GPS jusqu’au pilier jaune — il habite loin, on le sait, il le sait',
         hint: 'Deschênes, tout au sud-est. C’est long. W pis patience.',
-        at: 'dave', radius: 13, toast: 'Dave embarque', passengers: +1,
+        at: 'dave', radius: 13, toast: 'Adam embarque', passengers: +1,
       };
       const beach = (sub, passengers, money) => ({
         text: 'Dépose la gang au Parc des Cèdres',

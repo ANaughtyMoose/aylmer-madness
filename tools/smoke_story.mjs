@@ -153,7 +153,7 @@ group('GOAL A — free roam names the nearest job, its distance and the key');
   ok(next && next.def.id !== closest.id, 'a job you have done stops being the target', next && next.def.id);
   ok(freeRoamLines(G2).text.includes(next.def.title), 'and the line follows it', freeRoamLines(G2).text);
 
-  // Standing beside Deschênes, it points at Dave's, not at home.
+  // Standing beside Deschênes, it points at Adam's, not at home.
   const dave = PLACES.dave;
   const G3 = fakeG(dave.x + 15, dave.z);
   ok(nearestJob(G3).place === dave, 'out in Deschênes it points at the Deschênes job');
@@ -248,7 +248,7 @@ group('the new-game opener');
   const all = STORY_CARDS.map((c) => c.body).join(' ');
   ok(/Ranger XLT 1993/.test(all), 'it says what you are driving');
   ok(/dix-sept/.test(all) && /2004|Aylmer/.test(all), 'and who and when you are');
-  for (const who of ['Margaret', 'Sayyad', 'Dave', 'Mike']) {
+  for (const who of ['Margaret', 'Sayyad', 'Adam', 'Mike']) {
     ok(all.includes(who), `it introduces ${who}`);
   }
   ok(/Saturn/.test(all) && /Civic/.test(all) && /Sunfire/.test(all) && /divan/.test(all),

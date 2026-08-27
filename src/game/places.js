@@ -11,7 +11,7 @@ export const PLACES = {
   // The 'steph' key is historical; the person is Sayyad.
   steph:     { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
   margaret:  { x: 932.9, z: 143.9, label: '299 Chemin Fraser (Margaret)', snap: true },
-  dave:      { x: 2389.2, z: 1384.6, label: '20 Chemin Vanier (Deschênes)', snap: true },
+  dave:      { x: 2389.2, z: 1384.6, label: '20 Chemin Vanier (Adam, Deschênes)', snap: true },
   // Landmarks.
   mall:      { x: -18.9, z: -331.2, label: 'Galeries d’Aylmer', snap: true, lot: true },
   beach:     { x: -1918.1, z: -451.5, label: 'Plage des Cèdres', snap: true, lot: true },

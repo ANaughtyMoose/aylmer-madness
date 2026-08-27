@@ -76,7 +76,7 @@ export const CARS = [
     spoiler: true, sunroof: [0.40, 0.52],
   },
   {
-    id: 'sunfire', name: '1997 Pontiac Sunfire', who: "Dave's",
+    id: 'sunfire', name: '1997 Pontiac Sunfire', who: "Adam's",
     body: 0x1c8f83, seats: 3, style: 'coupe',
     flavour: 'Coupe, body-coloured cladding, one working speaker, and a spoiler that does absolutely nothing.',
     len: 4.60, wid: 1.72, h: 1.35, wheelbase: 2.64, overhangF: 1.00, track: 1.66, wheelR: 0.32,

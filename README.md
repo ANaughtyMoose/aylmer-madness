@@ -47,7 +47,7 @@ through the keys once; the pause menu has a keyboard diagram and a Settings tab
 - **Tab** opens the whole town with street names and landmarks; click anywhere
   to drop a waypoint.
 - **Switching cars**: the Saturn, Civic and Sunfire are parked in front of
-  Margaret's, Sayyad's and Dave's houses. Pull up next to one, press **E**, and your
+  Margaret's, Sayyad's and Adam's houses. Pull up next to one, press **E**, and your
   car stays where you left it. Jobs that depend on seats (the Ranger's bench)
   re-plan for whatever you're driving.
 - Best times per job are kept in the pause menu.
@@ -63,7 +63,7 @@ You start with one. The rest you earn or buy, and they do not drive alike.
   299 Fraser. She lends it after « Ramasser la gang ». Average at everything.
 - **1988 Honda Civic Si** (red) — Sayyad's, 75 Denise-Friend. His after
   « Poutine express ». Light, revvy, best grip and turn-in.
-- **1997 Pontiac Sunfire** (teal) — Dave's, out in Deschênes. After « Avant
+- **1997 Pontiac Sunfire** (teal) — Adam's, out in Deschênes. After « Avant
   minuit ». Quick in a straight line, lazier in corners.
 - **The Club's golf cart** sits on the apron at Club de Golf Gatineau, up Rue
   du Golf — free to take with **E**: electric whine, bike-bell horn, 24 km/h,
@@ -105,10 +105,10 @@ five-checkpoint sunset tour of the town. Then the side jobs:
 And the races — your friends drive their own cars, with real steering and
 just enough rubber-band to keep it honest:
 
-- **Dave jusqu'aux Galeries** — 4.3 km from Deschênes vs Dave's Sunfire.
+- **Adam jusqu'aux Galeries** — 4.3 km from Deschênes vs Adam's Sunfire.
 - **La Civic de Sayyad à la marina** — through the Vieux; he barely lifts.
 - **Circuit du Vieux-Aylmer** — three laps, Principale → Frank-Robinson → du
-  Patrimoine → Bancroft, vs Margaret and Dave. Best lap is kept.
+  Patrimoine → Bancroft, vs Margaret and Adam. Best lap is kept.
 - **Blitz: le tour de l'île** — six checkpoints against the clock, +15 s each.
 - **Le cart du Club** — the members' carts keep ending up at the school down
   the street. Bring one back before the marshal's round.
@@ -188,7 +188,7 @@ chimneys, further out a cheap silhouette. See `docs/HOUSES.md` for the plan,
 data sources and what is still rough.
 
 - **You** live at 299 Chemin Fraser; **Sayyad** (the Civic) at 75 Denise-Friend.
-  Margaret's Saturn is in the driveway next to your Ranger at 299 Fraser; Dave's Sunfire is out on Chemin
+  Margaret's Saturn is in the driveway next to your Ranger at 299 Fraser; Adam's Sunfire is out on Chemin
   Vanier in Deschênes ("il habite loin").
 - Landmarks are the actual ones: Galeries d'Aylmer, the Tim Hortons on
   Principale, the McDo on Chemin d'Aylmer, Aréna Frank-Robinson, Dépanneur

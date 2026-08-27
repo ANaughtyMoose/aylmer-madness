@@ -16,7 +16,7 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 | **school** | **total** | 1 stages | **1,925** | **130** | 53.3 | 173 |
 | gang | 1/4 | Chez Margaret | 2,161 | — | — | — |
 | gang | 2/4 | Chez Sayyad | 2,315 | — | — | — |
-| gang | 3/4 | Chez Dave | 4,794 | — | — | — |
+| gang | 3/4 | Chez Adam | 4,794 | — | — | — |
 | gang | 4/4 | Parc des Cèdres | 5,747 | — | — | — | <!-- max 45 km/h -->
 | **gang** | **total** | 4 stages | **15,016** | **—** | — | 1,351 |
 | poutine | 1/2 | Galeries Aylmer | 1,392 | — | — | — |
@@ -49,7 +49,7 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 | divan | 1/2 | Chez Mike — 129 avenue Frank-Robinson | 272 | — | — | — |
 | divan | 2/2 | Le divan dans l’arbre | — | — | — | — |
 | **divan** | **total** | 2 stages | **272** | **—** | — | 24 |
-| racedave | 1/2 | Devant chez Dave — chemin Vanier | 0 | — | — | — |
+| racedave | 1/2 | Devant chez Adam — chemin Vanier | 0 | — | — | — |
 | racedave | 2/2 | Galeries d’Aylmer — le stationnement | — | — | — | — |
 | **racedave** | **total** | 2 stages | **0** | **—** | — | 0 |
 | racecivic | 1/2 | Devant le 75 Denise-Friend | 0 | — | — | — |
@@ -73,7 +73,7 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 | 1/5 | Chez Margaret | 2,161 | — | — |
 | 2/5 | Chez Sayyad | 2,315 | — | — |
 | 3/5 | Parc des Cèdres | 1,250 | — | — |
-| 4/5 | Chez Dave | 5,767 | — | — |
+| 4/5 | Chez Adam | 5,767 | — | — |
 | 5/5 | Parc des Cèdres | 5,747 | — | — |
 | **total** | 5 stages | **17,239** | — | — |
 

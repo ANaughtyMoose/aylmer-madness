@@ -33,8 +33,8 @@ export const UNLOCKS = {
     needEn: 'Finish “Poutine express”',
   },
   sunfire: {
-    kind: 'mission', mission: 'curfew', who: 'Dave',
-    toast: 'Dave te passe la Sunfire\nson père est couché, fais pas de bruit',
+    kind: 'mission', mission: 'curfew', who: 'Adam',
+    toast: 'Adam te passe la Sunfire\nson père est couché, fais pas de bruit',
     need: 'Finis « Avant minuit »',
     needEn: 'Finish “Avant minuit”',
   },

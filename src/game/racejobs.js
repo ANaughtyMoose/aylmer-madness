@@ -312,28 +312,28 @@ function raceMission(cfg) {
   };
 }
 
-// ============================================================ 1. Dave
+// ============================================================ 1. Adam
 
 const daveRace = raceMission({
   id: 'racedave',
-  title: 'Dave jusqu’aux Galeries',
-  brief: 'Dave dit que son Sunfire est plus vite que ton char. Dave dit ben des affaires.',
+  title: 'Adam jusqu’aux Galeries',
+  brief: 'Adam dit que son Sunfire est plus vite que ton char. Adam dit ben des affaires.',
   giver: 'dave',
   start: 'dave',
   cps: ['mall'],
   money: 25,
   timeOfDay: 'day',
-  gridText: 'Devant chez Dave — chemin Vanier',
+  gridText: 'Devant chez Adam — chemin Vanier',
   gridSub: 'E sur la grille pour partir — il chauffe le moteur depuis dix minutes, colle-toi à côté',
   gridHold: 'E — « trois, deux, un »',
-  gridToast: 'Dave: « Premier arrivé paye le Slush. »',
-  intro: 'Dave: « Trois. Deux. UN— »',
+  gridToast: 'Adam: « Premier arrivé paye le Slush. »',
+  intro: 'Adam: « Trois. Deux. UN— »',
   text: 'Galeries d’Aylmer — le stationnement',
   sub: 'W à fond, suis la ligne bleue du GPS jusqu’au pilier — Deschênes, chemin d’Aylmer, pis tout droit',
   win: 'PREMIER.\nDave arrive douze secondes plus tard, ben tranquille.\n+25 $ — il paye le Slush.',
   lose: (rv) => `${rv.name} est déjà stationné. Il te fait de la main.\n` +
     '« Tu veux-tu que je te montre le raccourci? »',
-  rivals: [{ carId: 'sunfire', name: 'Dave', skill: 'dave' }],
+  rivals: [{ carId: 'sunfire', name: 'Adam', skill: 'dave' }],
 });
 
 // ============================================================ 2. Sayyad
@@ -376,7 +376,7 @@ export const CIRCUIT_START = { x: -800, z: -97, a: Math.PI / 2 };
 const circuit = raceMission({
   id: 'circuit',
   title: 'Circuit du Vieux-Aylmer',
-  brief: 'Trois tours. Principale, Frank-Robinson, du Patrimoine, Bancroft. Margaret pis Dave embarquent.',
+  brief: 'Trois tours. Principale, Frank-Robinson, du Patrimoine, Bancroft. Margaret pis Adam embarquent.',
   giver: 'arena',
   start: CIRCUIT_START,
   cps: CIRCUIT,
@@ -394,7 +394,7 @@ const circuit = raceMission({
   lose: (rv) => `${rv.name} passe la ligne avant toi. Trois tours pour rien.`,
   rivals: [
     { carId: 'saturn', name: 'Margaret', skill: 'margaret' },
-    { carId: 'sunfire', name: 'Dave', skill: 'dave' },
+    { carId: 'sunfire', name: 'Adam', skill: 'dave' },
   ],
 });
 

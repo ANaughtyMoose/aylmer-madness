@@ -31,7 +31,7 @@ import { heckle } from './heckle.js';
 //   gain/damp steering: proportional on heading error, damped on yaw rate
 //   band      throttle multipliers when well ahead / well behind the player
 export const SKILL = {
-  // Dave's Sunfire: quick in a straight line, lazy in the corners — which is
+  // Adam's Sunfire: quick in a straight line, lazy in the corners — which is
   // exactly what the car is.
   dave:     { cruise: 18.8, cornerK: 0.64, minSpeed: 6.2, gain: 1.55, damp: 0.26,
               band: { ahead: 0.88, behind: 1.08 } },

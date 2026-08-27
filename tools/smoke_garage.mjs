@@ -48,7 +48,7 @@ group('unlock rules');
   ok(CARS.every((c) => c.sound && c.drive), 'every car has a sound profile and a gearbox');
 
   // The three lent cars, each behind its own job.
-  const lent = [['saturn', 'gang', 'Margaret'], ['civic', 'poutine', 'Sayyad'], ['sunfire', 'curfew', 'Dave']];
+  const lent = [['saturn', 'gang', 'Margaret'], ['civic', 'poutine', 'Sayyad'], ['sunfire', 'curfew', 'Adam']];
   for (const [id, mission, who] of lent) {
     const done = new Set();
     ok(!g.has(id, done), `${id} is locked before « ${mission} »`);

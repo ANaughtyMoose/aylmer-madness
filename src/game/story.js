@@ -35,7 +35,7 @@ export const STORY_CARDS = [
     title: 'LA GANG',
     body: 'Margaret reste juste à côté, au 299 Fraser — c’est sa Saturn dans l’entrée.\n'
       + 'Sayyad est sur Denise-Friend, avec la Civic pis ses jantes neuves.\n'
-      + 'Dave reste loin en s’il-vous-plaît, à Deschênes, avec le Sunfire.\n'
+      + 'Adam reste loin en s’il-vous-plaît, à Deschênes, avec le Sunfire.\n'
       + 'Pis Mike, sur Frank-Robinson, a un divan pis une idée.',
   },
   {
@@ -179,7 +179,7 @@ export function carArticle(id) { return CAR_ART[id] || 'le'; }
 const CAR_WHY = {
   civic: 'il s’en fout, il dort',
   saturn: 'Margaret a dit oui en 1998, ça compte encore',
-  sunfire: 'Dave a laissé les clés dedans, comme toujours',
+  sunfire: 'Adam a laissé les clés dedans, comme toujours',
   ranger: 'ton char, tes règles',
   cutlass: 'ça sent le cendrier pis c’est correct de même',
   cavalier: 'quelqu’un a mis des flammes dessus. Quelqu’un.',
@@ -304,7 +304,7 @@ export const FRIEND_LINES = {
       ['Sayyad', '« J’amène mes cassettes. Discute pas. »'],
     ],
     end: [
-      ['Dave', '« La prochaine fois, tu pars de chez nous. »'],
+      ['Adam', '« La prochaine fois, tu pars de chez nous. »'],
       ['Margaret', '« Bon chauffeur. Pour un gars. »'],
     ],
   },
@@ -319,7 +319,7 @@ export const FRIEND_LINES = {
   },
   dep: {
     start: [['Margaret', '« Quatre slush bleues. Pas de rouge. Le rouge, c’est pour les enfants. »']],
-    end: [['Dave', '« Y en reste encore. C’est un miracle. »']],
+    end: [['Adam', '« Y en reste encore. C’est un miracle. »']],
   },
   cv: {
     start: [['Ta mère', '« J’en ai imprimé douze. Reviens pas avec douze. »']],
@@ -375,10 +375,10 @@ export const FRIEND_LINES = {
   },
   racedave: {
     start: [
-      ['Dave', '« Mon Sunfire est plus vite que ton char. C’est mathématique. »'],
-      ['Dave', '« Premier arrivé paye le Slush. »'],
+      ['Adam', '« Mon Sunfire est plus vite que ton char. C’est mathématique. »'],
+      ['Adam', '« Premier arrivé paye le Slush. »'],
     ],
-    end: [['Dave', '« ...bon. C’était la mathématique de l’autre sens. »']],
+    end: [['Adam', '« ...bon. C’était la mathématique de l’autre sens. »']],
   },
   racecivic: {
     start: [
@@ -390,9 +390,9 @@ export const FRIEND_LINES = {
   circuit: {
     start: [
       ['Margaret', '« Trois tours. Pis touche pas à ma Saturn. »'],
-      ['Dave', '« Y a personne le dimanche matin. Personne. »'],
+      ['Adam', '« Y a personne le dimanche matin. Personne. »'],
     ],
-    end: [['Dave', '« Ma suspension est finie. Elle l’était avant, mais quand même. »']],
+    end: [['Adam', '« Ma suspension est finie. Elle l’était avant, mais quand même. »']],
   },
   blitz: {
     start: [
