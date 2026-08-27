@@ -164,7 +164,44 @@ export const CARS = [
     glassTop: [[0.955, 0.985, 1.90]], glassSide: [0.055, 0.94],
     cladding: { rocker: 0.30, bumper: 0.42, tRear: 0.012, tFront: 0.988, color: 0x2b6ea8 },
   },
+
+  // ------------------------------------------------------------- the cart
+  // Club de Golf Gatineau's fleet cart, parked on the apron in front of the
+  // clubhouse on rue du Golf. It is not a car and it does not pretend to be:
+  // 24 km/h flat out, no engine (a whine and a contactor click), no doors, and
+  // it is the only thing in Aylmer that would rather be on grass than asphalt —
+  // `turf` multiplies the surface grip on grass / path / sand (see Vehicle).
+  //
+  // The loft here is only the TUB: floor, bench, rear deck. The canopy, its four
+  // posts, the windshield and the bag rack are boxes in addDetails, because a
+  // six-point ring cannot describe a roof with nothing under it.
+  {
+    // `whoDe: ''` — the name already says whose it is, so the E prompt reads
+    // « prendre le Cart de golf du Club » and not « ...du Club de Le Club ».
+    id: 'cart', name: 'Cart de golf du Club', who: 'Le Club', whoDe: '',
+    body: 0xf2efe4, seats: 2, style: 'cart',
+    electric: true, park: 'building', noTraffic: true, relay: 1180,
+    flavour: 'Électrique, 24 km/h, pas de portes. Le seul char en ville qui aime mieux le gazon que l’asphalte.',
+    len: 2.40, wid: 1.20, h: 1.80, wheelbase: 1.65, overhangF: 0.35, track: 1.20, wheelR: 0.25,
+    topSpeed: 7.15, accel: 3.0, brake: 4.5, grip: 0.55, steerMax: 0.85, mass: 400,
+    turf: 2.0,
+    seatY: 0.98, seatZ: 0.02, seatX: 0.30, clearance: 0.14,
+    // rear deck (the bag rack sits on it), bench back, cushion, footwell, cowl
+    top: [[0, 0.34], [0.03, 0.52], [0.08, 0.62], [0.30, 0.62], [0.33, 0.78], [0.36, 1.02],
+          [0.40, 1.06], [0.44, 1.04], [0.46, 0.66], [0.62, 0.64], [0.66, 0.40], [0.80, 0.40],
+          [0.84, 0.60], [0.90, 0.72], [0.94, 0.70], [0.97, 0.58], [1, 0.34]],
+    // Deliberately above every `top` value: specRing clamps belt to top, so the
+    // glass faces collapse and the loft skips them. An open-sided cart.
+    belt: [[0, 3], [1, 3]],
+    plan: [[0, 0.50], [0.035, 0.575], [0.09, 0.60], [0.91, 0.60], [0.965, 0.575], [1, 0.50]],
+    roofK: 1, tuck: 0,
+    glassTop: [], glassSide: [0.46, 0.70],
+    cladding: { rocker: 0, bumper: 0.16, tRear: 0.03, tFront: 0.97, color: 0x2f6b3a },
+  },
 ];
+// Cars ambient traffic is allowed to spawn as. Nobody drives a golf cart down
+// chemin d'Aylmer, so the cart opts out.
+export const TRAFFIC_CARS = CARS.filter((c) => !c.noTraffic);
 // D2 — what the handbrake leaves you. `hbGrip` scales lateral grip while the
 // lever is up and `hbYaw` scales the yaw the steering asks for: the Ranger is
 // tall and dumb and just ploughs, the Civic pivots on its nose.
@@ -177,6 +214,9 @@ const HANDBRAKE = {
   cavalier:{ hbGrip: 0.34, hbYaw: 1.58 },
   caravan: { hbGrip: 0.66, hbYaw: 1.08 },
   bus:     { hbGrip: 0.88, hbYaw: 0.92 },
+  // Four tiny turf tyres and no weight on them: the lever locks the back and it
+  // just slides, but there is nothing there to swing.
+  cart:    { hbGrip: 0.80, hbYaw: 1.14 },
 };
 // FEEL — the reverse gear, per car. `revTop` is how fast it will go backwards
 // (m/s; 6.94 == 25 km/h everywhere except the bus, which is 15) and `revEngage`
@@ -265,6 +305,19 @@ const SOUND = {
              hissG: 0.30, raspG: 0.35, raspFrom: 1600, rasp: 0.60, raspK: 3.4,
              boomF: 92, boomQ: 4.0, boomDb: 10, tickF: 2600, tickG: 0.070,
              lumpy: 0.020, pop: 0.5, gain: 1.15, rattle: 0, rattleFrom: 0 },
+  // 36 V series-wound DC motor. There is no combustion in here at all, so the
+  // pulse train is abused into a plain tone: 24 identical "pulses" a cycle with
+  // `harm: 26` leaves exactly ONE harmonic standing (n = 24), which is a sine at
+  // rpm/5 — 160 Hz rolling away, 760 Hz flat out. No rasp, no pops, no lumpy
+  // idle, and `idle: 0` means the voice mutes itself the moment you stop.
+  // `horn` is the per-car override audio.horn() reads: a bike bell, not a horn.
+  cart:    { cyl: 24, idle: 0, redline: 4200, limiter: 4400,
+             decay: 5.0, uneven: 0, tilt: 0.35, harm: 26,
+             exhQ: 0.50, exhG: 0.90, intF0: 500, intSpan: 1200, intQ: 0.6, intG: 0.35,
+             hissG: 0.04, raspG: 0, raspFrom: 99999, rasp: 0, raspK: 1.2,
+             boomF: 320, boomQ: 2.0, boomDb: 2, tickF: 2600, tickG: 0.010,
+             lumpy: 0, pop: 0, gain: 0.55, rattle: 0, rattleFrom: 0,
+             horn: { f: 2093, f2: 3136, type: 'sine', gain: 0.045 } },
 };
 
 // The actual gearboxes. game/gearbox.js turns road speed into rpm with these,
@@ -298,8 +351,15 @@ const DRIVE = {
   bus:     { gears: [3.45, 2.24, 1.41, 1.00], reverse: 5.00, final: 5.29, tyre: 1.050,
              idle: 620, redline: 2400, limiter: 2450,
              shiftUp: 2200, shiftUpLight: 1600, shiftDown: 900, launch: 1200, shiftTime: 0.55 },
+  // No gearbox at all: one reduction, forward and back, and the motor turns
+  // whenever the wheels do. `idle: 0` is what keeps it silent at a standstill,
+  // and shiftUp is out of reach so the box never looks for a second gear.
+  cart:    { gears: [1.00], reverse: 1.00, final: 15.0, tyre: 0.50,
+             idle: 0, redline: 4200, limiter: 4400,
+             shiftUp: 99999, shiftUpLight: 99999, shiftDown: 0, launch: 0, shiftTime: 0.05 },
 };
-const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24 : 0.20);
+const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24
+  : s.style === 'cart' ? 0.14 : 0.20);
 const WHEEL_PROUD = 0.07;   // tyre outer face this far outside the body at the axle
 for (const c of CARS) {
   c.axleZ = c.wheelbase / 2;
@@ -455,26 +515,29 @@ export function addDetails(mb, s, opts = {}) {
   const both = (fn) => { fn(1); fn(-1); };
 
   // ---- shared: wheel arches, mirrors, door handles, fuel door, plate
-  both((sx) => {
+  // The cart has none of these — no fenders, no mirrors, no doors, no tank —
+  // so it skips the whole prologue and goes straight to its own branch.
+  const bare = s.style === 'cart';
+  if (!bare) both((sx) => {
     for (const sign of [1, -1]) {
       const zz = sign * s.axleZ, hw = hwAt(s, axleT(s, sign));
       // arch: a dark disc on the body side, its bottom resting on the ground line
       mb.cyl(sx * (hw - 0.03), s.wheelR + 0.05, zz, s.wheelR + 0.05, 0.08, 12, shade(TRIM, 0.8), 'x', true);
     }
   });
-  if (!opts.noMirrors) {
+  if (!opts.noMirrors && !bare) {
     const tMirror = s.style === 'truck' ? 0.69 : s.glassSide[1] - 0.03;   // front of the door glass
     both((sx) => mb.box(sx * (hwAt(s, tMirror) + 0.09), beltAt(s, tMirror) + 0.08, z(tMirror), 0.16, 0.10, 0.13, dark));
   }
   const handles = s.style === 'sedan' ? [0.33, 0.56] : s.style === 'truck' ? [0.49]
     : s.style === 'hatch' ? [0.30] : s.style === 'van' ? [0.30, 0.55]
-    : s.style === 'bus' ? [] : [0.34];
+    : s.style === 'bus' || bare ? [] : [0.34];
   for (const th of handles) {
     both((sx) => mb.box(sx * (hwAt(s, th) + 0.006), beltAt(s, th) - 0.13, z(th), 0.012, 0.03, 0.14, dark));
   }
   // fuel door on the driver's (left, +X) rear quarter — on the truck it's on the bed side
   const tf = s.style === 'truck' ? 0.36 : s.style === 'hatch' ? 0.10 : 0.12;
-  mb.box(hwAt(s, tf) + 0.004, beltAt(s, tf) - 0.16 + (s.style === 'truck' ? 0.02 : 0), z(tf), 0.008, 0.15, 0.15, shade(s.body, 0.9));
+  if (!bare) mb.box(hwAt(s, tf) + 0.004, beltAt(s, tf) - 0.16 + (s.style === 'truck' ? 0.02 : 0), z(tf), 0.008, 0.15, 0.15, shade(s.body, 0.9));
   // rocker cladding: a slab between the wheel arches, sitting just proud of the tucked-in sill
   if (s.cladding && s.cladding.rocker > 0) {
     const zA = -s.axleZ + s.wheelR + 0.10, zB = s.axleZ - s.wheelR - 0.10;
@@ -688,6 +751,41 @@ export function addDetails(mb, s, opts = {}) {
     // engine grille on the tail — it is a pusher
     for (let k = -1; k <= 1; k++) mb.box(0, 1.55 + k * 0.14, zR + 0.010, 1.40, 0.08, 0.03, shade(TRIM, 0.7));
   }
+
+  // ---- the golf cart --------------------------------------------------
+  // The loft above is the tub only. Everything that makes it read as a cart —
+  // the flat canopy on four thin posts, the little windshield, the bench, the
+  // bag rack and the two bags — is boxes, because there is nothing under the
+  // roof for a closed cross-section to describe.
+  if (s.style === 'cart') {
+    const green = rgb(0x2f6b3a), vinyl = rgb(0x24402c), post = rgb(0xd7d4cb);
+    const glass = shade(GLASS, 2.1), mat = shade(TRIM, 0.9);
+    // canopy: a flat slab on four uprights, its top at exactly `h`
+    const yRoof = s.h - 0.045;                       // slab centre, 0.09 thick
+    mb.box(0, yRoof, 0.02, 1.16, 0.09, 2.08, bodyC);
+    for (const [zp, yb] of [[-0.95, 0.62], [1.00, 0.70]]) {
+      both((sx) => mb.box(sx * 0.52, (yb + yRoof - 0.045) / 2, zp, 0.06, yRoof - 0.045 - yb, 0.06, post));
+    }
+    // the little windshield, and the bench it looks over
+    mb.box(0, 0.93, 1.02, 1.04, 0.42, 0.03, glass);
+    mb.box(0, 0.70, 0.05, 1.02, 0.08, 0.40, vinyl);          // cushion
+    mb.box(0, 0.86, -0.17, 1.02, 0.44, 0.08, vinyl);         // squab
+    mb.box(0, 0.41, 0.61, 1.00, 0.02, 0.50, mat);            // floor mat
+    // wheel and column, on the driver's (+X) side
+    mb.box(0.30, 0.86, 0.84, 0.05, 0.30, 0.05, dark);
+    mb.box(0.30, 1.00, 0.79, 0.30, 0.28, 0.03, dark);
+    // bag rack over the rear deck, and the two bags in it
+    both((sx) => mb.box(sx * 0.34, 0.86, -0.60, 0.05, 0.48, 0.05, dark));
+    mb.box(0, 1.08, -0.60, 0.74, 0.05, 0.05, dark);
+    both((sx) => mb.box(sx * 0.22, 0.96, -0.80, 0.26, 0.68, 0.26, rgb(sx > 0 ? 0x2b3a5e : 0x6b2b34)));
+    both((sx) => mb.box(sx * 0.22, 1.36, -0.82, 0.13, 0.14, 0.10, chrome));
+    // two little headlamps low in the nose, one red pair and a reversing lamp
+    both((sx) => mb.box(sx * 0.30, 0.46, z(0.969), 0.14, 0.09, 0.05, lamp));
+    both((sx) => mb.box(sx * (hwR - 0.16), 0.28, zR + 0.012, 0.12, 0.08, 0.03, tail));
+    both((sx) => mb.box(sx * 0.14, 0.22, zR + 0.012, 0.08, 0.05, 0.03, rgb(PLATE)));
+    // the club's green stripe down both flanks
+    both((sx) => mb.box(sx * (hwAt(s, 0.5) + 0.004), 0.28, 0, 0.010, 0.07, 2.10, green));
+  }
 }
 
 export function buildCarBody(s, opts = {}) {
@@ -746,6 +844,14 @@ export function carLampBoxes(s) {
       head: [[0.50, 0.92, z(0.966), 0.36, 0.20]],
       tail: [[hwR - 0.11, 1.02, zR + 0.012, 0.19, 0.52]],
       rev:  [[hwR - 0.11, 0.68, zR + 0.012, 0.17, 0.12]],
+    };
+  }
+  if (s.id === 'cart') {
+    // Two little headlamps and a token red pair. Everything on a cart is small.
+    return {
+      head: [[0.30, 0.46, z(0.969), 0.14, 0.09]],
+      tail: [[hwR - 0.16, 0.28, zR + 0.012, 0.12, 0.08]],
+      rev:  [[0.14, 0.22, zR + 0.012, 0.08, 0.05]],
     };
   }
   if (s.id === 'bus') {
@@ -891,6 +997,11 @@ export function buildWheel(s) {
       }
     }
     mb.cyl(0, 0, 0, rimR * 0.30, face * 2 + 0.01, 8, shade(rim, 0.3), 'x');
+  } else if (s.id === 'cart') {
+    // A turf tyre on a painted steel wheel: no spokes, no cover, one pale hub.
+    const rim = 0xd7d4cb;
+    mb.cyl(0, 0, 0, rimR, face * 2, 10, rgb(rim), 'x');
+    mb.cyl(0, 0, 0, rimR * 0.34, face * 2 + 0.02, 6, shade(rim, 0.55), 'x');
   } else {
     // five-spoke alloy: dark dish with five bright spokes and a small cap
     const rim = 0xc4c7ca;
@@ -927,6 +1038,11 @@ const RESET_CLEARANCE = 3;
 // headlight and the bumper folds; past PERF it will not pull and it will not
 // steer straight; at DEAD the job is over and somebody comes to get you.
 export const DAMAGE = { COSMETIC: 25, PERF: 60, DEAD: 100 };
+
+// Surfaces a machine built for turf is HAPPIER on than tarmac. `spec.turf`
+// multiplies the per-kind grip on these and nowhere else; every car without a
+// `turf` factor drives exactly as it did before this line existed.
+const TURF_KIND = { grass: 1, path: 1, sand: 1 };
 
 const GRASS = 0.72;                     // surface multiplier off the asphalt
 const SURF_RAMP = (1 - GRASS) / 0.5;    // D4: the full penalty takes half a second
@@ -1068,10 +1184,14 @@ export class Vehicle {
     // D4: grass and gravel still cut the grip the instant you leave the road,
     // but the drag ramps in over half a second instead of hitting a wall. The
     // per-kind table generalises that without moving asphalt or grass.
-    const wantSurf = sd.power;
+    // A turf machine (spec.turf) is not penalised for being off the tarmac on
+    // the surfaces it was built for, and bites harder on them than on asphalt.
+    // Capped at 1 for `power`, so grass is never FASTER than a road.
+    const turf = s.turf && TURF_KIND[kind] ? s.turf : 1;
+    const wantSurf = turf > 1 ? Math.min(1, sd.power * turf) : sd.power;
     this.surface += clamp(wantSurf - this.surface, -SURF_RAMP * dt, SURF_RAMP * dt);
     const surface = this.surface;
-    const gripSurf = inAir ? 0 : sd.grip;
+    const gripSurf = inAir ? 0 : sd.grip * turf;
     const offRoad = (1 - surface) / (1 - GRASS);      // 0 on tarmac, 1 fully off it
     const inWater = world.waterAt(this.x, this.z) && !inAir;
     const topSpeed = s.topSpeed * (this.hurt ? 0.85 : 1);   // R4: −15 % once it's bad
@@ -1493,7 +1613,8 @@ export class Vehicle {
     const s = this.spec;
     const out = [];
     if (s.seats >= 1) out.push([-s.seatX, s.seatY, s.seatZ]);
-    if (s.seats >= 2) out.push([0, s.seatY, s.seatZ - (s.style === 'truck' ? 0 : 1.1)]);
+    // A bench (the Ranger, the cart) seats the second person beside you.
+    if (s.seats >= 2) out.push([0, s.seatY, s.seatZ - (s.style === 'truck' || s.style === 'cart' ? 0 : 1.1)]);
     if (s.seats >= 3) out.push([s.seatX, s.seatY, s.seatZ - 1.1]);
     return out.slice(0, s.seats);
   }

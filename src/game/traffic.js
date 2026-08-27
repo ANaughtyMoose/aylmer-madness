@@ -2,7 +2,7 @@
 // graph from OpenStreetMap, one lane-width right of the centreline, and brake
 // for whatever is in front of them, which is all you can see at 50 km/h.
 import { MAP } from './mapdata.js';
-import { CARS } from './cars.js';
+import { TRAFFIC_CARS } from './cars.js';
 import { collideCars, driftBody, contact } from './collide.js';
 import { clamp, angleDelta, mulberry32 } from '../core/math.js';
 // Story agent: somebody you shoved, or somebody stuck behind you, has something
@@ -130,7 +130,7 @@ export class Traffic {
     for (let i = 0; i < count; i++) {
       const pool = (rnd() < 0.6 && big.length) ? big : (small.length ? small : big);
       const ei = pool[Math.floor(rnd() * pool.length) % pool.length];
-      const spec = CARS[Math.floor(rnd() * CARS.length)];
+      const spec = TRAFFIC_CARS[Math.floor(rnd() * TRAFFIC_CARS.length)];
       const car = {
         x: 0, z: 0, y: 0, yaw: 0, spin: 0, speed: 0, horn: 0,
         spec,

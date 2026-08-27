@@ -37,8 +37,13 @@ const fresh = () => { localStorage.clear(); return new Garage(new Set()); };
 group('unlock rules');
 {
   const g = fresh();
-  ok(g.unlocked().length === 1 && g.unlocked()[0] === START_CAR,
-    'you start with the Ranger and nothing else', JSON.stringify(g.unlocked()));
+  // Nine cars now. You own exactly one of them; the tenth thing on the list,
+  // the Club's golf cart, is not owned by anybody and never was, which is why
+  // it is drivable from the first frame and never announced.
+  ok(CARS.length === 9, `${CARS.length} cars in the game`);
+  ok(g.unlocked().join() === `${START_CAR},cart`,
+    'you start with the Ranger and the Club\'s cart, and nothing else', JSON.stringify(g.unlocked()));
+  ok(g.reason('cart', new Set()) === null, 'the cart is never locked');
   for (const c of CARS) ok(!!UNLOCKS[c.id], `${c.id} has an unlock rule`);
   ok(CARS.every((c) => c.sound && c.drive), 'every car has a sound profile and a gearbox');
 

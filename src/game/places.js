@@ -8,9 +8,8 @@ import { MAP } from './mapdata.js';
 export const PLACES = {
   // The four homes.
   home:      { x: 932.9, z: 143.9, label: '299 Chemin Fraser', snap: true },
-  // Keys are historical (steph/marc); the people are Sayyad and Margaret.
+  // The 'steph' key is historical; the person is Sayyad.
   steph:     { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
-  marc:      { x: -870.5, z: 60.2, label: '27 Bancroft', snap: true },   // unused now
   margaret:  { x: 932.9, z: 143.9, label: '299 Chemin Fraser (Margaret)', snap: true },
   dave:      { x: 2389.2, z: 1384.6, label: '20 Chemin Vanier (Deschênes)', snap: true },
   // Landmarks.
@@ -46,6 +45,13 @@ export const PLACES = {
   mike:      { x: -428.3, z: 58.3, label: '129 Frank-Robinson (Mike)', snap: true },
   // Île Aylmer, out in Lac Deschênes. Deliberately NOT snapped to a road.
   island:    { x: -1227, z: 612, label: 'Île Aylmer' },
+  // Club de Golf Gatineau: the clubhouse sits ~29 m south of the service loop
+  // that OpenStreetMap calls Rue du Golf, which is what the marker snaps onto.
+  // The golf cart is parked on the apron in front of the building (see
+  // main.js homeParked / save.js apronSpot), far enough from the marker that
+  // « prendre le cart » and « Le cart du Club » are two different prompts.
+  golf:      { road: 'Rue du Golf', x: 1256.8, z: -1320.9,
+               label: 'Club de Golf Gatineau, rue du Golf', snap: true, lot: true },
 };
 
 // Closest point on a road with the given name, or (name=null) on any road
