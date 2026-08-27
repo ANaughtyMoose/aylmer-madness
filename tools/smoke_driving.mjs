@@ -312,6 +312,155 @@ function shunt(player, car) {
     CARS.filter((c) => c.sound.rattle > 0).map((c) => c.id).join() === 'sunfire,cavalier');
 }
 
+// ------------------------------------------------- FEEL: the arcade shift
+//
+// The complaint was "switching from reverse to forward is not really working
+// properly unless I come to a full stop". These are the checks that say it is:
+// one continuous press of one key turns the car round, both ways.
+
+{
+  const drive = (v, c, secs, each) => {
+    const n = Math.round(secs * 60);
+    for (let i = 0; i < n; i++) { v.update(1 / 60, c, road); if (each) each(v, (i + 1) / 60); }
+    return v;
+  };
+  const rolling = (id, speed) => {
+    const v = new Vehicle(carById(id));
+    v.reset(0, 0, 0);
+    v.vz = speed; v.syncFrame();
+    if (speed < 0) { v.dir = -1; }        // already backing up, box in R
+    return v;
+  };
+
+  // 1. Rolling backwards at 5 m/s, W held and NEVER released.
+  for (const id of ['ranger', 'civic', 'caravan', 'bus']) {
+    const v = rolling(id, -5);
+    const c = ctl({ throttle: 1 });
+    let stopAt = null, fwdAt = null;
+    drive(v, c, 2.5, (veh, t) => {
+      if (stopAt === null && veh.vLong >= 0) stopAt = t;
+      if (fwdAt === null && veh.vLong > 0.5) fwdAt = t;
+    });
+    ok(`FEEL ${id}: −5 m/s + W stops inside 0.8 s`, stopAt !== null && stopAt <= 0.8,
+      `stopped at ${stopAt === null ? 'never' : r2(stopAt) + ' s'}`);
+    ok(`FEEL ${id}: ...and is going forward inside 1.4 s, no release`,
+      fwdAt !== null && fwdAt <= 1.4, `forward at ${fwdAt === null ? 'never' : r2(fwdAt) + ' s'}`);
+    ok(`FEEL ${id}: it ends up in drive`, v.dir === 1 && v.reversing === false);
+  }
+
+  // 2. Rolling forwards at 8 m/s, S held and never released.
+  for (const id of ['ranger', 'civic', 'caravan', 'bus']) {
+    const v = rolling(id, 8);
+    const c = ctl({ brake: 1 });
+    let revAt = null;
+    drive(v, c, 8, (veh, t) => { if (revAt === null && veh.vLong < -0.2) revAt = t; });
+    const cap = carById(id).revTop;
+    ok(`FEEL ${id}: +8 m/s + S is in reverse inside 1.5 s`, revAt !== null && revAt <= 1.5,
+      `reverse at ${revAt === null ? 'never' : r2(revAt) + ' s'}`);
+    ok(`FEEL ${id}: reverse is capped at ${(cap * 3.6).toFixed(0)} km/h`,
+      v.vLong <= 0 && v.vLong >= -cap - 1e-6 && v.vLong <= -cap * 0.7,
+      `${r2(v.vLong)} m/s (${r2(v.vLong * 3.6)} km/h)`);
+    ok(`FEEL ${id}: nothing on the car goes faster backwards than 7 m/s`, v.vLong >= -7,
+      `${r2(v.vLong)} m/s`);
+  }
+
+  // 3. The brake that turns you round is at least 8 m/s², on every car.
+  for (const c of CARS) {
+    const v = rolling(c.id, 10);
+    const before = v.vLong;
+    v.update(1 / 60, ctl({ brake: 1 }), road);
+    const decel = (before - v.vLong) * 60;
+    ok(`FEEL ${c.id}: the direction-change brake pulls ${'>='} 8 m/s²`, decel >= 8,
+      `${r2(decel)} m/s²`);
+  }
+
+  // 4. The gear engage pause at zero is 0.2-0.3 s, and the bus and the Caravan
+  //    take longer over it than the manuals do.
+  ok('FEEL: every car engages R in 0.2-0.3 s',
+    CARS.every((c) => c.revEngage >= 0.2 && c.revEngage <= 0.3),
+    CARS.map((c) => `${c.id} ${c.revEngage}`).join(', '));
+  ok('FEEL: the bus and the Caravan are the slowest into gear',
+    carById('bus').revEngage > carById('civic').revEngage
+    && carById('caravan').revEngage > carById('civic').revEngage);
+  ok('FEEL: the bus only backs up at 15 km/h',
+    near(carById('bus').revTop * 3.6, 15, 0.1), `${r2(carById('bus').revTop * 3.6)} km/h`);
+  ok('FEEL: everyone else backs up at 25',
+    CARS.filter((c) => c.id !== 'bus').every((c) => near(c.revTop * 3.6, 25, 0.1)));
+
+  {
+    // Measured, not just declared: from a standstill, S held, how long until it
+    // actually moves backwards.
+    const v = new Vehicle(carById('caravan'));
+    v.reset(0, 0, 0);
+    let moveAt = null;
+    drive(v, ctl({ brake: 1 }), 1.2, (veh, t) => { if (moveAt === null && veh.vLong < -0.05) moveAt = t; });
+    ok('FEEL: the clunk at zero is a readable pause, not a stall',
+      moveAt >= 0.24 && moveAt <= 0.45, `moved at ${r2(moveAt)} s`);
+  }
+
+  // 5. `reversing` is the GEAR, not the speed: R shows at 0 km/h.
+  {
+    const v = new Vehicle(carById('ranger'));
+    v.reset(0, 0, 0);
+    v.update(1 / 60, ctl({ brake: 1 }), road);
+    ok('FEEL: R is engaged (and the lamps are on) at 0 km/h',
+      v.reversing === true && v.speedKmh < 1, `${r2(v.speedKmh)} km/h`);
+    ok('FEEL: ...and the box clunks exactly once', v.gearClunk === true);
+    v.update(1 / 60, ctl({ brake: 1 }), road);
+    ok('FEEL: ...not every tick', v.gearClunk === false);
+  }
+
+  // 6. The handbrake locks the rear. It never picks a gear.
+  for (const id of ['ranger', 'civic', 'bus']) {
+    const v = rolling(id, 9);
+    const c = ctl({ handbrake: true });
+    let wentBackwards = false;
+    drive(v, c, 12, (veh) => { if (veh.vLong < -0.05) wentBackwards = true; });
+    ok(`FEEL ${id}: the handbrake alone never reverses you`,
+      !wentBackwards && v.dir === 1 && v.reversing === false, `vLong ${r2(v.vLong)}`);
+
+    const w = rolling(id, 9);
+    let flipped = false;
+    drive(w, ctl({ brake: 1, handbrake: true }), 6, (veh) => { if (veh.vLong < -0.05) flipped = true; });
+    ok(`FEEL ${id}: ...and holding S with the lever up does not shift either`,
+      !flipped && w.dir === 1, `vLong ${r2(w.vLong)}`);
+  }
+
+  // 7. Reverse steering: the back end goes the other way, and the assist helps.
+  {
+    const mk = () => { const v = rolling('saturn', -4); return v; };
+    const a = mk(); a.assist = true;
+    const b = mk(); b.assist = false;
+    const c = ctl({ brake: 1, steer: 1 });
+    const y0 = a.yaw;
+    drive(a, c, 1.5); drive(b, c, 1.5);
+    // Same lock, going the other way: the nose has to swing the other way too.
+    const f = rolling('saturn', 4);
+    const fy0 = f.yaw;
+    drive(f, ctl({ throttle: 1, steer: 1 }), 1.5);
+    ok('FEEL: the same lock swings the nose the other way in reverse',
+      Math.sign(a.yaw - y0) === -Math.sign(f.yaw - fy0),
+      `reverse ${r2(a.yaw - y0)} rad vs forward ${r2(f.yaw - fy0)} rad`);
+    ok('FEEL: the assist does not fight the wheel in reverse',
+      Math.abs(a.vLat) <= Math.abs(b.vLat) + 0.35,
+      `assist slip ${r2(a.vLat)} vs raw ${r2(b.vLat)}`);
+    ok('FEEL: and reversing actually steers', Math.abs(a.yaw - y0) > 0.15,
+      `${r2(Math.abs(a.yaw - y0))} rad`);
+  }
+
+  // 8. The whole point: one press, both ways, no release, no full stop.
+  {
+    const v = rolling('saturn', 7);
+    let revAt = null;
+    drive(v, ctl({ brake: 1 }), 3, (veh, t) => { if (revAt === null && veh.vLong < -1) revAt = t; });
+    let fwdAt = null;
+    drive(v, ctl({ throttle: 1 }), 3, (veh, t) => { if (fwdAt === null && veh.vLong > 1) fwdAt = t; });
+    ok('FEEL: forward -> reverse -> forward on two key presses',
+      revAt !== null && fwdAt !== null && revAt < 1.6 && fwdAt < 1.6,
+      `reverse at ${r2(revAt)} s, forward again ${r2(fwdAt)} s later`);
+  }
+}
+
 console.log(out.join('\n'));
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

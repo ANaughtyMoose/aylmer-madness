@@ -22,24 +22,162 @@ const REPAIR_RADIUS = 24;
 // ---------------------------------------------------------------- repairs
 
 /**
- * Drive into the Petro-Canada, stop, and wait. `state` is a plain object the
- * caller keeps ({ t: 0 }); returns 'start', 'done', 'left' or null so main.js
- * owns all the toasts.
+ * The primitive: sit at ONE spot with the engine off the boil and count. `state`
+ * is a plain object the caller keeps ({ t: 0 }); returns 'start', 'done' or null
+ * so the caller owns all the toasts. `opts` can move the radius and the clock.
  */
-export function updateRepair(state, dt, veh, gas) {
+export function updateRepair(state, dt, veh, gas, opts = {}) {
   if (!gas) return null;
+  const rad = opts.radius != null ? opts.radius : REPAIR_RADIUS;
+  const secs = opts.seconds != null ? opts.seconds : REPAIR_SECONDS;
   const dx = veh.x - gas.x, dz = veh.z - gas.z;
-  const ok = dx * dx + dz * dz < REPAIR_RADIUS * REPAIR_RADIUS
+  const ok = dx * dx + dz * dz < rad * rad
     && Math.abs(veh.vLong) < 1.2 && veh.damage > 0;
   if (!ok) { state.t = 0; return null; }
   const first = state.t === 0;
   state.t += dt;
-  if (state.t >= REPAIR_SECONDS) { state.t = 0; return 'done'; }
+  if (state.t >= secs) { state.t = 0; return 'done'; }
   return first ? 'start' : null;
 }
 
 // Seconds still to wait, for a prompt.
-export const repairLeft = (state) => Math.max(0, REPAIR_SECONDS - state.t);
+export const repairLeft = (state, secs = REPAIR_SECONDS) => Math.max(0, secs - state.t);
+
+// ---------------------------------------------------------------- FEEL: where you get it fixed
+//
+// The complaint was that nobody could find the one garage in town, so there are
+// three now and the HUD points at them. `place` is a key into game/places.js.
+//
+//   home        your own driveway. Free, and slow, because you are doing it.
+//   gas/ctire   somebody else does it in four seconds and charges you for it.
+//
+// Everything here is pure arithmetic against a places table and a wallet-shaped
+// object, so tools/smoke_repair.mjs runs it in node with no browser at all.
+export const REPAIR = {
+  RATE: 0.20,          // dollars per point of damage at a real garage
+  MIN: 5,              // ...but never less than this
+  TOW: 60,             // what the flatbed charges when the car is finished
+  HOME_RADIUS: 14,     // "in the driveway", metres
+  SHOP_RADIUS: 24,     // "on the forecourt", metres
+  HOME_SECONDS: 10,
+  SHOP_SECONDS: 4,
+};
+
+export const REPAIR_SPOTS = [
+  { key: 'home',  place: 'home',  radius: REPAIR.HOME_RADIUS, seconds: REPAIR.HOME_SECONDS,
+    free: true,  short: 'chez vous',      label: 'ton entrée' },
+  { key: 'gas',   place: 'gas',   radius: REPAIR.SHOP_RADIUS, seconds: REPAIR.SHOP_SECONDS,
+    free: false, short: 'Petro-Can',      label: 'la Petro-Canada' },
+  { key: 'ctire', place: 'ctire', radius: REPAIR.SHOP_RADIUS, seconds: REPAIR.SHOP_SECONDS,
+    free: false, short: 'Canadian Tire',  label: 'le Canadian Tire' },
+];
+
+/** 20 % of the damage in dollars, never under $5, always a round number. */
+export function repairCost(damage) {
+  if (!(damage > 0)) return 0;
+  return Math.max(REPAIR.MIN, Math.round(damage * REPAIR.RATE));
+}
+
+const spotXZ = (spot, places) => places && places[spot.place];
+
+/** The repair spot the car is actually parked at, or null. */
+export function repairSpotAt(veh, places) {
+  if (!veh || !(veh.damage > 0) || Math.abs(veh.vLong) > 1.2) return null;
+  for (const s of REPAIR_SPOTS) {
+    const p = spotXZ(s, places);
+    if (!p) continue;
+    const dx = veh.x - p.x, dz = veh.z - p.z;
+    if (dx * dx + dz * dz < s.radius * s.radius) return s;
+  }
+  return null;
+}
+
+/** The nearest one anywhere in town — what the map puts a wrench on. */
+export function nearestRepair(veh, places) {
+  let best = null, bd = Infinity;
+  for (const s of REPAIR_SPOTS) {
+    const p = spotXZ(s, places);
+    if (!p) continue;
+    const d = Math.hypot(veh.x - p.x, veh.z - p.z);
+    if (d < bd) { bd = d; best = { key: s.key, x: p.x, z: p.z, label: s.short, dist: d }; }
+  }
+  return best;
+}
+
+/**
+ * One tick of "am I getting this thing fixed". `state` is { t, key }; `opts` is
+ * { places, press (E this tick), wallet }. The money comes off at the END, so
+ * driving away half-repaired costs you nothing but the time.
+ *
+ * Returns a plain record — no DOM, no audio — and main.js turns it into a
+ * prompt, a toast and the wrench taps.
+ */
+export function updateRepairs(state, dt, veh, opts = {}) {
+  const res = { spot: null, prompt: null, toast: null, done: false, cost: 0, working: false, left: 0 };
+  const places = opts.places;
+  if (!veh || !(veh.damage > 0)) { state.t = 0; state.key = null; return res; }
+  const spot = repairSpotAt(veh, places);
+  if (!spot) { state.t = 0; state.key = null; return res; }
+  res.spot = spot;
+
+  const wallet = opts.wallet || null;
+  const cost = spot.free ? 0 : repairCost(veh.damage);
+  res.cost = cost;
+
+  // Already under way here.
+  if (state.key === spot.key) {
+    state.t += dt;
+    res.working = true;
+    res.left = Math.max(0, spot.seconds - state.t);
+    res.prompt = `Réparation…  ${Math.ceil(res.left)} s`;
+    if (state.t >= spot.seconds) {
+      const paid = cost > 0 && wallet ? (wallet.spend(cost) ? cost : 0) : 0;
+      state.t = 0; state.key = null;
+      res.working = false; res.done = true; res.prompt = null; res.cost = paid;
+      res.toast = spot.free
+        ? 'Comme neuf.\nTon père a rien vu.'
+        : `Comme neuf.\n${paid} $ — fais attention à c’t’heure`;
+    }
+    return res;
+  }
+
+  // Not started. Broke? Say so, and point at the driveway.
+  if (cost > 0 && wallet && !wallet.can(cost)) {
+    res.prompt = `${cost} $ pour réparer — t’as pas l’argent. Chez vous c’est gratuit (E)`;
+    return res;
+  }
+  res.prompt = spot.free
+    ? `E  —  réparer dans l’entrée (gratuit, ${spot.seconds} s)`
+    : `E  —  réparer (${cost} $)`;
+  if (opts.press) {
+    state.key = spot.key; state.t = 0;
+    res.working = true;
+    res.left = spot.seconds;
+    res.prompt = `Réparation…  ${spot.seconds} s`;
+  }
+  return res;
+}
+
+/**
+ * Discoverability. `state` is { h25, h60 }; returns the one-time toast for a
+ * threshold you have just crossed, plus the standing line for the HUD's damage
+ * bar. Both flags clear once the car is straight again, so the next time you
+ * wreck it you get told again.
+ */
+export function repairHint(state, damage) {
+  const out = { toast: null, hint: null };
+  if (!(damage > 0)) { state.h25 = false; state.h60 = false; return out; }
+  if (damage >= DAMAGE.COSMETIC && !state.h25) {
+    state.h25 = true;
+    out.toast = 'Ton char est magané — Petro-Can, Canadian Tire, ou ton entrée (E)';
+  }
+  if (damage >= DAMAGE.PERF && !state.h60) {
+    state.h60 = true;
+    out.toast = 'Ça tire à gauche pis ça pétarade — va le faire réparer';
+  }
+  if (damage >= DAMAGE.COSMETIC) out.hint = 'réparer: Petro-Can · Canadian Tire · chez vous';
+  return out;
+}
 
 // ---------------------------------------------------------------- steam
 

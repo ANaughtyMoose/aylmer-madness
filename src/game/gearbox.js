@@ -74,10 +74,23 @@ export class Gearbox {
     const d = this.d;
     throttle = clamp(throttle, 0, 1);
 
+    // Reverse is a real gear, not a special case: the ratio is the one off the
+    // sheet (numerically the tallest in the box, which is why backing up whines)
+    // and it slips off the clutch from a standstill exactly like first does. The
+    // caller passes the pedal that is actually driving — S, when you are in R.
     if (reversing) {
-      this.gear = 0; this.shiftT = 0; this.clutch = 1;
-      this.rpm = Math.max(d.idle, Math.min(d.limiter, this.rpmAt(kmh, 0)));
-      this.limiting = false;
+      this.gear = 0; this.shiftT = 0;
+      const road = this.rpmAt(kmh, 0);
+      const launch = d.idle + throttle * (d.launch - d.idle);
+      let rpm = road;
+      this.clutch = 1;
+      if (road < launch) {
+        const slip = clamp(road / Math.max(1, launch), 0, 1);
+        rpm = launch + (road - launch) * slip;
+        this.clutch = 0.45 + 0.55 * slip;
+      }
+      this.rpm = Math.max(d.idle, Math.min(d.limiter, rpm));
+      this.limiting = this.rpm >= d.limiter;
       return this;
     }
     if (this.gear === 0) this.gear = 1;

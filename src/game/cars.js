@@ -178,6 +178,20 @@ const HANDBRAKE = {
   caravan: { hbGrip: 0.66, hbYaw: 1.08 },
   bus:     { hbGrip: 0.88, hbYaw: 0.92 },
 };
+// FEEL — the reverse gear, per car. `revTop` is how fast it will go backwards
+// (m/s; 6.94 == 25 km/h everywhere except the bus, which is 15) and `revEngage`
+// is the clunk at zero before R takes: a manual drops in almost at once, the
+// Caravan's three-speed and the bus's crash box take their time about it.
+const REVERSE = {
+  ranger:  { revTop: 6.94, revEngage: 0.22 },
+  saturn:  { revTop: 6.94, revEngage: 0.20 },
+  civic:   { revTop: 6.94, revEngage: 0.20 },
+  sunfire: { revTop: 6.94, revEngage: 0.21 },
+  cutlass: { revTop: 6.94, revEngage: 0.24 },
+  cavalier:{ revTop: 6.94, revEngage: 0.21 },
+  caravan: { revTop: 6.94, revEngage: 0.28 },
+  bus:     { revTop: 4.17, revEngage: 0.30 },
+};
 // C5 — the procedural engine, per car. These are the parameters core/audio.js's
 // pulse-train synth reads; see the header there for what the graph does with
 // them. The numbers that matter most:
@@ -294,6 +308,7 @@ for (const c of CARS) {
   const hwAxle = Math.max(pl(c.plan, rearOverhang / c.len), pl(c.plan, (rearOverhang + c.wheelbase) / c.len));
   c.track = Math.round(2 * (hwAxle + WHEEL_PROUD - WHEEL_W(c) / 2) * 100) / 100;
   Object.assign(c, HANDBRAKE[c.id]);
+  Object.assign(c, REVERSE[c.id] || {});      // a car with no entry takes the defaults
   c.sound = SOUND[c.id];
   c.drive = DRIVE[c.id];
 }
@@ -952,6 +967,20 @@ const CURB_KICK0 = 0.56, CURB_KICK1 = 0.169, CURB_KICK_MAX = 4.2;
 // over them. This is what lets the Galeries dock jump clear the service fence.
 const AIR_OVER_WALLS = 1.6;
 
+// FEEL — the arcade shift, Midtown Madness style. There is no hysteresis and no
+// "come to a full stop first": every tick the sign of vLong and the pedal you
+// are holding pick the mode outright.
+//   * rolling the wrong way for the pedal  -> the BRAKES, at DIR_BRAKE or better
+//   * at rest, W                           -> drive, instantly
+//   * at rest, S                           -> reverse, after a clunk you can hear
+// The numbers are deliberately blunt: a direction change has to feel like one
+// continuous press of one key, so nothing here waits on a timer you can't see.
+const DIR_DEAD = 0.3;          // |vLong| under this counts as stopped, m/s
+const DIR_BRAKE = 8.0;         // floor on the direction-change brake, m/s²
+const REV_TOP = 25 / 3.6;      // reverse cap when a car has no revTop, m/s
+const REV_ENGAGE = 0.22;       // the clunk at zero before R takes, seconds
+const REV_ACCEL = 0.70;        // reverse gets this much of first-gear thrust
+
 export class Vehicle {
   constructor(spec) {
     this.spec = spec;
@@ -997,6 +1026,10 @@ export class Vehicle {
     this.onRoad = true;
     this.skid = 0; this.impact = 0; this.drowning = 0;
     this.reversing = false; this.braking = false;
+    // Which gear the box is in: +1 drive, -1 reverse. `engageT` counts down the
+    // clunk at zero, and `gearClunk` is true for the ONE tick R drops in, which
+    // is what main.js hangs the sound off.
+    this.dir = 1; this.engageT = 0; this.gearClunk = false;
     this.curb = 0;
     this.lastHit = 0;
     this.misfireT = 0;
@@ -1045,16 +1078,59 @@ export class Vehicle {
 
     // Engine: force tapers off as you approach terminal speed, like a tired 4-banger.
     const frac = clamp(vLong / topSpeed, -1, 1);
+    const revTop = s.revTop != null ? s.revTop : REV_TOP;
+
+    // ---- which way the box is in (see DIR_* at the top of the file) --------
+    // `want` is the intent: W is forward, S is backward, nothing else. The
+    // handbrake is NOT an intent — the lever locks the rear and never picks a
+    // gear, so holding it freezes whatever gear you were already in.
+    const want = ctl.throttle > 0.05 ? 1 : (ctl.brake > 0.05 ? -1 : 0);
+    const rolling = Math.abs(vLong) < DIR_DEAD ? 0 : Math.sign(vLong);
+    if (this.engageT > 0) this.engageT = Math.max(0, this.engageT - dt);
+    let flip = false;
+    this.gearClunk = false;
+    if (!inAir && !ctl.handbrake) {
+      if (want !== 0 && rolling !== 0 && want !== rolling) {
+        flip = true;                      // wrong way for the pedal: scrub it off
+      } else if (want === 1 && this.dir !== 1) {
+        this.dir = 1; this.engageT = 0;   // drive engages the moment you ask for it
+      } else if (want === -1 && rolling === 0 && this.dir !== -1) {
+        this.dir = -1;                    // ...reverse takes a beat, and clunks
+        this.engageT = s.revEngage != null ? s.revEngage : REV_ENGAGE;
+        this.gearClunk = true;
+      }
+    }
+
     let a = 0;
     if (!inAir) {
-      if (ctl.throttle > 0 && vLong > -1.5) {
-        a += ctl.throttle * s.accel * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+      if (flip) {
+        // A direction change is the BRAKES, not the engine: one hard, readable
+        // stop, then the gear drops in below and you are away again.
+        a -= rolling * Math.max(s.brake, DIR_BRAKE) * surface;
+      } else if (this.engageT > 0) {
+        // Mid-clunk: nothing is driving and the car is held where it stopped.
+        // Capped at what it takes to reach zero, so it holds instead of rocking.
+        if (Math.abs(vLong) > 0.02) {
+          a -= Math.sign(vLong) * Math.min(Math.max(s.brake, DIR_BRAKE) * surface, Math.abs(vLong) / dt);
+        }
+      } else if (this.dir < 0) {
+        // In R, S is the go pedal — geared low, and it runs out at revTop.
+        if (ctl.brake > 0) {
+          a -= ctl.brake * s.accel * REV_ACCEL * surface
+            * (1 - Math.pow(clamp(-vLong / revTop, 0, 1), 1.7));
+        }
+        // Only reachable with the lever up (the machine above owns W otherwise).
+        if (ctl.throttle > 0 && vLong > -0.02) a += ctl.throttle * s.accel * surface;
+      } else {
+        if (ctl.throttle > 0) {
+          a += ctl.throttle * s.accel * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+        }
+        // The brakes bring you to rest; they never push you out the other side.
+        if (ctl.brake > 0 && vLong > 0.02) a -= Math.min(ctl.brake * s.brake * surface, vLong / dt);
       }
-      if (ctl.brake > 0) {
-        if (vLong > 0.6) a -= ctl.brake * s.brake * surface;
-        else a -= ctl.brake * s.accel * 0.55 * (1 - Math.max(0, -frac));  // reverse
-      }
-      if (ctl.handbrake && vLong > 0.5) a -= s.brake * 0.55;
+      // The lever: it slows you whichever way you are going and never pushes
+      // the car through zero into the other direction.
+      if (ctl.handbrake && Math.abs(vLong) > 0.4) a -= Math.sign(vLong) * s.brake * 0.55;
       // Rolling resistance is a near-constant drag; aero grows with the square.
       // Top speed then falls out of where the power curve meets it.
       if (Math.abs(vLong) > 0.2) a -= Math.sign(vLong) * (0.28 + 1.42 * offRoad * sd.drag);
@@ -1073,6 +1149,10 @@ export class Vehicle {
       }
     }
     vLong += a * dt;
+    // The direction-change brake stops AT zero — it never shoves you backwards
+    // in the tick it arrives, so the gear below is what turns you round.
+    if (flip && vLong * rolling < 0) vLong = 0;
+    if (this.dir < 0 && vLong < -revTop) vLong = -revTop;      // R is capped
     if (ctl.throttle === 0 && ctl.brake === 0 && Math.abs(vLong) < 0.25) vLong = 0;
 
     // D3 — the kerb, rebuilt. It is 0.15 m of concrete: take it at a walk and it
@@ -1120,7 +1200,9 @@ export class Vehicle {
     if (ctl.handbrake) this.yawRate *= (s.hbYaw != null ? s.hbYaw : 1.55);
     if (this.assist) {
       // Gentle counter-steer: pull the heading toward the direction of travel.
-      this.yawRate += vLat * 0.045 * (1 - speedFrac * 0.5);
+      // Backwards that is the other way round — the same term unsigned would
+      // fight the wheel and make reversing feel like it was on ice.
+      this.yawRate += vLat * 0.045 * (1 - speedFrac * 0.5) * (vLong < 0 ? -1 : 1);
     }
     // Nothing to steer against once the wheels are off the ground: the heading
     // freezes and the stick only leans the body, Midtown Madness style.
@@ -1224,9 +1306,14 @@ export class Vehicle {
     // that is what makes a jump a shortcut instead of a bounce.
     if (this.y - gh < AIR_OVER_WALLS) this.collide(world);
 
-    // D5: which way the box is in, for the speedo and the hood camera.
-    this.reversing = this.vLong < -0.4;
-    this.braking = (ctl.brake > 0.05 && this.vLong > -0.05) || !!ctl.handbrake;
+    // D5 / FEEL: which way the box is in, for the speedo, the reverse lamps and
+    // the hood camera. It is the GEAR, not the speed — R shows the instant the
+    // gear drops in, at a standstill, the way the lamps on a real car do.
+    this.reversing = this.dir < 0;
+    // Brake lamps: the pedal in drive, the lever, and the hard stop you get
+    // when you ask for the other direction. Not the go pedal in reverse.
+    this.braking = flip || !!ctl.handbrake
+      || (this.dir > 0 && ctl.brake > 0.05 && this.vLong > -0.05);
 
     // Cosmetic body attitude — a truck should visibly lean, and on a slope it
     // sits along the slope. Negative pitch is nose-up; positive roll leans right.

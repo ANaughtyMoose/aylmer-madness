@@ -190,6 +190,8 @@ export class BigMap {
     // race agent: who you are racing, and who is chasing you
     for (const p of state.rivals || []) pin(sx(p.x), sy(p.z), '#ff8a3d', p.name || 'Rival', true);
     for (const p of state.cops || []) pin(sx(p.x), sy(p.z), '#6fb2ff', 'Police', true);
+    // feel agent: where to get the dents taken out, once there are dents.
+    for (const p of state.repairs || []) pin(sx(p.x), sy(p.z), '#9ee6a1', '\u{1F527} ' + (p.label || 'Réparation'), true);
     if (state.waypoint) pin(sx(state.waypoint.x), sy(state.waypoint.z), '#4fd3ff', 'Waypoint', true);
     if (state.target) pin(sx(state.target.x), sy(state.target.z), COL.label, 'Objectif', true);
     // player

@@ -9,7 +9,7 @@ import { loadMaterials } from './game/materials.js';
 import MATS_STUB from './game/materials_stub.js';
 import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow, DAMAGE } from './game/cars.js';
 import { asBody, collideCars, driftBody, contact } from './game/collide.js';
-import { DriveFx, updateRepair, restoreDamage } from './game/damage.js';
+import { DriveFx, updateRepairs, repairSpotAt, nearestRepair, repairHint, REPAIR, restoreDamage } from './game/damage.js';
 import { Traffic } from './game/traffic.js';
 import { Hud } from './game/hud.js';
 import { loadCarSkin } from './game/carskin.js';
@@ -73,6 +73,9 @@ const CAMS = [
   { name: 'far',   dist: 14.5, height: 6.4, pitch: -0.26, fovAdd: -0.03 },
   { name: 'hood',  dist: -0.2, height: 1.55, pitch: -0.04, fovAdd: 0.06 },
 ];
+// feel agent: how long the hood cam takes to swing round when you drop it into
+// reverse. Anything under about a fifth of a second reads as a glitch.
+const REV_CAM_BLEND = 0.3;
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('gl');
@@ -115,7 +118,12 @@ const G = {
   // Counters other systems may read with optional chaining (G.stats?.airtime).
   stats: { airtime: 0, jumps: 0, bigAir: 0, landings: 0, hardest: 0 },
   camShake: 0,               // hood-cam rattle, decays after a landing
-  fx: null, repair: { t: 0 }, towed: false,
+  // feel agent: `repair` is which garage you are sitting in and how long for,
+  // `repairHints` remembers which "go get it fixed" toast you have already had,
+  // `repairOffer` is the spot offering you an E right now (it owns that key
+  // while it is set) and `revBlend` eases the hood cam round into reverse.
+  fx: null, repair: { t: 0, key: null }, repairHints: { h25: false, h60: false },
+  repairOffer: null, wrenchT: 0, revBlend: 0, towed: false,
   // side-job state: hand-placed props, the canoe, who the camera follows, cash
   props: null, boat: null, focus: null, wallet: null,
   // Progression + the deck. `gearbox` turns road speed into rpm for the engine
@@ -700,7 +708,8 @@ function updateMission(dt) {
         const d = Math.hypot(G.parked[id].x - v.x, G.parked[id].z - v.z);
         if (d < cd) { cd = d; carId = id; }
       }
-      if (carId && Math.abs(v.vLong) < 3) {
+      // feel agent: a garage in range owns E, so don't offer the swap over it.
+      if (carId && Math.abs(v.vLong) < 3 && !G.repairOffer) {
         const c = carById(carId);
         if (!garage.has(carId, G.done)) {
           // On the lot: the same hold/cost shape the yard sale uses, except the
@@ -867,6 +876,9 @@ function mapState() {
     rivals: G.rivals.map((rv) => ({ x: rv.x, z: rv.z, name: rv.name })),
     cops: [...G.cops.units.map((u) => ({ x: u.x, z: u.z })), ...G.cops.blocks.map((b) => ({ x: b.x, z: b.z }))],
     places: Object.values(PLACES).filter((p) => p.label && !/Chemin Fraser|Denise|Bancroft|Vanier/.test(p.label)),
+    // feel agent: once it needs fixing, the nearest garage gets a wrench.
+    repairs: G.veh && G.veh.damage >= DAMAGE.COSMETIC
+      ? [nearestRepair(G.veh, PLACES)].filter(Boolean) : [],
   };
 }
 
@@ -928,7 +940,9 @@ function handleKeys() {
   // R is the radio (it is 1999 and the deck matters); T is the get-me-out-of-here.
   if (input.hit('KeyT')) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
   if (input.hit('KeyR')) toggleRadio();
-  if (input.hit('Enter', 'KeyE')) G.wantStart = true;
+  // feel agent: while a garage is offering an E, that key is the garage's and
+  // Enter still takes the job — otherwise E is what it always was.
+  if (input.hit('Enter') || (input.hit('KeyE') && !G.repairOffer)) G.wantStart = true;
   if (input.hit('KeyQ')) G.wantCycle = true;
   // Mute moved off M so N can cycle the minimap size.
   if (input.hit('Digit0', 'Numpad0', 'F9')) {
@@ -956,26 +970,60 @@ function driveHooks(dt, v) {
   G.fx.tick(dt, v, G.world);
   G.health[v.spec.id] = v.damage;
 
-  // Repairs at the Petro-Canada: pull in, stop, count to five.
-  const rep = updateRepair(G.repair, dt, v, PLACES.gas);
-  if (rep === 'start') hud.toast('Reste là cinq secondes,\non te r’garde ça', 2200);
-  else if (rep === 'done') {
-    v.repair(); G.health[v.spec.id] = 0;
-    hud.toast('Comme neuf.\nFais attention à c’t’heure', 2400);
-    audio.blip(760, 0.16, 'triangle', 0.18);
-  }
+  // feel agent: the clunk when the box drops into R. One tick only.
+  if (v.gearClunk) audio.blip(126, 0.085, 'square', 0.20);
+
+  // feel agent: is a garage offering us an E this tick? Computed here, before
+  // updateMission runs, because the parked-car swap has to know to keep out of
+  // the way and handleKeys has to know not to hand E to the mission runner.
+  G.repairOffer = G.mission ? null : repairSpotAt(v, PLACES);
+
+  // ...and the "your car is a mess, here is where they fix it" nagging.
+  const hint = repairHint(G.repairHints, v.damage);
+  if (hint.toast) hud.toast(hint.toast, 3400);
+  hud.setRepairHint(hint.hint);
 
   // Dead: the job is gone and so is the car, until the flatbed drops it home.
   if (v.damage >= DAMAGE.DEAD && !G.towed) {
     G.towed = true;
     const home = PLACES[OWNER[v.spec.id]];
+    // The flatbed is not a charity. If the wallet can stand it, it costs.
+    const paid = G.wallet && G.wallet.can(REPAIR.TOW) ? (G.wallet.spend(REPAIR.TOW), true) : false;
     if (G.mission) failMission('Le char est fini. Remorqué.');
-    else { hud.toast('LE CHAR EST FINI\nRemorqué chez vous, pis réparé', 3200); audio.chime(false); }
+    else {
+      hud.toast('LE CHAR EST FINI\nRemorquage: ' + REPAIR.TOW + ' $'
+        + (paid ? ', pis réparé' : ' — t’es cassé, on te le passe'), 3200);
+      audio.chime(false);
+    }
     v.reset(home.x, home.z, home.a);
     v.repair();
     G.health[v.spec.id] = 0;
-    G.repair.t = 0;
+    G.repair.t = 0; G.repair.key = null;
+    G.repairHints.h25 = false; G.repairHints.h60 = false;
+    hud.setRepairHint(null); hud.setRepairPrompt(null);
   } else if (v.damage < DAMAGE.DEAD) G.towed = false;
+}
+
+// feel agent — the three garages: your own driveway (free, ten seconds) and the
+// Petro-Canada / Canadian Tire (four seconds, 20 % of the damage in dollars).
+// Runs AFTER updateMission so it can see what the mission runner decided, and
+// it talks to its own prompt line so it never takes #prompt off anyone.
+function updateRepairSpot(dt, v) {
+  const press = !!G.repairOffer && input.hit('KeyE');
+  const r = updateRepairs(G.repair, dt, v, { places: PLACES, press, wallet: G.wallet });
+  hud.setRepairPrompt(G.mission ? null : r.prompt);
+  if (r.working) {
+    G.wrenchT -= dt;
+    if (G.wrenchT <= 0) { G.wrenchT = 0.5 + Math.random() * 0.25; audio.wrench(); }
+  } else G.wrenchT = 0;
+  if (r.done) {
+    v.repair();
+    G.health[v.spec.id] = 0;
+    G.repairHints.h25 = false; G.repairHints.h60 = false;
+    hud.setRepairHint(null);
+    hud.toast(r.toast, 2600);
+    audio.blip(760, 0.16, 'triangle', 0.18);
+  }
 }
 
 // Small corner map <-> large corner map. Tab is the third size (full screen).
@@ -1064,6 +1112,8 @@ function tick(dt) {
   }
   updateMission(dt);
   heckle.update(dt, G);
+
+  updateRepairSpot(dt, v);                 // feel agent: after the mission runner
   if (G.props) G.props.update(dt, G);
   if (G.reactive) G.reactive.update(dt, G);
   G.time += dt;
@@ -1081,12 +1131,15 @@ function tick(dt) {
   // The gearbox. rpm is not "how fast are you going out of top speed" any more:
   // it is road speed through the real ratios, and the engine note follows it —
   // including the 250 ms clutch dip on every change. See game/gearbox.js.
+  // In R the pedal that is driving is S, not W, and reverse is a real gear with
+  // its own (very short) ratio — which is what makes backing up whine.
   const gb = G.gearbox;
-  gb.update(dt, v.speedKmh, ctl.throttle, v.reversing && v.speedKmh > 1);
-  const load = clamp(ctl.throttle * 0.85 + Math.min(0.2, v.speedKmh / 400), 0, 1);
-  audio.engine(gb.rpm, load, v.speedKmh, ctl.throttle, gb.clutch);
+  const drivePedal = v.reversing ? ctl.brake : ctl.throttle;
+  gb.update(dt, v.speedKmh, drivePedal, v.reversing);
+  const load = clamp(drivePedal * 0.85 + Math.min(0.2, v.speedKmh / 400), 0, 1);
+  audio.engine(gb.rpm, load, v.speedKmh, drivePedal, gb.clutch);
   audio.skid(v.skid);
-  hud.setGear(v.reversing && v.speedKmh > 1 ? 'R' : gb.gear);
+  hud.setGear(v.reversing ? 'R' : gb.gear);
   radio.update(dt, load, input.down('KeyH') || input.padHorn);
 
   tutorial.update(dt, {
@@ -1108,16 +1161,21 @@ function render(dt) {
   const f = G.focus || v;
 
   // Chase camera: yaw eases toward the car, and a slide swings it wide.
-  const revCam = cam.name === 'hood' && !!f.reversing;   // D5: look where you're going
+  // D5: look where you're going. The flip is blended over REV_CAM_BLEND seconds
+  // (feel agent) — snapping the hood cam through 180° was the jarring bit.
+  const revWant = cam.name === 'hood' && !!f.reversing ? 1 : 0;
+  const rate = dt / REV_CAM_BLEND;
+  G.revBlend = clamp(G.revBlend + clamp(revWant - G.revBlend, -rate, rate), 0, 1);
   const back = G.settings.invertLook ? !G.lookBack : G.lookBack;   // option: look back by default
-  const want = f.yaw + (back || revCam ? 0 : Math.PI) - clamp(f.vLat * 0.02, -0.35, 0.35);
+  const want = f.yaw + (back ? 0 : Math.PI * (1 - (cam.name === 'hood' ? G.revBlend : 0)))
+    - clamp(f.vLat * 0.02, -0.35, 0.35);
   G.camYaw += angleDelta(want, G.camYaw) * Math.min(1, dt * (cam.name === 'hood' || G.lookBack ? 22 : 5.5));
   const fx = Math.sin(f.yaw), fz = Math.cos(f.yaw);
   const dist = cam.dist + Math.abs(f.vLong) * 0.09;
   const cx = Math.sin(G.camYaw + Math.PI), cz = Math.cos(G.camYaw + Math.PI);
   let px, pz;
   if (cam.name === 'hood') {
-    const hd = revCam ? -cam.dist - 1.7 : cam.dist;
+    const hd = lerp(cam.dist, -cam.dist - 1.7, G.revBlend);
     px = f.x + fx * hd; pz = f.z + fz * hd;
   } else {
     px = f.x - cx * dist; pz = f.z - cz * dist;
@@ -1502,6 +1560,7 @@ function toMenu() {
   G.introUntil = 0;
   introCard.hide();
   hud.setVisible(false);
+  hud.setRepairPrompt(null); hud.setRepairHint(null);   // feel agent: they live outside #hud
   $('menu').classList.remove('hidden');
   buildMenu();
   applyMenuText();

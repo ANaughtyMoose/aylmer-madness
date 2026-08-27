@@ -353,6 +353,28 @@ export class Audio {
   setMaster(v) {
     return this.setVolume({ master: typeof v === 'number' && isFinite(v) ? v : 1 }).master;
   }
+
+  // FEEL — somebody under the hood with a ratchet: two or three short metallic
+  // taps at a slightly different pitch and spacing every time, so calling it on
+  // a loop while a repair runs reads as work and not as a metronome.
+  wrench(vol = 1) {
+    if (!this.ok || !this.enabled) return;
+    const ctx = this.ctx, t0 = ctx.currentTime;
+    const n = 2 + ((Math.random() * 2) | 0);
+    for (let i = 0; i < n; i++) {
+      const at = t0 + i * (0.075 + Math.random() * 0.055);
+      const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+      o.type = 'square';
+      const hz = 1250 + Math.random() * 900;
+      o.frequency.setValueAtTime(hz, at);
+      o.frequency.exponentialRampToValueAtTime(hz * 0.42, at + 0.05);
+      f.type = 'bandpass'; f.frequency.value = 2200 + Math.random() * 700; f.Q.value = 3.2;
+      g.gain.setValueAtTime(0.055 * vol, at);
+      g.gain.exponentialRampToValueAtTime(0.0004, at + 0.075);
+      o.connect(f); f.connect(g); g.connect(this.fx);
+      o.start(at); o.stop(at + 0.09);
+    }
+  }
 }
 
 // ---------------------------------------------------------------- the voice
