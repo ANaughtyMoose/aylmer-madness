@@ -1187,7 +1187,8 @@ function render(dt) {
     - clamp(f.vLat * 0.02, -0.35, 0.35);
   G.camYaw += angleDelta(want, G.camYaw) * Math.min(1, dt * (cam.name === 'hood' || G.lookBack ? 22 : 5.5));
   const fx = Math.sin(f.yaw), fz = Math.cos(f.yaw);
-  const dist = cam.dist + Math.abs(f.vLong) * 0.09;
+  // Short vehicles (the golf cart) get a closer chase cam; long ones (the bus) a farther one.
+  const dist = cam.dist * clamp((f.spec ? f.spec.len : 4.5) / 4.5, 0.62, 1.25) + Math.abs(f.vLong) * 0.09;
   const cx = Math.sin(G.camYaw + Math.PI), cz = Math.cos(G.camYaw + Math.PI);
   let px, pz;
   if (cam.name === 'hood') {

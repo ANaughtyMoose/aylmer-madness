@@ -97,7 +97,7 @@ group('the cart builds');
   ok(pct(W, cart.wid) <= 3, `mesh width ${W.toFixed(2)} m vs ${cart.wid} m spec`);
   ok(pct(H, cart.h) <= 3, `mesh height ${H.toFixed(2)} m vs ${cart.h} m spec — the canopy`);
   ok(cart.wheelR <= 0.28, `tiny wheels: ${cart.wheelR} m`);
-  ok(cart.seats === 2, 'a two-place bench');
+  ok(cart.seats === 1, 'a two-place bench (driver + one)');
   ok(cart.mass === 400, '400 kg');
   // Terminal speed, not the nominal number: the engine force tapers into the
   // drag well short of `topSpeed`, so measure what the car actually does.
@@ -193,8 +193,8 @@ group('« Le cart du Club »');
     const tgt = stageTarget({ parked: {} }, {}, st);
     ok(tgt && tgt.r > 0, `stage "${st.kind}" has a marker of radius ${tgt && tgt.r}`);
   }
-  const beach = inCar.find((s) => s.at === 'beach');
-  ok(!!beach && beach.radius === 20, 'the beach checkpoint is 20 m across');
+  const beach = inCar.find((s) => s.at === 'aigle');
+  ok(!!beach && beach.radius === 20, 'the school checkpoint is 20 m across');
   const back = inCar[inCar.length - 1];
   ok(back.at === 'golf', 'and the last stage brings it home to the Club');
   ok(back.time > 0, `with a ${Math.round(back.time / 60)}-minute marshal timer`);

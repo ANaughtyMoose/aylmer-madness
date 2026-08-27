@@ -50,6 +50,7 @@ export const PLACES = {
   // The golf cart is parked on the apron in front of the building (see
   // main.js homeParked / save.js apronSpot), far enough from the marker that
   // « prendre le cart » and « Le cart du Club » are two different prompts.
+  aigle:     { x: 1593.8, z: -1262.8, label: 'École de l’Aigle', snap: true, lot: true },
   golf:      { road: 'Rue du Golf', x: 1256.8, z: -1320.9,
                label: 'Club de Golf Gatineau, rue du Golf', snap: true, lot: true },
 };

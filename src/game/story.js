@@ -363,6 +363,16 @@ export const FRIEND_LINES = {
       ['La mère de Mike', '« Tiens, 30 piasses. Pis descends-le avant l’hiver. »'],
     ],
   },
+  golfcart: {
+    start: [
+      ['Le kid du pro shop', '« Les carts des membres disparaissent. Y en a un à l’école, encore. »'],
+      ['Le kid du pro shop', '« Le marshal fait son tour dans dix minutes. Fais ça vite. »'],
+    ],
+    end: [
+      ['Le kid du pro shop', '« Merci. Dis rien au marshal. »'],
+      ['Le marshal', '« … C’était-tu toi, ça? »'],
+    ],
+  },
   racedave: {
     start: [
       ['Dave', '« Mon Sunfire est plus vite que ton char. C’est mathématique. »'],

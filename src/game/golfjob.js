@@ -24,8 +24,8 @@
 import { PLACES } from './places.js';
 import { apronSpot } from './save.js';
 
-const DROP = 'beach';        // where the cart "keeps disappearing" to
-const BACK_TIME = 1200;      // seconds to get it back; measured, not guessed
+const DROP = 'aigle';        // where the cart "keeps disappearing" to — the school 350 m down Rue du Golf
+const BACK_TIME = 360;       // seconds to get it back from the school (the beach version was a 25-minute crawl)
 const PAY = 25;
 
 // Close enough to the clubhouse that handing the cart back makes sense.
@@ -80,7 +80,8 @@ export const golfjob = {
       stages.push({
         kind: 'take',
         text: 'Prends un cart — Club de Golf Gatineau',
-        sub: 'Ils sont alignés devant le chalet. Le kid regarde ailleurs exprès.',
+        sub: 'Ils sont alignés devant le chalet — arrête-toi à côté pis appuie sur E. Le kid regarde ailleurs exprès.',
+        hint: 'Les carts sont sur l’asphalte devant le chalet du Club. Stationne-toi à côté, E pour embarquer.',
         at: (G) => (G.parked && G.parked.cart) || PLACES.golf,
         radius: 10, stopped: 6, hold: true,
         holdText: 'E — embarquer dans le cart',
@@ -89,22 +90,24 @@ export const golfjob = {
       });
     }
 
-    // ---- b. down to the beach ------------------------------------------
+    // ---- b. over to the school -----------------------------------------
     stages.push({
       kind: 'run',
-      text: 'Plage des Cèdres',
-      sub: 'Coupe par les sentiers pis le gazon — le cart est fait pour ça, pas pour l’asphalte.',
+      text: 'École de l’Aigle',
+      sub: 'Suis le GPS (ligne bleue) — coupe par le gazon, le cart est fait pour ça, pas pour l’asphalte.',
+      hint: 'L’école de l’Aigle est 350 m plus loin sur la rue du Golf. W pour avancer, pis vise le stationnement.',
       at: DROP, radius: 20,
       condition: (G) => inTheCart(G),
       prompt: (G) => wrongCar(G),
-      toast: 'Le cart est sur le sable. C’est là qu’ils finissent tous, faut croire.',
+      toast: 'Deux autres carts dans le stationnement de l’école. C’est là qu’ils finissent tous, faut croire.',
     });
 
     // ---- c. and back before the marshal --------------------------------
     stages.push({
       kind: 'back',
       text: 'Ramène-le au Club',
-      sub: 'Avant que le marshal finisse son tour du stationnement.',
+      sub: 'Suis le GPS jusqu’au chalet, W à fond — le marshal finit son tour du stationnement.',
+      hint: 'Retourne au Club de golf (pilier au chalet). Le timer, c’est le marshal.',
       at: 'golf', radius: 18, time: BACK_TIME,
       condition: (G) => inTheCart(G),
       prompt: (G) => wrongCar(G),

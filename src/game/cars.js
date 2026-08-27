@@ -179,7 +179,7 @@ export const CARS = [
     // `whoDe: ''` — the name already says whose it is, so the E prompt reads
     // « prendre le Cart de golf du Club » and not « ...du Club de Le Club ».
     id: 'cart', name: 'Cart de golf du Club', who: 'Le Club', whoDe: '',
-    body: 0xf2efe4, seats: 2, style: 'cart',
+    body: 0xf2efe4, seats: 1, style: 'cart',
     electric: true, park: 'building', noTraffic: true, relay: 1180,
     flavour: 'Électrique, 24 km/h, pas de portes. Le seul char en ville qui aime mieux le gazon que l’asphalte.',
     len: 2.40, wid: 1.20, h: 1.80, wheelbase: 1.65, overhangF: 0.35, track: 1.20, wheelR: 0.25,
@@ -589,7 +589,7 @@ export function addDetails(mb, s, opts = {}) {
         mb.box(sx * (hwB + 0.009), yHi + 0.016, zc2, 0.012, 0.02, zb - za, stripeA);
         mb.box(sx * (hwB + 0.009), yHi + 0.045, zc2, 0.012, 0.012, zb - za, stripeB);
       }
-      mb.box(sx * (hwAt(s, 0.69) + 0.09), beltAt(s, 0.69) + 0.08, z(0.69), 0.17, 0.11, 0.14, chrome);   // mirror head
+      if (!opts.noMirrors) mb.box(sx * (hwAt(s, 0.69) + 0.09), beltAt(s, 0.69) + 0.08, z(0.69), 0.17, 0.11, 0.14, chrome);   // mirror head
       mb.box(sx * (hwAt(s, 0.49) + 0.009), beltAt(s, 0.49) - 0.13, z(0.49), 0.014, 0.032, 0.15, chrome); // handle
       mb.box(sx * (hwAt(s, 0.80) + 0.007), 0.82, z(0.80), 0.012, 0.045, 0.15, chrome);                  // XLT badge
     });
