@@ -48,7 +48,7 @@ export const CKOI_TRACKS = [
   { style: 'metal', seed: 8801, title: 'Chrome et Asphalte',       artist: 'Bourrasque',      seconds: 96 },
   { style: 'boom',  seed: 4242, title: 'Deux Piastres',            artist: 'DJ Vanier',       seconds: 114 },
   { style: 'folk',  seed: 1717, title: 'La Reel du Chemin d’Aylmer', artist: 'La Sacoche',    seconds: 92 },
-  { style: 'pop',   seed: 2703, title: 'Été ’99',                  artist: 'Marie-Pier',      seconds: 120 },
+  { style: 'pop',   seed: 2703, title: 'Été 2004',                  artist: 'Marie-Pier',      seconds: 120 },
   { style: 'metal', seed: 6161, title: 'Le Dernier Party',         artist: 'Bourrasque',      seconds: 100 },
 ];
 
@@ -424,7 +424,7 @@ export class Radio {
   }
 
   // The station sting: three notes and a swoosh. This is the "DJ" — the words
-  // go on the HUD line, because a game about 1999 Aylmer does not get to depend
+  // go on the HUD line, because a game about 2004 Aylmer does not get to depend
   // on the browser's speech synthesiser.
   _sting() {
     const a = this.audio;

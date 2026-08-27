@@ -1,6 +1,6 @@
 // The police (BACKLOG G4).
 //
-// 1999 Aylmer is policed by the municipality, not the Sûreté: a white Crown
+// 2004 Aylmer is policed by the municipality, not the Sûreté: a white Crown
 // Victoria with a blue stripe down the cladding and a light bar on the roof.
 // The car is built here rather than in cars.js because you never get to drive
 // it and it has no business turning up on the menu.

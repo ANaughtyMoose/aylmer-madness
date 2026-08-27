@@ -25,7 +25,7 @@ export const STUCK_T = 20;        // ...in this many seconds, or you get a nudge
 
 export const STORY_CARDS = [
   {
-    title: 'ÉTÉ 1999',
+    title: 'ÉTÉ 2004',
     body: 'T’as dix-sept ans pis t’es à Aylmer, Québec. L’école est finie, il fait '
       + '28 degrés, pis ton père a laissé les clés du Ranger XLT 1993 dans le plat '
       + 'à monnaie en partant travailler.\n\n'

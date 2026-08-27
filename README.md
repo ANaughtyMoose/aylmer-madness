@@ -80,7 +80,7 @@ exhaust rasp, a rev limiter, overrun pops, and a real five-speed with the
 right ratios. `docs/audio/` has 12-second auditions of each car; `node
 tools/audition.mjs` regenerates them.
 
-**Radio** (**R**): CKOI 102.1 plays four synthesized 1999 loops with a jingle
+**Radio** (**R**): CKOI 102.1 plays four synthesized 2004 loops with a jingle
 between tracks; the cassette deck plays your own files — drop them in
 `assets/radio/` and list them in `playlist.json` (see the README there).
 

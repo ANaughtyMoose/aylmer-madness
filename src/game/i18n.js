@@ -7,7 +7,7 @@
 
 const FR = {
   // menu
-  'menu.tag': 'Aylmer, Québec · été ’99 · t’as ton permis pis un demi-réservoir',
+  'menu.tag': 'Aylmer, Québec · été 2004 · t’as ton permis pis un demi-réservoir',
   'menu.assist': 'Aides à la conduite (plus facile)',
   'menu.audio': 'Son',
   'menu.graphics': 'Graphiques',
@@ -192,7 +192,7 @@ const FR = {
 };
 
 const EN = {
-  'menu.tag': 'Aylmer, Québec · summer ’99 · you have a licence and half a tank',
+  'menu.tag': 'Aylmer, Québec · summer 2004 · you have a licence and half a tank',
   'menu.assist': 'Driving assists (easier)',
   'menu.audio': 'Sound',
   'menu.graphics': 'Graphics',

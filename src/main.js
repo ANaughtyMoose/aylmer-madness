@@ -947,7 +947,7 @@ function handleKeys() {
   } else {
     G.lookBack = input.down('ShiftLeft', 'ShiftRight');
   }
-  // R is the radio (it is 1999 and the deck matters); T is the get-me-out-of-here.
+  // R is the radio (it is 2004 and the deck still matters); T is the get-me-out-of-here.
   if (input.hit('KeyT')) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
   if (input.hit('KeyR')) toggleRadio();
   // feel agent: while a garage is offering an E, that key is the garage's and
