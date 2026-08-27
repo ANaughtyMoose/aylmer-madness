@@ -288,3 +288,16 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
 /* The one button that starts the game reads like it. */
 #menuside #start{font-size:17px;padding:18px 12px;letter-spacing:1.4px;box-shadow:0 6px 24px rgba(255,201,77,.28)}
 #menuside #start:hover{filter:brightness(1.06)}
+
+/* ---------------------------------------------------------------- feel agent
+   Where you get it fixed. The hint tucks under the damage bar in the same
+   bottom-right stack, and #prompt2 is a second prompt line under #prompt so
+   the repair spots never have to take #prompt away from the mission runner. */
+#repairhint{position:fixed;right:26px;bottom:120px;z-index:5;font-size:10px;font-weight:700;
+  letter-spacing:.9px;color:#9ee6a1;opacity:.92;text-align:right;max-width:300px;
+  text-shadow:0 2px 8px rgba(0,0,0,.95);pointer-events:none}
+#repairhint.hidden{display:none}
+#prompt2{position:fixed;bottom:calc(22% - 34px);left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.55);padding:7px 15px;border-radius:20px;font-size:14px;
+  color:#9ee6a1;white-space:nowrap;z-index:5;pointer-events:none}
+#prompt2.hidden{display:none}

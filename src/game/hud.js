@@ -31,6 +31,7 @@ const C = {
   player: '#ffc94d',
   rival: '#ff8a3d',      // a friend you are racing
   cop: '#6fb2ff',        // an auto-patrouille
+  repair: '#9ee6a1',     // where you get the dents taken out
 };
 
 // Ground cover fills, by MAP.areas kind.
@@ -554,6 +555,22 @@ export class Hud {
       }
     }
 
+    // FEEL — where you can get it fixed, once it needs fixing. Drawn like the
+    // pins above, but as the wrench the damage bar is already showing you.
+    const repairs = state.repairs;
+    if (repairs && repairs.length) {
+      g.font = '11px Helvetica, Arial, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillStyle = C.repair;
+      for (let i = 0; i < repairs.length; i++) {
+        const dx = repairs[i].x - px, dz = repairs[i].z - pz;
+        const d = Math.hypot(dx, dz);
+        const k = d <= range ? 1 : (MAP_R - 8) / (d * s);   // off the edge: pin it to the rim
+        g.fillText('\u{1F527}', toX(dx * k, dz * k), toY(dx * k, dz * k));
+      }
+    }
+
     // Player: fixed yellow arrow at the centre, always pointing up.
     g.fillStyle = C.player;
     g.beginPath();
@@ -625,6 +642,42 @@ export class Hud {
     if (v === this._lastRev) return;
     this._lastRev = v;
     if (this._revEl) this._revEl.classList.toggle('hidden', !v);
+  }
+
+  /**
+   * FEEL — the line next to the damage bar that tells you where the garages
+   * are. `text` is null once the car is straight again. Markup is one
+   * <div id="repairhint"> at the end of index.html.
+   */
+  setRepairHint(text) {
+    if (this._hintEl === undefined) {
+      this._hintEl = (typeof document !== 'undefined' ? document.getElementById('repairhint') : null);
+    }
+    const v = text || null;
+    if (v === this._lastHint) return;
+    this._lastHint = v;
+    const el = this._hintEl;
+    if (!el) return;
+    el.textContent = v ? '\u{1F527} ' + v : '';
+    el.classList.toggle('hidden', !v);
+  }
+
+  /**
+   * FEEL — a second prompt line, under the main one, that only the repair
+   * spots use. It has its own element so it can never fight the mission
+   * runner for #prompt.
+   */
+  setRepairPrompt(text) {
+    if (this._p2El === undefined) {
+      this._p2El = (typeof document !== 'undefined' ? document.getElementById('prompt2') : null);
+    }
+    const v = text || null;
+    if (v === this._lastP2) return;
+    this._lastP2 = v;
+    const el = this._p2El;
+    if (!el) return;
+    el.textContent = v || '';
+    el.classList.toggle('hidden', !v);
   }
 }
 
