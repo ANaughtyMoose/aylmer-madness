@@ -682,6 +682,7 @@ export class Hud {
   objectiveText() {
     return [this.elObjective ? this.elObjective.textContent : '',
       this.elSub ? this.elSub.textContent : ''];
+  }
 
   /**
    * FEEL — the line next to the damage bar that tells you where the garages

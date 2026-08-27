@@ -165,7 +165,7 @@ const FR = {
   // tutorial
   'tut.go': 'W pour avancer',
   'tut.steer': 'A pis D pour tourner',
-  'tut.brake': 'S pour freiner (tiens-le à l’arrêt pour reculer)',
+  'tut.brake': 'S pour freiner — tiens-le pour reculer',
   'tut.hand': 'Espace — le frein à main, c’est comme ça que le cul sort',
   'tut.map': 'Tab pour la carte de la ville',
   'tut.job': 'E sur un marqueur jaune pour une job',
@@ -341,7 +341,7 @@ const EN = {
 
   'tut.go': 'W to go',
   'tut.steer': 'A and D to steer',
-  'tut.brake': 'S to brake (hold it at a stop to reverse)',
+  'tut.brake': 'S to brake — hold it to reverse',
   'tut.hand': 'Space — the handbrake, this is how you get the back end out',
   'tut.map': 'Tab for the town map',
   'tut.job': 'E on a yellow marker to take a job',
