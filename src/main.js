@@ -30,7 +30,7 @@ import {
 import {
   listSlots, readSlot, deleteSlot, deleteAllSaves,
   mostRecentSlot, lastSlot, saveToSlot, migrateLegacy, hasAnySave,
-  fmtPlaytime, fmtWhen, carName, START_MONEY,
+  fmtPlaytime, fmtWhen, carName, START_MONEY, apronSpot,
 } from './game/save.js';
 import { QUALITY, applySettings, mountOptions, toggleFullscreen } from './game/options.js';
 import { CarTurntable } from './game/turntable.js';
@@ -133,6 +133,8 @@ const OWNER = {
   // The four beaters live on the lot until somebody buys them, and after that
   // they live in your driveway with everything else.
   cutlass: 'usedlot', cavalier: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
+  // The Club's cart. It stays at the golf course whatever you do with it.
+  cart: 'golf',
 };
 // Bought beaters come home with you; everything else lives with its owner.
 const homeKey = (id) => (OWNER[id] === 'usedlot' ? 'home' : OWNER[id]);
@@ -491,7 +493,8 @@ function homeParked(currentId = G.carId) {
     if (!carById(id) || !garage.has(id, G.done)) continue;
     const k = homeKey(id);
     const slot = (slots[k] = (slots[k] || 0) + 1) - 1;
-    out[id] = curbSpot(PLACES[k], slot);
+    // The cart parks on the clubhouse apron, not at the kerb — see save.js.
+    out[id] = carById(id).park === 'building' ? apronSpot(PLACES[k]) : curbSpot(PLACES[k], slot);
   }
   const sale = garage.forSale();
   for (let i = 0; i < sale.length; i++) if (!out[sale[i]]) out[sale[i]] = lotSpot(PLACES.usedlot, i);
@@ -539,6 +542,9 @@ function swapCar(id) {
   hud.toast(`${spec.who === 'Yours' ? 'Ton' : spec.who.replace("'s", '') + ' te passe son'} ${spec.name}`, 1800);
   audio.blip(520, 0.12, 'triangle', 0.15);
 }
+// A job that has to put you in one particular car (golfjob.js) uses the same
+// swap the E-prompt does, so the car you arrived in stays exactly where it was.
+G.swapCar = swapCar;
 
 // ---------------------------------------------------------------- environment
 
@@ -653,7 +659,13 @@ function updateMission(dt) {
             } else hud.toast(r.why, 2400);
           }
         } else {
-          hud.prompt(`E  —  prendre ${c.who === 'Yours' ? 'ton' : 'le'} ${c.name}${c.who === 'Yours' ? '' : ' de ' + c.who.replace("'s", '')}`);
+          // `whoDe` lets a spec spell its own possessive, or say it needs none
+          // because the name already carries it (« Cart de golf du Club »).
+          // Without the field it is the old « de Margaret » built off `who`.
+          const de = c.who === 'Yours' ? ''
+            : c.whoDe !== undefined ? (c.whoDe ? ' ' + c.whoDe : '')
+            : ' de ' + c.who.replace("'s", '');
+          hud.prompt(`E  —  prendre ${c.who === 'Yours' ? 'ton' : 'le'} ${c.name}${de}`);
           if (G.wantStart) { G.wantStart = false; hud.prompt(null); swapCar(carId); }
         }
       } else hud.prompt(null);
@@ -927,6 +939,12 @@ function tick(dt) {
       steer: clamp(input.steer * G.settings.steerSens, -1, 1), throttle: input.throttle,
       brake: input.brake, handbrake: input.handbrake,
     };
+  // The cart's contactor: it clunks in when the pedal picks up, and that is the
+  // only noise an electric drivetrain makes that is not the whine.
+  if (v.spec.relay) {
+    if (ctl.throttle > 0.05 && !G.relayOn) { G.relayOn = true; audio.blip(v.spec.relay, 0.035, 'square', 0.05); }
+    else if (ctl.throttle <= 0.05) G.relayOn = false;
+  }
   const preImpact = v.impact;
   v.update(dt, ctl, G.phys);
   // Air and landings. `v.landed` is the vertical speed the springs killed, set
@@ -1265,7 +1283,10 @@ function saveInto(slot) {
   const snap = saveToSlot(G, slot, { name: saveName() });
   if (!snap) { hud.toast(t('save.failed'), 1600); return null; }
   G.slot = slot;
-  hud.toast(t('save.saved') + '\n' + (slot === 'auto' ? t('save.autoslot') : t('save.slot') + ' ' + slot), 1500);
+  hud.toast(t('save.saved') + '\n' + (slot === 'auto' ? t('save.autoslot') : t('save.slot') + ' ' + slot)
+    // A slot carries jobs FINISHED, not a job in progress. Saying so beats
+    // finding out after the load, which is how it used to go.
+    + (G.mission ? '\n(la job en cours est pas sauvegardée)' : ''), G.mission ? 2600 : 1500);
   audio.blip(720, 0.12, 'triangle', 0.16);
   return snap;
 }
@@ -1429,9 +1450,12 @@ $('mapbtn').onclick = () => { pause(false); openMap(true); };
 $('garage').onclick = toMenu;
 $('carshome').onclick = () => { resetCarLocations(); pause(false); };
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'Escape' && G.mode === 'paused') pause(false);
-  if (e.code === 'Escape' && !$('options').classList.contains('hidden')) openOptions(false);
-  if (e.code === 'Escape' && !$('loadscr').classList.contains('hidden')) openLoadScreen(false);
+  // Escape is read in two places — here, and in handleKeys() once we are back
+  // in 'drive'. Whoever acts on it has to consume it, or the next frame sees
+  // the same press and puts the menu straight back up.
+  if (e.code === 'Escape' && G.mode === 'paused') { pause(false); input.consume('Escape'); }
+  if (e.code === 'Escape' && !$('options').classList.contains('hidden')) { openOptions(false); input.consume('Escape'); }
+  if (e.code === 'Escape' && !$('loadscr').classList.contains('hidden')) { openLoadScreen(false); input.consume('Escape'); }
   // F5 is a quick save, not a reload — the browser's own F5 is in the way.
   if (e.code === 'F5' && (G.mode === 'drive' || G.mode === 'paused')) { e.preventDefault(); quickSave(); }
   // The legend and the language toggle work outside the drive loop too.

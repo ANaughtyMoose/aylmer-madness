@@ -83,7 +83,8 @@ group('gearbox');
   ok(near(dipT, ranger.drive.shiftTime, 0.03), `the dip lasts ${(dipT * 1000).toFixed(0)} ms`);
 
   // Every car has a box, and the Civic revs further than the Ranger.
-  ok(CARS.every((c) => c.drive && c.drive.gears.length >= 3), 'every car has gear ratios');
+  // ...except the golf cart, which is a motor, one reduction and a switch.
+  ok(CARS.every((c) => c.drive && (c.electric || c.drive.gears.length >= 3)), 'every car has gear ratios');
   ok(CARS.every((c) => c.sound && c.sound.cyl >= 4), 'every car has a sound profile');
   ok(carById('civic').sound.redline > carById('ranger').sound.redline,
     `Civic redline ${carById('civic').sound.redline} > Ranger ${carById('ranger').sound.redline}`);

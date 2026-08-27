@@ -29,6 +29,13 @@ export class Input {
     return false;
   }
   endFrame() { this.pressed.clear(); }
+  /**
+   * Swallow a press so a second reader in the same frame never sees it. The
+   * pause menu closes itself from a DOM keydown listener; without this the
+   * drive loop's handleKeys() picks up the SAME Escape on the next frame and
+   * re-opens the menu, which is why Esc used to refuse to resume the game.
+   */
+  consume(...codes) { for (const c of codes) this.pressed.delete(c); }
 
   /**
    * D6 — a thump through the pad on impact. `force` is 0..1; the call is a

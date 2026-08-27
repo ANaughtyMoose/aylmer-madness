@@ -3,6 +3,7 @@
 import { PLACES } from './places.js';
 import { SIDE_MISSIONS } from './sidejobs.js';
 import { RACE_MISSIONS } from './racejobs.js';
+import { GOLF_MISSIONS } from './golfjob.js';
 
 // lightDir points TOWARD the light, unit length. Ambient is hemispheric, so the
 // sky/ground pair is doing most of the mood work — night leans on it hard so the
@@ -251,7 +252,9 @@ const CORE_MISSIONS = [
 // so they are built in sidejobs.js. They are ordinary MISSIONS entries here.
 // The four races (racejobs.js) are the same again: a grid stage and one long
 // stage that owns the countdown, the checkpoints and the rivals.
-export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS];
+// ...and the golf cart's own errand, which is the only job that decides what
+// you are driving instead of asking (golfjob.js).
+export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS];
 
 const KEY = 'aylmer.progress';
 

@@ -135,9 +135,12 @@ export class Audio {
     if (on && !this._horn) {
       const o = this.ctx.createOscillator(), o2 = this.ctx.createOscillator();
       const g = this.ctx.createGain();
-      o.type = 'sawtooth'; o.frequency.value = 400;
-      o2.type = 'sawtooth'; o2.frequency.value = 502;
-      g.gain.value = 0.09;
+      // Two detuned saws, unless the current engine profile brought its own
+      // horn along (cars.js SOUND.*.horn) — the golf cart's is a bike bell.
+      const H = (this.ep && this.ep.horn) || null;
+      o.type = H ? H.type : 'sawtooth'; o.frequency.value = H ? H.f : 400;
+      o2.type = H ? H.type : 'sawtooth'; o2.frequency.value = H ? H.f2 : 502;
+      g.gain.value = H ? H.gain : 0.09;
       o.connect(g); o2.connect(g); g.connect(this.fx);
       o.start(); o2.start();
       this._horn = { o, o2, g };

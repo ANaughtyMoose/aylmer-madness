@@ -15,6 +15,9 @@ import { readJSON, writeJSON, KEYS } from './store.js';
 //   'mission'  somebody hands you the keys when `mission` is finished
 //   'buy'      it is for sale at PLACES.usedlot for `cost`, once `jobs` jobs
 //              have been finished
+//   'free'     nobody owns it in any way that matters: it is sitting there with
+//              the key in it, and you can drive it whenever you like. The golf
+//              cart on the apron at Club de Golf Gatineau is the only one.
 export const UNLOCKS = {
   ranger: { kind: 'start' },
   saturn: {
@@ -41,9 +44,16 @@ export const UNLOCKS = {
   bus:      { kind: 'buy', cost: 1500, jobs: 10,
               need: '1 500 $ au lot — après 10 jobs',
               needEn: '$1,500 at the used lot — after 10 jobs' },
+  // Parked at the clubhouse with the key in it, like every golf cart ever.
+  cart:     { kind: 'free', who: 'Le Club' },
 };
 
 export const START_CAR = 'ranger';
+
+// Cars nobody has to earn. They are 'seen' from the first frame, so the garage
+// never announces one with an « on te passe les clés » toast — the golf cart
+// has been sitting on that apron the whole time.
+export const FREE_CARS = Object.keys(UNLOCKS).filter((id) => UNLOCKS[id].kind === 'free');
 
 // Ids that are for sale rather than lent, in the order they stand on the lot.
 export const FOR_SALE = CARS.filter((c) => UNLOCKS[c.id] && UNLOCKS[c.id].kind === 'buy').map((c) => c.id);
@@ -57,6 +67,7 @@ export class Garage {
     this.bought = new Set(Array.isArray(raw.bought) ? raw.bought.filter((id) => UNLOCKS[id]) : []);
     this.seen = new Set(Array.isArray(raw.seen) ? raw.seen.filter((id) => UNLOCKS[id]) : []);
     this.seen.add(START_CAR);
+    for (const id of FREE_CARS) this.seen.add(id);
   }
 
   // The mission progress this garage should answer questions against. main.js
@@ -67,7 +78,7 @@ export class Garage {
   has(id, done = this.done) {
     const u = UNLOCKS[id];
     if (!u) return false;
-    if (u.kind === 'start') return true;
+    if (u.kind === 'start' || u.kind === 'free') return true;
     if (u.kind === 'mission') return asSet(done).has(u.mission);
     return this.bought.has(id);
   }
@@ -158,6 +169,7 @@ export class Garage {
     this.bought = new Set(Array.isArray(o.bought) ? o.bought.filter((id) => UNLOCKS[id]) : []);
     this.seen = new Set(Array.isArray(o.seen) ? o.seen.filter((id) => UNLOCKS[id]) : []);
     this.seen.add(START_CAR);
+    for (const id of FREE_CARS) this.seen.add(id);
     this.save();
     return this;
   }
@@ -166,7 +178,7 @@ export class Garage {
 
   reset() {
     this.bought = new Set();
-    this.seen = new Set([START_CAR]);
+    this.seen = new Set([START_CAR, ...FREE_CARS]);
     this.save();
     return this;
   }

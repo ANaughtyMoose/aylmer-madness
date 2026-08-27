@@ -34,7 +34,9 @@ export const DEFAULT_CAR = 'ranger';
 // Whose driveway each car lives in. Margaret's Saturn shares the driveway at
 // 299 Fraser with your Ranger, so the two of them get slots 0 and 1 there.
 export const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'dave',
-  cutlass: 'home', cavalier: 'home', caravan: 'home', bus: 'home' };
+  cutlass: 'home', cavalier: 'home', caravan: 'home', bus: 'home',
+  // The cart never leaves the golf course; it lives on the clubhouse apron.
+  cart: 'golf' };
 
 export const slotKey = (slot) => KEY_PREFIX + slot;
 
@@ -64,6 +66,18 @@ export function curbSpot(p, slot = 0) {
   return { x: p.x + (dx / d) * 2.6 + tx, z: p.z + (dz / d) * 2.6 + tz, yaw: a };
 }
 
+// A spot on the apron IN FRONT of the building rather than at the kerb, for a
+// car whose spec says `park: 'building'`. The golf cart parks here so that its
+// « E — prendre le cart » prompt does not fight the job marker out on the
+// street: the mission runner offers a job inside 12 m of the giver, and a car
+// inside 6.5 m of you, and only one of them can win.
+export function apronSpot(p, back = 12) {
+  const bx = p.bx ?? p.x, bz = p.bz ?? p.z;
+  const dx = bx - p.x, dz = bz - p.z, d = Math.hypot(dx, dz);
+  if (d < back + 2) return curbSpot(p, 0);        // nothing to stand off from
+  return { x: bx - (dx / d) * back, z: bz - (dz / d) * back, yaw: p.a || 0 };
+}
+
 // Where every car sits when nobody has moved it: at its owner's curb.
 // Cars sharing a driveway are spaced by their order in CARS.
 export function homeParked() {
@@ -73,7 +87,7 @@ export function homeParked() {
     const p = PLACES[k];
     if (!p) continue;
     const slot = (slots[k] = (slots[k] || 0) + 1) - 1;
-    out[c.id] = curbSpot(p, slot);
+    out[c.id] = c.park === 'building' ? apronSpot(p) : curbSpot(p, slot);
   }
   return out;
 }

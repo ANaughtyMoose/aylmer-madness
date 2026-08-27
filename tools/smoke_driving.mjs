@@ -299,7 +299,8 @@ function shunt(player, car) {
   // the firing frequency (rpm / 120 * cyl), the rest is the filtering.
   const firing = (c, rpm) => (rpm / 120) * c.sound.cyl;
   ok('C5: every car carries an engine profile',
-    CARS.every((c) => c.sound && c.sound.cyl >= 4 && c.sound.idle > 400 && c.sound.redline > c.sound.idle));
+    CARS.every((c) => c.sound && c.sound.cyl >= 4 && (c.electric || c.sound.idle > 400)
+      && c.sound.redline > c.sound.idle));
   ok('C5: they are all different notes',
     new Set(CARS.map((c) => `${c.sound.cyl}:${c.sound.idle}:${c.sound.redline}`)).size === CARS.length,
     ids.map((id) => `${id} ${firing(carById(id), carById(id).sound.idle).toFixed(1)}Hz idle`).join(', '));

@@ -8,19 +8,19 @@ draws. `implied km/h` is what the current timer demands as a door-to-door
 average, stops, traffic and the stage radius included. `@40 km/h` is what the
 timer would be at a relaxed 40 km/h average, as a starting point for tuning.
 
-Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 140 · Z24 155 · Caravan 133 · urbain 86 km/h.
+Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 140 · Z24 155 · Caravan 133 · urbain 86 · Club 26 km/h.
 
 | mission | stage | target | route m | timer s | implied km/h | @40 km/h |
 |---|---|---|---:|---:|---:|---:|
 | school | 1/1 | Heritage College — sortie vers Hull | 1,925 | 130 | 53.3 | 173 |
 | **school** | **total** | 1 stages | **1,925** | **130** | 53.3 | 173 |
-| gang | 1/4 | Chez Marc | 162 | — | — | — |
-| gang | 2/4 | Chez Steph | 759 | — | — | — |
+| gang | 1/4 | Chez Margaret | 2,161 | — | — | — |
+| gang | 2/4 | Chez Sayyad | 2,315 | — | — | — |
 | gang | 3/4 | Chez Dave | 4,794 | — | — | — |
 | gang | 4/4 | Parc des Cèdres | 5,747 | — | — | — | <!-- max 45 km/h -->
-| **gang** | **total** | 4 stages | **11,462** | **—** | — | 1,032 |
+| **gang** | **total** | 4 stages | **15,016** | **—** | — | 1,351 |
 | poutine | 1/2 | Galeries Aylmer | 1,392 | — | — | — |
-| poutine | 2/2 | Chez Steph | 1,154 | 95 | 43.7 | 104 | <!-- max 40 km/h -->
+| poutine | 2/2 | Chez Sayyad | 1,154 | 95 | 43.7 | 104 | <!-- max 40 km/h -->
 | **poutine** | **total** | 2 stages | **2,547** | **95** | — | 229 |
 | dep | 1/2 | Dépanneur du Coin | 3,977 | — | — | — |
 | dep | 2/2 | Parc des Cèdres | 1,103 | 95 | 41.8 | 99 |
@@ -49,17 +49,33 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 | divan | 1/2 | Chez Mike — 129 avenue Frank-Robinson | 272 | — | — | — |
 | divan | 2/2 | Le divan dans l’arbre | — | — | — | — |
 | **divan** | **total** | 2 stages | **272** | **—** | — | 24 |
+| racedave | 1/2 | Devant chez Dave — chemin Vanier | 0 | — | — | — |
+| racedave | 2/2 | Galeries d’Aylmer — le stationnement | — | — | — | — |
+| **racedave** | **total** | 2 stages | **0** | **—** | — | 0 |
+| racecivic | 1/2 | Devant le 75 Denise-Friend | 0 | — | — | — |
+| racecivic | 2/2 | Le Vieux-Aylmer, pis la marina | — | — | — | — |
+| **racecivic** | **total** | 2 stages | **0** | **—** | — | 0 |
+| circuit | 1/2 | Ligne de départ — rue Principale, coin Bancroft | 406 | — | — | — |
+| circuit | 2/2 | Circuit du Vieux-Aylmer — 3 tours | — | — | — | — |
+| **circuit** | **total** | 2 stages | **406** | **—** | — | 37 |
+| blitz | 1/2 | Rue Principale — le départ du blitz | 0 | — | — | — |
+| blitz | 2/2 | Blitz — six checkpoints | — | 60 | — | — |
+| **blitz** | **total** | 2 stages | **0** | **60** | — | 0 |
+| golfcart | 1/3 | Prends un cart — Club de Golf Gatineau | — | — | — | — |
+| golfcart | 2/3 | Plage des Cèdres | 4,999 | — | — | — |
+| golfcart | 3/3 | Ramène-le au Club | 4,979 | 1200 | 14.9 | 448 |
+| **golfcart** | **total** | 3 stages | **9,979** | **1200** | — | 898 |
 
 ## `gang` in the Ranger (bench seats two, so it is two trips)
 
 | stage | target | route m | timer s | implied km/h |
 |---|---|---:|---:|---:|
-| 1/5 | Chez Marc | 162 | — | — |
-| 2/5 | Chez Steph | 759 | — | — |
+| 1/5 | Chez Margaret | 2,161 | — | — |
+| 2/5 | Chez Sayyad | 2,315 | — | — |
 | 3/5 | Parc des Cèdres | 1,250 | — | — |
 | 4/5 | Chez Dave | 5,767 | — | — |
 | 5/5 | Parc des Cèdres | 5,747 | — | — |
-| **total** | 5 stages | **13,685** | — | — |
+| **total** | 5 stages | **17,239** | — | — |
 
 ## Notes
 

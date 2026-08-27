@@ -16,7 +16,8 @@ const SCALE = (CELL_W - 2 * PAD) / 5.1;           // px per metre, common to eve
 const CELL_H = Math.round(2.05 * SCALE) + LABEL_H + PAD;
 // Keep this in step with cars.js — a van rides on truck tyres and a bus on
 // something a lot fatter than either.
-const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24 : 0.20);
+const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24
+  : s.style === 'cart' ? 0.14 : 0.20);
 
 // ---- mesh helpers -----------------------------------------------------------
 function triangles(mb, offset = [0, 0, 0]) {
