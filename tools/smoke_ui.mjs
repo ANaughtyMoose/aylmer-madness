@@ -5,7 +5,7 @@
 //
 // Covers the four things that are easy to break and impossible to eyeball:
 //   1. the toast queue's ordering and durations
-//   2. i18n falling back to French for a key English does not have
+//   2. the interface remaining in Quebec French
 //   3. every localStorage round-trip the UI owns (map size/zoom, settings,
 //      parked cars) including clamping and garbage input
 //   4. the mission-timer table actually generating
@@ -112,6 +112,17 @@ group('toast queue');
   q.step(200); eq(q.texts(), ['e'], 'FIFO batch 3');
   q.step(300); eq(q.texts(), [], 'drained');
 }
+{
+  // A direct response to E must not sit behind scenery/tutorial messages.
+  const q = new ToastQueue(2);
+  q.push('ancien 1', 2000);
+  q.push('ancien 2', 2000);
+  q.step(0);
+  q.push('il te manque 200 $', 1200, true);
+  q.step(1);
+  ok(q.texts().includes('il te manque 200 $'), 'urgent interaction feedback is visible immediately');
+  ok(q.pending.some((x) => x.text === 'ancien 1'), 'the displaced toast is preserved for later');
+}
 
 // ---------------------------------------------------------------- 2. i18n
 
@@ -120,11 +131,10 @@ group('i18n');
   setLang('fr');
   eq(t('menu.drive'), 'EMBARQUE', 'French is the base dictionary');
   setLang('en');
-  eq(getLang(), 'en', 'setLang takes');
-  eq(t('menu.drive'), 'DRIVE', 'English overrides where it has the key');
-  // 'intro.go' and 'hud.kmh' exist only in French.
-  eq(t('intro.go'), 'GO', 'a key English lacks falls back to French');
-  eq(t('hud.kmh'), 'km/h', 'second French-only fallback');
+  eq(getLang(), 'fr', 'English cannot be selected');
+  eq(t('menu.drive'), 'EMBARQUE', 'the interface remains in Quebec French');
+  eq(t('intro.go'), 'GO', 'shared wording remains available');
+  eq(t('hud.kmh'), 'km/h', 'units remain available');
   eq(t('definitely.not.a.key'), 'definitely.not.a.key', 'an unknown key returns itself');
   eq(setLang('klingon'), 'fr', 'an unknown language falls back to French');
   eq(t('menu.drive'), 'EMBARQUE', '…and the strings come back in French');
@@ -163,7 +173,7 @@ group('localStorage round-trips');
   // ones that predate it, plus the promise that unknown keys never survive.
   localStorage.clear();
   eq(store.loadSettings(), store.DEFAULT_SETTINGS, 'settings default');
-  const want = { lang: 'en', lookBackToggle: true, steerSens: 1.3, fov: 0.12, assist: false, audio: false };
+  const want = { lang: 'fr', lookBackToggle: true, steerSens: 1.3, fov: 0.12, assist: false, audio: false };
   store.saveSettings({ ...store.DEFAULT_SETTINGS, ...want });
   const got = store.loadSettings();
   eq(Object.fromEntries(Object.keys(want).map((k) => [k, got[k]])), want, 'settings round-trip');

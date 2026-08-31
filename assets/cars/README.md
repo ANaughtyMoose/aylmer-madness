@@ -9,6 +9,10 @@ assets/cars/civic/    …
 assets/cars/sunfire/  …
 ```
 
+Add each installed folder name to `manifest.json` as well, for example
+`{"cars":["ranger","civic"]}`. This lets the game skip absent optional files
+without filling the browser console with 404s.
+
 - `side.png` and `top.png` are required; `front.png` / `rear.png` are optional.
 - Plain **white** (or transparent) background, nothing else in frame, no shadow.
 - Side and top views: **nose pointing LEFT**. (If your render faces right, add a

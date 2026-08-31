@@ -757,7 +757,10 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   // door, driveway) is unconditional; the trimmings below check `room()` in
   // priority order and drop off the end of a fat footprint rather than blowing
   // the budget. Deterministic — it only ever looks at what has been emitted.
-  const cap = Number.isFinite(opts.budget) ? opts.budget : 140;
+  // Complex L-plans spend more triangles on their stepped walls and roofs.
+  // 160 still fits the town LOD budget, while leaving enough room for an upper
+  // window row instead of producing a two-storey house with bungalow glazing.
+  const cap = Number.isFinite(opts.budget) ? opts.budget : 160;
   const spent = () => (mb.i.length - t0) / 3;
   // 6 reserved for the three quads that are never optional: front door,
   // garage door, driveway. (A footprint with enough edges to blow the budget on
@@ -830,6 +833,12 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   const wallRect = garageRect;
   mt.wall();
   emitWalls(mb, b, y0, eave, garageEave, wallRect, ox, oz, ca, sa, wallCol, opts.addSegment);
+  // A lower garage (carved strip or L-wing) creates a new exposed upper wall
+  // between the house and garage volumes. It is not part of the OSM footprint
+  // ring, so emitWalls cannot know it exists; without this closure the landscape
+  // shows straight through above the garage roof.
+  if (garageRect) garageUpperWall(mb, main, garageRect, L2M, y0 + garageEave,
+    y0 + eave, wallCol);
 
   // Cap the plan at the garage height (hidden inside the house, closes the wing).
   mt.roof();
@@ -868,6 +877,10 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
       mb.tower(dx0 + front.nx * 0.7, y0, dz0 + front.nz * 0.7, 1.3, 1.9, 0.19, conc,
         { yaw: -front.yaw, noBottom: true });
     }
+    // A short front walk connects the entrance to the verge. Apart from being
+    // normal residential geometry, this gives the eye a strong front/back cue
+    // on footprints whose ridge direction alone is ambiguous.
+    if (room(2)) frontWalk(mb, dx0, dz0, front, y0, spec.setback || 5, !!attrs.porch, conc);
 
     // porch (the single most era-defining thing on an old Aylmer house)
     if (attrs.porch && spec.porch === 'full' && room(48)) {
@@ -880,12 +893,13 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
     // windows, per storey, along every face longer than 3 m
     const storeys = Math.max(1, Math.round(attrs.storeys));
     const wBudget = Math.max(2, Math.floor((cap - 8 - spent()) / 2));
-    let placed = windows(mb, main, L2M, y0, eave, storeys, spec, winCol, uvWin, front,
-      Math.min(14, wBudget));
+    const door = { x: dx0, z: dz0, w: 0.98 };
+    let placed = windows(mb, main, b.p, L2M, y0, eave, storeys, spec, winCol, uvWin,
+      front, door, Math.min(14, wBudget));
     for (const r of habitable) {
       if (r === main) continue;
-      placed += windows(mb, r, L2M, y0, eave, storeys, spec, winCol, uvWin, front,
-        Math.max(0, Math.min(4, wBudget - placed)));
+      placed += windows(mb, r, b.p, L2M, y0, eave, storeys, spec, winCol, uvWin,
+        front, door, Math.max(0, Math.min(4, wBudget - placed)));
     }
 
     // picture window (midcentury) / bay window (suburban). The wide 'window_bay'
@@ -956,6 +970,23 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
     driveway(mb, fw, front, y0, 3.2, (spec.setback || 7) + 2, asphalt);
   }
 
+  // A low side/back fence gives detached houses a readable residential lot.
+  // Keep the street edge open: a fence across every frontage made the town
+  // look like an industrial compound and would also cut through driveways.
+  // These are scenery only (no collider), so the car cannot get trapped in a
+  // procedurally inferred yard.
+  if (detail && attrs.link === 'detached') {
+    // The hard budget below is the final gate. Now that fences use panels/rails
+    // instead of dozens of box primitives, they can recur often enough to read
+    // as a neighbourhood feature while complex houses keep their façade detail.
+    const fenceChance = attrs.era === 'old' || attrs.era === 'cottage' ? 0.32
+      : attrs.era === 'midcentury' ? 0.28 : 0.24;
+    const fenceCost = attrs.era === 'suburban' || attrs.era === 'modern' ? 44 : 56;
+    if (spent() + fenceCost <= cap && rng() < fenceChance) {
+      residentialFence(mb, ext, L2M, front, y0, attrs.era, mats);
+    }
+  }
+
   // ---- row / semi: mirrored units with their own colour, door and windows
   if ((spec.row || spec.units) && detail) {
     rowUnits(mb, main, L2M, y0, eave, front, spec, mats, rng, room, mt);
@@ -996,6 +1027,96 @@ function wallQuad(mb, a, q, t0, t1, y0, h, col) {
   const ax = a[0] + (q[0] - a[0]) * t0, az = a[1] + (q[1] - a[1]) * t0;
   const bx = a[0] + (q[0] - a[0]) * t1, bz = a[1] + (q[1] - a[1]) * t1;
   mb.quad([ax, y0, az], [bx, y0, bz], [bx, y0 + h, bz], [ax, y0 + h, az], col);
+}
+
+function garageUpperWall(mb, main, garage, L2M, y0, y1, col) {
+  if (y1 <= y0 + 0.05) return;
+  const eps = 0.02;
+  let a, b, n0, n1;
+  if (Math.abs(main.u1 - garage.u0) < eps || Math.abs(main.u0 - garage.u1) < eps) {
+    const u = Math.abs(main.u1 - garage.u0) < eps ? main.u1 : main.u0;
+    const v0 = Math.max(main.v0, garage.v0), v1 = Math.min(main.v1, garage.v1);
+    if (v1 <= v0) return;
+    a = L2M(u, v0); b = L2M(u, v1);
+    const o = L2M(0, 0), U = L2M(1, 0);
+    const sign = (garage.u0 + garage.u1) > (main.u0 + main.u1) ? 1 : -1;
+    n0 = (U[0] - o[0]) * sign; n1 = (U[1] - o[1]) * sign;
+  } else {
+    const v = Math.abs(main.v1 - garage.v0) < eps ? main.v1 : main.v0;
+    const u0 = Math.max(main.u0, garage.u0), u1 = Math.min(main.u1, garage.u1);
+    if (u1 <= u0) return;
+    a = L2M(u0, v); b = L2M(u1, v);
+    const o = L2M(0, 0), V = L2M(0, 1);
+    const sign = (garage.v0 + garage.v1) > (main.v0 + main.v1) ? 1 : -1;
+    n0 = (V[0] - o[0]) * sign; n1 = (V[1] - o[1]) * sign;
+  }
+  const qnx = -(b[1] - a[1]), qnz = b[0] - a[0];
+  if (qnx * n0 + qnz * n1 < 0) { const t = a; a = b; b = t; }
+  mb.quad([a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], y1, b[1]], [a[0], y1, a[1]],
+    col, [n0, 0, n1]);
+  // Rect decomposition can mirror the roof valley even when the footprint is
+  // unchanged. Close this synthetic partition from both sides so back-face
+  // culling can never reopen the volume from one approach direction.
+  mb.quad([b[0], y0, b[1]], [a[0], y0, a[1]], [a[0], y1, a[1]], [b[0], y1, b[1]],
+    col, [-n0, 0, -n1]);
+}
+
+// Three-sided residential lot fence. It follows the house's oriented bounding
+// box rather than the raw footprint, which keeps rails straight around L-shaped
+// homes. Sparse posts and two rails read cleanly at driving speed without the
+// triangle cost (or moire) of hundreds of individual pickets.
+function residentialFence(mb, ext, L2M, front, y0, era, mats) {
+  const side = era === 'old' || era === 'cottage' ? 1.45 : 2.15;
+  const rear = era === 'modern' || era === 'suburban' ? 4.8 : 3.8;
+  let u0 = ext.u0 - side, u1 = ext.u1 + side;
+  let v0 = ext.v0 - side, v1 = ext.v1 + side;
+  const segments = [];
+
+  if (front.axis === 'u') {
+    const f = front.sign > 0 ? ext.u1 + 0.8 : ext.u0 - 0.8;
+    const b = front.sign > 0 ? ext.u0 - rear : ext.u1 + rear;
+    segments.push([[f, v0], [b, v0]], [[f, v1], [b, v1]], [[b, v0], [b, v1]]);
+  } else {
+    const f = front.sign > 0 ? ext.v1 + 0.8 : ext.v0 - 0.8;
+    const b = front.sign > 0 ? ext.v0 - rear : ext.v1 + rear;
+    segments.push([[u0, f], [u0, b]], [[u1, f], [u1, b]], [[u0, b], [u1, b]]);
+  }
+
+  const picket = era === 'old' || era === 'cottage';
+  const h = picket ? 0.95 : 1.25;
+  const col = picket ? shade(0xe6e0cf, 0.92)
+    : era === 'midcentury' ? shade(0x8b8e89, 0.88) : shade(0x80684d, 0.9);
+  const postCol = picket ? mats.color('trim') : shade(0x66513b, 0.9);
+  const postPoints = new Map();
+
+  for (const seg of segments) {
+    const a = L2M(seg[0][0], seg[0][1]), b = L2M(seg[1][0], seg[1][1]);
+    const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz);
+    if (len < 1) continue;
+    const nx = -dz / len, nz = dx / len;
+    if (picket || era === 'midcentury') {
+      // Two double-sided rails: clear silhouette, no dense picket moire.
+      for (const ry of picket ? [0.32, 0.72] : [0.38, 0.98]) {
+        const yb = y0 + ry, yt = yb + 0.085;
+        mb.quad([a[0], yb, a[1]], [b[0], yb, b[1]], [b[0], yt, b[1]], [a[0], yt, a[1]],
+          col, [nx, 0, nz]);
+        mb.quad([b[0], yb, b[1]], [a[0], yb, a[1]], [a[0], yt, a[1]], [b[0], yt, b[1]],
+          col, [-nx, 0, -nz]);
+      }
+    } else {
+      // Newer yards get a simple double-sided privacy panel.
+      const yb = y0 + 0.14, yt = y0 + h;
+      mb.quad([a[0], yb, a[1]], [b[0], yb, b[1]], [b[0], yt, b[1]], [a[0], yt, a[1]],
+        col, [nx, 0, nz]);
+      mb.quad([b[0], yb, b[1]], [a[0], yb, a[1]], [a[0], yt, a[1]], [b[0], yt, b[1]],
+        col, [-nx, 0, -nz]);
+    }
+    postPoints.set(`${seg[0][0]},${seg[0][1]}`, a);
+    postPoints.set(`${seg[1][0]},${seg[1][1]}`, b);
+  }
+  for (const p of postPoints.values()) {
+    mb.post(p[0], y0, p[1], picket ? 0.09 : 0.12, h, postCol);
+  }
 }
 
 // Roof on one rect of the decomposition, in the requested form. `mt` arms the
@@ -1055,24 +1176,38 @@ function faceOf(r, L2M, front) {
 // Window bands. One per storey on each face longer than 3 m, the front getting
 // one more than the sides. Fronts are laid out first so a tight budget spends
 // itself where the driver is looking.
-function windows(mb, r, L2M, y0, eave, storeys, spec, col, uv, front, maxWin) {
+function windows(mb, r, footprint, L2M, y0, eave, storeys, spec, col, uv, front, door, maxWin) {
   const faces = rectFaces(r, L2M);
   faces.sort((a, b2) => Math.cos(b2.yaw - front.yaw) - Math.cos(a.yaw - front.yaw));
   const sh = eave / storeys;
+  // Leave a real sill/head gap even on 1.5-storey houses, where dividing the
+  // eave by the rounded storey count otherwise puts the decal into the roof.
+  const winH = Math.min(spec.winH, Math.max(0.72, sh - 0.72));
   let placed = 0;
   for (const f of faces) {
     if (f.len < 3) continue;                    // skip party walls and stub returns
     const isFront = Math.cos(f.yaw - front.yaw) > 0.7;
-    const n = clamp(Math.floor(f.len / (isFront ? 3.0 : 3.6)), 1, isFront ? 4 : 3);
+    // A decomposition rectangle can have a face inside an L-shaped footprint.
+    // If stepping through the supposed outside still lands in the building,
+    // that is an internal seam and must never receive windows.
+    if (pointInPoly(footprint, f.cx + f.nx * 0.18, f.cz + f.nz * 0.18)) continue;
+    const usable = Math.max(0, f.len - 1.35);    // keep glazing clear of corners
+    const n = clamp(Math.floor(usable / (isFront ? 3.0 : 3.6)), 1, isFront ? 4 : 3);
     for (let s = 0; s < storeys && placed < maxWin; s++) {
-      const cy = y0 + s * sh + sh * 0.58;
-      if (cy + spec.winH / 2 > y0 + eave - 0.2) break;
+      const floor0 = y0 + s * sh;
+      const cy = floor0 + Math.min(sh - winH / 2 - 0.24, winH / 2 + 0.58);
+      if (cy - winH / 2 < floor0 + 0.22 || cy + winH / 2 > y0 + eave - 0.28) continue;
       for (let i = 0; i < n && placed < maxWin; i++) {
-        // the ground-floor front centre is the door's, so skip it
-        const t = ((i + 0.5) / n - 0.5) * f.len * 0.88;
-        if (isFront && s === 0 && Math.abs(t) < 1.2) continue;
-        mb.panel(f.cx + f.tx * t, cy, f.cz + f.tz * t, spec.winW, spec.winH,
-          f.nx, f.nz, col, uv, OUT);
+        const t = ((i + 0.5) / n - 0.5) * usable;
+        const wx = f.cx + f.tx * t, wz = f.cz + f.tz * t;
+        // Reserve the gap around the door where the door actually is. The old
+        // centre-only gap is why offset entrances had a window clipped through
+        // them on otherwise good-looking façades.
+        if (isFront && s === 0 && door) {
+          const along = Math.abs((wx - door.x) * f.tx + (wz - door.z) * f.tz);
+          if (along < (door.w + spec.winW) * 0.5 + 0.34) continue;
+        }
+        mb.panel(wx, cy, wz, spec.winW, winH, f.nx, f.nz, col, uv, OUT + 0.012);
         placed++;
       }
     }
@@ -1175,6 +1310,15 @@ function driveway(mb, f, front, y0, width, len, col) {
   const cx = f.cx + front.nx * (len / 2 + 0.4);
   const cz = f.cz + front.nz * (len / 2 + 0.4);
   mb.flatRot(cx, cz, width, len, y0 + Y_DRIVE, -front.yaw + Math.PI / 2, col);
+}
+
+function frontWalk(mb, x, z, front, y0, setback, hasPorch, col) {
+  const start = hasPorch ? PORCH_D + 0.18 : 1.05;
+  const len = Math.max(1.8, setback + 0.8 - start);
+  const cx = x + front.nx * (start + len / 2);
+  const cz = z + front.nz * (start + len / 2);
+  mb.flatRot(cx, cz, 1.05, len, y0 + Y_DRIVE - 0.004,
+    -front.yaw + Math.PI / 2, jitter(col, 1.03));
 }
 
 // A shed or a single detached garage at the back of the lot.

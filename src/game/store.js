@@ -136,7 +136,9 @@ export function normalizeSettings(raw) {
     invertLook: bool(s.invertLook, D.invertLook),
     rumble: bool(s.rumble, D.rumble),
 
-    lang: s.lang === 'en' ? 'en' : 'fr',
+    // L'interface est uniquement en français québécois. Cette normalisation
+    // ramène aussi les anciennes préférences anglaises au français.
+    lang: 'fr',
     autosave: bool(s.autosave, D.autosave),
     difficulty: pick(s.difficulty, DIFFICULTIES, D.difficulty),
 

@@ -55,14 +55,68 @@ const CORE_MISSIONS = [
     timeOfDay: 'morning',
     build(ctx) {
       return [{
-        text: 'Heritage College — sortie vers Hull',
+        text: 'Heritage College — secteur Hull',
         sub: `W pour partir, suis la ligne bleue du GPS jusqu'au pilier jaune (le ${ctx.carName} est déjà chaud)`,
         hint: "C'est plein est, au bout du chemin d'Aylmer. Tab ouvre la grande carte.",
         at: 'heritage',
         radius: 24,
-        time: 130,
+        // This is the first expansion drive: Aylmer, the highway seam, then
+        // Saint-Joseph in Hull. Five minutes leaves room for one wrong exit.
+        time: 420,
         toast: 'Arrivé. Personne a rien vu.',
         money: 20,
+      }];
+    },
+  },
+
+  {
+    id: 'highwayhull',
+    title: 'Highway to Hull',
+    brief: 'La 148 est ouverte. On va voir si Hull est vraiment si loin que ça.',
+    giver: 'home',
+    timeOfDay: 'dusk',
+    build() {
+      return [
+        {
+          text: 'Prends la sortie vers Hull',
+          sub: 'W pis suis le GPS jusqu’au pilier jaune à l’entrée de l’autoroute',
+          hint: 'Chemin d’Aylmer vers l’est, jusqu’au nouveau tronçon de la 148.',
+          at: 'hullgate', radius: 24, time: 260,
+          toast: 'La pancarte dit Hull. Là, c’est pour vrai.',
+        },
+        {
+          text: 'Fais un arrêt au musée',
+          sub: 'Suis le GPS par Alexandre-Taché, puis ralentis à 45 km/h dans le pilier',
+          hint: 'Prends la bretelle, puis continue vers le parc Jacques-Cartier.',
+          at: 'hullmuseum', radius: 24, time: 300, maxSpeed: 45,
+          toast: 'Hull débloqué — les grosses bâtisses commencent ici.',
+        },
+        {
+          text: 'Termine au centre-ville de Hull',
+          sub: 'GPS jusqu’au dernier pilier sur la promenade du Portage',
+          hint: 'Continue vers l’est par Montcalm, Eddy ou Maisonneuve.',
+          at: 'hulldowntown', radius: 22, time: 110,
+          toast: 'Aylmer derrière, Hull devant. Expansion débloquée.',
+          money: 60,
+        },
+      ];
+    },
+  },
+
+  {
+    id: 'chelsea',
+    title: 'La run de Chelsea',
+    brief: 'Heritage est derrière toi. La 105 monte encore jusqu’à Chelsea.',
+    giver: 'heritage',
+    timeOfDay: 'morning',
+    build() {
+      return [{
+        text: 'Monte jusqu’au village de Chelsea',
+        sub: 'W pis suis le GPS vers le nord jusqu’au pilier jaune à l’hôtel de ville',
+        hint: 'Remonte par Saint-Joseph, puis prends la route 105 vers Chelsea.',
+        at: 'chelsea', radius: 24, time: 600, maxSpeed: 45,
+        toast: 'Chelsea. T’es rendu pas mal plus loin que le dep.',
+        money: 75,
       }];
     },
   },

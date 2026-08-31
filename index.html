@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr-CA">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -53,6 +53,18 @@
       </div>
     </div>
     <div id="menukeys"></div>
+  </div>
+  <div id="startpicker" class="hidden" role="dialog" aria-modal="true" aria-labelledby="startpicktitle">
+    <div class="startpanel">
+      <div class="topbar"><button id="startback" class="ghost">&larr; Retour</button></div>
+      <h2 id="startpicktitle">Choisis ton point de départ</h2>
+      <p id="startpickhint" class="tag">Ton char est choisi. Maintenant, choisis où commencer.</p>
+      <div class="startlayout">
+        <canvas id="startmap" width="760" height="520" aria-label="Carte des points de départ"></canvas>
+        <div id="startpoints"></div>
+      </div>
+      <button id="startconfirm" disabled>EMBARQUE</button>
+    </div>
   </div>
 </div>
 

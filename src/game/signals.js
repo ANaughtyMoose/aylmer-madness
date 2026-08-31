@@ -24,6 +24,27 @@ import { m4, angleDelta } from '../core/math.js';
 
 export const RANK = { trunk: 5, primary: 4, secondary: 3, tertiary: 2, residential: 1, service: 0 };
 
+// OSM commonly splits a street into two ways at a change of lanes, speed, or
+// name. Both ways then contribute the same geometric branch at their shared
+// node. Treating those records as separate arms creates phantom T-junctions,
+// duplicate signal heads and oversized intersection polygons. Directions this
+// close (about 2.6 degrees) describe the same physical arm; retain the widest
+// and highest-ranked description for geometry and traffic planning.
+const SAME_BRANCH_DOT = 0.999;
+
+function addBranch(nd, branch) {
+  const old = nd.br.find((b) => b.dx * branch.dx + b.dz * branch.dz >= SAME_BRANCH_DOT);
+  if (!old) { nd.br.push(branch); return; }
+  if (branch.hw > old.hw) old.hw = branch.hw;
+  if (branch.rank > old.rank) {
+    old.cls = branch.cls;
+    old.rank = branch.rank;
+    old.ri = branch.ri;
+  }
+  // Preserve a useful name when one half of a split way is unnamed.
+  if (!old.name && branch.name) old.name = branch.name;
+}
+
 // One axis is green 12 s, amber 3 s, then red while the other axis runs.
 export const GREEN = 12, AMBER = 3;
 const HALF = GREEN + AMBER;          // 15 s per axis
@@ -64,7 +85,7 @@ export function roadNodes() {
         let dx = pts[j][0] - pts[i][0], dz = pts[j][1] - pts[i][1];
         const l = Math.hypot(dx, dz);
         if (l < 0.05) continue;
-        nd.br.push({ dx: dx / l, dz: dz / l, hw, cls: road.cls, name: road.name || '', rank, ri });
+        addBranch(nd, { dx: dx / l, dz: dz / l, hw, cls: road.cls, name: road.name || '', rank, ri });
       }
       if (hw > nd.maxHw) nd.maxHw = hw;
       if (rank > nd.rank) nd.rank = rank;

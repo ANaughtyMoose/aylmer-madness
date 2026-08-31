@@ -12,39 +12,39 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 
 | mission | stage | target | route m | timer s | implied km/h | @40 km/h |
 |---|---|---|---:|---:|---:|---:|
-| school | 1/1 | Heritage College — sortie vers Hull | 1,925 | 130 | 53.3 | 173 |
-| **school** | **total** | 1 stages | **1,925** | **130** | 53.3 | 173 |
-| gang | 1/4 | Chez Margaret | 2,161 | — | — | — |
-| gang | 2/4 | Chez Sayyad | 2,315 | — | — | — |
-| gang | 3/4 | Chez Adam | 4,794 | — | — | — |
-| gang | 4/4 | Parc des Cèdres | 5,747 | — | — | — | <!-- max 45 km/h -->
+| school | 1/1 | Heritage College — sortie vers Hull | 1,925 | 180 | 38.5 | 173 |
+| **school** | **total** | 1 stages | **1,925** | **180** | 38.5 | 173 |
+| gang | 1/4 | Ramasse Margaret — 299 Chemin Fraser | 2,161 | — | — | — |
+| gang | 2/4 | Ramasse Sayyad — 75 Denise-Friend | 2,315 | — | — | — |
+| gang | 3/4 | Ramasse Adam — 20 chemin Vanier, Deschênes | 4,794 | — | — | — |
+| gang | 4/4 | Dépose la gang au Parc des Cèdres | 5,747 | — | — | — | <!-- max 45 km/h -->
 | **gang** | **total** | 4 stages | **15,016** | **—** | — | 1,351 |
-| poutine | 1/2 | Galeries Aylmer | 1,392 | — | — | — |
-| poutine | 2/2 | Chez Sayyad | 1,154 | 95 | 43.7 | 104 | <!-- max 40 km/h -->
+| poutine | 1/2 | Galeries Aylmer — le food court | 1,392 | — | — | — |
+| poutine | 2/2 | Livre chez Sayyad — 75 Denise-Friend | 1,154 | 95 | 43.7 | 104 | <!-- max 40 km/h -->
 | **poutine** | **total** | 2 stages | **2,547** | **95** | — | 229 |
-| dep | 1/2 | Dépanneur du Coin | 3,977 | — | — | — |
-| dep | 2/2 | Parc des Cèdres | 1,103 | 95 | 41.8 | 99 |
+| dep | 1/2 | Dépanneur Palmyra — quatre slush | 3,977 | — | — | — |
+| dep | 2/2 | Parc des Cèdres — avant que ça fonde | 1,103 | 95 | 41.8 | 99 |
 | **dep** | **total** | 2 stages | **5,080** | **95** | — | 457 |
-| cv | 1/3 | Tim Hortons | 1,566 | — | — | — |
-| cv | 2/3 | Galeries Aylmer | 405 | — | — | — |
-| cv | 3/3 | Marina d’Aylmer | 2,015 | — | — | — |
+| cv | 1/3 | CV #1 — Tim Hortons, rue Principale | 1,566 | — | — | — |
+| cv | 2/3 | CV #2 — Galeries Aylmer | 405 | — | — | — |
+| cv | 3/3 | CV #3 — Marina d’Aylmer | 2,015 | — | — | — |
 | **cv** | **total** | 3 stages | **3,986** | **—** | — | 359 |
-| curfew | 1/1 | Chez vous | 3,189 | 210 | 54.7 | 287 | <!-- max 35 km/h -->
+| curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant minuit | 3,189 | 210 | 54.7 | 287 | <!-- max 35 km/h -->
 | **curfew** | **total** | 1 stages | **3,189** | **210** | 54.7 | 287 |
-| tour | 1/5 | Le phare de la marina | 1,341 | 100 | 48.3 | 121 |
-| tour | 2/5 | Aréna d’Aylmer | 1,320 | 95 | 50.0 | 119 |
-| tour | 3/5 | Chemin d'Aylmer | 1,260 | 95 | 47.7 | 113 |
-| tour | 4/5 | Rue Principale | 1,734 | 125 | 49.9 | 156 |
-| tour | 5/5 | Parc des Cèdres | 1,365 | 100 | 49.2 | 123 |
+| tour | 1/5 | Spot 1/5 — le phare de la marina | 1,341 | 100 | 48.3 | 121 |
+| tour | 2/5 | Spot 2/5 — Aréna Frank-Robinson | 1,320 | 95 | 50.0 | 119 |
+| tour | 3/5 | Spot 3/5 — chemin d'Aylmer, devant les Galeries | 1,260 | 95 | 47.7 | 113 |
+| tour | 4/5 | Spot 4/5 — rue Principale | 1,734 | 125 | 49.9 | 156 |
+| tour | 5/5 | Spot 5/5 — Parc des Cèdres | 1,365 | 100 | 49.2 | 123 |
 | **tour** | **total** | 5 stages | **7,020** | **515** | 49.1 | 632 |
 | canot | 1/4 | Vente de garage — 41 Promenade Wychwood | 2,136 | — | — | — |
 | canot | 2/4 | Canadian Tire — 225 chemin d’Aylmer | 1,365 | — | — | — |
 | canot | 3/4 | Plage des Cèdres — patcher le canot | 2,469 | — | — | — |
-| canot | 4/4 | Île Aylmer | 1,838 | — | — | — |
+| canot | 4/4 | Île Aylmer — 1,2 km d’eau | 1,838 | — | — | — |
 | **canot** | **total** | 4 stages | **7,808** | **—** | — | 703 |
-| sayyad | 1/3 | Chez Sayyad — 75 Denise-Friend | 623 | — | — | — |
-| sayyad | 2/3 | 3 doughnuts dans la rue devant chez Sayyad | — | — | — | — |
-| sayyad | 3/3 | Décrisse | — | 25 | — | — |
+| sayyad | 1/3 | Rends-toi chez Sayyad — 75 Denise-Friend | 623 | — | — | — |
+| sayyad | 2/3 | Fais 3 doughnuts devant chez lui — 0/3 | — | — | — | — |
+| sayyad | 3/3 | Sacre ton camp! 300 m en 25 s | — | 25 | — | — |
 | **sayyad** | **total** | 3 stages | **623** | **25** | — | 56 |
 | divan | 1/2 | Chez Mike — 129 avenue Frank-Robinson | 272 | — | — | — |
 | divan | 2/2 | Le divan dans l’arbre | — | — | — | — |
@@ -62,19 +62,19 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 | blitz | 2/2 | Blitz — six checkpoints | — | 60 | — | — |
 | **blitz** | **total** | 2 stages | **0** | **60** | — | 0 |
 | golfcart | 1/3 | Prends un cart — Club de Golf Gatineau | — | — | — | — |
-| golfcart | 2/3 | Plage des Cèdres | 4,999 | — | — | — |
-| golfcart | 3/3 | Ramène-le au Club | 4,979 | 1200 | 14.9 | 448 |
-| **golfcart** | **total** | 3 stages | **9,979** | **1200** | — | 898 |
+| golfcart | 2/3 | École de l’Aigle | 452 | — | — | — |
+| golfcart | 3/3 | Ramène-le au Club | 434 | 360 | 4.3 | 39 |
+| **golfcart** | **total** | 3 stages | **887** | **360** | — | 80 |
 
 ## `gang` in the Ranger (bench seats two, so it is two trips)
 
 | stage | target | route m | timer s | implied km/h |
 |---|---|---:|---:|---:|
-| 1/5 | Chez Margaret | 2,161 | — | — |
-| 2/5 | Chez Sayyad | 2,315 | — | — |
-| 3/5 | Parc des Cèdres | 1,250 | — | — |
-| 4/5 | Chez Adam | 5,767 | — | — |
-| 5/5 | Parc des Cèdres | 5,747 | — | — |
+| 1/5 | Ramasse Margaret — 299 Chemin Fraser | 2,161 | — | — |
+| 2/5 | Ramasse Sayyad — 75 Denise-Friend | 2,315 | — | — |
+| 3/5 | Dépose la gang au Parc des Cèdres | 1,250 | — | — |
+| 4/5 | Ramasse Adam — 20 chemin Vanier, Deschênes | 5,767 | — | — |
+| 5/5 | Dépose la gang au Parc des Cèdres | 5,747 | — | — |
 | **total** | 5 stages | **17,239** | — | — |
 
 ## Notes

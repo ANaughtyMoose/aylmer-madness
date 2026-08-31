@@ -32,6 +32,8 @@ const C = {
   rival: '#ff8a3d',      // a friend you are racing
   cop: '#6fb2ff',        // an auto-patrouille
   repair: '#9ee6a1',     // where you get the dents taken out
+  business: '#d8c4a1',   // fictional shops anchored to real OSM POIs
+  landmark: '#8fd6a3',   // parks, arenas, schools and other civic landmarks
 };
 
 // Ground cover fills, by MAP.areas kind.
@@ -69,8 +71,19 @@ export class ToastQueue {
     this.dirty = false;
   }
 
-  push(text, ms = 2200) {
-    this.pending.push({ text: String(text ?? ''), ms: Math.max(1, ms | 0) });
+  push(text, ms = 2200, urgent = false) {
+    const item = { text: String(text ?? ''), ms: Math.max(1, ms | 0) };
+    if (urgent) {
+      // A button press needs an answer now. Make room without flushing the
+      // whole queue: the displaced toast returns after the refusal.
+      if (this.active.length >= this.max) {
+        const displaced = this.active.shift();
+        if (displaced) this.pending.unshift({ text: displaced.text, ms: displaced.ms });
+      }
+      this.pending.unshift(item);
+    } else {
+      this.pending.push(item);
+    }
     this.dirty = true;
     return this;
   }
@@ -222,8 +235,8 @@ export class Hud {
   }
 
   // Queued: at most two on screen, oldest on top, the rest wait their turn.
-  toast(text, ms = 2200) {
-    this.toasts.push(text, ms);
+  toast(text, ms = 2200, urgent = false) {
+    this.toasts.push(text, ms, urgent);
     this._pumpToasts();
   }
 
@@ -502,6 +515,26 @@ export class Hud {
     };
     blob(state.rivals, C.rival, 2.8);
     blob(state.cops, (t * 5) % 1 < 0.5 ? C.cop : '#ff5f4d', 3.0);
+
+    // Nearby businesses and landmarks. Keep these smaller than mission pins:
+    // they provide local texture without competing with the current objective.
+    const pois = state.pois;
+    if (pois && pois.length) {
+      for (let i = 0; i < pois.length; i++) {
+        const p = pois[i], dx = p.x - px, dz = p.z - pz;
+        if (dx * dx + dz * dz > range * range) continue;
+        const x = toX(dx, dz), y = toY(dx, dz);
+        g.fillStyle = p.landmark ? C.landmark : C.business;
+        g.beginPath();
+        if (p.landmark) {
+          g.moveTo(x, y - 2.8); g.lineTo(x + 2.8, y);
+          g.lineTo(x, y + 2.8); g.lineTo(x - 2.8, y); g.closePath();
+        } else {
+          g.arc(x, y, 2.1, 0, TAU);
+        }
+        g.fill();
+      }
+    }
 
     const targets = state.targets;
     let objShown = false;

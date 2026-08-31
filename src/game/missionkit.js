@@ -189,3 +189,23 @@ export function fillBar(frac, n = 12) {
   const k = Math.round(Math.max(0, Math.min(1, frac)) * n);
   return '[' + '▮'.repeat(k) + '·'.repeat(n - k) + ']';
 }
+
+// A small replayable side-score for every job. It deliberately uses things the
+// driving model already celebrates instead of asking the player to learn a new
+// control: thread traffic, find a ramp, or bring the car back in one piece.
+// Prop damage is tracked for the stats screen but is not paid here; otherwise
+// the optimal delivery route would be straight through every patio in Aylmer.
+export function missionStyleBonus(start, now, damageNow) {
+  const a = start?.stats || {};
+  const b = now || {};
+  const near = Math.max(0, (b.nearMiss || 0) - (a.nearMiss || 0));
+  const jumps = Math.max(0, (b.jumps || 0) - (a.jumps || 0));
+  const damage = Math.max(0, (damageNow || 0) - (start?.damage || 0));
+  const clean = damage <= 4;
+  const money = Math.min(8, near * 2) + Math.min(9, jumps * 3) + (clean ? 5 : 0);
+  const feats = [];
+  if (near) feats.push(`${near} frôlement${near > 1 ? 's' : ''}`);
+  if (jumps) feats.push(`${jumps} saut${jumps > 1 ? 's' : ''}`);
+  if (clean) feats.push('char intact');
+  return { money, near, jumps, clean, text: feats.join(' · ') };
+}

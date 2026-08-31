@@ -17,7 +17,7 @@ import {
   buildHouse, inferAttrs, archetypeOf, ARCHETYPES, makeStreetYawIndex, normalizeAttrs,
 } from '../src/game/houses.js';
 
-const BUDGET = { 0: 140, 1: 80, 2: 48 };
+const BUDGET = { 0: 160, 1: 80, 2: 48 };
 let failures = 0;
 const fail = (m) => { failures++; console.error('  FAIL ' + m); };
 const ok = (m) => console.log('  ok   ' + m);
@@ -204,8 +204,8 @@ const avg = total / Math.max(1, n);
 console.log(`   ${n} detached houses, mean ${avg.toFixed(1)} tris, worst ${worst} (${worstId}) — ${Date.now() - t1} ms`);
 if (avg > 140) fail(`mean ${avg.toFixed(1)} tris exceeds the 140 budget`);
 else ok(`mean ${avg.toFixed(1)} tris <= 140`);
-if (worst > 145) fail(`worst case ${worst} tris — the budget guard leaked`);
-else ok(`worst case ${worst} tris <= 145`);
+if (worst > 165) fail(`worst case ${worst} tris — the budget guard leaked`);
+else ok(`worst case ${worst} tris <= 165`);
 
 // ------------------------------------------------- 6. wall winding
 // Back-face culling is on, so an inward-facing wall is an invisible house.
@@ -230,7 +230,10 @@ for (const ang of [0, 0.7, -1.9, 2.6, Math.PI]) {
     walls++;
     if (cx * nx + cz * nz < -0.05) inward++;
   }
-  if (inward > 2) fail(`ang ${ang.toFixed(2)}: ${inward}/${walls} wall tris face inward`);
+    // The synthetic upper wall at an attached-garage valley is deliberately
+    // double-sided (four triangles total) because the decomposition may mirror
+    // which side is exposed. No other wall may face inward.
+    if (inward > 4) fail(`ang ${ang.toFixed(2)}: ${inward}/${walls} wall tris face inward`);
 }
 ok('wall winding consistent across rotations');
 

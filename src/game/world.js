@@ -68,6 +68,7 @@ const C = {
   pitch: 0x6a9a4a, pool: 0x7fc7e0,
   major: 0x36363b, minor: 0x3b3b40, service: 0x45454a,
   yellow: 0xd4be55, white: 0xdddddd, walk: 0xa9a49a,
+  gutter: 0x505055, shoulder: 0x827b6e,
   flatRoof: 0x74726c,
   win: 0x2e3742, pole: 0x6f6d68, lamp: 0xf0e6c0, hydro: 0x6b5a45,
   trunk: 0x5b4632, shore: 0x2a4032, dock: 0x8a6a48,
@@ -96,13 +97,15 @@ const COMMERCIAL = [0xb8a58f, 0xc8c3b8, 0x9a5a48];
 const ROOF = [0x3a3a3c, 0x4b4a48, 0x4b4a48, 0x5c4a3c, 0x3d4f3a, 0x8a3a33];
 const LEAF = [0x4f7a34, 0x5d8a3a, 0x6a944a];      // deciduous
 const CONIFER = [0x2f4f2e, 0x36573a];             // spruce / pine
+const SHRUB = [0x416b35, 0x527d3d, 0x638b46, 0x355c38];
+const BLOOM = [0xe4c34f, 0xd96b73, 0xb985c8, 0xe8e2d2];
 
 const GABLE = { house: 1, terrace: 1, shed: 1 };
 const MAJOR = { trunk: 1, primary: 1, secondary: 1 };
 const PAVED = { trunk: 1, primary: 1, secondary: 1, tertiary: 1 };
 
 // Caps — the whole scene has to stay well under 450k triangles.
-const CAP = { woodTrees: 900, parkTrees: 500, roadTrees: 1800, poles: 2500 };
+const CAP = { woodTrees: 900, parkTrees: 500, roadTrees: 1800, shrubs: 950, poles: 2500 };
 
 // ---------------------------------------------------------------- small helpers
 
@@ -380,7 +383,7 @@ export function buildWorld(renderer, mats = MATS) {
         ux /= ul; uz /= ul;
         const d = ext + 1.9;
         const cx = nd.x + ux * d, cz = nd.z + uz * d;
-        bAt(cx, cz).tower(cx, 0, cz, 3.6, 3.6, 0.15, walkCol,
+        bAt(cx, cz).tower(cx, 0, cz, 2.8, 2.8, 0.12, walkCol,
           { yaw: Math.atan2(ux, uz), noBottom: true });
         cornerCount++;
       }
@@ -397,6 +400,15 @@ export function buildWorld(renderer, mats = MATS) {
   }
 
   const lx = [], lz = [], rx = [], rz = [];   // offset polyline scratch
+  // Stable street-level hash: all fragments with the same name get the same
+  // sidewalk policy, avoiding a pavement that randomly swaps sides mid-block.
+  function streetHash(name, fallback) {
+    let h = 2166136261 ^ fallback;
+    const s = name || '';
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  const gutterCol = rgb(C.gutter), shoulderCol = rgb(C.shoulder);
   for (let ri = 0; ri < MAP.roads.length; ri++) {
     const road = MAP.roads[ri];
     const pts = road.pts, ids = road.ids, n = pts.length;
@@ -405,6 +417,15 @@ export function buildWorld(renderer, mats = MATS) {
     const isService = road.cls === 'service';
     const y = isService ? Y.service : Y.road;
     const col = roadCols[road.cls] || roadCols.residential;
+    const major = MAJOR[road.cls] === 1;
+    const paved = PAVED[road.cls] === 1;
+    const rh = streetHash(road.name, ri);
+    // Collectors have walks on both sides. Some residential streets get a walk
+    // on one consistent side; the rest retain the soft
+    // shoulder common in older Aylmer neighbourhoods.
+    const residentialWalk = road.cls === 'residential' && (rh % 100) < 18;
+    const walkSides = paved ? [1, -1]
+      : residentialWalk ? [(rh & 1) ? 1 : -1] : [];
 
     // per-segment unit direction + right-hand normal
     const dxs = new Float64Array(n - 1), dzs = new Float64Array(n - 1), lens = new Float64Array(n - 1);
@@ -439,12 +460,37 @@ export function buildWorld(renderer, mats = MATS) {
       rx.push(pts[i][0] - ox * hw); rz.push(pts[i][1] - oz * hw);
     }
 
-    // asphalt: one quad per segment, chunked by midpoint
+    // asphalt: one quad per segment, chunked by midpoint. A mitre can extend
+    // beyond a very short neighbouring segment and fold the strip into a bow
+    // tie. Fall back to the segment's own square corners in that case; the
+    // joint disc (or intersection polygon) already covers the resulting seam.
     for (let i = 0; i < n - 1; i++) {
       const mx = (pts[i][0] + pts[i + 1][0]) / 2, mz = (pts[i][1] + pts[i + 1][1]) / 2;
+      let l0x = lx[i], l0z = lz[i], r0x = rx[i], r0z = rz[i];
+      let l1x = lx[i + 1], l1z = lz[i + 1], r1x = rx[i + 1], r1z = rz[i + 1];
+      const cross = (ax, az, bx, bz, cx, cz) => (bx - ax) * (cz - az) - (bz - az) * (cx - ax);
+      const a0 = cross(l0x, l0z, r0x, r0z, r1x, r1z);
+      const a1 = cross(l0x, l0z, r1x, r1z, l1x, l1z);
+      if (a0 >= -1e-6 || a1 >= -1e-6) {
+        const nx = dzs[i] * hw, nz = -dxs[i] * hw;
+        l0x = pts[i][0] + nx; l0z = pts[i][1] + nz;
+        r0x = pts[i][0] - nx; r0z = pts[i][1] - nz;
+        l1x = pts[i + 1][0] + nx; l1z = pts[i + 1][1] + nz;
+        r1x = pts[i + 1][0] - nx; r1z = pts[i + 1][1] - nz;
+      }
       bAt(mx, mz).quad(
-        [lx[i], y, lz[i]], [rx[i], y, rz[i]],
-        [rx[i + 1], y, rz[i + 1]], [lx[i + 1], y, lz[i + 1]], col, UP);
+        [l0x, y, l0z], [r0x, y, r0z],
+        [r1x, y, r1z], [l1x, y, l1z], col, UP);
+      // Streets without a concrete walk transition through a narrow compacted
+      // shoulder, rather than ending in a perfectly sharp asphalt/grass seam.
+      if (road.cls === 'residential' && walkSides.length === 0 && lens[i] > 2) {
+        const yaw = Math.atan2(dxs[i], dzs[i]);
+        const nx = dzs[i], nz = -dxs[i];
+        for (const side of [1, -1]) {
+          const sx = mx + nx * (hw + 0.34) * side, sz = mz + nz * (hw + 0.34) * side;
+          bAt(sx, sz).flatRot(sx, sz, 0.68, lens[i], Y.service - 0.002, yaw, shoulderCol);
+        }
+      }
       // road broadphase
       const idx = roadSegs.length / 5;
       const rad = hw + 0.8;
@@ -487,9 +533,6 @@ export function buildWorld(renderer, mats = MATS) {
       jointCount++;
     }
 
-    const major = MAJOR[road.cls] === 1;
-    const paved = PAVED[road.cls] === 1;
-
     // dashed yellow centre line
     if (paved && !road.oneway) {
       let carry = 2;
@@ -529,8 +572,11 @@ export function buildWorld(renderer, mats = MATS) {
       }
     }
 
-    // concrete sidewalk bands outside the asphalt, stopping at the kerb corners
-    if (paved) {
+    // Concrete sidewalks outside the asphalt, stopping at the kerb corners.
+    // A dark gutter strip and a small height step make the road edge read as a
+    // curb instead of two coplanar ribbons. Residential streets use the stable
+    // one-/two-side policy above.
+    if (walkSides.length) {
       for (let i = 0; i < n - 1; i++) {
         const s0 = cut[i] > 0 ? cut[i] + 1.4 : 0;
         const s1 = lens[i] - (cut[i + 1] > 0 ? cut[i + 1] + 1.4 : 0);
@@ -541,10 +587,12 @@ export function buildWorld(renderer, mats = MATS) {
         const nx = dz, nz = -dx;
         const mid = (s0 + s1) / 2;
         const mx = pts[i][0] + dx * mid, mz = pts[i][1] + dz * mid;
-        const off = hw + 1.1;
-        for (const s of [1, -1]) {
+        const off = hw + 1.075;
+        for (const s of walkSides) {
+          const gx = mx + nx * (hw + 0.11) * s, gz = mz + nz * (hw + 0.11) * s;
+          bAt(gx, gz).flatRot(gx, gz, 0.28, L, Y.road + 0.008, yaw, gutterCol);
           const cx = mx + nx * off * s, cz = mz + nz * off * s;
-          bAt(cx, cz).tower(cx, 0, cz, 2.2, L, 0.15, walkCol, { yaw, noBottom: true });
+          bAt(cx, cz).tower(cx, 0, cz, 1.75, L, 0.12, walkCol, { yaw, noBottom: true });
           sidewalkCount++;
         }
       }
@@ -618,6 +666,7 @@ export function buildWorld(renderer, mats = MATS) {
   const streetYawAt = makeStreetYawIndex(MAP.roads);
   const HOUSEY = { house: 1, terrace: 1 };
   let houseCount = 0, houseTris = 0, houseFarTris = 0;
+  let landmarkRoofs = 0;
   const buildings = MAP.buildings;
   const gableCols = ROOF.map(rgb);
   const flatRoofCol = rgb(C.flatRoof);
@@ -698,24 +747,40 @@ export function buildWorld(renderer, mats = MATS) {
     const gx = c[0] + cu * ca - cv * sa, gz = c[1] + cu * sa + cv * ca;
 
     const isChurch = b.k === 'church';
-    if (GABLE[b.k] === 1 || isChurch) {
+    // OSM tags the golf clubhouse as a commercial footprint, which normally
+    // gets the anonymous flat/parapet treatment. Its long articulated outline
+    // then reads as three brown slabs from the job marker. Give this named
+    // landmark the low dark roof the player expects to navigate toward.
+    const isClubhouse = b.name === 'Club de Golf Gatineau';
+    if (GABLE[b.k] === 1 || isChurch || isClubhouse) {
       // Gable: a flat cap at h (covers L-shapes) with a ridged prism over it,
       // rotated so the ridge runs along the footprint's longest edge.
-      const roofCol = isChurch ? gableCols[2] : gableCols[(rnd() * 6) | 0];
+      const roofCol = isChurch ? gableCols[2]
+        : isClubhouse ? rgb(0x3f4938)
+        : gableCols[(rnd() * 6) | 0];
       triTo(bd, p, b.t, h, roofCol);
-      const rh = clamp(0.35 * ed, 1.6, 3.2);
+      const rh = isClubhouse ? clamp(0.16 * ed, 1.5, 3.8) : clamp(0.35 * ed, 1.6, 3.2);
       bd.roof(gx, h, gz, ew, ed, rh, roofCol, -ang, 0.4);
+      if (isClubhouse) landmarkRoofs++;
     } else {
       triTo(bd, p, b.t, h, flatRoofCol);
-      // inset parapet: same cap 0.4 m higher, pulled ~0.6 m toward the centroid
-      shrunk.length = 0;
-      for (let i = 0; i < n; i++) {
-        const dx = p[i][0] - c[0], dz = p[i][1] - c[1];
-        const d = Math.hypot(dx, dz) || 1;
-        const f = clamp(0.6 / d, 0, 0.4);
-        shrunk.push([p[i][0] - dx * f, p[i][1] - dz * f]);
+      // A parapet needs vertical faces. The previous inset cap floated 40 cm
+      // above the roof with nothing beneath it, especially obvious against the
+      // sky. Close it on buildings where roof detail matters; anonymous map
+      // blocks keep the single clean roof cap and save a large amount of mesh.
+      const properParapet = !!b.name || b.k === 'commercial' || b.k === 'apartments'
+        || b.k === 'mall' || b.k === 'public' || b.k === 'school' || b.k === 'industrial';
+      if (properParapet) {
+        shrunk.length = 0;
+        for (let i = 0; i < n; i++) {
+          const dx = p[i][0] - c[0], dz = p[i][1] - c[1];
+          const d = Math.hypot(dx, dz) || 1;
+          const f = clamp(0.42 / d, 0, 0.32);
+          shrunk.push([p[i][0] - dx * f, p[i][1] - dz * f]);
+        }
+        bd.prism(shrunk, h, 0.38, shade(C.flatRoof, 0.62));
+        triTo(bd, shrunk, b.t, h + 0.38, shade(C.flatRoof, 0.78));
       }
-      triTo(bd, shrunk, b.t, h + 0.4, shade(C.flatRoof, 0.78));
     }
 
     if (isChurch) {
@@ -724,26 +789,67 @@ export function buildWorld(renderer, mats = MATS) {
       bd.cone(sx, h * 1.8, sz, 1.9, 5.5, 6, gableCols[0]);
     }
 
-    // window bands, one per storey, hugging each wall
-    if (h >= 8) {
-      const floors = Math.max(1, Math.min(6, Math.floor(h / 3.2)));
+    // Façade openings. Individual punched windows read as apartments/schools;
+    // the old wall-wide dark strips made every tall building look like a glass
+    // warehouse. Raw footprint edges are used directly, with generous corner
+    // clearance, so panels cannot turn the corner and clip through one another.
+    const hasPublicDoor = b.k === 'commercial' || b.k === 'apartments' || b.k === 'mall'
+      || b.k === 'public' || b.k === 'school';
+    if (h >= 5.2 || (hasPublicDoor && h >= 3.2)) {
+      const floors = Math.max(1, Math.min(6, Math.floor((h - 0.35) / 3.05)));
+      const streetYaw = streetYawAt(c[0], c[1], -b.a);
+      const snx = Math.cos(streetYaw), snz = Math.sin(streetYaw);
+      let frontEdge = -1, frontDot = -2;
+      for (let i = 0; i < n; i++) {
+        const ia = fwd ? i : (i + 1) % n, ib = fwd ? (i + 1) % n : i;
+        const a = p[ia], q = p[ib];
+        const dx = q[0] - a[0], dz = q[1] - a[1], L = Math.hypot(dx, dz);
+        if (L < 3) continue;
+        const dot = (-dz / L) * snx + (dx / L) * snz;
+        if (dot > frontDot) { frontDot = dot; frontEdge = i; }
+      }
       let quads = 0;
-      for (let f = 0; f < floors && quads < 40; f++) {
-        const y0 = 1.3 + f * 3.2, y1 = y0 + 1.1;
-        if (y1 > h - 0.4) break;
-        for (let i = 0; i < n && quads < 40; i++) {
+      // Anonymous imported massing stays deliberately cheap. Important public,
+      // retail and apartment buildings get enough openings to establish scale.
+      const maxFacadeQuads = b.k === 'big' ? 4 : 18;
+      for (let f = 0; f < floors && quads < maxFacadeQuads; f++) {
+        const wh = f === 0 && b.k === 'commercial' ? 1.7 : 1.15;
+        const y0 = 0.82 + f * 3.05, y1 = y0 + wh;
+        if (y1 > h - 0.42) break;
+        for (let i = 0; i < n && quads < maxFacadeQuads; i++) {
           const ia = fwd ? i : (i + 1) % n, ib = fwd ? (i + 1) % n : i;
           const a = p[ia], q = p[ib];
           let dx = q[0] - a[0], dz = q[1] - a[1];
           const L = Math.hypot(dx, dz);
-          if (L < 3) continue;
+          if (L < 3.2) continue;
           dx /= L; dz /= L;
-          const nx = -dz * 0.05, nz = dx * 0.05;      // outward, 5 cm proud
-          const ax = a[0] + dx * L * 0.1 + nx, az = a[1] + dz * L * 0.1 + nz;
-          const bx = a[0] + dx * L * 0.9 + nx, bz = a[1] + dz * L * 0.9 + nz;
-          bd.quad([ax, y0, az], [bx, y0, bz], [bx, y1, bz], [ax, y1, az], winCol);
-          quads++; winQuads++;
+          const nx = -dz * 0.065, nz = dx * 0.065;
+          const count = Math.max(1, Math.min(7, Math.floor((L - 1.2) / 2.7)));
+          const ww = f === 0 && b.k === 'commercial'
+            ? Math.min(2.15, (L - 1.1) / count * 0.72) : Math.min(1.25, (L - 1.1) / count * 0.46);
+          for (let k = 0; k < count && quads < maxFacadeQuads; k++) {
+            const t = 0.62 + ((k + 0.5) / count) * (L - 1.24);
+            if (hasPublicDoor && f === 0 && i === frontEdge && Math.abs(t - L / 2) < 1.25) continue;
+            const cx = a[0] + dx * t + nx, cz = a[1] + dz * t + nz;
+            const tx = dx * ww / 2, tz = dz * ww / 2;
+            bd.quad([cx - tx, y0, cz - tz], [cx + tx, y0, cz + tz],
+              [cx + tx, y1, cz + tz], [cx - tx, y1, cz - tz], winCol);
+            quads++; winQuads++;
+          }
         }
+      }
+      if (hasPublicDoor && frontEdge >= 0) {
+        const ia = fwd ? frontEdge : (frontEdge + 1) % n;
+        const ib = fwd ? (frontEdge + 1) % n : frontEdge;
+        const a = p[ia], q = p[ib];
+        let dx = q[0] - a[0], dz = q[1] - a[1];
+        const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+        const nx = -dz * 0.075, nz = dx * 0.075;
+        const cx = (a[0] + q[0]) / 2 + nx, cz = (a[1] + q[1]) / 2 + nz;
+        const dw = Math.min(1.55, Math.max(0.9, L * 0.16));
+        const tx = dx * dw / 2, tz = dz * dw / 2;
+        bd.quad([cx - tx, 0.08, cz - tz], [cx + tx, 0.08, cz + tz],
+          [cx + tx, 2.35, cz + tz], [cx - tx, 2.35, cz - tz], shade(C.win, 0.68));
       }
     }
 
@@ -842,12 +948,13 @@ export function buildWorld(renderer, mats = MATS) {
   // ------------------------------------------------------------ water mask
   const wm = MAP.waterMask;
   const mask = Uint8Array.from(atob(wm.b64), (ch) => ch.charCodeAt(0));
+  const extraWater = MAP.expansionWater || [];
   function waterAt(x, z) {
-    const i = Math.floor((x - B.minX) / wm.cell);
-    if (i < 0 || i >= wm.w) return false;
-    const j = Math.floor((z - B.minZ) / wm.cell);
-    if (j < 0 || j >= wm.h) return false;
-    return mask[j * wm.w + i] === 1;
+    const i = Math.floor((x - (wm.minX ?? B.minX)) / wm.cell);
+    const j = Math.floor((z - (wm.minZ ?? B.minZ)) / wm.cell);
+    if (i >= 0 && i < wm.w && j >= 0 && j < wm.h && mask[j * wm.w + i] === 1) return true;
+    for (const p of extraWater) if (pointInPoly(p, x, z)) return true;
+    return false;
   }
 
   // ------------------------------------------------------------ 5b. shoreline
@@ -1221,6 +1328,32 @@ export function buildWorld(renderer, mats = MATS) {
     } else {
       bd.cone(x, th * 0.7, z, 3.1 * scale, 4.0 * scale, 5, rgb(leaf));
       bd.cone(x, th * 1.5, z, 2.3 * scale, 3.2 * scale, 5, shade(leaf, 1.1));
+      // A small off-centre crown breaks up the repeated hourglass silhouette.
+      // Only some trees get one, keeping the extra geometry modest.
+      if (tr() < 0.42) {
+        const a = tr() * Math.PI * 2;
+        bd.cone(x + Math.cos(a) * 1.35 * scale, th * 1.14, z + Math.sin(a) * 1.35 * scale,
+          1.45 * scale, 2.1 * scale, 5, shade(leaf, 0.94 + tr() * 0.14));
+      }
+    }
+  }
+
+  // Low planting gives the town a second green layer instead of making every
+  // bit of vegetation read as the same tree-on-a-stick. A few beds flower, but
+  // most remain the clipped cedar and lilac shrubs common on front lawns.
+  function shrub(x, z, scale, flowers) {
+    const bd = bAt(x, z);
+    const col = SHRUB[(tr() * SHRUB.length) | 0];
+    const yaw = tr() * Math.PI;
+    bd.tower(x, 0.02, z, 1.8 * scale, 1.15 * scale, 0.72 * scale, rgb(col), {
+      yaw, wTop: 1.35 * scale, dTop: 0.9 * scale, noBottom: true, top: shade(col, 1.12),
+    });
+    if (!flowers) return;
+    const bloom = BLOOM[(tr() * BLOOM.length) | 0];
+    for (let i = 0; i < 3; i++) {
+      const a = yaw + (i - 1) * 0.72;
+      bd.cyl(x + Math.cos(a) * 0.42 * scale, 0.82 * scale,
+        z + Math.sin(a) * 0.32 * scale, 0.10 * scale, 0.12 * scale, 5, rgb(bloom), 'y', true);
     }
   }
 
@@ -1277,7 +1410,28 @@ export function buildWorld(renderer, mats = MATS) {
   }
   const streetSel = subsample(pairs(streetTrees), CAP.roadTrees);
   for (const q of streetSel) tree(q[0], q[1], 0.9 + tr() * 0.5, tr() < 0.2);
+
+  // Front-garden shrubs cluster around a subset of street trees, with loose
+  // groups at parks. Offsets are deterministic and rejected if they stray onto
+  // asphalt or through a building wall.
+  const shrubPts = [];
+  for (let i = 0; i < streetSel.length; i++) {
+    if (tr() > 0.58) continue;
+    const q = streetSel[i], a = tr() * Math.PI * 2, d = 2.0 + tr() * 2.6;
+    const x = q[0] + Math.cos(a) * d, z = q[1] + Math.sin(a) * d;
+    if (!roadAt(x, z) && !querySegments(x, z, 1.1).length) shrubPts.push([x, z]);
+  }
+  for (let i = 0; i < parkSel.length; i += 2) {
+    const q = parkSel[i], a = tr() * Math.PI * 2, d = 2.5 + tr() * 3.5;
+    shrubPts.push([q[0] + Math.cos(a) * d, q[1] + Math.sin(a) * d]);
+  }
+  const shrubSel = subsample(shrubPts, CAP.shrubs);
+  for (let i = 0; i < shrubSel.length; i++) {
+    const q = shrubSel[i];
+    shrub(q[0], q[1], 0.7 + tr() * 0.65, tr() < (i % 5 === 0 ? 0.8 : 0.12));
+  }
   const treeCount = woodSel.length + parkSel.length + streetSel.length;
+  const plantingCount = shrubSel.length;
 
   // ------------------------------------------------------------ 7. street furniture
   // R3 — poles are still baked into the chunk mesh (2500 of them as separate
@@ -1801,7 +1955,7 @@ export function buildWorld(renderer, mats = MATS) {
     + `${houseTris | 0} near + ${houseFarTris | 0} far tris, atlas ${mats && mats.tex ? 'on' : 'OFF'}), `
     + `${MAP.roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
     + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${stopLineCount} stop lines), `
-    + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${poleCount} poles, `
+    + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${plantingCount} shrubs, ${poleCount} poles, `
     + `${shoreCount} shore, ${rockCount} rocks, ${dockCount} docks, ${poolCount} lamp pools, `
     + `${segs.length >> 2} collider segments, ${signCount} boards, `
     + `${signage ? signage.names.length : 0} storefronts, ${winQuads} windows — ${dt} ms`);
@@ -1905,6 +2059,7 @@ export function buildWorld(renderer, mats = MATS) {
     signals: SIGNALS,
     stopSigns: STOPS,
     intersections: interCount,
+    landmarkRoofs,
     draw,
     querySegments,
     roadAt,

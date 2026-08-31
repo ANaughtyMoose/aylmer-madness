@@ -26,9 +26,16 @@ export const PLACES = {
   principale:{ x: -877, z: -102, label: 'Vieux-Aylmer, rue Principale', snap: true },
   symmes:    { x: -1517.5, z: -61.1, label: 'Auberge Symmes', snap: true, lot: true },
   deschenes: { x: 2369.5, z: 1133.3, label: 'Hôtel Deschênes', snap: true, lot: true },
-  // Heritage College is on Cité-des-Jeunes in Hull, past the east edge of the
-  // map: the marker is the way out of town on Chemin d'Aylmer.
-  heritage:  { road: "Chemin d'Aylmer", x: 2520, z: -250, label: 'Sortie vers Hull — Heritage', snap: true },
+  // Highway to Hull expansion: the old east-edge placeholder is now the seam,
+  // and Heritage is a real destination beyond it.
+  hullgate:  { x: 2734.8, z: -3245.4, label: 'Route 148 — entrée vers Hull' },
+  heritage:  { poi: 'Heritage College', road: 'Boulevard de la Cité-des-Jeunes', x: 5521, z: -6836, label: 'Heritage College, secteur Hull', snap: true },
+  hullmuseum:{ poi: "Musée canadien de l'histoire", x: 9827, z: -4016, label: 'Musée canadien de l’histoire, Hull', snap: true, lot: true },
+  hulldowntown:{ poi: 'La Place du Portage', road: 'Promenade du Portage', x: 9510, z: -3364, label: 'Centre-ville de Hull', snap: true },
+  hullcasino:{ poi: 'Casino du Lac-Leamy', x: 8622, z: -5768, label: 'Casino du Lac-Leamy, Hull', snap: true, lot: true },
+  hullmall:  { poi: 'Les Galeries de Hull', x: 8101, z: -5251, label: 'Les Galeries de Hull', snap: true, lot: true },
+  ottawa:    { poi: 'Parliament Hill', road: 'Wellington Street', x: 10668, z: -3330, label: 'Colline du Parlement, Ottawa', snap: true },
+  chelsea:   { poi: 'Chelsea Town Hall', x: 3092, z: -12175, label: 'Hôtel de ville de Chelsea', snap: true, lot: true },
 
   // ---- side jobs -------------------------------------------------------
   // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.

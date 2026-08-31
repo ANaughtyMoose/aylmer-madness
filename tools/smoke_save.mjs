@@ -402,7 +402,7 @@ group('options');
     quality: 'high', renderScale: 0.7, maxDpr: 2, drawDist: 1100, fogMul: 1.8,
     fov: 0.12, cam: 2, mapSize: 1, showHud: false, showLegend: false, showFps: true,
     steerSens: 1.35, assist: false, invertLook: true, rumble: false,
-    lang: 'en', autosave: false, difficulty: 'hard',
+    lang: 'fr', autosave: false, difficulty: 'hard',
   });
   eq(store.loadSettings(), s, 'every option round-trips through localStorage');
 
@@ -504,11 +504,10 @@ group('the panel');
   }
 
   setLang('en');
-  const en = options.optionsHTML(s);
-  ok(en.includes('Master volume') && !en.includes('Volume général'), 'the panel relabels in English');
-  ok(en.includes('Send every car home'), 'the reset action relabels too');
-  setLang('fr');
-  ok(options.optionsHTML(s).includes('Volume général'), 'and back to French');
+  const stillFr = options.optionsHTML(s);
+  ok(stillFr.includes('Volume général') && !stillFr.includes('Master volume'), 'the panel stays in French');
+  ok(stillFr.includes('Remettre les chars chez eux'), 'the reset action stays in French too');
+  ok(!stillFr.includes('id="o_lang"'), 'there is no language selector');
 
   // Only some sections.
   const audioOnly = options.optionsHTML(s, { only: ['audio'] });

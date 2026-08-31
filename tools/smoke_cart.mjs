@@ -177,7 +177,7 @@ group('« Le cart du Club »');
   ok(!!def, 'the job is registered in MISSIONS');
   ok(def.giver === 'golf' && !!PLACES.golf, 'its giver is PLACES.golf');
   ok(/Club de Golf/.test(PLACES.golf.label), `which is « ${PLACES.golf.label} »`);
-  ok(MISSIONS.length === 15, `${MISSIONS.length} jobs in the pause menu`);
+  ok(MISSIONS.length === 17, `${MISSIONS.length} jobs in the pause menu`);
 
   const inCar = def.build({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 80 });
   const inCart = def.build({ carId: 'cart', carName: cart.name, seats: 2, money: 80 });
@@ -197,7 +197,8 @@ group('« Le cart du Club »');
   ok(!!beach && beach.radius === 20, 'the school checkpoint is 20 m across');
   const back = inCar[inCar.length - 1];
   ok(back.at === 'golf', 'and the last stage brings it home to the Club');
-  ok(back.time > 0, `with a ${Math.round(back.time / 60)}-minute marshal timer`);
+  ok(back.time === 360, 'with the designed six-minute marshal timer');
+  ok(beach.at === 'aigle', 'the short errand goes to École de l’Aigle, not the distant beach');
   ok(/marshal/i.test(back.failWhy), `failing says « ${back.failWhy} »`);
   ok(back.money === 25, 'it pays $25');
   ok(inCar.every((s) => !s.cost), 'and costs nothing, so there is no way to be too broke for it');

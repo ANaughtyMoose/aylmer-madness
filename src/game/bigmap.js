@@ -163,9 +163,15 @@ export class BigMap {
       }
     };
     const taken = [...(state.missions || []), ...(state.parked || [])];
+    const placeLabels = [];
     for (const p of state.places || []) {
       if (taken.some((m) => Math.hypot(m.x - p.x, m.z - p.z) < 40)) continue;   // a pin with its own label sits here
-      pin(sx(p.x), sy(p.z), '#bfc7d6', z > 0.3 ? p.label : null, false);
+      const x = sx(p.x), y = sy(p.z);
+      if (x < -30 || y < -20 || x > w + 30 || y > h + 20) continue;
+      let label = z > (p.source ? 0.48 : 0.3) ? p.label : null;
+      if (label && placeLabels.some(([lx, ly]) => Math.abs(lx - x) < 150 && Math.abs(ly - y) < 18)) label = null;
+      if (label) placeLabels.push([x, y]);
+      pin(x, y, p.landmark ? '#8fd6a3' : '#bfc7d6', label, false);
     }
     // Several jobs can start at the same driveway: one pin, titles stacked.
     const groups = [];

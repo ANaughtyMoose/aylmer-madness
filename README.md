@@ -193,13 +193,24 @@ data sources and what is still rough.
 - Landmarks are the actual ones: Galeries d'Aylmer, the Tim Hortons on
   Principale, the McDo on Chemin d'Aylmer, Aréna Frank-Robinson, Dépanneur
   Palmyra, Auberge Symmes, the marina lighthouse, Hôtel Deschênes.
-- Heritage College is in Hull, on Cité-des-Jeunes, so the "first period" job
-  ends at the way out of town on Chemin d'Aylmer.
+- Heritage College is in the Hull expansion on Cité-des-Jeunes, so the "first
+  period" job now travels there through the connected road network.
 
 To refetch (Overpass API, ~20 MB): see the `curl` calls at the top of
 `tools/build_map.py`'s docstring history, then `python3 tools/build_map.py` and
 `python3 tools/preview.py` for an SVG check. Map data © OpenStreetMap
 contributors, ODbL.
+
+### Highway to Hull expansion
+
+Hull is a second real OpenStreetMap sector, joined to Aylmer through Route 148
+and boulevard des Allumettières. `tools/build_hull.py` converts the separate
+`data/hull_*.json` Overpass extracts into `src/game/hull_mapdata.js`, preserving
+the original Aylmer coordinate frame and shared OSM road-node ids. The expansion
+adds roughly 11,300 road ways, 47,000 exact building footprints, 3,700 land-use
+polygons and 3,800 named POIs from the Plateau through central Hull, Portage,
+Heritage College, the Gatineau Park approaches and Chelsea village. Regenerating
+`mapdata.js` keeps this layer intact.
 
 ## Looking at the cars
 

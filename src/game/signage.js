@@ -1,7 +1,6 @@
-// Storefront signage. The names are real: MAP.pois carries what OpenStreetMap
-// knows is at each address in old Aylmer (Cafe British, Cassis, Dépanneur
-// Palmyra…), and this hangs each one as a lit fascia board on the street-facing
-// wall of the nearest building footprint.
+// Storefront signage. Real OpenStreetMap POIs supply the locations; the featured
+// shops get fictional Québec-flavoured names. Each sign hangs as a lit fascia
+// board on the street-facing wall of the nearest building footprint.
 //
 // One canvas atlas, one mesh, one draw call for the whole town.
 //
@@ -9,13 +8,14 @@
 //   planSigns()             -> [{name,x,z,yaw,w,h,y,slot}]  pure, runs under node
 //   buildSignage(renderer)  -> { mesh, tex, names } | null  (null with no DOM)
 import { MAP } from './mapdata.js';
+import { QUEBEC_POIS } from './quebec_pois.js';
 import { MeshBuilder } from '../core/mesh.js';
 
-const MAX_SIGNS = 60;
+const MAX_SIGNS = 120;
 const NEAR_BUILDING = 25;     // metres: no footprint this close, no sign
-const ATLAS = 1024;
-const COLS = 4, ROWS = 16;    // 64 cells of 256 x 64 — 4:1, same as the boards
-const CW = ATLAS / COLS, CH = ATLAS / ROWS;
+const ATLAS_W = 2048, ATLAS_H = 1024;
+const COLS = 8, ROWS = 16;    // 128 cells of 256 x 64 — 4:1, same as the boards
+const CW = ATLAS_W / COLS, CH = ATLAS_H / ROWS;
 
 // Anything residential or civic is not a storefront.
 const SKIP = new Set(['house', 'apartments', 'industrial', 'school', 'church',
@@ -83,14 +83,13 @@ let _plan = null;
 export function planSigns() {
   if (_plan) return _plan;
 
-  // 1. candidate businesses, nearest the high streets first
-  const cand = [];
-  for (const p of MAP.pois) {
-    if (!p.name || SKIP.has(p.k)) continue;
-    if (p.name.length > 26) continue;
-    cand.push({ p, d: highStreetD2(p.x, p.z) });
-  }
-  cand.sort((a, b) => a.d - b.d);
+  // 1. geographically distributed fictional businesses first, then OSM names.
+  const selected = QUEBEC_POIS.filter((p) => !p.landmark)
+    .map((p) => ({ ...p, name: p.label }));
+  const selectedSources = new Set(QUEBEC_POIS.map((p) => p.source));
+  const extras = MAP.pois.filter((p) => p.name && !selectedSources.has(p.name) &&
+    !SKIP.has(p.k) && p.name.length <= 26);
+  const cand = [...selected, ...extras].map((p) => ({ p, d: highStreetD2(p.x, p.z) }));
 
   // 2. hang each on the street-facing wall of the nearest footprint
   const out = [];
@@ -160,10 +159,10 @@ export function buildSignage(renderer) {
   if (typeof document === 'undefined' || !document.createElement) return null;
 
   const cv = document.createElement('canvas');
-  cv.width = cv.height = ATLAS;
+  cv.width = ATLAS_W; cv.height = ATLAS_H;
   const ctx = cv.getContext('2d');
   if (!ctx) return null;
-  ctx.clearRect(0, 0, ATLAS, ATLAS);
+  ctx.clearRect(0, 0, ATLAS_W, ATLAS_H);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -185,8 +184,8 @@ export function buildSignage(renderer) {
     ctx.fillText(s.name, px + CW / 2, py + CH / 2 + 2, CW - 18);
     names.push(s.name);
 
-    const u0 = (px + 1) / ATLAS, u1 = (px + CW - 1) / ATLAS;
-    const v0 = (py + 1) / ATLAS, v1 = (py + CH - 1) / ATLAS;
+    const u0 = (px + 1) / ATLAS_W, u1 = (px + CW - 1) / ATLAS_W;
+    const v0 = (py + 1) / ATLAS_H, v1 = (py + CH - 1) / ATLAS_H;
     const hw = s.w / 2, y0 = s.y, y1 = s.y + s.h;
     const ax = s.x - s.dx * hw, az = s.z - s.dz * hw;
     const bx = s.x + s.dx * hw, bz = s.z + s.dz * hw;

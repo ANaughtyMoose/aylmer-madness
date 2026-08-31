@@ -18,6 +18,8 @@ import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
 import { MISSIONS, TIME_OF_DAY } from './game/missions.js';
 import { PLACES, resolvePlaces } from './game/places.js';
+import { QUEBEC_POIS } from './game/quebec_pois.js';
+import { MAP } from './game/mapdata.js';
 import { t, KEYMAP } from './game/i18n.js';
 import {
   loadSettings, saveSettings, loadMapPrefs, saveMapPrefs, MAP_SIZES,
@@ -46,6 +48,7 @@ import { Reactive } from './game/reactive.js';
 import { Wallet } from './game/money.js';
 import {
   stageTarget, stageEnter, stageExit, stageStep, stageSettle, missionCleanup,
+  missionStyleBonus,
 } from './game/missionkit.js';
 // Race agent: AI rivals (race.js), the four races (racejobs.js) and the police
 // (cops.js). All three reach in through G; main.js only owns the hook lines.
@@ -62,6 +65,10 @@ import {
 import { heckle } from './game/heckle.js';
 
 const STEP = 1 / 60;
+// One complete morning -> day -> dusk -> night loop in real-time seconds.
+const DAY_NIGHT_CYCLE = 10 * 60;
+const DAY_PHASE = { morning: 0, day: 0.25, dusk: 0.5, night: 0.75 };
+const DAY_KEYS = ['morning', 'day', 'dusk', 'night'];
 // The QUALITY presets live in options.js now, because the options screen can
 // override the numbers they seed. Everything that used to read
 // QUALITY[G.quality].x each frame reads G.q.x, which applySettings maintains:
@@ -92,6 +99,7 @@ const G = {
   cam: 0,
   camYaw: 0, camPos: [0, 5, 0],
   env: null, envTarget: null,
+  dayClock: DAY_PHASE.day * DAY_NIGHT_CYCLE,
   world: null, meshes: null, renderer: null,
   veh: null, traffic: null,
   mission: null,
@@ -206,6 +214,68 @@ const fmtTime = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padSt
 
 const turntable = new CarTurntable();
 
+// Deliberately spread-out new-game spawns. They use the same named,
+// road-snapped places as missions and the full-screen map, so the pin shown in
+// the picker is the exact place the car will appear once the world is built.
+const START_POINTS = [
+  'home', 'mall', 'beach', 'marina', 'principale',
+  'arena', 'deschenes', 'golf', 'heritage',
+  'hulldowntown', 'hullmuseum', 'hullcasino', 'hullmall',
+  'ottawa', 'chelsea',
+];
+let pickedStart = null;
+
+function drawStartPicker() {
+  const c = $('startmap'), g = c.getContext('2d');
+  const pts = START_POINTS.map((key) => ({ key, ...PLACES[key] }));
+  const pad = 260;
+  const minX = Math.min(...pts.map((p) => p.x)) - pad, maxX = Math.max(...pts.map((p) => p.x)) + pad;
+  const minZ = Math.min(...pts.map((p) => p.z)) - pad, maxZ = Math.max(...pts.map((p) => p.z)) + pad;
+  const inset = 28, scale = Math.min((c.width - inset * 2) / (maxX - minX), (c.height - inset * 2) / (maxZ - minZ));
+  const ox = (c.width - (maxX - minX) * scale) / 2, oz = (c.height - (maxZ - minZ) * scale) / 2;
+  const sx = (x) => ox + (x - minX) * scale, sz = (z) => oz + (z - minZ) * scale;
+  g.fillStyle = '#1f2a1c'; g.fillRect(0, 0, c.width, c.height);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const road of MAP.roads) {
+    if (!road.pts.some(([x, z]) => x >= minX && x <= maxX && z >= minZ && z <= maxZ)) continue;
+    g.beginPath(); g.moveTo(sx(road.pts[0][0]), sz(road.pts[0][1]));
+    for (let i = 1; i < road.pts.length; i++) g.lineTo(sx(road.pts[i][0]), sz(road.pts[i][1]));
+    g.strokeStyle = road.cls === 'primary' || road.cls === 'trunk' ? '#858590' : '#555a61';
+    g.lineWidth = Math.max(1, Math.min(5, road.w * scale)); g.stroke();
+  }
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 12px Helvetica,Arial,sans-serif';
+  pts.forEach((p, i) => {
+    const selected = p.key === pickedStart;
+    g.beginPath(); g.arc(sx(p.x), sz(p.z), selected ? 11 : 8, 0, Math.PI * 2);
+    g.fillStyle = selected ? '#ffc94d' : '#e9edf2'; g.fill();
+    g.lineWidth = 2; g.strokeStyle = '#10171c'; g.stroke();
+    g.fillStyle = '#10171c'; g.fillText(String(i + 1), sx(p.x), sz(p.z) + .5);
+  });
+  c._pickerTransform = { pts, sx, sz };
+}
+
+function selectStart(key) {
+  pickedStart = key;
+  for (const el of $('startpoints').children) el.classList.toggle('sel', el.dataset.key === key);
+  $('startconfirm').disabled = !key;
+  drawStartPicker();
+}
+
+function openStartPicker(open) {
+  $('startpicker').classList.toggle('hidden', !open);
+  if (!open) return;
+  pickedStart = null;
+  $('startconfirm').disabled = true;
+  $('startpicktitle').textContent = t('menu.pickstart');
+  $('startpickhint').textContent = t('menu.pickstart.hint');
+  $('startback').textContent = '\u2190 ' + t('menu.pickstart.back');
+  $('startconfirm').textContent = t('menu.drive');
+  $('startpoints').innerHTML = START_POINTS.map((key, i) =>
+    `<button class="startpoint" data-key="${key}"><b>${i + 1}</b><span>${PLACES[key].label}</span></button>`).join('');
+  for (const el of $('startpoints').children) el.onclick = () => selectStart(el.dataset.key);
+  drawStartPicker();
+}
+
 function buildMenu() {
   const wrap = $('cars');
   wrap.innerHTML = '';
@@ -282,7 +352,7 @@ function applyMenuText() {
 
 // `save` is a slot's contents, or null for a new game. It is held across the
 // world build so the loading screen does not have to know about it.
-function startGame(save = null) {
+function startGame(save = null, startKey = null) {
   if (save && save.carId) G.carId = save.carId;
   if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = 'ranger';
   $('menu').classList.add('hidden');
@@ -307,14 +377,14 @@ function startGame(save = null) {
     // Each stage paints its own label before it runs, so the screen is telling
     // the truth about what is taking the time. The bar animates on the
     // compositor, so it keeps moving even while buildWorld blocks.
-    loading.run(worldStages()).then(() => enterDrive(save)).catch((e) => {
+    loading.run(worldStages()).then(() => enterDrive(save, startKey)).catch((e) => {
       $('menuinner').innerHTML = `<h1>Ouch</h1><p class="tag">${e.message}</p>`;
       $('menu').classList.remove('hidden');
     });
     return;
   }
   turntable.stop();
-  enterDrive(save);
+  enterDrive(save, startKey);
 }
 
 // [label, work] pairs. buildWorld is one synchronous blob we do not own, so it
@@ -395,7 +465,7 @@ function worldStages() {
 // a new game: every car at its owner's curb, eighty bucks, nothing done.
 // Nothing else in the game decides where a car is — that is the whole point of
 // the save slots, and why the old aylmer.garage auto-restore is gone.
-function enterDrive(save = null) {
+function enterDrive(save = null, startKey = null) {
   if (save && save.carId) G.carId = save.carId;
   const spec = carById(G.carId);
   G.veh = new Vehicle(spec);
@@ -415,7 +485,9 @@ function enterDrive(save = null) {
     if (p) G.parked[c.id] = { x: p.x, z: p.z, yaw: p.yaw };
   }
   G.gearbox = new Gearbox(spec.drive);
-  const start = (save && save.parked && save.parked[spec.id]) || home[spec.id] || homeSpot(spec.id);
+  const chosenPlace = !save && startKey && PLACES[startKey];
+  const chosen = chosenPlace && { x: chosenPlace.x, z: chosenPlace.z, yaw: chosenPlace.a || 0 };
+  const start = chosen || (save && save.parked && save.parked[spec.id]) || home[spec.id] || homeSpot(spec.id);
   G.veh.reset(start.x, start.z, start.yaw);
   G.health = save ? { ...save.health } : {};
   restoreDamage(G.veh, G.health[spec.id] || 0);
@@ -439,7 +511,9 @@ function enterDrive(save = null) {
   G.world.setHouseNear(G.quality === 'low' ? 140 : HOUSE_NEAR);
   G.camYaw = G.veh.yaw + Math.PI;
   G.camPos = [G.veh.x, 4, G.veh.z];
-  setEnv(save ? save.timeOfDay : 'day', true);
+  const savedTime = save ? save.timeOfDay : 'day';
+  G.dayClock = (DAY_PHASE[savedTime] ?? DAY_PHASE.day) * DAY_NIGHT_CYCLE;
+  setCycleEnv(true);
   G.mission = null;
   G.boat = null; G.focus = null;
   G.rivals = []; G.raceParked = {}; G.ranRed = false;
@@ -631,6 +705,34 @@ function setEnv(key, instant) {
   G.envTarget = cloneEnv(t);
   if (instant || !G.env) { G.env = cloneEnv(t); G.env.fogDensity *= G.q.fogMul; }
 }
+function cycleEnv() {
+  const p = ((G.dayClock / DAY_NIGHT_CYCLE) % 1 + 1) % 1;
+  const x = p * DAY_KEYS.length;
+  const i = Math.floor(x);
+  const a = TIME_OF_DAY[DAY_KEYS[i]];
+  const b = TIME_OF_DAY[DAY_KEYS[(i + 1) % DAY_KEYS.length]];
+  const k = x - i;
+  const out = cloneEnv(a);
+  for (const f of ['sky', 'ground', 'sun', 'lightDir', 'fog']) {
+    for (let n = 0; n < out[f].length; n++) out[f][n] = lerp(a[f][n], b[f][n], k);
+  }
+  out.fogDensity = lerp(a.fogDensity, b.fogDensity, k);
+  return { env: out, key: DAY_KEYS[i] };
+}
+function setCycleEnv(instant = false) {
+  const c = cycleEnv();
+  G.envKey = c.key;
+  G.night = nightAmount(c.env) > 0.15;
+  G.envTarget = c.env;
+  if (instant || !G.env) {
+    G.env = cloneEnv(c.env);
+    G.env.fogDensity *= G.q.fogMul;
+  }
+}
+function updateDayNight(dt) {
+  G.dayClock = (G.dayClock + dt) % DAY_NIGHT_CYCLE;
+  if (!G.mission) setCycleEnv();
+}
 function stepEnv(dt) {
   const a = G.env, b = G.envTarget, k = Math.min(1, dt * 0.9);
   for (const f of ['sky', 'ground', 'sun', 'lightDir', 'fog']) {
@@ -647,7 +749,10 @@ function startMission(def) {
     carId: spec.id, carName: spec.name, seats: spec.seats,
     money: G.wallet ? G.wallet.value : 0,
   });
-  G.mission = { def, stages, idx: 0, timeLeft: null, failed: false, elapsed: 0 };
+  G.mission = {
+    def, stages, idx: 0, timeLeft: null, failed: false, elapsed: 0,
+    styleStart: { stats: { ...G.stats }, damage: G.veh.damage || 0 },
+  };
   G.waypoint = null;
   G.veh.passengers = 0;
   setEnv(def.timeOfDay);
@@ -686,7 +791,7 @@ function failMission(why) {
   G.introUntil = 0;
   introCard.hide();
   G.veh.passengers = 0;
-  setEnv('day');
+  setCycleEnv();
   hud.setTimer(null);
   G.stuck = null;
   refreshFreeRoam();
@@ -732,7 +837,7 @@ function updateMission(dt) {
               hud.toast(`Vendu.\n${c.name} \u2014 ${cost} $`, 2600);
               audio.chime(true);
               swapCar(carId);
-            } else hud.toast(r.why, 2400);
+            } else hud.toast(r.why, 2400, true);
           }
         } else {
           // Short, gendered car names (story agent) + a spec's own possessive
@@ -810,13 +915,16 @@ function updateMission(dt) {
     const prev = G.best[def.id];
     const record = prev == null || m.elapsed < prev;
     if (record) G.best[def.id] = m.elapsed;
+    const style = missionStyleBonus(m.styleStart, G.stats, v.damage);
+    if (style.money && G.wallet) G.wallet.add(style.money);
     hud.toast('FINI — ' + def.title + '\n' + fmtTime(m.elapsed) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')')
-      + '\n' + G.done.size + '/' + MISSIONS.length + ' jobs faites', 3800);
+      + (style.money ? `\nSTYLE +${style.money} $  ·  ${style.text}` : '')
+      + '\n' + G.done.size + '/' + MISSIONS.length + ' jobs faites', 4600);
     missionCleanup(G, m, false);
     G.mission = null;
     G.introUntil = 0;
     v.passengers = 0;
-    setEnv('day');
+    setCycleEnv();
     hud.setTimer(null);
     G.stuck = null;
     sayFriend(def, 'end');
@@ -885,7 +993,10 @@ function mapState() {
     parked: Object.keys(G.parked).map((id) => ({ x: G.parked[id].x, z: G.parked[id].z, name: carById(id).name })),
     rivals: G.rivals.map((rv) => ({ x: rv.x, z: rv.z, name: rv.name })),
     cops: [...G.cops.units.map((u) => ({ x: u.x, z: u.z })), ...G.cops.blocks.map((b) => ({ x: b.x, z: b.z }))],
-    places: Object.values(PLACES).filter((p) => p.label && !/Chemin Fraser|Denise|Bancroft|Vanier/.test(p.label)),
+    places: [
+      ...Object.values(PLACES).filter((p) => p.label && !/Chemin Fraser|Denise|Bancroft|Vanier/.test(p.label)),
+      ...QUEBEC_POIS,
+    ],
     // feel agent: once it needs fixing, the nearest garage gets a wrench.
     repairs: G.veh && G.veh.damage >= DAMAGE.COSMETIC
       ? [nearestRepair(G.veh, PLACES)].filter(Boolean) : [],
@@ -1060,6 +1171,7 @@ function zoomMap(dir) {
 
 function tick(dt) {
   const v = G.veh;
+  updateDayNight(dt);
   // While you are in the canoe the car sits where you parked it and the steering
   // wheel goes to the paddle.
   const inBoat = !!(G.boat && G.boat.active);
@@ -1267,6 +1379,7 @@ function render(dt) {
     traffic: G.traffic.cars,
     rivals: G.rivals,
     cops: G.cops.units,
+    pois: QUEBEC_POIS,
     route: G.route,
   });
 }
@@ -1589,7 +1702,22 @@ function toMenu() {
 
 // ---- wiring ------------------------------------------------------------
 
-$('start').onclick = () => startGame(null);                 // a new game: everybody home, $80
+$('start').onclick = () => openStartPicker(true);
+$('startback').onclick = () => openStartPicker(false);
+$('startconfirm').onclick = () => { if (pickedStart) { openStartPicker(false); startGame(null, pickedStart); } };
+$('startmap').addEventListener('click', (e) => {
+  const tr = $('startmap')._pickerTransform;
+  if (!tr) return;
+  const box = $('startmap').getBoundingClientRect();
+  const x = (e.clientX - box.left) * $('startmap').width / box.width;
+  const y = (e.clientY - box.top) * $('startmap').height / box.height;
+  let best = null, distance = 22;
+  for (const p of tr.pts) {
+    const d = Math.hypot(x - tr.sx(p.x), y - tr.sz(p.z));
+    if (d < distance) { best = p.key; distance = d; }
+  }
+  if (best) selectStart(best);
+});
 $('btnContinue').onclick = () => {
   const slot = mostRecentSlot();
   if (slot) loadIntoGame(slot);
@@ -1609,6 +1737,7 @@ window.addEventListener('keydown', (e) => {
   // in 'drive'. Whoever acts on it has to consume it, or the next frame sees
   // the same press and puts the menu straight back up.
   if (e.code === 'Escape' && G.mode === 'paused') { pause(false); input.consume('Escape'); }
+  if (e.code === 'Escape' && !$('startpicker').classList.contains('hidden')) { openStartPicker(false); input.consume('Escape'); }
   if (e.code === 'Escape' && !$('options').classList.contains('hidden')) { openOptions(false); input.consume('Escape'); }
   if (e.code === 'Escape' && !$('loadscr').classList.contains('hidden')) { openLoadScreen(false); input.consume('Escape'); }
   // F5 is a quick save, not a reload — the browser's own F5 is in the way.
@@ -1647,7 +1776,12 @@ window.AYLMER = {
   settings: (patch) => { onSettings(saveSettings({ ...G.settings, ...(patch || {}) })); return G.settings; },
   // Debug/screenshot hooks: force a time of day, and read back what the last
   // frame actually drew (see world.js `stats`).
-  env(name = 'day') { setEnv(name, true); return name; },
+  env(name = 'day') {
+    const key = DAY_PHASE[name] == null ? 'day' : name;
+    G.dayClock = DAY_PHASE[key] * DAY_NIGHT_CYCLE;
+    setCycleEnv(true);
+    return key;
+  },
   // Story agent: the opener, the guidance line and the heckles.
   story, heckle,
   freeRoam: () => freeRoamLines(G, garage),
