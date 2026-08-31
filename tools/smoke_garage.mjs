@@ -168,7 +168,9 @@ group('economy');
     const wide = missionPayout(def, { seats: 6, carId: 'caravan' });
     ok(bench > 0, `${def.id} pays $${bench} net in the Ranger`);
     ok(wide > 0, `${def.id} pays $${wide} net in the van`);
-    ok(bench >= 15 && bench <= 40, `${def.id}'s payout is in the $15-40 band`, String(bench));
+    // The long-distance Hull and Chelsea expansion runs pay more than the
+    // original neighbourhood jobs, but still stay below used-car money.
+    ok(bench >= 15 && bench <= 75, `${def.id}'s payout is in the $15-75 band`, String(bench));
     total += bench;
   }
   ok(total >= 200, `a clean sweep of every job is $${total} on top of the $${START} you start with`);
