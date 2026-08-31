@@ -17,7 +17,10 @@ import { Nav, routeLength } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
 import { MISSIONS, TIME_OF_DAY } from './game/missions.js';
-import { PLACES, resolvePlaces } from './game/places.js';
+// Version the places module with the starting-point catalogue. Browsers cache
+// ES modules independently of index.html; without this, a newly deployed
+// START_POINTS list can briefly meet an older PLACES object and blank the picker.
+import { PLACES, resolvePlaces } from './game/places.js?v=starts-15';
 import { QUEBEC_POIS } from './game/quebec_pois.js';
 import { MAP } from './game/mapdata.js';
 import { t, KEYMAP } from './game/i18n.js';
@@ -223,11 +226,20 @@ const START_POINTS = [
   'hulldowntown', 'hullmuseum', 'hullcasino', 'hullmall',
   'ottawa', 'chelsea',
 ];
+const START_MAP_LABELS = {
+  home: 'Chez nous', mall: 'Galeries d’Aylmer', beach: 'Plage des Cèdres',
+  marina: 'Marina', principale: 'Vieux-Aylmer', arena: 'Aréna Frank-Robinson',
+  deschenes: 'Deschênes', golf: 'Club de golf', heritage: 'Heritage College',
+  hulldowntown: 'Vieux-Hull', hullmuseum: 'Musée de l’histoire',
+  hullcasino: 'Casino du Lac-Leamy', hullmall: 'Galeries de Hull',
+  ottawa: 'Colline du Parlement', chelsea: 'Chelsea',
+};
 let pickedStart = null;
+const availableStartPoints = () => START_POINTS.filter((key) => PLACES[key]);
 
 function drawStartPicker() {
   const c = $('startmap'), g = c.getContext('2d');
-  const pts = START_POINTS.map((key) => ({ key, ...PLACES[key] }));
+  const pts = availableStartPoints().map((key) => ({ key, ...PLACES[key] }));
   const pad = 260;
   const minX = Math.min(...pts.map((p) => p.x)) - pad, maxX = Math.max(...pts.map((p) => p.x)) + pad;
   const minZ = Math.min(...pts.map((p) => p.z)) - pad, maxZ = Math.max(...pts.map((p) => p.z)) + pad;
@@ -251,6 +263,33 @@ function drawStartPicker() {
     g.lineWidth = 2; g.strokeStyle = '#10171c'; g.stroke();
     g.fillStyle = '#10171c'; g.fillText(String(i + 1), sx(p.x), sz(p.z) + .5);
   });
+
+  // Compact labels turn the overview into a readable map instead of making
+  // players cross-reference every pin with the list. Try several vertical
+  // offsets around crowded clusters and keep every label inside the canvas.
+  const used = [];
+  g.font = 'bold 10px Helvetica,Arial,sans-serif';
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  for (const p of pts) {
+    const label = START_MAP_LABELS[p.key] || p.label;
+    const px = sx(p.x), py = sz(p.z), w = Math.ceil(g.measureText(label).width) + 10, h = 16;
+    const right = px < c.width * .58;
+    const bx = Math.max(3, Math.min(c.width - w - 3, right ? px + 12 : px - w - 12));
+    let by = Math.max(3, Math.min(c.height - h - 3, py - h / 2));
+    for (const dy of [0, -18, 18, -36, 36, -54, 54, -72, 72]) {
+      const candidate = Math.max(3, Math.min(c.height - h - 3, py - h / 2 + dy));
+      if (!used.some((b) => bx < b.x + b.w + 3 && bx + w + 3 > b.x && candidate < b.y + b.h + 3 && candidate + h + 3 > b.y)) {
+        by = candidate; break;
+      }
+    }
+    used.push({ x: bx, y: by, w, h });
+    g.strokeStyle = 'rgba(233,237,242,.7)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(px + (right ? 7 : -7), py); g.lineTo(right ? bx : bx + w, by + h / 2); g.stroke();
+    g.fillStyle = p.key === pickedStart ? 'rgba(255,201,77,.96)' : 'rgba(10,15,18,.84)';
+    g.fillRect(bx, by, w, h);
+    g.fillStyle = p.key === pickedStart ? '#10171c' : '#f3f5f6';
+    g.fillText(label, bx + 5, by + h / 2 + .5);
+  }
   c._pickerTransform = { pts, sx, sz };
 }
 
@@ -270,7 +309,7 @@ function openStartPicker(open) {
   $('startpickhint').textContent = t('menu.pickstart.hint');
   $('startback').textContent = '\u2190 ' + t('menu.pickstart.back');
   $('startconfirm').textContent = t('menu.drive');
-  $('startpoints').innerHTML = START_POINTS.map((key, i) =>
+  $('startpoints').innerHTML = availableStartPoints().map((key, i) =>
     `<button class="startpoint" data-key="${key}"><b>${i + 1}</b><span>${PLACES[key].label}</span></button>`).join('');
   for (const el of $('startpoints').children) el.onclick = () => selectStart(el.dataset.key);
   drawStartPicker();
