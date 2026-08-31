@@ -172,9 +172,12 @@ export class BigMap {
       if (taken.some((m) => Math.hypot(m.x - p.x, m.z - p.z) < 40)) continue;   // a pin with its own label sits here
       const x = sx(p.x), y = sy(p.z);
       if (x < -30 || y < -20 || x > w + 30 || y > h + 20) continue;
-      const labelZoom = !p.source ? 0.3 : p.landmark ? 0.18 : 0.28;
-      let label = z > labelZoom ? p.label : null;
-      if (label && placeLabels.some(([lx, ly]) => Math.abs(lx - x) < 150 && Math.abs(ly - y) < 18)) label = null;
+      // Civic landmarks stay named at every zoom. Ordinary businesses wait
+      // until their neighbourhood is legible and yield when labels overlap.
+      const labelZoom = !p.source ? 0.3 : 0.28;
+      let label = p.landmark || z > labelZoom ? p.label : null;
+      if (label && !p.landmark &&
+          placeLabels.some(([lx, ly]) => Math.abs(lx - x) < 150 && Math.abs(ly - y) < 18)) label = null;
       if (label) placeLabels.push([x, y]);
       pin(x, y, p.landmark ? '#8fd6a3' : '#bfc7d6', label, false);
     }

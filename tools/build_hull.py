@@ -7,6 +7,7 @@ game/highway_to_hull.js. This keeps the expansion refreshable without touching
 the assessment-roll-enriched Aylmer houses.
 
 Input (Overpass JSON): data/hull_{roads,buildings,land,pois}.json
+                       data/hull_water_relations.json
 Output:                 src/game/hull_mapdata.js
 """
 import json, math, os, sys
@@ -49,6 +50,72 @@ def load(kind):
 
 def inside(p):
     return MINX <= p[0] <= MAXX and MINZ <= p[1] <= MAXZ
+
+def clip_ring(points):
+    """Sutherland-Hodgman clip against the expansion rectangle."""
+    def edge(poly, axis, bound, keep_low):
+        if not poly: return []
+        out = []
+        def within(p): return p[axis] >= bound if keep_low else p[axis] <= bound
+        for a, b in zip(poly, poly[1:] + poly[:1]):
+            ai, bi = within(a), within(b)
+            if ai: out.append(a)
+            if ai == bi: continue
+            den = b[axis] - a[axis]
+            t = (bound - a[axis]) / den if abs(den) > 1e-9 else 0
+            q = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+            q[axis] = bound; out.append(tuple(q))
+        return out
+    p = list(points)
+    for axis, bound, low in ((0, MINX, True), (0, MAXX, False),
+                             (1, MINZ, True), (1, MAXZ, False)):
+        p = edge(p, axis, bound, low)
+    return [(round(x, 1), round(z, 1)) for x, z in p]
+
+def water_relations():
+    """Assemble OSM multipolygon outer ways into clipped river surfaces."""
+    path = os.path.join(DATA, 'hull_water_relations.json')
+    if not os.path.exists(path): return []
+    with open(path) as f: relations = json.load(f).get('elements', [])
+    out = []
+    for rel in relations:
+        tags = rel.get('tags', {})
+        if tags.get('natural') != 'water' and tags.get('waterway') != 'riverbank':
+            continue
+        segments = []
+        for member in rel.get('members', []):
+            geom = member.get('geometry') or []
+            if member.get('role') != 'outer' or len(geom) < 2: continue
+            segments.append([(p['lat'], p['lon']) for p in geom])
+        rings = []
+        while segments:
+            ring = segments.pop()
+            changed = True
+            while changed and ring[0] != ring[-1]:
+                changed = False
+                for i, seg in enumerate(segments):
+                    if ring[-1] == seg[0]: ring += seg[1:]
+                    elif ring[-1] == seg[-1]: ring += list(reversed(seg[:-1]))
+                    elif ring[0] == seg[-1]: ring = seg[:-1] + ring
+                    elif ring[0] == seg[0]: ring = list(reversed(seg[1:])) + ring
+                    else: continue
+                    segments.pop(i); changed = True; break
+            if len(ring) >= 4 and ring[0] == ring[-1]: rings.append(ring[:-1])
+        for ring in rings:
+            pts = clip_ring([proj(lat, lon) for lat, lon in ring])
+            if len(pts) < 3: continue
+            # River relations can contain thousands of sub-metre survey points;
+            # eight-metre simplification is invisible at driving/map scale and
+            # keeps the water meshes inside the expansion geometry budget.
+            pts = bm.simplify(pts, 8.0)
+            if len(pts) < 3 or abs(bm.area2(pts)) < 1000: continue
+            tris = bm.ear_clip(pts)
+            if not tris: continue
+            a = {'k': 'water', 'p': pts, 't': [i for tri in tris for i in tri],
+                 'relation': rel['id']}
+            if tags.get('name'): a['name'] = tags['name']
+            out.append(a)
+    return out
 
 def roads():
     out = []
@@ -138,6 +205,7 @@ def areas():
         a = {'k': kind, 'p': pts, 't': [i for tri in tris for i in tri]}
         if tags.get('name'): a['name'] = tags['name']
         out.append(a)
+    out.extend(water_relations())
     return out
 
 def pois():
