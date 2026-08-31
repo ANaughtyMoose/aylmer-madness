@@ -185,6 +185,7 @@ ok('W5 sign atlas lists at least 20 storefront names', () => {
   const plan = planSigns();
   assert.ok(plan.length >= 100, `only ${plan.length} signs planned`);
   assert.ok(plan.length <= 120, `${plan.length} signs is over the cap`);
+  assert.equal(plan.length, 120, 'every fictional POI gets a physical sign');
   const built = buildSignage(r);
   assert.ok(built, 'buildSignage returned null');
   assert.ok(built.names.length >= 20, `atlas carries ${built.names.length} names`);

@@ -1,6 +1,6 @@
 // Storefront signage. Real OpenStreetMap POIs supply the locations; the featured
-// shops get fictional Québec-flavoured names. Each sign hangs as a lit fascia
-// board on the street-facing wall of the nearest building footprint.
+// shops get fictional Québec-flavoured names. Each POI gets a lit fascia on a
+// nearby building or a freestanding roadside board when no suitable wall exists.
 //
 // One canvas atlas, one mesh, one draw call for the whole town.
 //
@@ -83,17 +83,27 @@ let _plan = null;
 export function planSigns() {
   if (_plan) return _plan;
 
-  // 1. geographically distributed fictional businesses first, then OSM names.
-  const selected = QUEBEC_POIS.filter((p) => !p.landmark)
-    .map((p) => ({ ...p, name: p.label }));
-  const selectedSources = new Set(QUEBEC_POIS.map((p) => p.source));
-  const extras = MAP.pois.filter((p) => p.name && !selectedSources.has(p.name) &&
-    !SKIP.has(p.k) && p.name.length <= 26);
-  const cand = [...selected, ...extras].map((p) => ({ p, d: highStreetD2(p.x, p.z) }));
+  // All 120 geographically distributed businesses and landmarks get a sign.
+  const cand = QUEBEC_POIS.map((p) => ({ p: { ...p, name: p.label } }));
 
   // 2. hang each on the street-facing wall of the nearest footprint
   const out = [];
   const usedWall = new Set();
+  const roadside = (p) => {
+    const road = nearestRoadPoint(p.x, p.z);
+    let ux = p.x - road[0], uz = p.z - road[1];
+    const d = Math.hypot(ux, uz);
+    if (d < 0.1) { ux = 0; uz = 1; } else { ux /= d; uz /= d; }
+    // Stand just off the asphalt, facing traffic. The board extends down to a
+    // low plinth so it cannot look like floating text from the driver's seat.
+    const nx = -ux, nz = -uz, dx = -nz, dz = nx;
+    out.push({
+      name: p.name, slot: out.length, freestanding: true,
+      x: road[0] + ux * 4, z: road[1] + uz * 4,
+      dx, dz, nx, nz, w: p.landmark ? 4.6 : 3.8, h: 1.15, y: 0.35,
+      board: out.length % BOARDS.length,
+    });
+  };
   for (const c of cand) {
     if (out.length >= MAX_SIGNS) break;
     const p = c.p;
@@ -105,7 +115,7 @@ export function planSigns() {
       const d = dx * dx + dz * dz;
       if (d < bd) { bd = d; bi = i; }
     }
-    if (bi < 0) continue;                       // W5: skip if no building within 25 m
+    if (bi < 0) { roadside(p); continue; }
     const b = MAP.buildings[bi];
     const ring = b.p, n = ring.length;
     const fwd = ringArea2(ring) < 0;
@@ -132,13 +142,13 @@ export function planSigns() {
         bestGeom = { mx, mz, dx, dz, nx, nz, L };
       }
     }
-    if (bestI < 0 || bestScore < 0.1) continue;   // no wall actually faces the street
+    if (bestI < 0 || bestScore < 0.1) { roadside(p); continue; }
     usedWall.add(bi * 64 + bestI);
     const g = bestGeom;
     const w = Math.min(3.8, g.L * 0.78);
     const h = w / 4;
     const y = Math.min(Math.max(b.h - h - 0.35, 2.6), 3.6);   // above door height
-    if (y + h > b.h) continue;
+    if (y + h > b.h) { roadside(p); continue; }
     out.push({
       name: p.name, slot: out.length,
       x: g.mx + g.nx * 0.14, z: g.mz + g.nz * 0.14,
