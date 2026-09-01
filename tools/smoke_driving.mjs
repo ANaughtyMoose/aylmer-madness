@@ -552,6 +552,28 @@ function shunt(player, car) {
     through.length === 0, through.join(', '));
 }
 
+// ---------------------------------------------------------------- bridges
+// The Champlain Bridge deck sits over the OSM river polygon, so waterAt() is
+// true on tarmac for the whole span (tools/smoke_sectors.mjs pins that). A road
+// over water is a bridge: the car must pull away on it exactly as on dry road.
+// Before this rule the deck dragged the truck to a walk mid-span — the
+// "invisible wall" people reported — and so did the Taché causeway.
+{
+  const bridge = { ...road, waterAt: () => true };
+  const river = { ...grass, waterAt: () => true };
+  const run = (world) => {
+    const v = new Vehicle(carById('ranger'));
+    v.reset(0, 0, 0);
+    const cl = ctl({ throttle: 1 });
+    for (let i = 0; i < 60 * 6; i++) v.update(1 / 60, cl, world);
+    return v.speedKmh;
+  };
+  const dry = run(road), deck = run(bridge), wet = run(river);
+  ok('BRIDGE: a road over the water polygon drives like a road',
+    near(deck, dry, 1), `${r2(deck)} vs ${r2(dry)} km/h after 6 s`);
+  ok('BRIDGE: water with no road under it still drags', wet < dry * 0.6, `${r2(wet)} km/h`);
+}
+
 console.log(out.join('\n'));
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

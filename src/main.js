@@ -1504,7 +1504,8 @@ function tick(dt) {
     // and whether the thing you came down in was the Ottawa river.
     landEvent = {
       air: v.lastAir, force: v.landed,
-      landedInWater: !!(G.phys.waterAt && G.phys.waterAt(v.x, v.z)),
+      // A bridge deck is not the river, whatever the water polygon says.
+      landedInWater: !!(G.phys.waterAt && G.phys.waterAt(v.x, v.z) && !G.phys.roadAt(v.x, v.z)),
       x: v.x, z: v.z,
     };
     G.stats.landings++;

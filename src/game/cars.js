@@ -1326,7 +1326,13 @@ export class Vehicle {
     const surface = this.surface;
     const gripSurf = inAir ? 0 : sd.grip * turf;
     const offRoad = (1 - surface) / (1 - GRASS);      // 0 on tarmac, 1 fully off it
-    const inWater = world.waterAt(this.x, this.z) && !inAir;
+    // Water under the car is only water if there is no road under it: a road
+    // over the river polygon is a bridge. Without this the Champlain Bridge
+    // deck — every metre of it over the OSM water polygon — dragged the car
+    // to a walk mid-span, which is the "invisible wall" people reported, and
+    // so did the Alexandre-Taché causeway over the Brasserie.
+    const inWater = !inAir && world.waterAt(this.x, this.z)
+      && !(world.roadAt && world.roadAt(this.x, this.z));
     const topSpeed = s.topSpeed * (this.hurt ? 0.85 : 1);   // R4: −15 % once it's bad
 
     // Engine: the thrust curve runs out at `vPow`, which sits above the car's

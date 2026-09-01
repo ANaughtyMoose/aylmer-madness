@@ -175,6 +175,24 @@ ok('the four slices together are about the whole map', () => {
   assert.ok(ratio > 0.98 && ratio < 1.25, `slices/full = ${ratio.toFixed(3)}`);
   assert.equal(W.intersections > full.intersections * 0.95, true, `${W.intersections} vs ${full.intersections} intersections`);
 });
+// The Champlain Bridge deck lies over the OSM river polygon for its whole
+// length, so waterAt() says "river" on tarmac. cars.js exempts roads from the
+// in-water rule for exactly this reason (see smoke_driving's bridge check);
+// this pins the premise, so a future map rebuild that moves the deck off the
+// road grid shows up here and not as an invisible wall.
+ok('the Champlain Bridge deck is tarmac over water, end to end', () => {
+  let n = 0, road = 0, water = 0;
+  for (const r of MAP.roads) {
+    if (!/Champlain Bridge/.test(r.name || '')) continue;
+    for (let i = 0; i + 1 < r.pts.length; i++) {
+      const x = (r.pts[i][0] + r.pts[i + 1][0]) / 2, z = (r.pts[i][1] + r.pts[i + 1][1]) / 2;
+      n++; if (W.roadAt(x, z)) road++; if (W.waterAt(x, z)) water++;
+    }
+  }
+  assert.ok(n > 10, `only ${n} deck segments`);
+  assert.equal(road, n, `${n - road} deck segments are not on the road grid`);
+  assert.ok(water > n / 2, `only ${water}/${n} deck segments over water — the premise changed`);
+});
 ok('approach index: Hull is near the gate, Chelsea is not near Aylmer', () => {
   assert.ok(nearSectors(2734.8, -3245.4, APPROACH).has('hull'));
   assert.ok(!nearSectors(932.9, 143.9, LEAVE).has('chelsea'));
