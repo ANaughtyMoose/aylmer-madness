@@ -327,25 +327,28 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
 
 // ---------------------------------------------------------------- the flat town
 //
-// The `road/*` numbers below were taken from the committed code BEFORE the
-// height field existed: 5 s at full throttle, on tarmac, for all four cars.
-// Nothing in a town with no features under it is allowed to move them.
+// The reference numbers below are 5 s at full throttle, on tarmac and on grass,
+// for all four cars. Nothing in a town with no features under it is allowed to
+// move them — which is what this guards.
 //
-// The `grass/*` rows were re-baselined once, when the off-road penalty was
-// softened (see SURF in terrain.js). They pin the whole off-road path — the
-// ramp target, the drag normalisation, the lateral grip — to nine decimals, so
-// the tuning cannot drift again without somebody choosing to.
+// Rebaselined once for two changes that landed together and both legitimately
+// move every row: the off-road penalty was softened (SURF / GRASS, now 0.81),
+// and cars.js stopped letting drag eat a sixth of every car's stated top speed
+// (`aero` / `vPow`, see finalizeCar). Neither branch's table is right on its
+// own; these numbers come from the merged code. They pin the whole path —
+// the ramp target, the drag normalisation, the lateral grip, the thrust curve
+// — to nine decimals, so none of it can drift again without somebody choosing.
 
 {
   const REF = {
-    'road/ranger': [0, 38.157413368, 0, 14.45539533, 0, 1, 0, -0.031039319, 0],
-    'road/civic': [0, 58.007227556, 0, 21.559588374, 0, 1, 0, -0.02836343, 0],
-    'road/saturn': [0, 46.101108107, 0, 17.374564681, 0, 1, 0, -0.0290553, 0],
-    'road/sunfire': [0, 49.535238474, 0, 18.641232004, 0, 1, 0, -0.034001649, 0],
-    'grass/ranger': [-8.69593767, 16.664912009, -0.997876189, 7.077337304, 0.356461633, 0.81, 0, -0.016150764, -0.046786506],
-    'grass/civic': [-26.199577032, 12.651163862, -2.244060814, 12.470558062, 1.029659867, 0.81, 0, -0.020130935, -0.11658784],
-    'grass/saturn': [-16.134754652, 17.439614579, -1.5234862, 9.344865258, 0.626816758, 0.81, 0, -0.017508179, -0.073641302],
-    'grass/sunfire': [-18.825060175, 17.732795207, -1.65608759, 10.315765588, 0.730683202, 0.81, 0, -0.021393392, -0.096304197],
+    'road/ranger': [0, 39.086020339, 0, 15.10366738, 0, 1, 0, -0.034946719, 0],
+    'road/civic': [0, 59.577325276, 0, 22.631436178, 0, 1, 0, -0.032448215, 0],
+    'road/saturn': [0, 47.334885078, 0, 18.234917409, 0, 1, 0, -0.033161676, 0],
+    'road/sunfire': [0, 50.755311354, 0, 19.491940415, 0, 1, 0, -0.038449011, 0],
+    'grass/ranger': [-8.906805509, 16.796348942, -1.011796229, 7.236878419, 0.372345805, 0.81, 0, -0.017148101, -0.048907851],
+    'grass/civic': [-26.6387035, 12.327437047, -2.275756135, 12.790750407, 1.079114168, 0.81, 0, -0.021578374, -0.122227628],
+    'grass/saturn': [-16.523605086, 17.444892476, -1.547517147, 9.582057321, 0.658363374, 0.81, 0, -0.018751291, -0.077393361],
+    'grass/sunfire': [-19.22275782, 17.698844441, -1.678903329, 10.561247584, 0.764035109, 0.81, 0, -0.022817953, -0.100751201],
   };
   let worst = 0, worstKey = '';
   for (const [name, world] of [['road', flat], ['grass', flatGrass]]) {

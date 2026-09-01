@@ -166,6 +166,24 @@ try {
       if (report[car][kind].gears.length) console.log('   gears ' + report[car][kind].gears.join('  '));
     }
   }
+  // The road, once, in the truck. Tyres, gravel, grass, the springs and two
+  // impacts — everything the engine auditions above deliberately leave out.
+  {
+    const r = await evaluate("AUDITION.render('ranger', 'road')");
+    const pcm = Buffer.from(r.pcm, 'base64');
+    const file = path.join(OUT, 'ranger-road.wav');
+    fs.writeFileSync(file, wav16(pcm, r.sampleRate));
+    const kb = Math.round(fs.statSync(file).size / 1024);
+    report.ranger.road = {
+      file: 'docs/audio/ranger-road.wav', kb, peak: +r.peak.toFixed(3),
+      rms: r.rms.map((v) => +v.toFixed(4)), shifts: r.shifts,
+      surfaces: r.marks.map((m) => `${m[0]}s ${m[1]} ${m[2]}km/h`),
+    };
+    console.log(`ranger-road.wav       ${String(kb).padStart(4)} KB  peak ${r.peak.toFixed(3)}  shifts ${r.shifts}`);
+    console.log('   rms/s ' + r.rms.map((v) => v.toFixed(3)).join(' '));
+    console.log('   surfaces ' + report.ranger.road.surfaces.join('  '));
+  }
+
   // CKOI, eight seconds a style.
   report.radio = {};
   for (const style of await evaluate('Promise.resolve(AUDITION.styles || [])')) {
