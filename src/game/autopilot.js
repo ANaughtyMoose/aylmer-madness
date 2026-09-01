@@ -54,6 +54,10 @@ export function start(A, PLACES, want = 'ottawa') {
       clearKeys(); return;
     }
     const dest = legs[st.leg];
+    // A tow (main.js: the truck is finished, back to the driveway) or anything
+    // else that moves the truck 200 m in a frame: throw the route away.
+    if (st.lastX != null && Math.hypot(v.x - st.lastX, v.z - st.lastZ) > 200) { st.route = null; st.tows = (st.tows || 0) + 1; console.warn('autopilot: moved 200 m in a frame (towed?), re-routing'); }
+    st.lastX = v.x; st.lastZ = v.z;
     if (!st.route) {
       st.route = G.nav && G.nav.route(v.x, v.z, dest.x, dest.z);
       st.idx = 0;
@@ -71,8 +75,13 @@ export function start(A, PLACES, want = 'ottawa') {
     // Aim at the first point ≥ 18 m ahead so the truck cuts corners like a person.
     let ti = st.idx;
     while (ti < path.length - 1 && d2(path[ti]) < 18 * 18) ti++;
-    const t = path[ti];
-    const wantYaw = Math.atan2(t[0] - v.x, t[1] - v.z);
+    // Keep right: the route runs down the crown of the road, and traffic
+    // does not always stay on its own side, so aim 2.5 m to the right of it.
+    const t = path[ti], tp = path[Math.max(0, ti - 1)];
+    let dx = t[0] - tp[0], dz = t[1] - tp[1];
+    const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+    const tx = t[0] - dz * 2.5, tz = t[1] + dx * 2.5;
+    const wantYaw = Math.atan2(tx - v.x, tz - v.z);
     const err = wrap(wantYaw - v.yaw);
     const kmh = v.speedKmh || 0;
     const dt = 1 / 60;
@@ -101,7 +110,7 @@ export function start(A, PLACES, want = 'ottawa') {
     // Gentle on purpose: at 85 km/h the Ranger was being towed home twice a
     // trip after meeting traffic in a bend, and a tow resets the position.
     const sharp = Math.abs(err) > 0.5;
-    const cap = sharp ? 28 : Math.abs(err) > 0.2 ? 45 : 65;
+    const cap = sharp ? 28 : Math.abs(err) > 0.2 ? 40 : 55;
     press(KEYS.left, err > 0.04);
     press(KEYS.right, err < -0.04);
     press(KEYS.gas, kmh < cap);
@@ -112,7 +121,7 @@ export function start(A, PLACES, want = 'ottawa') {
   function status(dest, path, kmh, note) {
     const s = ((performance.now() - st.t0) / 1000) | 0;
     const left = Math.hypot(dest.x - A.G.veh.x, dest.z - A.G.veh.z);
-    panel.textContent = `→ ${dest.label} · ${(left / 1000).toFixed(1)} km · ${kmh | 0} km/h · ${(s / 60) | 0}:${String(s % 60).padStart(2, '0')} · laps ${st.laps} · resets ${st.resets} · ${A.G.world.sectors ? A.G.world.sectors.loaded() : ''} ${note}`;
+    panel.textContent = `→ ${dest.label} · ${(left / 1000).toFixed(1)} km · ${kmh | 0} km/h · ${(s / 60) | 0}:${String(s % 60).padStart(2, '0')} · laps ${st.laps} · resets ${st.resets} · tows ${st.tows || 0} · ${A.G.world.sectors ? A.G.world.sectors.loaded() : ''} ${note}`;
   }
 
   boot();

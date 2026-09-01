@@ -25,7 +25,10 @@ import { buildSignage } from './signage.js';
 export const SEAM_X = 2540.6;
 export const CHELSEA_Z = -8500;
 export const APPROACH = 1200;    // metres from a sector's nearest road before it is built
-export const LEAVE = 2600;       // metres from all of it before it is freed (> APPROACH: hysteresis)
+// Freed once everything in it is this far away. Deschênes (Aylmer's last
+// roads) and the Ottawa bank are 3 km apart across the bridge, so LEAVE must
+// stay under 3000 - APPROACH or three sectors sit resident on the deck.
+export const LEAVE = 2000;
 const CELL = 500;                // the approach index's cell size
 
 // The Ottawa shoreline, x ascending: Ottawa is the land SOUTH of the river,
