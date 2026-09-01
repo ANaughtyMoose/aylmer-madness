@@ -338,9 +338,63 @@ const CORE_MISSIONS = [
 // the live array main.js re-filters every frame, so an unlocked beat is a push
 // and the map marker turns up on its own. ALL_MISSIONS is the whole set,
 // locked or not — the audits and the timer table want everything.
-export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS,
-  ...openBeats(new Set())];
+// The order the jobs are offered in, which is the order a new player meets the
+// game. It used to be the order they happened to be written in, and that put the
+// three long expansion drives first: the opening job was a seven-minute run to
+// Heritage College with nothing on the way and twenty dollars at the end. That
+// is a bad first hour — it is long, it is empty, and it teaches nothing.
+//
+// Open near home, short, with somebody at the far end and a car to show for it.
+// « Poutine express » is ninety-five seconds and hands you Sayyad's Civic;
+// « Ramasser la gang » hands you Margaret's Saturn. Earn a set of keys inside
+// five minutes, then let the map get bigger. The long hauls are still all here,
+// they are just no longer the first thing anybody sees.
+const OPENING_ORDER = [
+  'poutine',      // 95 s, from your own driveway — and Sayyad's Civic
+  'dep',          // 95 s, the dépanneur run
+  'gang',         // pick the friends up — Margaret's Saturn
+  'sayyad',       // doughnuts outside 75 Denise-Friend
+  'curfew',       // home before midnight — Adam's Sunfire
+  'cv',           // hand out the résumés
+  'divan',        // the couch, and the tree
+  'school',       // now the map opens up
+  'tour',
+  'canot',
+  'highwayhull',
+  'chelsea',
+];
+const openingRank = (m) => {
+  const i = OPENING_ORDER.indexOf(m.id);
+  return i < 0 ? OPENING_ORDER.length : i;
+};
+const byOpening = (a, b) => openingRank(a) - openingRank(b);
+
+export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS].sort(byOpening)
+  .concat(RACE_MISSIONS, GOLF_MISSIONS, openBeats(new Set()));
 export const ALL_MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS, ...ARC];
+
+// What a job hands you, in its own brief. The garage already knows which car
+// each mission unlocks — it prints "Finis « Ramasser la gang »" on the locked
+// card in the menu — but the job itself never said, so from the driver's seat
+// every errand looked equally worth doing. This reads that same table backwards
+// and appends one line, so the reward is visible before you commit to the drive
+// rather than only after.
+try {
+  const { UNLOCKS } = await import('./garage.js');
+  const byMission = {};
+  for (const carId of Object.keys(UNLOCKS)) {
+    const u = UNLOCKS[carId];
+    if (u.kind === 'mission' && u.mission) (byMission[u.mission] ||= []).push(u.who || carId);
+  }
+  for (const m of ALL_MISSIONS) {
+    const who = byMission[m.id];
+    if (!who) continue;
+    m.unlocks = who;
+    const keys = who.length === 1 ? `les clés du char à ${who[0]}` : `des clés`;
+    m.brief = (m.brief ? m.brief + ' ' : '') + `\u00c7a te donne ${keys}.`;
+  }
+} catch { /* the garage is optional here; a brief without the line still reads */ }
+
 
 // The beats' names come out of assets/text/arc.json when it is there; the ones
 // written in arc.js are the fallback. Fire and forget — a title that lands two
