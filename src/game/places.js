@@ -5,6 +5,11 @@
 // spawn points sit on asphalt instead of in someone's living room.
 import { MAP } from './mapdata.js';
 
+// How far a named POI may pull a place from its authored coordinate. Big enough
+// to absorb an OSM centroid landing on the far corner of a mall parking lot,
+// far too small to reach the next town over.
+const POI_SNAP = 600;
+
 export const PLACES = {
   // The four homes.
   home:      { x: 932.9, z: 143.9, label: '299 Chemin Fraser', snap: true },
@@ -84,7 +89,17 @@ export function resolvePlaces(world) {
   for (const key of Object.keys(PLACES)) {
     const p = PLACES[key];
     if (p.poi) {
-      const hit = MAP.pois.find((q) => q.name === p.poi);
+      // Nearest POI of that name to the coordinate written above, not the first
+      // one in the array. Once Hull was merged in, "Petro-Canada" matched a
+      // station 6.4 km east and took the dépanneur job and the repair point
+      // with it; "Canadian Tire" now matches twice. The authored coordinate is
+      // the intent, so the name only ever refines it — never relocates it.
+      let hit = null, best = POI_SNAP * POI_SNAP;
+      for (const q of MAP.pois) {
+        if (q.name !== p.poi) continue;
+        const d = (q.x - p.x) * (q.x - p.x) + (q.z - p.z) * (q.z - p.z);
+        if (d < best) { best = d; hit = q; }
+      }
       if (hit) { p.x = hit.x; p.z = hit.z; }
     }
     p.bx = p.x; p.bz = p.z;                       // where the building actually is

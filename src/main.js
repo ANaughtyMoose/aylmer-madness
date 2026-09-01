@@ -17,10 +17,11 @@ import { Nav, routeLength } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
 import { MISSIONS, TIME_OF_DAY } from './game/missions.js';
-// Version the places module with the starting-point catalogue. Browsers cache
-// ES modules independently of index.html; without this, a newly deployed
-// START_POINTS list can briefly meet an older PLACES object and blank the picker.
-import { PLACES, resolvePlaces } from './game/places.js?v=starts-15';
+// No query string on this import. A `?v=` suffix makes the browser treat the
+// file as a second, separate module: PLACES forks into two objects, only one of
+// them ever meets resolvePlaces(), and every mission target silently stops being
+// snapped to the road. Cache-bust index.html, never a module the game shares.
+import { PLACES, resolvePlaces } from './game/places.js';
 import { QUEBEC_POIS } from './game/quebec_pois.js';
 import { MAP } from './game/mapdata.js';
 import { t, KEYMAP } from './game/i18n.js';
