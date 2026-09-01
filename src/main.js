@@ -1271,10 +1271,16 @@ function handleKeys() {
     hud.toast(heckle.toggleGloss() ? t('toast.slang.on') : t('toast.slang.off'), 1600);
   }
   heckle.hold(input.down('KeyG'));
-  // K pushes the sky on to the next front and says what it is now. The weather
+  // V pushes the sky on to the next front and says what it is now. The weather
   // makes its own decisions the rest of the time; this is for when you want to
   // go and stand in a thunderstorm instead of waiting ten minutes for one.
-  if (input.hit('KeyK')) {
+  //
+  // This was K until the merge. Two agents working in parallel both claimed K —
+  // the sky here, and the Kijiji classifieds in economy.js — and neither could
+  // see the other, so one press did both. No suite catches it: nothing imports
+  // main.js, and the two live in different modules. Kijiji keeps K, which it
+  // documented claiming along with U for the garage.
+  if (input.hit('KeyV')) {
     weather.advance();
     hud.toast('MÉTÉO\n' + weather.label + (weather.wet > 0.1 ? '  ·  chaussée mouillée' : ''), 1800);
   }

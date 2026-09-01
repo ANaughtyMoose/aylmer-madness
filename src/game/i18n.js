@@ -417,7 +417,7 @@ export const KEYMAP = [
   { caps: ['H'], label: 'k.horn' },
   { caps: ['R'], label: 'k.radio' },
   { caps: ['G'], label: 'k.slang' },
-  { caps: ['K'], label: 'k.weather' },
+  { caps: ['V'], label: 'k.weather' },
   { caps: ['0'], label: 'k.mute' },
   { caps: ['F5'], label: 'k.save' },
   { caps: ['Esc'], label: 'k.pause' },
