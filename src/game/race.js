@@ -262,12 +262,27 @@ export class Rival {
     // ---- 2. how fast do we want to be going ------------------------------
     // Two probes: where the road is in a moment, and where it is after that.
     // The angle between them is the bend, and the bend is what you lift for.
-    const d1 = clamp(6 + Math.abs(sp) * 0.9, 8, 26);
-    this.lookAhead(d1, PA);
-    this.lookAhead(d1 + clamp(8 + Math.abs(sp) * 1.0, 10, 30), PB);
-    const bend = Math.abs(angleDelta(
-      Math.atan2(PB[0] - PA[0], PB[1] - PA[1]),
-      Math.atan2(PA[0] - v.x, PA[1] - v.z)));
+    // Two pairs of probes, and the tighter bend of the two wins.
+    //
+    // There used to be one pair, ceilinged at 26 and 30 m. That was fine while
+    // nothing could pass ~110 km/h — 56 m is a comfortable two seconds at 30
+    // m/s — but once cars.js started solving real terminal speeds (150 for the
+    // Ranger, 180 for the Z24) it was well under the distance a car needs just
+    // to shed speed, and a rival on a fast road met every bend already
+    // committed. Simply lengthening the probe traded that fault for its mirror
+    // image: on a tight descent the long probe reads the road *past* the
+    // corner and sails into it. So keep the near pair for the corner you are
+    // about to be in, add a far pair for the one you are about to be committed
+    // to, and lift for whichever is worse.
+    const bendAt = (near, far) => {
+      const d1 = clamp(6 + Math.abs(sp) * 0.9, 8, near);
+      this.lookAhead(d1, PA);
+      this.lookAhead(d1 + clamp(8 + Math.abs(sp) * 1.0, 10, far), PB);
+      return Math.abs(angleDelta(
+        Math.atan2(PB[0] - PA[0], PB[1] - PA[1]),
+        Math.atan2(PA[0] - v.x, PA[1] - v.z)));
+    };
+    const bend = Math.max(bendAt(26, 30), bendAt(44, 52));
     let want = s.cruise * (1 - Math.min(0.74, bend * s.cornerK));
     want = Math.max(s.minSpeed, want) * (ctx && ctx.band ? ctx.band : this.band);
     // Fighting the wheel is its own reason to slow down.
