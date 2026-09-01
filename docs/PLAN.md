@@ -6,6 +6,64 @@ written down here.
 
 ---
 
+## How to pick this up (written 2026-09-01, 14:00, at Thomas's pause)
+
+Do these in order. Each is one sitting.
+
+1. **Merge PR #5** (`wave/1-memory`, six commits + docs). Gate first: the
+   twenty-minute Safari run to Ottawa with `index.html?drive=ottawa` and no
+   reload banner, then the boot check in `docs/VERIFY.md`. Then
+   `gh pr merge 5 --merge --admin`.
+2. **Merge PR #4** (this document). `gh pr merge 4 --merge --admin`.
+3. **Fix Adam.** He lives in Mayo, Québec, off-map (settled below). Re-point
+   « Ramasser la gang » stage 3 and « Adam jusqu'aux Galeries », and delete
+   every mention of 20 chemin Vanier / Deschênes for him. Opus, one branch,
+   `smoke_story.mjs` green. Small, do it before Wave 2 so no brief inherits it.
+4. **Cut the Wave 2a and 2b briefs** from this document, file ownership copied
+   in verbatim, and run them in parallel off `wave/2-spine`. 2a is Fable, 2b is
+   Opus — see *Which model does what*.
+5. Answer the three remaining questions at the end whenever convenient; none
+   blocks Wave 2.
+
+### Reviewed — will this be fun?
+
+Reviewed by Fable on 2026-09-01 against the code as it is, the numbers in
+*Difficulty*, and what Thomas's friends will actually do: open a link, click GO
+twice, and play for twenty minutes. Verdict: **yes, if Waves 2 and 3 are built
+as written, and in that order.** The reasoning, so nobody has to redo it:
+
+- **The game already has the hard part.** A real town people recognise, a truck
+  that drives well, 22 missions, races, cops, weather, a day/night cycle, a
+  radio, and 1,900 lines of written voice. What it lacks is *stakes* and
+  *variety*, and both are cheap next to what exists.
+- **Wave 2 gives it stakes in under a week of work.** An envelope with a
+  number, a calendar with a countdown, and two endings. A goal on screen is the
+  difference between "I did a delivery" and "I have eleven days." The one rule
+  (a job costs a day) does the economy tuning that a dozen constants could not,
+  and the budget table means the ending is reachable by an ordinary player and
+  tense for everyone.
+- **Wave 3 is where the fun lives, and it is not optional.** Eighteen
+  deliveries is a courier sim whatever the meter says. A third of the jobs
+  become something else; Sayyad challenges you on the road home; Zahra's bike
+  makes the town a different map. Five characters with five separate summers is
+  the replay hook. If time is short, cut Wave 5 before touching Wave 3.
+- **The comedy is structural, not written.** Ottawa in English with proper,
+  faintly disapproving people; Russell charging pizza and beer; Mike being the
+  only one allowed a speech. These are rules, and they are already settled.
+  Keep them; they are what will make the people this is for laugh.
+- **The first fifteen minutes decide it.** Envelope and days-left visible from
+  the first frame of driving. First job pays inside three minutes. Sayyad's
+  Civic unlocks by the second job. A race interrupts by the third. Nothing on
+  screen in a language the game does not otherwise speak. That is the bar, and
+  it is measurable with the existing headless tools.
+- **The risks are known and named.** Traffic on the wrong side and the camera
+  jitter are the two things a new player feels before anything else; both are
+  Fable diagnosis jobs and both should land with Wave 2. The money exploit and
+  the placebo difficulty option are in 2a's list. Nothing else in the bug list
+  stops it being fun.
+
+---
+
 ## Where things are
 
 - Repo: `~/Desktop/Coding Projects/aylmer-madness`, branch `main`, pushed to
@@ -130,8 +188,12 @@ no developer tools.
 banner, then PR to `main` with the boot check. The Wave 1 session owns that.
 
 **What the plan got wrong, for the record:** the "invisible wall" on the
-Champlain Bridge was not memory (the memory bill was the same everywhere). PR #3
-fixed a real collider gap. Keep the two apart in future bug reports.
+Champlain Bridge was not memory (the memory bill was the same everywhere). It
+was the river polygon under the deck: `cars.js` counted any water under the
+car as being in it, so the truck sank to a walk mid-bridge with no collider
+near it. Fixed in `5100c3c` (a road over water is a bridge), with a driving
+test and a deck-premise test. Keep memory and colliders apart in future bug
+reports.
 
 ---
 
@@ -337,6 +399,10 @@ bike is the cheapest vehicle and the most different game.
    - **Abraham** — people want him in the car; passenger jobs open for him alone.
 4. **Skills that improve with use**, not purchase: brake later, hold a drift,
    land straight. The *player* gets better, not just the car.
+   Adam is a passenger who *arrives* from Mayo, never one you fetch from a
+   house in town — the gang job and the Galeries race change accordingly (step
+   3 of *How to pick this up* does this before Wave 2, so no Wave 3 brief
+   inherits Deschênes).
 5. **Vehicle capability matters** — `story.json.vehicleJobs` has eight worked
    examples: the cedar canoe only fits the Ranger; the golf cart because a pickup
    on the 18th green gets you thrown off; the school bus for timpani and twenty
@@ -540,7 +606,7 @@ actually suits them, and each gives a genuinely different game.
 | **Mike** | **green 1998 Subaru Forester** | ✅ | All-wheel drive: gravel, mud, wet grass, the Chelsea hills. Goes where the others get stuck rather than where they cannot fit. |
 | **Abraham** | **beaten-up ~1999 Toyota Sienna** | ✅ | Seven seats. The people-mover — everybody piles in. Fits his trait: he is the one others want along. |
 | Margaret | 1997 Saturn SL | — | Four doors, soft ride. Passengers who must not be jostled. |
-| Adam Actell | 1997 Pontiac Sunfire | — | Side character. **Now established as out of town** (see conflict below). |
+| Adam Actell | 1997 Pontiac Sunfire | — | Side character. **Lives in Mayo, Québec, off-map** — drives in (see below). |
 | Tyler Yank | **Chevrolet Cavalier** | — | ~312 rue Samuel-Edey, lives with her aunt. |
 | Rob French | — | — | Out of town, drives in. Last to arrive, first to leave. |
 
@@ -548,27 +614,32 @@ actually suits them, and each gives a genuinely different game.
 and the Diamondback to Tom, so a third is needed — or she borrows her brother's,
 which is funnier and free.
 
-**⚠️ Canon conflict to resolve with Thomas.** Adam is now "from out of town", but
-existing code and missions place him at **20 chemin Vanier, Deschênes**, which is
-inside the Aylmer sector, and « Ramasser la gang » is built around the long
-detour to fetch him. Either Deschênes counts as out of town for these purposes,
-or he moves and those missions need re-pointing. **Do not silently pick one.**
+### Adam Actell lives in Mayo, Québec — off-map (settled 2026-09-01, 13:50)
+
+Thomas: "Adam doesn't live in Deschênes — that was imagined and it's not
+true. He lives in Mayo, Québec, off-map." 20 chemin Vanier was invented and is
+gone. Mayo is up the Lièvre north of Buckingham, forty minutes east, so Adam
+is the other one who *drives in*, like Rob French, and arrives in the Sunfire.
+Consequences: « Ramasser la gang » stage 3 no longer fetches him — he is
+already at the meeting point or drives himself; « Adam jusqu'aux Galeries »
+starts wherever the Sunfire is parked in town, not at a house; every place,
+dialogue and heckle line placing him in Deschênes is rewritten. Nothing in the
+Aylmer sector is his address.
 
 ---
 
 ## Open questions for Thomas — do not pick, ask
 
-1. **Adam: Deschênes or out of town?** Code and « Ramasser la gang » put him at
-   20 chemin Vanier, Deschênes (inside the Aylmer sector). The cast note says
-   out of town. Either Deschênes counts, or he moves and that mission re-points.
-2. **Champlain Bridge bike path in 2004.** The 2009 pack says the separated
+~~Adam: Deschênes or out of town?~~ Answered: Mayo, off-map. See *Decisions*.
+
+1. **Champlain Bridge bike path in 2004.** The 2009 pack says the separated
    bidirectional path came with a recent rebuild; Thomas previously said it was
    there after the 2002–03 NCC work. He rode it.
-3. **The summer's first day.** This plan assumes **Saturday 26 June 2004** (73
+2. **The summer's first day.** This plan assumes **Saturday 26 June 2004** (73
    days to Labour Day), the first weekend after Québec schools let out. If
    Thomas remembers otherwise, one constant in `calendar.js` moves; nothing
    else does.
-4. **The bus ending.** This plan says yes: short of $1,200 on Labour Day, a
+3. **The bus ending.** This plan says yes: short of $1,200 on Labour Day, a
    ten-second wry ending and the offer to restart that character's summer.
    `story.json` rejects a *random* financial punishment; this is the stated
    stakes, not a random one. Thomas should say if he disagrees.
@@ -581,16 +652,22 @@ What "clean everything up and close this out" means, in order:
       `assets/text/streetview_pack.json`, byte-identical to the vault copy in
       `ObsidianVault/working/`. Nothing to ingest; the Wave 4 and Wave 5 briefs
       point at it.
-- [ ] `wave/1-memory`: Safari run, then PR and merge to `main`. The Wave 1
-      session owns it.
+- [x] `wave/1-memory` pushed and opened as **draft PR #5**, with the Wave 1
+      session's NEXT.md / VERIFY.md write-up committed onto it. The Wave 1
+      session exited before doing this itself.
+- [ ] PR #5: the Safari run and the boot check, then merge. Then merge PR #4.
 - [x] Merged branches pruned: ten `agent/*` and `wave4` were 0 ahead of `main`
       with dead worktrees under a finished session's scratchpad.
+      `backup/mixed-065a42d` is the Wave 1 session's safety copy; delete it
+      after #5 merges.
 - [x] Stale playtest rows struck (#6 and #33 are fixed in code).
+- [x] Adam's address settled (Mayo, off-map); the code fix is step 3 of *How
+      to pick this up*.
 - [ ] After Wave 1 merges: `docs/NEXT.md` keeps only bugs found in play; the
-      plan lives here. Delete the duplicated memory and mission sections from
-      NEXT.md rather than maintaining two copies.
+      plan lives here. Delete the duplicated mission section from NEXT.md
+      rather than maintaining two copies.
 - [ ] Cut the Wave 2a and 2b briefs from this doc into two agent prompts, file
       ownership lists copied in verbatim, and run them in parallel off
       `wave/2-spine` once Wave 1 is on `main`.
-- [ ] Thomas answers the four questions above; the answers go into the
+- [ ] Thomas answers the three questions above; the answers go into the
       *Decisions* section and the questions are deleted.
