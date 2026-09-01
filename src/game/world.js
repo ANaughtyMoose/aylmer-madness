@@ -148,6 +148,50 @@ function distPtSeg2(x, z, ax, az, bx, bz) {
 }
 
 // Take every `stride`-th entry so a capped population still spreads over the whole map.
+// Mean of a footprint's points — which side of a seam a building is on.
+function polyCentre(p) {
+  let x = 0, z = 0;
+  for (let i = 0; i < p.length; i++) { x += p[i][0]; z += p[i][1]; }
+  return [x / p.length, z / p.length];
+}
+// Where a terrain feature is, whatever shape it takes (terrain.js).
+function featureCentre(f) {
+  if (f.cx != null) return [f.cx, f.cz];
+  if (f.x != null) return [f.x, f.z];
+  if (f.pts && f.pts.length >= 2) {
+    let x = 0, z = 0, n = 0;
+    for (let i = 0; i + 1 < f.pts.length; i += 2) { x += f.pts[i]; z += f.pts[i + 1]; n++; }
+    return [x / n, z / n];
+  }
+  return [0, 0];
+}
+// The roads of one slice: each way is cut into runs of consecutive segments
+// whose midpoints are inside, so a road that crosses a seam is built up to the
+// seam by one side and from it by the other, with the crossing segment drawn
+// exactly once. `ids` (OSM node ids, the intersection finder's key) are sliced
+// in step with `pts`.
+export function clipRoads(roads, inside) {
+  const out = [];
+  for (const road of roads) {
+    const pts = road.pts, n = pts.length;
+    if (n < 2) continue;
+    let run = null;
+    for (let i = 0; i < n - 1; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, mz = (pts[i][1] + pts[i + 1][1]) / 2;
+      if (inside(mx, mz)) {
+        if (!run) run = { from: i, to: i + 1 }; else run.to = i + 1;
+      } else if (run) { out.push(cut(road, run)); run = null; }
+    }
+    if (run) out.push(run.from === 0 && run.to === n - 1 ? road : cut(road, run));
+  }
+  return out;
+}
+function cut(road, run) {
+  const r = { ...road, pts: road.pts.slice(run.from, run.to + 1) };
+  if (road.ids) r.ids = road.ids.slice(run.from, run.to + 1);
+  return r;
+}
+
 function subsample(list, cap) {
   if (list.length <= cap) return list;
   const stride = list.length / cap;
@@ -158,11 +202,29 @@ function subsample(list, cap) {
   return out;
 }
 
-export function buildWorld(renderer, mats = MATS) {
+export function buildWorld(renderer, mats = MATS, opts = {}) {
   const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const B = MAP.bounds;
   const NX = Math.ceil((B.maxX - B.minX) / CHUNK);
   const NZ = Math.ceil((B.maxZ - B.minZ) / CHUNK);
+
+  // ------------------------------------------------------------ sector filter
+  // sectors.js builds the map a slice at a time: `opts.inside(x, z)` says
+  // whether a point belongs to the slice being baked, and everything the map
+  // offers goes through it — roads clipped to the runs of segments whose
+  // midpoints are in, buildings by centroid, landuse triangle by triangle,
+  // ground chunk by centre — so a slice is a self-contained piece of the same
+  // bake and two neighbours never lay the same asphalt twice. The chunk grid
+  // itself stays global (B is the whole map), so a chunk on a seam simply ends
+  // up with a mesh from each side. With no `inside` (every smoke test, the lab
+  // pages) this is the whole map, exactly as before.
+  const inside = opts.inside || null;
+  const roads = inside ? clipRoads(MAP.roads, inside) : MAP.roads;
+  const bldgs = inside
+    ? MAP.buildings.filter((b) => { const c = polyCentre(b.p); return inside(c[0], c[1]); })
+    : MAP.buildings;
+  const areas = inside ? MAP.areas.filter((a) => a.p.some((q) => inside(q[0], q[1]))) : MAP.areas;
+  const pois = inside ? (MAP.pois || []).filter((q) => inside(q.x, q.z)) : (MAP.pois || []);
 
   const builders = new Map();
   const waterB = new Map();     // river/pond triangles, drawn with the wobble shader
@@ -272,7 +334,9 @@ export function buildWorld(renderer, mats = MATS) {
     const into = get || bAt;
     for (let i = 0; i < t.length; i += 3) {
       const a = p[t[i]], b = p[t[i + 1]], c = p[t[i + 2]];
-      const bd = into((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3);
+      const mx = (a[0] + b[0] + c[0]) / 3, mz = (a[1] + b[1] + c[1]) / 3;
+      if (inside && !inside(mx, mz)) continue;
+      const bd = into(mx, mz);
       const cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
       const v0 = bd.vert(a[0], y, a[1], 0, 1, 0, col);
       if (cross > 0) {
@@ -293,6 +357,7 @@ export function buildWorld(renderer, mats = MATS) {
       const x0 = B.minX + cx * CHUNK, x1 = Math.min(x0 + CHUNK, B.maxX);
       const z0 = B.minZ + cz * CHUNK, z1 = Math.min(z0 + CHUNK, B.maxZ);
       if (x1 <= x0 || z1 <= z0) continue;
+      if (inside && !inside((x0 + x1) / 2, (z0 + z1) / 2)) continue;
       const g = shade(C.grassLo, 1 + gr() * 0.16);
       bAt((x0 + x1) / 2, (z0 + z1) / 2).flat(x0, z0, x1, z1, Y.grass, g);
     }
@@ -310,7 +375,7 @@ export function buildWorld(renderer, mats = MATS) {
     sand: [C.sand, Y.sand], wood: [C.wood, Y.wood], parking: [C.parking, Y.parking],
     pitch: [C.pitch, Y.pitch], pool: [C.pool, Y.pool], water: [C.water, Y.water],
   };
-  for (const a of MAP.areas) {
+  for (const a of areas) {
     const spec = AREA[a.k];
     if (!spec) continue;
     triScatter(a.p, a.t, spec[1], rgb(spec[0]), a.k === 'water' ? wAt : bAt);
@@ -354,8 +419,8 @@ export function buildWorld(renderer, mats = MATS) {
   const roadSegs = [];
   const roadGrid = new Map();
   const nearSegs = [];         // ax,az,bx,bz,roadIndex for nearestRoad (non-service)
-  for (let ri = 0; ri < MAP.roads.length; ri++) {
-    const road = MAP.roads[ri];
+  for (let ri = 0; ri < roads.length; ri++) {
+    const road = roads[ri];
     const pts = road.pts, n = pts.length;
     if (n < 2) continue;
     const hw = road.w / 2;
@@ -561,8 +626,8 @@ export function buildWorld(renderer, mats = MATS) {
     return h >>> 0;
   }
   const gutterCol = rgb(C.gutter), shoulderCol = rgb(C.shoulder);
-  for (let ri = 0; ri < MAP.roads.length; ri++) {
-    const road = MAP.roads[ri];
+  for (let ri = 0; ri < roads.length; ri++) {
+    const road = roads[ri];
     const pts = road.pts, ids = road.ids, n = pts.length;
     if (n < 2) continue;
     const hw = road.w / 2;
@@ -797,6 +862,10 @@ export function buildWorld(renderer, mats = MATS) {
 
   const SIGNALS = planSignals();
   for (const sig of SIGNALS) {
+    // Planned over the whole road graph (signals.js has no idea about sectors);
+    // only the ones standing in this slice get a post.
+    const a0 = sig.approaches[0];
+    if (inside && a0 && !inside(a0.poleX, a0.poleZ)) continue;
     for (const a of sig.approaches) {
       const bd = bAt(a.poleX, a.poleZ);
       bd.cyl(a.poleX, 3.1, a.poleZ, 0.13, 6.2, 6, poleCol, 'y', false);
@@ -816,6 +885,7 @@ export function buildWorld(renderer, mats = MATS) {
 
   const STOPS = planStopSigns();
   for (const s of STOPS) {
+    if (inside && !inside(s.poleX, s.poleZ)) continue;
     const bd = bAt(s.poleX, s.poleZ);
     bd.cyl(s.poleX, 1.15, s.poleZ, 0.065, 2.3, 4, poleCol, 'y', false);
     octagon(bd, s.poleX, 2.34, s.poleZ, 0.47, s.faceYaw, stopRim, 0.0);
@@ -830,11 +900,11 @@ export function buildWorld(renderer, mats = MATS) {
   // missing); everything else keeps the extrude-and-cap below. Each house is
   // baked twice — lod 0 with windows, doors, porches and the real materials for
   // the chunk you are in, lod 2 for the rest of town (see docs/HOUSES.md).
-  const streetYawAt = makeStreetYawIndex(MAP.roads);
+  const streetYawAt = makeStreetYawIndex(roads);
   const HOUSEY = { house: 1, terrace: 1 };
   let houseCount = 0, houseTris = 0, houseFarTris = 0;
   let landmarkRoofs = 0;
-  const buildings = MAP.buildings;
+  const buildings = bldgs;
   const gableCols = ROOF.map(rgb);
   const flatRoofCol = rgb(C.flatRoof);
   const winCol = rgb(C.win);
@@ -1094,7 +1164,7 @@ export function buildWorld(renderer, mats = MATS) {
       if (d2 < best) {
         best = d2; bx = px; bz = pz;
         byaw = Math.atan2(dx, dz);
-        bname = MAP.roads[nearArr[o + 4]].name || '';
+        bname = roads[nearArr[o + 4]].name || '';
       }
     }
     return { x: bx, z: bz, yaw: byaw, name: bname, dist: Math.sqrt(best) };
@@ -1138,6 +1208,7 @@ export function buildWorld(renderer, mats = MATS) {
         const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
         if (L < 1 || L > 150) continue;             // 150 m+ edges are the map border
         const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+        if (inside && !inside(mx, mz)) continue;
         if (mx < B.minX + 6 || mx > B.maxX - 6 || mz < B.minZ + 6 || mz > B.maxZ - 6) continue;
         edges.push([a, b, L, mx, mz]);
       }
@@ -1403,6 +1474,7 @@ export function buildWorld(renderer, mats = MATS) {
   }
 
   for (const f of terrain.features) {
+    if (inside) { const c = featureCentre(f); if (!inside(c[0], c[1])) continue; }
     terrainStats.features++;
     if (f.type === 'pad') emitPad(f);
     else if (f.type === 'mound') emitMound(f);
@@ -1418,7 +1490,7 @@ export function buildWorld(renderer, mats = MATS) {
     if (rail) {
       const half = rail.hw + rail.run;
       const asph = tCol('asphalt', 1.04);
-      for (const road of MAP.roads) {
+      for (const road of roads) {
         for (let i = 0; i + 1 < road.pts.length; i++) {
           const [ax, az] = road.pts[i], [bx, bz] = road.pts[i + 1];
           for (let j = 0; j + 3 < rail.pts.length; j += 2) {
@@ -1527,7 +1599,7 @@ export function buildWorld(renderer, mats = MATS) {
 
   const woodPts = [], parkPts = [];
   const pr = mulberry32(0x2b1a55);
-  for (const a of MAP.areas) {
+  for (const a of areas) {
     const target = a.k === 'wood' ? woodPts : a.k === 'park' ? parkPts : null;
     if (!target) continue;
     const step = a.k === 'wood' ? 14 : 24;
@@ -1540,6 +1612,7 @@ export function buildWorld(renderer, mats = MATS) {
       for (let z = z0 + step * 0.5; z < z1; z += step) {
         const jx = x + (pr() - 0.5) * step * 0.7, jz = z + (pr() - 0.5) * step * 0.7;
         if (!pointInPoly(a.p, jx, jz)) continue;
+        if (inside && !inside(jx, jz)) continue;    // the neighbour's half of a wood
         // Landuse polygons are drawn over the streets that cross them, and a
         // 7 m spruce in the middle of chemin Vanier is worse than a gap in the
         // wood. Street trees already do this test; the park scatter never did.
@@ -1559,7 +1632,7 @@ export function buildWorld(renderer, mats = MATS) {
   const streetTrees = [];
   {
     let flip = 1;
-    for (const road of MAP.roads) {
+    for (const road of roads) {
       if (road.cls !== 'residential') continue;
       const pts = road.pts;
       let carry = 13;
@@ -1666,7 +1739,7 @@ export function buildWorld(renderer, mats = MATS) {
 
   // gather candidate positions first so the cap spreads across the whole map
   const lights = [], hydros = [];
-  for (const road of MAP.roads) {
+  for (const road of roads) {
     const paved = PAVED[road.cls] === 1;
     const res = road.cls === 'residential';
     if (!paved && !res) continue;
@@ -1706,6 +1779,8 @@ export function buildWorld(renderer, mats = MATS) {
   if (seen.length < (segs.length >> 2)) seen = new Int32Array(segs.length >> 2);
 
   // ------------------------------------------------------------ 8. distant scenery
+  // Shared by every slice, so sectors.js asks for it once and keeps it.
+  if (opts.distant !== false) {
   const grassFar = shade(C.grassLo, 0.92);
   // apron: green everywhere outside the map except to the south, which is river
   // Well below the baked ground: this one quad spans 11 km, and on software /
@@ -1735,7 +1810,7 @@ export function buildWorld(renderer, mats = MATS) {
         420 + rnd() * 260, hh, 5, col);
     }
   }
-
+  }
 
   // ------------------------------------------------------------ 9. reactive world
   // Placement only. This section works out where the pavement actually runs and
@@ -1840,7 +1915,7 @@ export function buildWorld(renderer, mats = MATS) {
     }
   }
 
-  for (const road of MAP.roads) {
+  for (const road of roads) {
     const paved = PAVED[road.cls] === 1;
     const res = road.cls === 'residential';
     if (!paved && !res) continue;
@@ -1986,9 +2061,10 @@ export function buildWorld(renderer, mats = MATS) {
     // the subsample below, or the fruit stand at the dep would be a 1-in-5 shot.
     specialFrom = propSpots.length;
     // Shopping carts, loose in the Galeries d'Aylmer lot.
-    const mall = (MAP.pois || []).find((q) => /Galeries/i.test(q.name || '')) || { x: -18.9, z: -331.2 };
-    let lot = null, lotD = 1e9;
-    for (const a of MAP.areas) {
+    const mall = pois.find((q) => /Galeries/i.test(q.name || '')) || { x: -18.9, z: -331.2 };
+    // lotD < 0: the mall is in another slice, so no lot here can be its lot.
+    let lot = null, lotD = inside && !inside(mall.x, mall.z) ? -1 : 1e9;
+    for (const a of areas) {
       if (a.k !== 'parking') continue;
       let cx = 0, cz = 0;
       for (const q of a.p) { cx += q[0]; cz += q[1]; }
@@ -2010,7 +2086,7 @@ export function buildWorld(renderer, mats = MATS) {
       }
     }
     // The fruit stand outside Dépanneur Palmyra, on the nearest bit of pavement.
-    const dep = (MAP.pois || []).find((q) => /Palmyra/i.test(q.name || ''));
+    const dep = pois.find((q) => /Palmyra/i.test(q.name || ''));
     if (dep) {
       let best = null, bestD = 60 * 60;
       for (const wi of queryWalks(dep.x, dep.z, 60)) {
@@ -2059,7 +2135,7 @@ export function buildWorld(renderer, mats = MATS) {
 
   // Snap one. (ux, uz) is the direction the car was travelling, so it goes over
   // that way. Everything after this is one animation entry the game draws.
-  const fallen = [];
+  const fallen = opts.fallen || [];    // shared across slices by sectors.js
   function snapPole(p, ux, uz) {
     if (p.dead) return null;
     p.dead = true;
@@ -2125,7 +2201,7 @@ export function buildWorld(renderer, mats = MATS) {
   const waterChunks = uploadSet(waterB);
   const nightChunks = uploadSet(nightB);
   for (let i = 0; i < poles.length; i++) poles[i].mesh = poles[i].k == null ? null : (meshByKey.get(poles[i].k) || null);
-  const distantMesh = renderer.upload(distant);
+  const distantMesh = distant.empty ? null : renderer.upload(distant);
   tris += distant.i.length / 3;
   // The builders have done their job: every vertex is on the GPU now, and
   // nothing below reads them again. But bAt() and friends are closures over
@@ -2135,7 +2211,7 @@ export function buildWorld(renderer, mats = MATS) {
   // kills the tab over. Measured: 1057 MB heap before, 182 MB after.
   builders.clear(); houseNearB.clear(); houseFarB.clear(); waterB.clear(); nightB.clear();
   distant.v.length = 0; distant.i.length = 0;
-  const signage = buildSignage(renderer);
+  const signage = opts.signage === false ? null : buildSignage(renderer);
 
   // Flatten the furniture log: a few hundred thousand samples as loose numbers
   // would be a megabyte of boxed doubles hanging off the world for the whole
@@ -2153,7 +2229,7 @@ export function buildWorld(renderer, mats = MATS) {
   console.log(`world: ${chunks.length} chunks (+${waterChunks.length} water, ${nightChunks.length} night), `
     + `${tris | 0} tris, ${buildings.length} buildings (${houseCount} archetype houses, `
     + `${houseTris | 0} near + ${houseFarTris | 0} far tris, atlas ${mats && mats.tex ? 'on' : 'OFF'}), `
-    + `${MAP.roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
+    + `${roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
     + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${wallsOffRoad} walls off the asphalt, ${stopLineCount} stop lines, `
     + `${furnDropped} pieces kept off the asphalt), `
     + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${plantingCount} shrubs, ${poleCount} poles, `
@@ -2247,10 +2323,26 @@ export function buildWorld(renderer, mats = MATS) {
     firstFrame = false;
   }
 
+  // Give this slice's GPU buffers back (sectors.js, once the player is far
+  // enough away). The distant scenery and the signage are shared and stay.
+  function free() {
+    if (!renderer.free) return;
+    for (const c of chunks) {
+      if (c.mesh) renderer.free(c.mesh);
+      if (c.near) renderer.free(c.near);
+      if (c.far) renderer.free(c.far);
+    }
+    for (const c of waterChunks) renderer.free(c.mesh);
+    for (const c of nightChunks) renderer.free(c.mesh);
+    chunks.length = 0; waterChunks.length = 0; nightChunks.length = 0;
+  }
+
   return {
     chunks,
     waterChunks,
     nightChunks,
+    free,
+    roads,                  // the slice's roads (clipped), MAP.roads for a full build
     setHouseNear,
     stats,
     mats,

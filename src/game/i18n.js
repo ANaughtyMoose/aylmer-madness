@@ -105,6 +105,17 @@ const FR = {
 
   // loading
   'load.title': 'ON BÂTIT AYLMER',
+  // The sector cards (main.js showSeamCard). Ottawa's is in English on purpose:
+  // it is a different country over there and the card is the first thing
+  // that says so.
+  'seam.aylmer.kicker': 'Retour à', 'seam.aylmer.name': 'AYLMER',
+  'seam.aylmer.cap': 'Tu connais le chemin.',
+  'seam.hull.kicker': 'Bienvenue à', 'seam.hull.name': 'HULL',
+  'seam.hull.cap': 'Les tours du Portage pis l’odeur de la papetière.',
+  'seam.chelsea.kicker': 'Bienvenue à', 'seam.chelsea.name': 'CHELSEA',
+  'seam.chelsea.cap': 'Les collines. Le cell pogne pus.',
+  'seam.ottawa.kicker': 'Welcome to', 'seam.ottawa.name': 'OTTAWA',
+  'seam.ottawa.cap': 'Ontario. Please observe the posted limits.',
   'load.mats': 'La brique pis le clin…',
   'load.world': 'Rues, maisons, rivière, arbres…',
   'load.roads': 'Rues…',

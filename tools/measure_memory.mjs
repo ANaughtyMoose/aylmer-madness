@@ -77,6 +77,7 @@ try {
     // fade and anything distance-triggered has had its chance to run.
     await evaluate(`(async () => { const A = window.AYLMER; document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }));
       A.teleport(${x}, ${z}, 0);
+      if (A.G.world.sectors) A.G.world.sectors.update(${x}, ${z});   // what sectorTick would do, minus the card
       const n = Math.round(${SIM} * 60);
       for (let i = 0; i < n; i++) { A.step(1/60); if (i % 20 === 0) { A.render(); await new Promise(r => setTimeout(r, 0)); } }
       A.render(); })()`);
