@@ -1,0 +1,484 @@
+{
+  "dialogue": [
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Embarque mon gars! Baisse la vitre pis mets MAX 104.7, on a une ride légendaire à faire!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Check ma chemise hawaïenne avec les palmiers jaunes, c'est du pur style Denise-Friend, mon chum!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Si ma Civic était pas sur les chandelles pour mon nouveau cold air intake, j't'aurais montré comment drifter!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "T'as-tu apporté la cassette adaptatrice? J'ai gravé une compile de Blink et 50 Cent hier soir!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Attache ta ceinture! Ou ben non, attache-la pas, on est des rebelles d'Aylmer!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "On passe tu prendre deux Ice Capps au Tim avant? J'ai besoin de sucre pour ma créativité!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Monte le son! Si les miroirs vibrent pas, c'est que la musique est pas assez bonne!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "J'ai dit à ma blonde que j'étais chez vous pour étudier la géo... Faque on a deux heures pour faire le tour!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "La vie est trop courte pour rouler en dessous de la limite, mon chum! Pèse su'l champignon!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Si on croise la police su'l pont Champlain, fais semblant qu'on cherche notre chemin vers le musée!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Mon frère m'a prêté ses lunettes fumées Oakley, j'ai l'air d'un pilote de NASCAR!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "start",
+      "line": "Let's go! On livre ça plus vite qu'une commande de chez Pizza La Différence!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Livré en un temps record! Même ma grand-mère aurait pas fait mieux dans son Tercel!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Clean job, mon homme! Maintenant, switch de poste, c'est l'heure de mon solo de drum su'l dash!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "On est des machines! Garroche-moé au dépanneur, j'ai soif d'un Crush aux fraises!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "J'espère que quelqu'un nous a vus arriver, on avait l'air d'un clip de rap su'a rue Principale!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Pas une grafigne su'l Ranger! Ton vieux saura jamais qu'on a pris le virage sur deux roues!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Mission accomplie! J'mérite au moins un double cheeseburger pour mon soutien moral!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Le timing était parfait! Exactement à temps pour que j'aille me connecter sur MSN Messenger!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Tu vois? Quand j'gère la musique pis le copilote, y a rien qui peut chier!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Débarque-moé su'a rue Denise-Friend, faut que j'aille arroser les fougères à ma mère avant qu'a capote!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "Ça c'était de la conduite! Un dix sur dix pour le style, un six pour le confort de la banquette!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "On a torché ça! Si t'as besoin d'un copilote d'élite demain, t'as juste à biper ma pagette!"
+    },
+    {
+      "who": "Sayyad",
+      "when": "end",
+      "line": "On est rendus! Éteins pas le moteur tout de suite, la toune d'Éric Lapointe finit dans trente secondes!"
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "Prends ton temps aux coins de rue, mon grand. Rien ne sert de presser le bon Dieu."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "C'est gentil de me faire faire un tour dans le camion à ton père. Il a encore sa bonne odeur de pin."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "N'oublie pas de mettre ton clignotant avant de tourner sur la Principale, les gens d'ici ont la vue basse."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "Tu rouleras doucement près du parc, les enfants courent toujours après leurs ballons sans regarder."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "J'ai apporté des bonbons durs à la menthe dans mon sac à main si jamais tu as la gorge sèche."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "Ton père m'a dit que la troisième vitesse accrochait un peu. Fais attention à ne pas la brusquer."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "La journée est tellement belle sur le bord de l'eau. Profite de la vue au lieu de regarder le compteur."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "Si on passe devant la boulangerie, on s'arrêtera prendre une miche de pain pour ce soir."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "Ne fais pas attention aux impatients qui klaxonnent derrière, ils arriveront au cimetière bien assez vite."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "C'est une bonne petite camionnette, ça me rappelle celle que mon oncle Arthur avait en Gaspésie."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "Reste bien dans ta voie sur le pont Champlain, le vent de la rivière fait parfois bouger les volants."
+    },
+    {
+      "who": "Margaret",
+      "when": "start",
+      "line": "On y va tout doux, mon garçon. Tout ce qui doit être fait sera fait à son heure."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Eh bien voilà, nous sommes arrivés sains et saufs. Tu conduis avec beaucoup de douceur."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Merci pour la balade, mon grand. Tiens, prends deux dollars pour te payer une liqueur au dépanneur."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "C'était bien agréable. N'oublie pas de vérifier le niveau d'huile pour faire plaisir à ton père."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "On a évité tous les nids-de-poule, c'est du travail de maître sur nos routes de campagne."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Remets bien le frein à main avant de couper le contact, la côte est un peu traître par ici."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Une très bonne chose de faite! Dis bien le bonjour à ta mère quand tu rentreras à la maison."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Tu as de bons réflexes, mon garçon. Garde la tête froide et tu n'auras jamais d'accrochage."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Nous voilà à bon port! Tu m'aideras à descendre, la marche est un peu haute pour mes vieux genoux."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "C'était parfait. Même le silence de la radio faisait du bien pour reposer les oreilles."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Tu remercieras ton père de m'avoir prêté son chauffeur attitré pour l'après-midi."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Voilà une affaire rondement menée. Prends soin de toi et sois prudent en rentrant."
+    },
+    {
+      "who": "Margaret",
+      "when": "end",
+      "line": "Très bien conduit. Avec un peu de patience, on arrive toujours à tout dans la vie."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Mon Sunfire a encore pété son alternateur hier. Fait qu'on prend ton truck."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Pèse su'l gaz. Plus vite c'est fini, plus vite j'peux aller rien faire chez nous."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Touche pas au poste de radio. Le silence me dérange moins que tes goûts musicaux."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Si la transmission lâche, j'pousse pas. J'ai mal au dos."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Y fait trente degrés, ton air climatisé pousse du vent tiède. Formidable."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Le chemin Pink est plein de trous. Essaie d'en éviter au moins un sur deux."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "J'espère qu'on croisera pas mon boss du Canadian Tire, j'suis censé être malade aujourd'hui."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "On part. Essaie de pas faire caler le moteur aux lumières comme la semaine passée."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "J'ai un sac de chips sel et vinaigre sous le banc. Mange-les pas, c'est mon dîner."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Si on se fait pogner par les flics, c'est toé qui as le volant, j'te connais pas."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Encore une ride d'Aylmer... La ville où y se passe jamais rien à part la rouille qui pousse."
+    },
+    {
+      "who": "Adam",
+      "when": "start",
+      "line": "Envoye, décolle. J'ai deux heures à perdre avant mon shift de soir au dépanneur."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "C'est fini. Mon dos a survécu à ta suspension en bois d'arbre."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "On est vivants. C'est déjà plus que ce à quoi je m'attendais en partant."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "Parke ça croche de même, de toute façon personne vient jamais dans ce coin-là."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "Bon. J'm'en va m'coucher devant Télétoon en buvant du Tang."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "T'as manqué le poteau d'un pied. Beau travail d'improvisation."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "J'ai plus de sensation dans ma jambe droite, mais la livraison est faite."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "Débarque-moé là. Le soleil me tape su'a tête pis ton banc sent le chien mouillé."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "Au moins le moteur a pas explosé. Ton père va être moyennement déçu."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "Voilà. Une autre journée passionnante qui s'achève dans le grand Aylmer."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "J'ai laissé un emballage de Jos Louis dans ta porte. Tu remercieras la visite."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "On a fini. M'a aller voir si mon Sunfire veut démarrer par miracle."
+    },
+    {
+      "who": "Adam",
+      "when": "end",
+      "line": "Pas pire. On a évité la police pis la scrap pour aujourd'hui."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Touche pas au piton numéro deux du radio, c'est CJRC 1150 AM pis j'veux pas perdre mon poste."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Lâche la clutch douce aux coins de rue. C'est une transmission d'origine, pas un jouet de clown."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Si tu sens une odeur de prestone, tu te parques tout de suite su'l côté pis tu m'appelles au bureau."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Les clés sont su'l comptoir. Ramène le truck avant six heures pis mets au moins dix piasses de gaz."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Regarde dans tes rétroviseurs avant d'reculer. La boîte de pickup est plus longue que tu penses."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Fais attention aux nids-de-poule su'l chemin d'Aylmer, j'viens d'faire poser deux shocks neufs en avant."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Pas d'amis assis dans boîte en arrière. La police de Gatineau pardonne pas ça."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Vérifie la jauge d'huile avec la napkin avant d'partir. Le 2.3 litres prend une pinte par mois."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Ferme bien ta fenêtre quand tu te parques aux Galeries, y a du monde qui fouille dans les cabines."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Si tu pèses su'l champignon comme un sans-dessein, tu vas payer tes propres pneus au Canadian Tire."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Prends le pont Portage si le pont Champlain est bloqué, use ta tête pour une fois."
+    },
+    {
+      "who": "Ton père",
+      "when": "start",
+      "line": "Le Ranger a deux cent mille kilomètres. Traite-le comme du monde pis y va t'amener où tu veux."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "T'as remis le char dans l'entrée. Recule-lé de deux pieds pour que ta mère puisse sortir sa Corolla."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "Laisse le moteur virer trente secondes au ralenti avant de couper le contact pour le laisser souffler."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "T'as-tu pensé à vérifier si t'avais bien éteint les phares? La batterie est pas éternelle."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "Le niveau d'essence a baissé d'un quart de tank. J'espère que t'as gardé ton reçu du Petro-Canada."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "Pas de bosses su'es ailes, c'est bien. Remets les clés su'l crochet près du frigidaire."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "J'espère que t'as pas gossé après les miroirs, j'ai passé dix minutes à les ajuster pour ma grandeur."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "T'as conduit tranquille? Un gars de la shop m'a dit qu'y avait vu un Ranger blanc rouler vite à Deschênes."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "Vide la boîte en arrière si t'as ramassé des cochonneries. J'veux pas voir de cannettes qui traînent."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "C'est tiguidou. Oublie pas de barrer la porte côté passager avec la clé, la serrure électrique marche pu."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "Le moteur claque pas plus qu'à l'habitude. Tu commences à comprendre comment clutcher comme du monde."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "Rentres-en dedans, ta mère a fait du pâté chinois pour le souper."
+    },
+    {
+      "who": "Ton père",
+      "when": "end",
+      "line": "T'as ramené le truck entier. Tu pourras peut-être le reprendre samedi si t'es sage."
+    }
+  ]
+}

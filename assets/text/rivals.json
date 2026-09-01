@@ -1,0 +1,89 @@
+{
+  "_note": "Sayyad is a real person and has no surname in this game. Gemini invented one; it has been removed. Never give any of the real characters (Sayyad, Zahra, Margaret, Adam Actell, Mike McDonald) an invented surname.",
+  "rivals": [
+    {
+      "name": "Sayyad",
+      "car": "Honda Civic Si", "year": 1988,
+      "style": "Screaming high-RPM precision, late braking into the apex, aggressive weaving on the wide boulevards.",
+      "whenLosing": "Swears loudly, immediately claims his clutch was slipping, and demands a rematch at the next light.",
+      "fromWhere": "75 Denise-Friend, Aylmer. Eighteen, local legend, Zahra's older brother."
+    },
+    {
+      "name": "Mathieu 'Mat' Gendron",
+      "car": "Pontiac Sunfire GT", "year": 1999,
+      "style": "Reckless heavy-footed straight-line speed with no regard for brakes or suspension.",
+      "whenLosing": "Leans on the horn, cuts a parking lot curb to shortcut the finish, and flips you off grinning.",
+      "fromWhere": "The subdivisions off Boulevard Wilfrid-Lavigne. Seventeen, school friend."
+    },
+    {
+      "name": "Patrice 'Pato' Gagnon",
+      "car": "Ford Mustang 5.0 LX", "year": 1989,
+      "style": "Overpowered rear-drive sliding, far too much wheelspin off the line, straight-pipe intimidation.",
+      "whenLosing": "Does a smoking donut in the nearest intersection to drown out your win.",
+      "fromWhere": "Deschênes. Twenty-four, roofer, should not still be racing teenagers."
+    },
+    {
+      "name": "Éric 'Le Rat' Lévesque",
+      "car": "Dodge Omni GLH Turbo", "year": 1986,
+      "style": "Twitchy boost, terrifying passes on narrow gravel shoulders.",
+      "whenLosing": "Pulls into an alley, throws the hood up, and mutters at vacuum hoses.",
+      "fromWhere": "Out past Chemin Pink. Twenty-one, self-taught backyard mechanic."
+    },
+    {
+      "name": "Sophie 'La Reine' Tremblay",
+      "car": "Volkswagen Golf GTI Mk3", "year": 1995,
+      "style": "Smooth clinical European lines and flawless downshifts through the technical curves.",
+      "whenLosing": "A calm nod from behind the sunglasses and two flashes of the high beams.",
+      "fromWhere": "The riverside end of Aylmer. Nineteen, Heritage College student."
+    },
+    {
+      "name": "Kevin 'Bumper' Boucher",
+      "car": "Chevrolet Cavalier Z24", "year": 1998,
+      "style": "Bumper-to-bumper tailgating and paint-trading body checks in the narrow sections.",
+      "whenLosing": "Tries to sideswipe your rear quarter on the last turn, then blames the road surface.",
+      "fromWhere": "Val-Tétreau, on the Hull side. Eighteen, notorious for body damage."
+    },
+    {
+      "name": "Dave 'Subie' MacIntyre",
+      "car": "Subaru Impreza 2.5 RS", "year": 2000,
+      "style": "Unstoppable on gravel, four-wheel slides through dirt corners, fearless in the rain.",
+      "whenLosing": "Laughs out the window, sprays gravel at your windshield on the launch, shouts congratulations in English.",
+      "fromWhere": "Around the marina and the sailing club. Eighteen, anglophone, skater."
+    },
+    {
+      "name": "Yanick 'Nitro' Larouche",
+      "car": "Acura Integra GS-R", "year": 1994,
+      "style": "Drafting, high-speed bridge sprints, surgical shifts at the redline.",
+      "whenLosing": "Will not make eye contact at the line, rolls the tinted window up, leaves toward Ottawa.",
+      "fromWhere": "Mont-Bleu, Hull. Twenty, Cégep de l'Outaouais."
+    },
+    {
+      "name": "Big Dan Beaulieu",
+      "car": "Chevrolet Monte Carlo SS", "year": 1986,
+      "style": "Lumbering V8 momentum and wide cornering that occupies both lanes.",
+      "whenLosing": "Slams a palm on the wheel, then offers to buy you a poutine at the casse-croûte.",
+      "fromWhere": "Out Chemin Eardley. Twenty-five, runs heavy equipment at the gravel pit."
+    },
+    {
+      "name": "Chantal 'Flash' Roy",
+      "car": "Toyota Celica GT", "year": 1993,
+      "style": "Agile slalom driving through traffic and fast handbrake turns around obstacles.",
+      "whenLosing": "Cranks the stereo, laughs, and challenges you to double or nothing.",
+      "fromWhere": "The Chemin d'Aylmer strip. Seventeen, works at the cinema in the Galeries."
+    },
+    {
+      "name": "Marc-André 'Marco' Côté",
+      "car": "Mazda MX-5 Miata", "year": 1991,
+      "style": "Momentum racing, impossible corner speed, taunting you with the top down.",
+      "whenLosing": "Throws his hands up and complains that straightaways are for people with no talent.",
+      "fromWhere": "Wrightville, downtown Hull. Nineteen, fine arts student."
+    },
+    {
+      "name": "Steve 'Mullet' Boucher",
+      "car": "Pontiac Firebird Formula", "year": 1989,
+      "style": "Brutal straight-line acceleration followed by sloppy panic braking at every corner.",
+      "whenLosing": "Spins the tires until the cabin fills with smoke, stalls it, and kicks the door open.",
+      "fromWhere": "Around Les Galeries de Hull. Twenty-six, still wearing his 1996 grad jacket."
+    }
+  ]
+}
