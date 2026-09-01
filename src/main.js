@@ -22,7 +22,7 @@ import { loadCarSkin } from './game/carskin.js';
 import { Nav, routeLength } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
-import { MISSIONS, TIME_OF_DAY } from './game/missions.js';
+import { MISSIONS, TIME_OF_DAY, unlockArc } from './game/missions.js';
 // No query string on this import. A `?v=` suffix makes the browser treat the
 // file as a second, separate module: PLACES forks into two objects, only one of
 // them ever meets resolvePlaces(), and every mission target silently stops being
@@ -83,6 +83,9 @@ import { Weather } from './game/weather.js';
 // line, and the achievements. All of it out of assets/text/ui.json, all of it
 // optional — see game/flavour.js.
 import { flavour } from './game/flavour.js';
+
+// hangout agent: 129 Frank-Robinson after dark (see the hook block in tick()).
+import { hangout } from './game/hangout.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -1475,7 +1478,23 @@ function tick(dt) {
     heckle.say('Chauffeur', 'red');
   }
   updateMission(dt);
+<<<<<<< HEAD
   heckleTriggers(dt, v);
+=======
+  // ---- hangout agent hook (the only lines this file owns for the porch) ----
+  // Mike's place is not a job, so it runs after the mission runner and takes
+  // the HUD prompt off it when you are actually in the driveway. It needs two
+  // things main.js has and hangout.js does not: a tick, and the ability to hand
+  // a job back — a friend offering you work from the porch starts an ordinary
+  // mission. Everything else (props, dialogue, the bins) lives in hangout.js.
+  if (!G.startMission) G.startMission = startMission;
+  hangout.update(dt, G);
+  // The summer's five beats arrive in order (game/arc.js): unlockArc pushes the
+  // next one onto MISSIONS when its gate opens, which is why this file needs no
+  // idea that an arc exists — the marker just turns up.
+  unlockArc(G);
+  // ---- end hangout hook ---------------------------------------------------
+>>>>>>> agent/hangout
   heckle.update(dt, G);
   // The achievements out of assets/text/ui.json. `landEvent` is the one-shot
   // bag; everything else the rules need is already on G.

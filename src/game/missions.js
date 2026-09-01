@@ -4,6 +4,11 @@ import { PLACES } from './places.js';
 import { SIDE_MISSIONS } from './sidejobs.js';
 import { RACE_MISSIONS } from './racejobs.js';
 import { GOLF_MISSIONS } from './golfjob.js';
+// The five-beat summer (arc.js). Only the beats whose gate is open are in
+// MISSIONS; unlockArc() pushes the rest in as you earn them.
+import {
+  ARC, GATES, gateOpen, openBeats, loadArcText, applyArcText, registerArcLines,
+} from './arc.js';
 
 // lightDir points TOWARD the light, unit length. Ambient is hemispheric, so the
 // sky/ground pair is doing most of the mood work — night leans on it hard so the
@@ -329,7 +334,74 @@ const CORE_MISSIONS = [
 // stage that owns the countdown, the checkpoints and the rivals.
 // ...and the golf cart's own errand, which is the only job that decides what
 // you are driving instead of asking (golfjob.js).
-export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS];
+// ...and the summer's five beats (arc.js), which arrive in order. MISSIONS is
+// the live array main.js re-filters every frame, so an unlocked beat is a push
+// and the map marker turns up on its own. ALL_MISSIONS is the whole set,
+// locked or not — the audits and the timer table want everything.
+export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS,
+  ...openBeats(new Set())];
+export const ALL_MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS, ...ARC];
+
+// The beats' names come out of assets/text/arc.json when it is there; the ones
+// written in arc.js are the fallback. Fire and forget — a title that lands two
+// seconds after the map does is a title that lands.
+let arcTextT = null;
+export function ensureArcText() {
+  if (arcTextT) return arcTextT;
+  registerArcLines();
+  arcTextT = loadArcText().then((rows) => applyArcText(rows)).catch(() => 0);
+  return arcTextT;
+}
+
+// What G.done looked like the last time we recomputed. Loading a save or
+// starting a new game hands main.js a brand new Set, so comparing the object
+// itself catches "this is a different summer" as well as "you finished a job".
+let arcSeen = null;
+let arcSize = -1;
+
+/**
+ * Bring MISSIONS in line with the gates: push in a beat that has just been
+ * earned, take out one that belongs to a summer you are no longer playing.
+ * Called once a frame from main.js's hook block, and on almost every frame it
+ * does nothing but compare two numbers.
+ *
+ * Returns the beats added by this call, so a test can watch the summer open up.
+ */
+export function unlockArc(G) {
+  const done = (G && G.done) || new Set();
+  if (done === arcSeen && done.size === arcSize) return [];
+  const fresh = done !== arcSeen;
+  arcSeen = done; arcSize = done.size;
+  ensureArcText();
+  // A new save: drop the beats it has not earned. (Never mid-summer — only when
+  // the Set identity changed, so finishing a job cannot delete a beat.)
+  if (fresh) {
+    for (let i = MISSIONS.length - 1; i >= 0; i--) {
+      if (ARC.includes(MISSIONS[i]) && !gateOpen(MISSIONS[i].id, done)) MISSIONS.splice(i, 1);
+    }
+  }
+  const added = [];
+  for (const def of ARC) {
+    if (MISSIONS.includes(def) || !gateOpen(def.id, done)) continue;
+    MISSIONS.push(def);
+    added.push(def);
+  }
+  // Silent on the first sync of a save — you did not just earn those. The toast
+  // is for the beat that opens while you are standing there.
+  if (added.length && !fresh && G && G.hud) {
+    for (const def of added) {
+      const p = PLACES[def.giver];
+      G.hud.toast(`NOUVELLE JOB\n${def.title}\n${p && p.label ? p.label : ''}`, 3600);
+    }
+    G.audio && G.audio.chime(true);
+  }
+  return added;
+}
+
+/** Tests only: forget which save we were tracking. */
+export function resetArcSync() { arcSeen = null; arcSize = -1; }
+
+export { ARC, GATES, gateOpen, openBeats, registerArcLines };
 
 const KEY = 'aylmer.progress';
 
@@ -363,7 +435,9 @@ export function missionById(id) {
 }
 
 // Cheap sanity net: a typo'd place key should blow up at import, not mid-drive.
-for (const m of MISSIONS) {
+// ALL_MISSIONS, not MISSIONS — a locked beat with a bad giver has to fail here
+// and not eight jobs from now.
+for (const m of ALL_MISSIONS) {
   if (!PLACES[m.giver]) throw new Error(`mission ${m.id}: unknown giver ${m.giver}`);
   if (!TIME_OF_DAY[m.timeOfDay]) throw new Error(`mission ${m.id}: unknown timeOfDay`);
 }
