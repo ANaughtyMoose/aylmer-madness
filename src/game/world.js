@@ -318,13 +318,130 @@ export function buildWorld(renderer, mats = MATS) {
     }
   }
 
-  const roadSegs = [];         // ax,az,bx,bz,rad2 per 5 slots
+  // -------------------------------------------------- 4a. the road broadphase
+  // Built BEFORE any geometry, because every piece of street furniture laid
+  // beside a road — gutter, sidewalk slab, kerb corner, shoulder, streetlight,
+  // park tree — has to be able to ask whether it is about to land in somebody
+  // else's lane. It used to be filled inside the geometry loop below, so a way
+  // could only ever see the ways ahead of it in MAP.roads, which is to say
+  // almost none of them at the point where it laid its pavement.
+  //
+  // Seven slots a segment: ax, az, bx, bz, rad2 (roadAt's generous kerb + 0.8,
+  // which is what the car's on-tarmac test has always used), hw (the honest
+  // half width of the asphalt) and ri (the way it came from).
+  const roadSegs = [];
   const roadGrid = new Map();
-  const nearSegs = [];         // {ax,az,bx,bz,name} for nearestRoad (non-service)
+  const nearSegs = [];         // ax,az,bx,bz,roadIndex for nearestRoad (non-service)
+  for (let ri = 0; ri < MAP.roads.length; ri++) {
+    const road = MAP.roads[ri];
+    const pts = road.pts, n = pts.length;
+    if (n < 2) continue;
+    const hw = road.w / 2;
+    const rad = hw + 0.8;
+    const service = road.cls === 'service';
+    for (let i = 0; i < n - 1; i++) {
+      const idx = roadSegs.length / 7;
+      roadSegs.push(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], rad * rad, hw, ri);
+      const i0 = Math.floor((Math.min(pts[i][0], pts[i + 1][0]) - rad) / ROAD_CELL);
+      const i1 = Math.floor((Math.max(pts[i][0], pts[i + 1][0]) + rad) / ROAD_CELL);
+      const j0 = Math.floor((Math.min(pts[i][1], pts[i + 1][1]) - rad) / ROAD_CELL);
+      const j1 = Math.floor((Math.max(pts[i][1], pts[i + 1][1]) + rad) / ROAD_CELL);
+      for (let a = i0; a <= i1; a++) {
+        for (let b = j0; b <= j1; b++) {
+          const k = gkey(a, b);
+          let arr = roadGrid.get(k);
+          if (!arr) { arr = []; roadGrid.set(k, arr); }
+          arr.push(idx);
+        }
+      }
+      if (!service) nearSegs.push(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ri);
+    }
+  }
+  const roadSegArr = Float64Array.from(roadSegs);
+
+  // "Is the car on tarmac?" — unchanged, kerb + 0.8 so a wheel on the gutter
+  // still counts as on the road.
+  function roadAt(x, z) {
+    const arr = roadGrid.get(gkey(Math.floor(x / ROAD_CELL), Math.floor(z / ROAD_CELL)));
+    if (!arr) return false;
+    for (let k = 0; k < arr.length; k++) {
+      const o = arr[k] * 7;
+      if (distPtSeg2(x, z, roadSegArr[o], roadSegArr[o + 1], roadSegArr[o + 2], roadSegArr[o + 3])
+        <= roadSegArr[o + 4]) return true;
+    }
+    return false;
+  }
+
+  // "Would this piece of street furniture be standing in a lane?" — the honest
+  // asphalt half width plus `margin`, ignoring the way the piece belongs to
+  // (`skip` < 0 tests every way). The Hull sector brought five times as much
+  // road with it, and with it a lot of parallel and shallow-angle duplicates: a
+  // dual carriageway, or one street cut into two ways where its name changes.
+  // Each of those used to lay its own pavement straight across the other's
+  // asphalt, which is the sidewalk-in-the-road the owner keeps driving over.
+  // `margin` must stay under 0.8 or it outruns the grid registration above.
+  function pavedAt(x, z, skip, margin) {
+    const arr = roadGrid.get(gkey(Math.floor(x / ROAD_CELL), Math.floor(z / ROAD_CELL)));
+    if (!arr) return false;
+    for (let k = 0; k < arr.length; k++) {
+      const o = arr[k] * 7;
+      if (roadSegArr[o + 6] === skip) continue;
+      const r = roadSegArr[o + 5] + margin;
+      if (distPtSeg2(x, z, roadSegArr[o], roadSegArr[o + 1], roadSegArr[o + 2], roadSegArr[o + 3])
+        <= r * r) return true;
+    }
+    return false;
+  }
+
+  // Every candidate piece of furniture, flattened, for tools/smoke_world.mjs:
+  // where it was going, which way it belongs to (-1 = nobody's) and whether the
+  // asphalt test threw it out. The test asserts nothing that survived is
+  // standing in a lane, and reports how many were rejected.
+  const furn = { x: [], z: [], kind: [], road: [], dropped: [] };
+  function noteFurniture(x, z, kind, ri, dropped) {
+    furn.x.push(x); furn.z.push(z); furn.kind.push(kind);
+    furn.road.push(ri); furn.dropped.push(dropped ? 1 : 0);
+  }
+  let furnDropped = 0;         // pieces refused for sitting on drivable asphalt
+
+  // Walk a stretch of one road segment and hand back the runs where a piece of
+  // furniture clears every other way's asphalt at all of `offs` lateral offsets.
+  // Clipping instead of dropping is what keeps the pavement running right up to
+  // the kerb of the street that crosses it, rather than losing the whole block.
+  // The returned array is reused; copy anything you keep.
+  const runOut = [];
+  function clearRuns(px, pz, dx, dz, nx, nz, s0, s1, offs, ci, skip, margin, step, kind, ri) {
+    runOut.length = 0;
+    const n = Math.max(1, Math.ceil((s1 - s0) / step));
+    let open = -1, last = 0;
+    for (let i = 0; i <= n; i++) {
+      const s = s0 + (s1 - s0) * (i / n);
+      const cx = px + dx * s, cz = pz + dz * s;
+      let hit = false;
+      for (let k = 0; k < offs.length && !hit; k++) {
+        hit = pavedAt(cx + nx * offs[k], cz + nz * offs[k], skip, margin);
+      }
+      if (hit) {
+        // Record where the band would have gone, so the smoke test can report
+        // how much of it used to be laid across a lane.
+        noteFurniture(cx + nx * offs[ci], cz + nz * offs[ci], kind, ri, true);
+        furnDropped++;
+        if (open >= 0 && last > open) runOut.push(open, last);
+        open = -1;
+      } else {
+        if (open < 0) open = s;
+        last = s;
+      }
+    }
+    if (open >= 0 && last > open) runOut.push(open, last);
+    return runOut;
+  }
+
   let jointCount = 0, sidewalkCount = 0, dashCount = 0;
   let interCount = 0, cornerCount = 0, stopLineCount = 0;
+  const LOFF = [0, 0, 0, 0];   // lateral offset scratch for clearRuns
 
-  // -------------------------------------------------- 4a. intersections (W3)
+  // -------------------------------------------------- 4b. intersections (W3)
   // Every node where three or more road ends meet becomes one convex polygon:
   // take each branch out to `ext` and both its kerb corners there, hull the lot.
   // That single shape covers the mitre seams, so no joint disc is needed and the
@@ -381,8 +498,21 @@ export function buildWorld(renderer, mats = MATS) {
         const ul = Math.hypot(ux, uz);
         if (ul < 0.25) continue;                 // straight-through pair: no corner
         ux /= ul; uz /= ul;
-        const d = ext + 1.9;
-        const cx = nd.x + ux * d, cz = nd.z + uz * d;
+        // `ext + 1.9` is where the two kerb lines meet when two equal streets
+        // cross square, and wrong the moment they do not: `ext` is the WIDEST
+        // branch's half width, so at a residential/secondary T the slab lands
+        // inside the wide road's lane, and at a shallow fork the bisector runs
+        // down the middle of both branches. Step out along the bisector until
+        // the slab's centre is off the asphalt; if 4.8 m of it does not get
+        // clear, the two arms are near enough parallel that there is no corner
+        // there at all, and none is laid.
+        let d = ext + 1.9, cx = 0, cz = 0, placed = false;
+        for (let k = 0; k < 9; k++, d += 0.6) {
+          cx = nd.x + ux * d; cz = nd.z + uz * d;
+          if (!pavedAt(cx, cz, -1, 0.2)) { placed = true; break; }
+        }
+        noteFurniture(cx, cz, 'kerb', -1, !placed);
+        if (!placed) { furnDropped++; continue; }
         bAt(cx, cz).tower(cx, 0, cz, 2.8, 2.8, 0.12, walkCol,
           { yaw: Math.atan2(ux, uz), noBottom: true });
         cornerCount++;
@@ -487,28 +617,22 @@ export function buildWorld(renderer, mats = MATS) {
         const yaw = Math.atan2(dxs[i], dzs[i]);
         const nx = dzs[i], nz = -dxs[i];
         for (const side of [1, -1]) {
-          const sx = mx + nx * (hw + 0.34) * side, sz = mz + nz * (hw + 0.34) * side;
-          bAt(sx, sz).flatRot(sx, sz, 0.68, lens[i], Y.service - 0.002, yaw, shoulderCol);
+          // The gravel edge is only 0.68 m wide, but it is still 0.68 m of
+          // shoulder painted down the middle of whatever runs alongside.
+          LOFF.length = 2;
+          LOFF[0] = (hw + 0.34) * side; LOFF[1] = (hw + 0.68) * side;
+          const runs = clearRuns(pts[i][0], pts[i][1], dxs[i], dzs[i],
+            nx, nz, 0, lens[i], LOFF, 0, ri, 0.2, 2, 'shoulder', ri);
+          for (let q = 0; q < runs.length; q += 2) {
+            const L = runs[q + 1] - runs[q];
+            if (L < 1.5) continue;
+            const c = (runs[q] + runs[q + 1]) / 2;
+            const bx = pts[i][0] + dxs[i] * c, bz = pts[i][1] + dzs[i] * c;
+            const sx = bx + nx * (hw + 0.34) * side, sz = bz + nz * (hw + 0.34) * side;
+            bAt(sx, sz).flatRot(sx, sz, 0.68, L, Y.service - 0.002, yaw, shoulderCol);
+            noteFurniture(sx, sz, 'shoulder', ri, false);
+          }
         }
-      }
-      // road broadphase
-      const idx = roadSegs.length / 5;
-      const rad = hw + 0.8;
-      roadSegs.push(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], rad * rad);
-      const i0 = Math.floor((Math.min(pts[i][0], pts[i + 1][0]) - rad) / ROAD_CELL);
-      const i1 = Math.floor((Math.max(pts[i][0], pts[i + 1][0]) + rad) / ROAD_CELL);
-      const j0 = Math.floor((Math.min(pts[i][1], pts[i + 1][1]) - rad) / ROAD_CELL);
-      const j1 = Math.floor((Math.max(pts[i][1], pts[i + 1][1]) + rad) / ROAD_CELL);
-      for (let a = i0; a <= i1; a++) {
-        for (let b = j0; b <= j1; b++) {
-          const k = gkey(a, b);
-          let arr = roadGrid.get(k);
-          if (!arr) { arr = []; roadGrid.set(k, arr); }
-          arr.push(idx);
-        }
-      }
-      if (!isService) {
-        nearSegs.push(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ri);
       }
     }
 
@@ -580,26 +704,47 @@ export function buildWorld(renderer, mats = MATS) {
       for (let i = 0; i < n - 1; i++) {
         const s0 = cut[i] > 0 ? cut[i] + 1.4 : 0;
         const s1 = lens[i] - (cut[i + 1] > 0 ? cut[i + 1] + 1.4 : 0);
-        const L = s1 - s0;
-        if (L < 3) continue;
+        if (s1 - s0 < 3) continue;
         const dx = dxs[i], dz = dzs[i];
         const yaw = Math.atan2(dx, dz);
         const nx = dz, nz = -dx;
-        const mid = (s0 + s1) / 2;
-        const mx = pts[i][0] + dx * mid, mz = pts[i][1] + dz * mid;
         const off = hw + 1.075;
         for (const s of walkSides) {
-          const gx = mx + nx * (hw + 0.11) * s, gz = mz + nz * (hw + 0.11) * s;
-          bAt(gx, gz).flatRot(gx, gz, 0.28, L, Y.road + 0.008, yaw, gutterCol);
-          const cx = mx + nx * off * s, cz = mz + nz * off * s;
-          bAt(cx, cz).tower(cx, 0, cz, 1.75, L, 0.12, walkCol, { yaw, noBottom: true });
-          sidewalkCount++;
+          // Four samples across the band — the gutter, both edges of the 1.75 m
+          // slab and its middle — so a way crossing at a shallow angle clips the
+          // far edge long before it has reached the centreline. `cut` only knows
+          // about junctions this way is noded into; two ways that merely lie on
+          // top of each other, or cross without sharing a node, are invisible to
+          // it and are exactly what this test catches.
+          LOFF.length = 4;
+          LOFF[0] = (hw + 0.11) * s; LOFF[1] = (hw + 0.3) * s;
+          LOFF[2] = off * s; LOFF[3] = (hw + 1.85) * s;
+          const runs = clearRuns(pts[i][0], pts[i][1], dx, dz, nx, nz, s0, s1,
+            LOFF, 2, ri, 0.25, 1.5, 'walk', ri);
+          for (let q = 0; q < runs.length; q += 2) {
+            const L = runs[q + 1] - runs[q];
+            if (L < 3) continue;      // too short to read as pavement
+            const mid = (runs[q] + runs[q + 1]) / 2;
+            const mx = pts[i][0] + dx * mid, mz = pts[i][1] + dz * mid;
+            const gx = mx + nx * (hw + 0.11) * s, gz = mz + nz * (hw + 0.11) * s;
+            bAt(gx, gz).flatRot(gx, gz, 0.28, L, Y.road + 0.008, yaw, gutterCol);
+            const cx = mx + nx * off * s, cz = mz + nz * off * s;
+            bAt(cx, cz).tower(cx, 0, cz, 1.75, L, 0.12, walkCol, { yaw, noBottom: true });
+            // Both ends as well as the middle: a slab is a long thing and the
+            // smoke test should be sampling all of it, not just its centre.
+            noteFurniture(cx, cz, 'walk', ri, false);
+            for (const e of [runs[q] + 0.2, runs[q + 1] - 0.2]) {
+              noteFurniture(pts[i][0] + dx * e + nx * off * s,
+                pts[i][1] + dz * e + nz * off * s, 'walk', ri, false);
+            }
+            sidewalkCount++;
+          }
         }
       }
     }
   }
 
-  // -------------------------------------------------- 4b. signals & stop signs
+  // -------------------------------------------------- 4c. signals & stop signs
   // Only the *lamp that is lit* moves, so everything else — post, mast arm, the
   // dark housing, the octagons — is baked into the chunks like any other prop.
   // signals.js draws one small box per approach on top. (W4)
@@ -912,19 +1057,7 @@ export function buildWorld(renderer, mats = MATS) {
     return outArr;
   }
 
-  // ------------------------------------------------------------ roadAt / nearestRoad
-  const roadSegArr = Float64Array.from(roadSegs);
-  function roadAt(x, z) {
-    const arr = roadGrid.get(gkey(Math.floor(x / ROAD_CELL), Math.floor(z / ROAD_CELL)));
-    if (!arr) return false;
-    for (let k = 0; k < arr.length; k++) {
-      const o = arr[k] * 5;
-      if (distPtSeg2(x, z, roadSegArr[o], roadSegArr[o + 1], roadSegArr[o + 2], roadSegArr[o + 3])
-        <= roadSegArr[o + 4]) return true;
-    }
-    return false;
-  }
-
+  // ------------------------------------------------------------ nearestRoad
   const nearArr = Float64Array.from(nearSegs);
   function nearestRoad(x, z) {
     let best = Infinity, bx = x, bz = z, byaw = 0, bname = '';
@@ -992,6 +1125,15 @@ export function buildWorld(renderer, mats = MATS) {
       if (waterAt(mx + nx * 4, mz + nz * 4)) { nx = -nx; nz = -nz; }
       if (waterAt(mx + nx * 4, mz + nz * 4)) continue;      // both sides wet: skip
       const w = 3.2 + sr() * 1.8;
+      // Where the road runs along the bank — the marina apron, Principale by
+      // the Symmes — the land side of the edge is asphalt, and a 5 m ribbon of
+      // beach used to be laid straight down it.
+      {
+        const bad = pavedAt(mx + nx * w * 0.5, mz + nz * w * 0.5, -1, 0.3)
+          || pavedAt(mx + nx * w, mz + nz * w, -1, 0.3);
+        noteFurniture(mx + nx * w * 0.5, mz + nz * w * 0.5, 'shore', -1, bad);
+        if (bad) { furnDropped++; continue; }
+      }
       flatQuad(bAt(mx, mz), [
         [a[0], a[1]], [b[0], b[1]],
         [b[0] + nx * w, b[1] + nz * w], [a[0] + nx * w, a[1] + nz * w],
@@ -1301,6 +1443,10 @@ export function buildWorld(renderer, mats = MATS) {
   {
     const fenceCol = shade(0x8d9096, 0.9), postCol = shade(0x6f7276, 0.9);
     const x = -92;
+    // Half of it stands across the mall's service aisle, and it is the ONLY
+    // barrier in the bake that does so on purpose: the kicker at the east lip
+    // of the dock exists to put you over it. Deliberately not run through the
+    // asphalt gate the road-derived furniture below goes through.
     for (let z = -244; z < -216; z += 2) {
       const bd = bAt(x, z);
       // Both faces: you look at this fence from the dock side on the way in and
@@ -1372,6 +1518,12 @@ export function buildWorld(renderer, mats = MATS) {
       for (let z = z0 + step * 0.5; z < z1; z += step) {
         const jx = x + (pr() - 0.5) * step * 0.7, jz = z + (pr() - 0.5) * step * 0.7;
         if (!pointInPoly(a.p, jx, jz)) continue;
+        // Landuse polygons are drawn over the streets that cross them, and a
+        // 7 m spruce in the middle of chemin Vanier is worse than a gap in the
+        // wood. Street trees already do this test; the park scatter never did.
+        const bad = pavedAt(jx, jz, -1, 0.6);
+        noteFurniture(jx, jz, 'tree', -1, bad);
+        if (bad) { furnDropped++; continue; }
         target.push(jx, jz);
       }
     }
@@ -1509,9 +1661,15 @@ export function buildWorld(renderer, mats = MATS) {
         const side = paved ? flip : 1;
         const nx = -dz * off * side, nz = dx * off * side;
         const x = pts[i][0] + dx * s + nx, z = pts[i][1] + dz * s + nz;
-        (paved ? lights : hydros).push(x, z, -nx / off, -nz / off);
         if (paved) flip = -flip;
         s += spacing;
+        // 10 m of hydro pole in the fast lane of the way alongside. The offset
+        // is measured from this way's own kerb and knows nothing about the
+        // parallel carriageway it may be standing in.
+        const bad = pavedAt(x, z, -1, 0.35);
+        noteFurniture(x, z, 'pole', -1, bad);
+        if (bad) { furnDropped++; continue; }
+        (paved ? lights : hydros).push(x, z, -nx / off, -nz / off);
       }
       carry = s - L;
     }
@@ -1949,12 +2107,25 @@ export function buildWorld(renderer, mats = MATS) {
   tris += distant.i.length / 3;
   const signage = buildSignage(renderer);
 
+  // Flatten the furniture log: a few hundred thousand samples as loose numbers
+  // would be a megabyte of boxed doubles hanging off the world for the whole
+  // session, and the only reader is the smoke test.
+  const furniture = {
+    n: furn.x.length,
+    x: Float64Array.from(furn.x), z: Float64Array.from(furn.z),
+    road: Int32Array.from(furn.road), dropped: Uint8Array.from(furn.dropped),
+    kind: furn.kind,
+    droppedCount: furnDropped,
+  };
+  furn.x.length = 0; furn.z.length = 0; furn.road.length = 0; furn.dropped.length = 0;
+
   const dt = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) | 0;
   console.log(`world: ${chunks.length} chunks (+${waterChunks.length} water, ${nightChunks.length} night), `
     + `${tris | 0} tris, ${buildings.length} buildings (${houseCount} archetype houses, `
     + `${houseTris | 0} near + ${houseFarTris | 0} far tris, atlas ${mats && mats.tex ? 'on' : 'OFF'}), `
     + `${MAP.roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
-    + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${stopLineCount} stop lines), `
+    + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${stopLineCount} stop lines, `
+    + `${furnDropped} pieces kept off the asphalt), `
     + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${plantingCount} shrubs, ${poleCount} poles, `
     + `${shoreCount} shore, ${rockCount} rocks, ${dockCount} docks, ${poolCount} lamp pools, `
     + `${segs.length >> 2} collider segments, ${signCount} boards, `
@@ -2063,6 +2234,8 @@ export function buildWorld(renderer, mats = MATS) {
     draw,
     querySegments,
     roadAt,
+    pavedAt,                // (x, z, skipRoadIndex, margin) — on somebody's lane?
+    furniture,              // every candidate slab/pole/tree and its verdict
     waterAt,
     groundAt,               // terrain.js height field: { h, nx, ny, nz, kind }
     terrain,                // the field itself, if you want the feature list

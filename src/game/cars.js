@@ -1045,7 +1045,7 @@ export const DAMAGE = { COSMETIC: 25, PERF: 60, DEAD: 100 };
 // `turf` factor drives exactly as it did before this line existed.
 const TURF_KIND = { grass: 1, path: 1, sand: 1 };
 
-const GRASS = 0.72;                     // surface multiplier off the asphalt
+const GRASS = 0.81;                     // surface multiplier off the asphalt (== SURF.grass.power)
 const SURF_RAMP = (1 - GRASS) / 0.5;    // D4: the full penalty takes half a second
 const CURB_Y = 0.15;                    // how tall the sidewalk actually is
 

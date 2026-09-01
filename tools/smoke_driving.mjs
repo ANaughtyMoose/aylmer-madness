@@ -8,6 +8,10 @@
 // core/mesh.js and core/math.js, and the traffic car is a plain object with the
 // same fields Traffic gives its cars, so mapdata.js (3.2 MB) stays unread.
 import { CARS, carById, Vehicle, DAMAGE } from '../src/game/cars.js';
+// The ramp's destination is SURF.grass.power, so read it rather than restating
+// it: the off-road penalty is tuned in terrain.js and this file tests the SHAPE
+// of the ramp — how fast it arrives — not the number it arrives at.
+import { SURF } from '../src/game/terrain.js';
 import { collideCars, contact, driftBody } from '../src/game/collide.js';
 import { updateRepair, restoreDamage } from '../src/game/damage.js';
 
@@ -201,10 +205,11 @@ function shunt(player, car) {
   step(30, grass);                      // 1.0 s
   const at10 = v.surface;
 
-  ok('after 0.1 s the penalty is barely in', at01 > 0.93, `surface ${r2(at01)}`);
-  ok('after 0.25 s it is about half applied', near(at025, 0.86, 0.03), `surface ${r2(at025)}`);
-  ok('after 0.5 s it is fully applied', near(at05, 0.72, 0.01), `surface ${r2(at05)}`);
-  ok('and it stops there', near(at10, 0.72, 0.001), `surface ${r2(at10)}`);
+  const G = SURF.grass.power;
+  ok('after 0.1 s the penalty is barely in', at01 > 1 - 0.25 * (1 - G), `surface ${r2(at01)}`);
+  ok('after 0.25 s it is about half applied', near(at025, (1 + G) / 2, 0.03), `surface ${r2(at025)}`);
+  ok('after 0.5 s it is fully applied', near(at05, G, 0.01), `surface ${r2(at05)}`);
+  ok('and it stops there', near(at10, G, 0.001), `surface ${r2(at10)}`);
   ok('the ramp is monotone', at01 > at025 && at025 > at05 - 1e-9);
 
   // Back on the road it comes off just as smoothly, over the same half second.

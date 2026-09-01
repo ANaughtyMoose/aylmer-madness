@@ -99,6 +99,46 @@ ok('W3 junction arms are geometrically unique', () => {
   }
 });
 
+// ------------------------------------------------- street furniture vs asphalt
+// The owner's complaint: sidewalks, kerb corners and poles standing in the
+// road. `world.furniture` is every candidate piece the bake considered, where
+// it was going, which way it belongs to, and whether the asphalt test threw it
+// out — so one pass over it both proves the survivors are clear and says how
+// much used to be laid across a lane.
+ok('nothing the bake emitted alongside a road is standing on another way', () => {
+  const f = world.furniture;
+  assert.ok(f.n > 100000, `only ${f.n} furniture samples to check`);
+  let kept = 0, bad = 0, first = '';
+  for (let i = 0; i < f.n; i++) {
+    if (f.dropped[i]) continue;
+    kept++;
+    // margin 0 == the honest asphalt edge. A piece may touch its own street's
+    // kerb (that is what a kerb is); it may not be on anybody else's.
+    if (!world.pavedAt(f.x[i], f.z[i], f.road[i], 0)) continue;
+    bad++;
+    if (!first) first = `${f.kind[i]} at ${f.x[i].toFixed(1)}, ${f.z[i].toFixed(1)}`;
+  }
+  const by = {};
+  for (let i = 0; i < f.n; i++) if (f.dropped[i]) by[f.kind[i]] = (by[f.kind[i]] || 0) + 1;
+  console.log(`       ${kept} pieces clear, ${f.droppedCount} refused (`
+    + Object.entries(by).map(([k, v]) => `${k} ${v}`).join(', ') + ')');
+  assert.equal(bad, 0, `${bad} of ${kept} emitted pieces sit on a lane (first: ${first})`);
+});
+
+ok('the pavement survives the cull: both sectors keep most of their walks', () => {
+  const f = world.furniture;
+  let hull = 0, ayl = 0;
+  for (let i = 0; i < f.n; i++) {
+    if (f.dropped[i] || f.kind[i] !== 'walk') continue;
+    if (f.x[i] > 2500) hull++; else ayl++;
+  }
+  // A dual carriageway legitimately loses its inboard walk, so roughly half of
+  // the Hull samples are expected to go; a town with no pavement left in it is
+  // the failure this guards against.
+  assert.ok(hull > 40000, `only ${hull} sidewalk samples left in Hull`);
+  assert.ok(ayl > 3000, `only ${ayl} sidewalk samples left in old Aylmer`);
+});
+
 // ------------------------------------------------- W4 signals
 const signals = planSignals();
 ok('W4 signal list has 6-8 entries', () => {

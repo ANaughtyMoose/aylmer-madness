@@ -34,21 +34,30 @@
 
 // ---------------------------------------------------------------- surfaces
 
-// Per-surface driving numbers. `power` is what the old flat `surface` multiplier
-// was — 1 on tarmac, 0.72 off it — and it still ramps in over half a second, so
-// asphalt/grass behave exactly as they did before this file existed. `grip` is
-// the instant lateral-grip multiplier. `drag` scales the extra rolling
-// resistance that the ramped power term already implies. `shake` is the
-// stair/washboard rattle the car picks up.
+// Per-surface driving numbers. `power` is the flat `surface` multiplier — 1 on
+// tarmac, less off it — and it ramps in over half a second. `grip` is the
+// instant lateral-grip multiplier. `drag` scales the extra rolling resistance
+// that the ramped power term already implies (cars.js reads it against
+// `offRoad`, which is `power` renormalised so grass comes out at exactly 1).
+// `shake` is the stair/washboard rattle the car picks up.
+//
+// Softened once, deliberately. The original table cost a Ranger 47 % of its
+// top speed for cutting a lawn and a Caravan 53 %, which is not a shortcut,
+// it is a punishment; and every car but the Civic was pinned at a dead stop on
+// sand, because the drag term outgrew the engine before the wheels turned. The
+// pass below takes about a third out of each penalty, keeping the order
+// asphalt > gravel/path > grass > sand, so the tarmac is still where you want
+// to be and the beach is still the beach. `spec.turf` machines are unaffected:
+// the golf cart caps at power 1 on grass, path and sand either way.
 export const SURF = {
-  asphalt:  { power: 1,    grip: 1,    drag: 1,   shake: 0 },
-  concrete: { power: 1,    grip: 0.98, drag: 1,   shake: 0 },
-  path:     { power: 1,    grip: 0.88, drag: 1,   shake: 0.10 },
-  gravel:   { power: 0.80, grip: 0.70, drag: 1.1, shake: 0.35 },
-  dirt:     { power: 0.84, grip: 0.74, drag: 1.0, shake: 0.30 },
-  grass:    { power: 0.72, grip: 0.72, drag: 1,   shake: 0.08 },
-  sand:     { power: 0.62, grip: 0.55, drag: 1.5, shake: 0.20 },
-  stair:    { power: 0.88, grip: 0.86, drag: 1.2, shake: 1.00 },
+  asphalt:  { power: 1,    grip: 1,    drag: 1,    shake: 0 },
+  concrete: { power: 1,    grip: 0.98, drag: 1,    shake: 0 },
+  path:     { power: 1,    grip: 0.90, drag: 1,    shake: 0.10 },
+  gravel:   { power: 0.85, grip: 0.76, drag: 0.90, shake: 0.35 },
+  dirt:     { power: 0.88, grip: 0.79, drag: 0.85, shake: 0.30 },
+  grass:    { power: 0.81, grip: 0.78, drag: 0.78, shake: 0.08 },
+  sand:     { power: 0.72, grip: 0.62, drag: 0.72, shake: 0.20 },
+  stair:    { power: 0.90, grip: 0.88, drag: 1.0,  shake: 1.00 },
 };
 // Anything that asks for a surface nobody defined drives like grass.
 export function surfaceOf(kind) { return SURF[kind] || SURF.grass; }

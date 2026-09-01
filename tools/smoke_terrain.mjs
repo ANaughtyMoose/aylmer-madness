@@ -291,8 +291,18 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
     const s = SURF[kind];
     return s;
   };
-  ok('grass still drives exactly like the old flat 0.72 penalty',
-    spread('grass').power === 0.72 && spread('grass').grip === 0.72 && spread('grass').drag === 1);
+  // The off-road penalty was softened by roughly a third (see the note on SURF).
+  // These bounds are the shape of it, not the exact numbers: grass has to stay
+  // clearly slower and slipperier than tarmac while leaving you something to
+  // drive with, and it has to stay the reference the drag term normalises to.
+  ok('grass still costs you real speed and real grip',
+    spread('grass').power < 0.9 && spread('grass').grip < 0.85 && spread('grass').drag < 1,
+    `power ${spread('grass').power}, grip ${spread('grass').grip}, drag ${spread('grass').drag}`);
+  ok('...but a lawn is a shortcut, not a handbrake',
+    spread('grass').power > 0.75 && spread('grass').grip > 0.7);
+  ok('the surfaces stay in order: asphalt beats gravel beats grass beats sand',
+    SURF.asphalt.power > SURF.gravel.power && SURF.gravel.power > SURF.grass.power
+    && SURF.grass.power > SURF.sand.power);
   ok('asphalt and concrete carry no penalty at all',
     SURF.asphalt.power === 1 && SURF.concrete.power === 1);
   ok('a park path costs grip but not speed, as asked',
@@ -317,9 +327,14 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
 
 // ---------------------------------------------------------------- the flat town
 //
-// The reference numbers below were taken from the committed code BEFORE the
-// height field existed: 5 s at full throttle, on tarmac and on grass, for all
-// four cars. Nothing in a town with no features under it is allowed to move.
+// The `road/*` numbers below were taken from the committed code BEFORE the
+// height field existed: 5 s at full throttle, on tarmac, for all four cars.
+// Nothing in a town with no features under it is allowed to move them.
+//
+// The `grass/*` rows were re-baselined once, when the off-road penalty was
+// softened (see SURF in terrain.js). They pin the whole off-road path — the
+// ramp target, the drag normalisation, the lateral grip — to nine decimals, so
+// the tuning cannot drift again without somebody choosing to.
 
 {
   const REF = {
@@ -327,10 +342,10 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
     'road/civic': [0, 58.007227556, 0, 21.559588374, 0, 1, 0, -0.02836343, 0],
     'road/saturn': [0, 46.101108107, 0, 17.374564681, 0, 1, 0, -0.0290553, 0],
     'road/sunfire': [0, 49.535238474, 0, 18.641232004, 0, 1, 0, -0.034001649, 0],
-    'grass/ranger': [-4.150539456, 11.931264091, -0.70730181, 4.46297343, 0.169654945, 0.72, 0, -0.00955899, -0.020564083],
-    'grass/civic': [-19.449499366, 14.701006103, -1.874722428, 9.779762424, 0.73810367, 0.72, 0, -0.015304072, -0.076993656],
-    'grass/saturn': [-9.709238678, 15.085075731, -1.186038468, 6.675556802, 0.377767307, 0.72, 0, -0.011999594, -0.040956791],
-    'grass/sunfire': [-12.022408566, 16.134319718, -1.321171957, 7.604325601, 0.4670921, 0.72, 0, -0.015206784, -0.05679784],
+    'grass/ranger': [-8.69593767, 16.664912009, -0.997876189, 7.077337304, 0.356461633, 0.81, 0, -0.016150764, -0.046786506],
+    'grass/civic': [-26.199577032, 12.651163862, -2.244060814, 12.470558062, 1.029659867, 0.81, 0, -0.020130935, -0.11658784],
+    'grass/saturn': [-16.134754652, 17.439614579, -1.5234862, 9.344865258, 0.626816758, 0.81, 0, -0.017508179, -0.073641302],
+    'grass/sunfire': [-18.825060175, 17.732795207, -1.65608759, 10.315765588, 0.730683202, 0.81, 0, -0.021393392, -0.096304197],
   };
   let worst = 0, worstKey = '';
   for (const [name, world] of [['road', flat], ['grass', flatGrass]]) {
@@ -351,7 +366,7 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
   // The table above is written to nine decimals, so that is as tight as the
   // comparison can be; anything the height field did to the flat case would be
   // orders of magnitude bigger than the last digit.
-  ok('a 5 s straight run in the flat town is what it always was, to the last digit',
+  ok('a 5 s straight run in the flat town matches the reference table to the last digit',
     worst < 1e-9, `worst drift ${worst.toExponential(2)} (${worstKey || 'none'})`);
 
   // ...and a world that has never heard of groundAt still works.
