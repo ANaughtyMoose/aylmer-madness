@@ -99,7 +99,8 @@ as written, and in that order.** The reasoning, so nobody has to redo it:
 
 - **The people are real.** Sayyad (Civic, 75 Denise-Friend, Hawaiian shirts),
   **Zahra** (his sister, **15**, at Symmes), Margaret (Saturn, 299 Fraser),
-  Adam Actell (Sunfire, Deschênes), Mike McDonald (129 Frank-Robinson),
+  Adam Actell (Sunfire, **Mayo, Québec — off-map, he drives in**), Mike
+  McDonald (129 Frank-Robinson),
   Russell (16, 1 rue Arial, skateboarder), Norm Lafleur (the paid garage),
   **Tom** (the player, 299 Fraser), **Abraham** (841 Wilfrid-Lavigne, guitar),
   **Tyler Yank** (~312 Samuel-Edey, lives with her aunt), **Rob French** (drives
