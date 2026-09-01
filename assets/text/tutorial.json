@@ -1,0 +1,96 @@
+{
+  "tutorial": [
+    {
+      "step": 0,
+      "fr": "Pèse doucement su'l gaz pour décoller. Le truck va avancer tout seul.",
+      "en": "Ease on the gas to roll out. The truck will move on its own.",
+      "trigger": "first_gas"
+    },
+    {
+      "step": 1,
+      "fr": "Tourne le volant d'un bord pis de l'autre. Sens la direction su'l chemin.",
+      "en": "Turn the wheel left and right. Feel the steering on the asphalt.",
+      "trigger": "first_steer"
+    },
+    {
+      "step": 2,
+      "fr": "Pèse su'l frein pour ralentir avant l'arrêt. Pas besoin d'écraser la pédale.",
+      "en": "Tap the brake to slow down before the stop. No need to stomp on it.",
+      "trigger": "first_brake"
+    },
+    {
+      "step": 3,
+      "fr": "Passe le reculons si t'es pogné trop serré. Regarde où tu recules.",
+      "en": "Shift into reverse if you're boxed in tight. Watch where you're backing up.",
+      "trigger": "first_reverse"
+    },
+    {
+      "step": 4,
+      "fr": "Checke le point jaune su'a carte. C'est ta première run au dépanneur.",
+      "en": "Check the yellow marker on the map. That's your first run to the dep.",
+      "trigger": "first_waypoint"
+    }
+  ],
+  "hints": [
+    {
+      "fr": "Le frein à main te permet de faire décrocher le cul du truck dans les courbes de gravier ou de te parker dans une côte abrupte.",
+      "en": "The handbrake lets you slide the rear end out on gravel curves or park securely on a steep hill.",
+      "teaches": "handbrake"
+    },
+    {
+      "fr": "Ouvre la carte de la ville pour repérer les ruelles tranquilles du Vieux-Aylmer et éviter les bouchons du pont Champlain.",
+      "en": "Open the town map to spot quiet back alleys in Old Aylmer and avoid traffic jams at the Champlain bridge.",
+      "teaches": "map"
+    },
+    {
+      "fr": "Arrête-toé devant les commerces illuminés sur la rue Principale ou aux Galeries pour ramasser des livraisons payantes.",
+      "en": "Pull up in front of lit storefronts on Main Street or at the mall to pick up paying delivery jobs.",
+      "teaches": "taking_a_job"
+    },
+    {
+      "fr": "Pèse su'l bouton de la radio pour naviguer entre le gros rock de CFOU, les débats de CJRC ou le country de la rivière.",
+      "en": "Hit the radio button to cycle between CFOU's heavy rock, CJRC's talk debates, or country on the river.",
+      "teaches": "radio"
+    },
+    {
+      "fr": "Change la vue de caméra pour conduire collé su'l volant comme ton père ou voir tout le chemin d'en haut.",
+      "en": "Switch camera modes to drive tucked right up against the wheel like your dad or get an overhead view of the road.",
+      "teaches": "camera_modes"
+    },
+    {
+      "fr": "Active la météo pour passer d'un soleil de plomb humide à un gros orage d'été qui rend l'asphalte glissant.",
+      "en": "Toggle the weather to go from humid scorching sun to a heavy summer thunderstorm that makes the asphalt slick.",
+      "teaches": "weather"
+    },
+    {
+      "fr": "Garde un œil su'a jauge à gaz: le 4-cylindres est économique, mais le réservoir se vide vite quand tu pèses au fond.",
+      "en": "Keep an eye on the fuel gauge: the 4-cylinder is efficient, but the tank drains fast when you floor it.",
+      "teaches": "fuel"
+    },
+    {
+      "fr": "Allume tes phares quand la nuit tombe sur le chemin Eardley pour voir les chevreuils avant qu'y sautent su'l capot.",
+      "en": "Flip on your headlights when night falls on Eardley Road to spot deer before they jump onto your hood.",
+      "teaches": "headlights"
+    },
+    {
+      "fr": "Donne un p'tit coup de klaxon pour saluer les chums assis su'es tables de pique-nique du Tim Hortons.",
+      "en": "Give a quick tap on the horn to greet friends hanging around the picnic tables at Tim Hortons.",
+      "teaches": "horn"
+    },
+    {
+      "fr": "Évite les gros nids-de-poule su'l chemin Pink si tu veux pas désaligner les roues avant du Ranger.",
+      "en": "Dodge the big potholes on chemin Pink if you don't want to throw off the Ranger's front alignment.",
+      "teaches": "potholes_and_damage"
+    },
+    {
+      "fr": "Rétrograde en deuxième vitesse pour avoir du torque quand tu montes la grosse côte vers Deschênes.",
+      "en": "Downshift into second gear to get some torque when climbing the big hill toward Deschênes.",
+      "teaches": "manual_shifting"
+    },
+    {
+      "fr": "Si ton frame reste coincé su'un banc de sable à la marina, appelle le remorquage pour te faire tirer d'embarras.",
+      "en": "If your frame gets high-centered on a sandbank at the marina, call for a tow to get pulled out of trouble.",
+      "teaches": "towing_and_reset"
+    }
+  ]
+}

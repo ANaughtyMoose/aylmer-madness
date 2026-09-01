@@ -84,6 +84,7 @@ export const SECTIONS = [
       { k: 'lookBackToggle', type: 'check' },
       { k: 'invertLook', type: 'check' },
       { k: 'rumble', type: 'check' },
+      { k: 'shake', type: 'range', min: 0, max: 1, step: 0.1 },
       { type: 'keys' },
     ],
   },

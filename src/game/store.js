@@ -82,6 +82,10 @@ export const DEFAULT_SETTINGS = {
   lookBackToggle: false,   // false = hold Shift, true = Shift latches the view
   invertLook: false,       // the camera looks back until you hold Shift
   rumble: true,
+  // Camera shake, 0..1. Motion sensitivity is common enough that a game you
+  // hand to a dozen people will meet it; 0 removes the shake entirely and costs
+  // nothing else, because the speed cue is the FOV.
+  shake: 1,
   // ---- gameplay
   lang: 'fr',
   autosave: true,
@@ -135,6 +139,7 @@ export function normalizeSettings(raw) {
     lookBackToggle: bool(s.lookBackToggle, D.lookBackToggle),
     invertLook: bool(s.invertLook, D.invertLook),
     rumble: bool(s.rumble, D.rumble),
+    shake: num(s.shake, 0, 1, D.shake),
 
     // L'interface est uniquement en français québécois. Cette normalisation
     // ramène aussi les anciennes préférences anglaises au français.

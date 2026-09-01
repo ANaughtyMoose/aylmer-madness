@@ -1684,15 +1684,31 @@ function render(dt) {
   G.camPos[1] = lerp(G.camPos[1], py, Math.min(1, dt * 6));
   G.camPos[2] = lerp(G.camPos[2], pz, Math.min(1, dt * 9));
 
+  // Speed FOV, off absolute speed rather than a fraction of this car's top.
+  // The fraction version quietly got weaker the day cars.js started solving real
+  // terminal speeds: 100 km/h used to be 0.9 of the Ranger's stated top and is
+  // now 0.67 of it, so the fastest thing in the game gave the smallest cue.
+  // Metres per second is what the eye is actually reading. Widening the frame is
+  // the cheapest, calmest way to say "fast" — the edges stretch, nothing shakes.
   const fov = G.q.fov + cam.fovAdd + G.settings.fov
-    + clamp(Math.abs(f.vLong) / f.spec.topSpeed, 0, 1) * 0.09;
+    + clamp((Math.abs(f.vLong) - 8) / 34, 0, 1) * 0.16;
   // In the air the chase cam leans with the nose, and every landing rattles the
   // hood cam for a moment. Both are small on purpose — they read, they don't spin.
   let camPitch = cam.pitch;
   if (f.inAir) camPitch += clamp(-f.pitch * 0.45, -0.22, 0.22);
   if (G.camShake > 0.002) {
-    const k = G.camShake * (cam.name === 'hood' ? 0.10 : 0.045);
-    camPitch += Math.sin(G.time * 61) * k;
+    // This was one sine at 61 rad/s — about 9.7 Hz — straight onto pitch. That
+    // is the frequency the eye reads as flicker rather than as motion, and on a
+    // 60 Hz display it beats against the frame rate as well. It said "broken",
+    // not "fast".
+    //
+    // Two slow sines at an irrational ratio never repeat, so it reads as the
+    // truck moving rather than the picture vibrating, and a little of it goes to
+    // yaw so the world sways instead of nodding. Half the amplitude, a fifth of
+    // the frequency; the speed cue lives in the FOV above, where it belongs.
+    const k = G.camShake * (cam.name === 'hood' ? 0.055 : 0.024) * G.settings.shake;
+    camPitch += (Math.sin(G.time * 11.7) * 0.65 + Math.sin(G.time * 7.3) * 0.35) * k;
+    G.camYaw += Math.sin(G.time * 9.1) * k * 0.5;
   }
   r.setEnvironment(G.env);
   r.begin(G.camPos, G.camYaw, camPitch, fov);

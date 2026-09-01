@@ -1,0 +1,254 @@
+{
+  "lines": [
+    {
+      "who": "Sayyad",
+      "situation": "crashing_repeatedly",
+      "fr": "C'est rien qu'un poteau, mon chum! Le pare-choc avait déjà une coche, au moins à c't'heure y est symétrique!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "driving_in_circles",
+      "fr": "Troisième fois qu'on passe devant le même dépanneur... Mais avoue que la vue su'a rue Denise-Friend est belle!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "delivery_took_too_long",
+      "fr": "On a pris quarante minutes pour livrer deux caisses, mais on a écouté tout l'album des Cowboys! C'est ça qui compte!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "stalling_engine",
+      "fr": "T'as calé? Relax, monte le son! C'est juste le moteur qui voulait entendre le solo de drum de Blink-182!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "spinning_out",
+      "fr": "Beau 180 degrés involontaire, mon gars! On va faire semblant que c'était une cascade prévue pour impressionner la galerie!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "missed_turn",
+      "fr": "On a manqué la sortie? Pas grave, ça nous fait une ride de plus le long de la rivière, baisse ta vitre!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "hitting_props",
+      "fr": "La boîte aux lettres a revolé loin en maudit! T'inquiète, le gars avait juste des factures dedans de toute façon!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "slow_driving",
+      "fr": "On roule à 25 km/h, mais au moins tout le monde a le temps d'admirer ma chemise hawaïenne!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "scratched_paint",
+      "fr": "Une scratch de plus su'l côté blanc? C'est de l'aérodynamisme de course, mon vieux, ça coupe le vent!"
+    },
+    {
+      "who": "Sayyad",
+      "situation": "general_failure",
+      "fr": "Jacques Villeneuve a scrapé plus de chars que ça avant d'gagner son championnat! Rallume ça pis pèse su'l gaz!"
+    },
+    {
+      "who": "Margaret",
+      "situation": "crashing_repeatedly",
+      "fr": "Ce n'est pas grave du tout, mon grand. L'important c'est que nous soyons entiers. Prends une respiration et repars doucement."
+    },
+    {
+      "who": "Margaret",
+      "situation": "driving_in_circles",
+      "fr": "On tourne un peu en rond, mais ça me rappelle mes promenades du dimanche avec ma sœur. La ville est tellement paisible."
+    },
+    {
+      "who": "Margaret",
+      "situation": "delivery_took_too_long",
+      "fr": "Les boîtes sont arrivées un peu tard, mais le monsieur était bien content de nous voir quand même. Rien ne presse dans la vie."
+    },
+    {
+      "who": "Margaret",
+      "situation": "stalling_engine",
+      "fr": "La pédale est un peu dure sur ces vieux camions. Laisse-lui le temps d'attraper la vitesse, tu vas trouver le tour."
+    },
+    {
+      "who": "Margaret",
+      "situation": "hitting_props",
+      "fr": "Une petite boîte de fleurs froissée, ça repousse toujours au printemps. Ne te fais pas de mauvais sang pour ça."
+    },
+    {
+      "who": "Margaret",
+      "situation": "getting_lost",
+      "fr": "Se perdre un peu, c'est comme ça qu'on découvre les plus jolies maisons du quartier. Regarde les beaux érables ici."
+    },
+    {
+      "who": "Margaret",
+      "situation": "rough_braking",
+      "fr": "C'était un arrêt un peu sec, mais mes lunettes sont restées sur mon nez! Tu as de bons réflexes, mon garçon."
+    },
+    {
+      "who": "Margaret",
+      "situation": "curb_hop",
+      "fr": "La bordure était un peu haute, mais le camion est solide. Ton père faisait exactement pareil quand il avait ton âge."
+    },
+    {
+      "who": "Margaret",
+      "situation": "job_failed",
+      "fr": "Ce n'est qu'un petit contretemps, mon grand. Tiens, prends un bonbon à la menthe dans mon sac et on réessaiera plus tard."
+    },
+    {
+      "who": "Margaret",
+      "situation": "general_failure",
+      "fr": "Tout le monde commence quelque part. Tu as la tête sur les épaules, le reste viendra tout naturellement avec la pratique."
+    },
+    {
+      "who": "Adam",
+      "situation": "crashing_repeatedly",
+      "fr": "Au moins quand tu rentres dans un mur, la radio coupe pas. C'est déjà ça de gagné."
+    },
+    {
+      "who": "Adam",
+      "situation": "driving_in_circles",
+      "fr": "Le chemin était pas le plus court, mais mon mal de dos s'est calmé pendant qu'on tournait en rond. Continue de même."
+    },
+    {
+      "who": "Adam",
+      "situation": "delivery_took_too_long",
+      "fr": "La livraison avait pas d'heure limite écrite su'l papier. Techniquement, on est parfaitement dans les temps."
+    },
+    {
+      "who": "Adam",
+      "situation": "stalling_engine",
+      "fr": "T'as calé trois fois. Mon Sunfire fait ça tous les matins au neutre, j'me sens comme à la maison."
+    },
+    {
+      "who": "Adam",
+      "situation": "hitting_props",
+      "fr": "Le cône orange était mal placé de toute façon. Tu lui as rendu service."
+    },
+    {
+      "who": "Adam",
+      "situation": "spinning_out",
+      "fr": "J'ai échappé mon sac de chips, mais au moins on pointe dans bonne direction maintenant."
+    },
+    {
+      "who": "Adam",
+      "situation": "slow_driving",
+      "fr": "On va pas vite, mais ça me donne le temps de regarder si les prix du gaz ont encore monté au Petro-Canada."
+    },
+    {
+      "who": "Adam",
+      "situation": "curb_hop",
+      "fr": "Ta suspension en bois vient de se replacer toute seule su'a bordure de trottoir. Beau travail de redressement."
+    },
+    {
+      "who": "Adam",
+      "situation": "job_failed",
+      "fr": "Le paquet est tombé dans boîte en arrière. On dira au gars que c'était déjà plié à l'entrepôt."
+    },
+    {
+      "who": "Adam",
+      "situation": "general_failure",
+      "fr": "Tant qu'on prend pas en feu, pour moi c'est une excellente journée à Aylmer."
+    },
+    {
+      "who": "Mike",
+      "situation": "crashing_repeatedly",
+      "fr": "T'as bossé l'aile? Viens dans ma cour à soir, on va repousser ça de l'intérieur avec un manche de hache pis un 2x4!"
+    },
+    {
+      "who": "Mike",
+      "situation": "driving_in_circles",
+      "fr": "On fait chauffer les pneus pour rien, mais le 2.3 litres ronronne doux! Checke la pression d'huile, a bouge même pas!"
+    },
+    {
+      "who": "Mike",
+      "situation": "delivery_took_too_long",
+      "fr": "Prends ton gaz égal, mon chum! En rodage de camionnette, vaut mieux arriver en un morceau qu'avec le radiateur fendu!"
+    },
+    {
+      "who": "Mike",
+      "situation": "stalling_engine",
+      "fr": "Lâche pas! Ces vieilles clutchs de Ranger là ont le point de friction haut. Donne un filet de gaz de plus pis ça va mordre!"
+    },
+    {
+      "who": "Mike",
+      "situation": "hitting_props",
+      "fr": "C'est de la bonne tôle d'acier épaisse d'époque, mon gars! C'est pas une canne de conserve neuve, ça plie mais ça casse pas!"
+    },
+    {
+      "who": "Mike",
+      "situation": "rough_braking",
+      "fr": "Les tambours en arrière ont de la poigne en maudit! Au moins on sait que tes garnitures de freins sont encore épaisses!"
+    },
+    {
+      "who": "Mike",
+      "situation": "curb_hop",
+      "fr": "Les lames de suspension ont absorbé le coup comme des championnes! Ce truck-là a vu pire dans les chantiers de Hull!"
+    },
+    {
+      "who": "Mike",
+      "situation": "spinning_out",
+      "fr": "Un différentiel ouvert su'a garnotte, ça surprend toujours au début! Contrebraque sec pis garde le pied stable su'l gaz!"
+    },
+    {
+      "who": "Mike",
+      "situation": "job_failed",
+      "fr": "C'est juste de la ferraille pis des boîtes, mon chum! On ramasse les morceaux, on remet de l'huile, pis on recommence!"
+    },
+    {
+      "who": "Mike",
+      "situation": "general_failure",
+      "fr": "T'as le bon coup de volant, faut juste que tes pieds s'habituent aux pédales. Dans deux jours tu vas drifter ça les yeux fermés!"
+    },
+    {
+      "who": "Zahra",
+      "situation": "crashing_repeatedly",
+      "fr": "Fais juste prendre une grande inspiration. On éteint les warnings, on remet ça en première, pis on repart tranquille."
+    },
+    {
+      "who": "Zahra",
+      "situation": "driving_in_circles",
+      "fr": "Le GPS existe pas encore en 2004, faque se perdre trois fois entre le parc pis la marina, c'est statistiquement normal!"
+    },
+    {
+      "who": "Zahra",
+      "situation": "delivery_took_too_long",
+      "fr": "Regarde le bon côté: on connaît maintenant par cœur toutes les petites ruelles asphaltées du Vieux-Aylmer!"
+    },
+    {
+      "who": "Zahra",
+      "situation": "stalling_engine",
+      "fr": "C'est rien, même mon père cale encore sa berline quand y pense à ses impôts. Relance le démarreur, t'es correct."
+    },
+    {
+      "who": "Zahra",
+      "situation": "hitting_props",
+      "fr": "T'as frôlé le bac bleu, mais tes réflexes s'améliorent: au moins t'as évité le chat de madame Bélanger!"
+    },
+    {
+      "who": "Zahra",
+      "situation": "missed_turn",
+      "fr": "C'est pas un détour manqué, c'est une exploration touristique non planifiée de l'Outaouais. On garde le sourire!"
+    },
+    {
+      "who": "Zahra",
+      "situation": "rough_braking",
+      "fr": "Ouf! La boîte à gants s'est ouverte toute seule, mais on est arrêtés avant la ligne blanche. Bien joué!"
+    },
+    {
+      "who": "Zahra",
+      "situation": "slow_driving",
+      "fr": "Conduire prudemment, c'est la marque des gens intelligents qui veulent garder leur permis tout l'été."
+    },
+    {
+      "who": "Zahra",
+      "situation": "job_failed",
+      "fr": "Une mauvaise livraison, ça arrive même à Postes Canada! On prend une pause de deux minutes au soleil pis on se reprend."
+    },
+    {
+      "who": "Zahra",
+      "situation": "general_failure",
+      "fr": "T'es bien meilleur que tu penses avec ce vieux pickup manuel. Laisse-toi un peu de temps, ça s'en vient super bien!"
+    }
+  ]
+}

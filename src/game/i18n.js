@@ -82,6 +82,7 @@ const FR = {
   'opt.lookBackToggle': 'Regard arrière: bascule (au lieu de tenir Shift)',
   'opt.invertLook': 'Inverser le regard arrière',
   'opt.rumble': 'Vibration de la manette',
+  'opt.shake': 'Secousses de la caméra',
   'opt.lang': 'Langue',
   'opt.autosave': 'Sauvegarde automatique (fin de job, achat de char)',
   'opt.difficulty': 'Difficulté',
