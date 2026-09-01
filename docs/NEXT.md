@@ -106,3 +106,37 @@ currently frames it as a 50% labour discount — rewrite that.
 See the separate write-up. Short version: the ceiling here is not the renderer,
 it is that every surface is one flat colour. Materials and lighting first,
 geometry second.
+
+---
+
+## 8. The cast — real people, and who is playable
+
+Reference photos in `data/raw/reference/` (gitignored — real people, public repo).
+
+**Photo 37** is the group, around 2004, and is the single best reference for the
+whole cast:
+- **Tom** — seated centre, brown Coyotes t-shirt, short fair hair. The player.
+  **299 Chemin Fraser.** Also photo 38, a few years later: curly light-brown
+  hair, stubble.
+- **Abraham** — standing, playing an acoustic guitar. Long dark wavy hair past
+  the shoulders, dark t-shirt, jeans. **841 boulevard Wilfrid-Lavigne.**
+- **Adam Actell** — seated right, dark hair, navy/purple t-shirt, holding a jug
+  of milk. (Already canon: the Sunfire, Deschênes.)
+- Two others in frame: a seated figure in a red hoodie and a backwards blue cap,
+  and a tall one standing in a green tee with arms folded. Unnamed so far.
+
+**New characters:**
+- **Tyler Yank** (photos 40/41) — long straight blonde hair, glasses, easy laugh.
+  Lives **with her aunt on rue Samuel-Edey, around number 312**. A woman, and the
+  only one in the group who does not live with a parent.
+- **Rob French** (photo 42) — short fair hair, sunglasses, brown t-shirt.
+  **Lives out of town and drives in**, which is his defining trait: he is the one
+  who has to make an effort to be there, and the one who leaves first each night.
+
+**Mike is the only character allowed to make a speech.** Everyone else gets a
+line and a shrug. That is the rule — it is what makes Mike funny and what keeps
+the others from sounding like they are delivering a moral.
+
+**Playable characters.** The player should be able to play as **Tom, Mike,
+Sayyad, Zahra, Abraham** — each with different characteristics and each learning
+differently. See the design note below on skills.
