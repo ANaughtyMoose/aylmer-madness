@@ -91,9 +91,14 @@ button{background:#ffc94d;color:#10171c;border:0;border-radius:8px;padding:13px 
   font-size:16px;font-weight:800;letter-spacing:1.5px;cursor:pointer;margin:10px 6px 0}
 button:hover{background:#ffd979}
 .keys{margin-top:18px;font-size:11px;opacity:.45;letter-spacing:.5px}
-#pause{position:fixed;inset:0;background:rgba(6,10,13,.82);display:flex;align-items:center;
-  justify-content:center;z-index:9;overflow:auto}
-.panel{text-align:center;padding:24px 12px}
+/* align-items:center on a scrolling flex container is a trap: once the panel is
+   taller than the window the overflow goes off the TOP, and a scrollbar cannot
+   reach it — which is how the options screen lost its first two rows. flex-start
+   plus margin:auto on the child still centres a short panel and simply scrolls a
+   tall one. Same fix the main menu already carries. */
+#pause{position:fixed;inset:0;background:rgba(6,10,13,.82);display:flex;align-items:flex-start;
+  justify-content:center;z-index:9;overflow:auto;overscroll-behavior:contain}
+.panel{text-align:center;padding:24px 12px;margin:auto;max-width:100%}
 .panel h2{font-size:30px;letter-spacing:3px;margin-bottom:14px}
 .panel button{display:block;width:230px;margin:8px auto;padding:11px}
 

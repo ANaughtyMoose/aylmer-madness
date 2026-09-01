@@ -166,6 +166,7 @@ const FR = {
   'k.horn': 'Klaxon',
   'k.radio': 'Radio (stations / cassette / off)',
   'k.slang': 'Traduction du slang (tiens: les 3 dernières)',
+  'k.modes': 'Modes — blitz, checkpoint, balade',
   'k.weather': 'La météo — pousse au prochain front',
   'k.mute': 'Son on/off',
   'k.save': 'Sauvegarde rapide',
@@ -417,6 +418,9 @@ export const KEYMAP = [
   { caps: ['H'], label: 'k.horn' },
   { caps: ['R'], label: 'k.radio' },
   { caps: ['G'], label: 'k.slang' },
+  // M was wired from the day the modes landed but never listed here, so the
+  // only way to find the races was to catch a toast six seconds into a session.
+  { caps: ['M'], label: 'k.modes' },
   { caps: ['V'], label: 'k.weather' },
   { caps: ['0'], label: 'k.mute' },
   { caps: ['F5'], label: 'k.save' },
