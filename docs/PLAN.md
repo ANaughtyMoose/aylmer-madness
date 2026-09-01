@@ -253,3 +253,61 @@ ways: it invented a surname for Sayyad, used real radio station names that did
 not match the game's own stations, described the 1831 Symmes Inn and labelled it
 as the school, and asserted the Maman sculpture was installed in 2004 when the
 gallery acquired it in 2005. All were caught by checking. Keep checking.
+
+---
+
+## Decisions from Thomas (2026-09-01) — these are settled, do not re-litigate
+
+### Seams are allowed, and should be an event
+
+Sector loading may be visible. Do not spend Wave 1 building seamless streaming.
+
+When the player crosses into a new sector, show a **loading card in the GTA
+manner: an illustrated landscape or landmark, cartoon-styled but faithful to the
+real thing** — the Peace Tower for Ottawa, the Portage towers for Hull, the hills
+for Chelsea. **The music shifts** with it. The crossing should feel like arriving
+somewhere, not like a technical pause.
+
+**Hard constraint: a seam must not change the time of day or the weather.** You
+cross a bridge at dusk in the rain, you arrive at dusk in the rain. Nothing about
+the world state may reset just because a sector loaded.
+
+**Ottawa is a different country and should feel like one.** The language flips to
+**English** — signage, radio, the people. Ottawans are *têtes carrées*: serious,
+proper, correct, faintly disapproving. That contrast is the joke and it is the
+reason crossing the river is worth doing. Aylmer stays Québécois French
+throughout; this is not the bilingual UI toggle that was removed, it is the world
+speaking a different language on the other side of the water.
+
+### Playable characters: separate saves, each from the beginning
+
+Choosing a different character **starts that character's story from the
+beginning** — it is not a mid-run swap. But **each character keeps its own
+progress independently**: play as Zahra for a while, switch to Sayyad, come back
+to Zahra, and hers resumes exactly where it was.
+
+So the save system needs a slot per character, not a single save with a character
+field. `save.js` already has explicit slots (`aylmer.save.1/2/3/auto`); extend
+that shape rather than replacing it. The $1,200 envelope is per character too —
+whose truck it is differs by who you are.
+
+### The calendar
+
+The summer has a **fixed length and the player must always know how much is
+left** — days remaining until Labour Day, alongside the envelope meter. That is
+what turns "I should do a job" into "I have eleven days."
+
+Labour Day 2004 was **Monday 6 September**; the first morning back is Tuesday
+7 September, which is where `story.json`'s final scene is set. Work backwards
+from that.
+
+**Birthdays** — only these fall in range, and the first two are the useful ones:
+
+| Who | Date | Notes |
+|---|---|---|
+| **Tom** (the player) | **23 July** | Falls mid-summer. He turns 18 — legal adult, halfway through. This should be a beat, not a notification. |
+| **Mike** | **20 September** | **After the game ends.** Everyone has scattered by then. Do something quiet with this; do not explain it. |
+| Zahra | 14 April | Before the summer — establishes she is already 15. |
+| Sayyad | 2 May | Before the summer. |
+
+Nobody else in the cast has a spring or summer birthday.
