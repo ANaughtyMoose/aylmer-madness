@@ -49,6 +49,8 @@ import { Signals } from './game/signals.js';
 import { Props, buildPropMeshes, ISLAND, MIKE_TREE } from './game/props.js';
 // The reactive world: pedestrians, knock-over street furniture, debris.
 import { Reactive } from './game/reactive.js';
+// Avatars agent: the friends who are real people. See the hook in render().
+import { Avatars } from './game/avatars.js';
 import { Wallet } from './game/money.js';
 import {
   stageTarget, stageEnter, stageExit, stageStep, stageSettle, missionCleanup,
@@ -1401,6 +1403,15 @@ function render(dt) {
   G.cops.draw(G, drawCar);                          // ...and the police
   if (G.props) G.props.draw(r, f);
   if (G.reactive) G.reactive.draw(r, f, QUALITY[G.quality].drawDist);
+  // --- avatars agent hook ------------------------------------------------
+  // Four of the people in this town are real people. Sayyad waits on the lawn
+  // at 75 Denise-Friend with his sister Zahra, Margaret at 299 Fraser, Mike at
+  // 129 Frank-Robinson, and once they are aboard they ride as themselves
+  // instead of as the anonymous head above. Built on the first frame that has
+  // a renderer; avatars.js owns everything else.
+  if (!G.avatars) G.avatars = new Avatars(r);
+  G.avatars.draw(r, f, G, dt);
+  // -----------------------------------------------------------------------
   drawMarkers();
   if (G.fx) G.fx.render(v, G.world, G.night, G.traffic.cars);
 

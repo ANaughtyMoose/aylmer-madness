@@ -20,6 +20,7 @@ import { m4, clamp, mulberry32 } from '../core/math.js';
 // Story agent: the dive already plays heille(); this is what the man actually
 // said. Rate-limited inside heckle.js, so calling it on every dive is fine.
 import { heckle } from './heckle.js';
+import { PLACES } from './places.js';
 
 const POOL = 60;            // records built once, alive or not
 const TARGET = 52;          // how many we try to keep alive around you
@@ -97,6 +98,127 @@ function buildWhole(o, armsUp) {
   return b;
 }
 
+// ------------------------------------------------------------- overheard
+//
+// What the town is saying while you drive past. Not addressed to you and never
+// about you: « Y frotte son Sunfire à toutes les fins de semaine » is somebody
+// else's Saturday. The lines live in assets/text/ambient.json, tagged by where
+// and when, with an English gloss beside each one — the gloss is carried all
+// the way through to the record this module hands out, because a translation
+// key is being built somewhere else and it should not have to re-parse a file.
+//
+// The pool below is the fallback, so the crowd still mutters with the file
+// missing. Nothing waits on the fetch.
+
+export const AMBIENT = [
+  { where: 'residential', timeOfDay: 'afternoon', line: 'Y frotte son Sunfire à toutes les fins de semaine, y’a pas de bon sens.', en: 'He waxes that Sunfire every single weekend, it makes no sense.' },
+  { where: 'residential', timeOfDay: 'morning', line: 'Ferme le boyau d’arrosage, tu vas vider le puits!', en: "Turn off the hose, you're going to drain the well!" },
+  { where: 'commercial', timeOfDay: 'midday', line: 'Y’a une file au comptoir jusqu’à porte, j’te dis.', en: "There's a line to the door at the counter, I'm telling you." },
+  { where: 'beach', timeOfDay: 'afternoon', line: 'Y’a un héron bleu planté là-bas su’ le banc de sable.', en: "There's a blue heron standing out there on the sandbar." },
+  { where: 'marina', timeOfDay: 'golden hour', line: 'Y sort son bateau pis y’a même pas checké la météo.', en: "He's taking the boat out and he didn't even check the forecast." },
+  { where: 'park', timeOfDay: 'dusk', line: 'Les maringouins commencent. On plie ça.', en: "The mosquitoes are starting. Let's pack it in." },
+  { where: 'downtown', timeOfDay: 'night', line: 'Le stationnement su’ Principale, c’est gratuit après six heures.', en: 'Parking on Principale is free after six.' },
+];
+
+// The 60 police-radio lines in the same file. cops.js is not this module's to
+// wire, so they are only parsed and exported: whoever owns the cruiser can
+// import POLICE_CHATTER and use it without loading the file twice.
+export const POLICE_CHATTER = [];
+
+// The game's day has four phases (missions.js TIME_OF_DAY); the writers used
+// six words. This is the map, and an unknown phase takes everything.
+const PHASE_TAGS = {
+  morning: ['morning'],
+  day: ['midday', 'afternoon'],
+  dusk: ['golden hour', 'dusk'],
+  night: ['night'],
+};
+
+// Where a pedestrian is, as far as the writers are concerned: the nearest of
+// these anchors inside its radius, or the default. Built from PLACES at first
+// use so it picks up the road-snapped coordinates, not the authored ones.
+const ZONES = [
+  ['beach', 'beach', 300], ['marina', 'marina', 260], ['marina', 'lookout', 200],
+  ['park', 'arena', 200], ['downtown', 'principale', 320], ['downtown', 'symmes', 200],
+  ['commercial', 'mall', 300], ['commercial', 'ctire', 220], ['commercial', 'tims', 200],
+  ['commercial', 'mcdo', 200], ['commercial', 'dep', 160], ['commercial', 'gas', 180],
+];
+let zoneCache = null;
+
+/** Which `where` tag a point in the world belongs to. */
+export function zoneAt(x, z) {
+  if (!zoneCache) {
+    zoneCache = [];
+    for (const [where, key, r] of ZONES) {
+      const p = PLACES[key];
+      if (p) zoneCache.push({ where, x: p.x, z: p.z, r2: r * r });
+    }
+  }
+  let best = 'residential', bd = Infinity;
+  for (const z0 of zoneCache) {
+    const dx = x - z0.x, dz = z - z0.z;
+    const d = dx * dx + dz * dz;
+    if (d < z0.r2 && d < bd) { bd = d; best = z0.where; }
+  }
+  return best;
+}
+
+/** Merge a parsed ambient.json. Returns how many overheard lines were taken. */
+export function applyAmbient(json) {
+  if (!json) return 0;
+  if (Array.isArray(json.ambient) && json.ambient.length) {
+    AMBIENT.length = 0;
+    for (const r of json.ambient) {
+      if (r && r.line) AMBIENT.push({ where: r.where || 'residential', timeOfDay: r.timeOfDay || '', line: r.line, en: r.en || '' });
+    }
+  }
+  if (Array.isArray(json.police)) {
+    POLICE_CHATTER.length = 0;
+    for (const r of json.police) if (r && r.line) POLICE_CHATTER.push(r);
+  }
+  return AMBIENT.length;
+}
+
+export function loadAmbient(url) {
+  const u = url || new URL('../../assets/text/ambient.json', import.meta.url).href;
+  return fetch(u).then((r) => (r.ok ? r.json() : null)).then(applyAmbient).catch(() => 0);
+}
+
+// Same reason as story.js: nothing waits on it, the fallback is already live,
+// and main.js is not spending a hook line on a text file.
+if (typeof document !== 'undefined' && typeof fetch === 'function') {
+  loadAmbient().then((n) => { if (n) console.log(`ambient: ${n} lines`); });
+}
+
+/**
+ * One overheard line for a place and a time of day, as the whole record so the
+ * `en` gloss travels with it. `i` walks the matching subset, so a street does
+ * not say the same thing twice running. Falls back to the same zone at any
+ * hour, then to anything at all, then to null.
+ */
+export function ambientLine(where, phase, i = 0) {
+  if (!AMBIENT.length) return null;
+  const tags = PHASE_TAGS[phase] || null;
+  for (const test of [
+    (r) => r.where === where && (!tags || tags.indexOf(r.timeOfDay) >= 0),
+    (r) => r.where === where,
+    () => true,
+  ]) {
+    let n = 0;
+    for (const r of AMBIENT) if (test(r)) n++;
+    if (!n) continue;
+    let k = ((i % n) + n) % n;
+    for (const r of AMBIENT) if (test(r) && k-- === 0) return r;
+  }
+  return null;
+}
+
+// How often the street is allowed to say something, and how close you have to
+// be to hear it. A bubble every eight seconds is background; every two is a
+// conversation you are trapped in.
+const CHAT_GAP = 8;
+const CHAT_R = 22;
+
 // ---------------------------------------------------------------- the crowd
 
 export class Peds {
@@ -136,6 +258,38 @@ export class Peds {
     this.nThreat = 0;
     this.wgt = new Float32Array(512);
     this.stats = { alive: 0, drawn: 0, shown: 0, diving: 0 };
+    this.chatT = 3;            // seconds until the street says something
+    this.chatN = 0;            // which line of the matching set is next
+    this.lastChat = null;      // the whole record, gloss included
+  }
+
+  /**
+   * Somebody near you says something to somebody else. Picks the closest live
+   * pedestrian inside CHAT_R, asks what kind of street that is and what time
+   * it is, and puts one line in a bubble. `G.envKey` is the day phase; the
+   * record it used is left on `this.lastChat` for the translation hotkey.
+   */
+  chatter(dt, G) {
+    this.chatT -= dt;
+    if (this.chatT > 0) return null;
+    const v = G && G.veh;
+    if (!v) return null;
+    let near = null, bd = CHAT_R * CHAT_R;
+    for (let i = 0; i < POOL; i++) {
+      const p = this.list[i];
+      if (!p.live || p.state === DIVE || p.state === DOWN) continue;
+      const dx = p.x - v.x, dz = p.z - v.z;
+      const d = dx * dx + dz * dz;
+      if (d < bd) { bd = d; near = p; }
+    }
+    if (!near) { this.chatT = 1.5; return null; }
+    this.chatT = CHAT_GAP;
+    const rec = ambientLine(zoneAt(near.x, near.z), (G && G.envKey) || 'day', this.chatN++);
+    if (!rec) return null;
+    this.lastChat = rec;
+    if (G) G.ambient = rec;
+    heckle.line('', rec.line, 2600);
+    return rec;
   }
 
   // ------------------------------------------------------------- placement
@@ -303,6 +457,7 @@ export class Peds {
     }
     this.stats.alive = this.alive;
     this.stats.diving = diving;
+    this.chatter(dt, G);
   }
 
   pushThreat(i, c, player) {
