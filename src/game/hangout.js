@@ -352,12 +352,15 @@ export function saveHangout(st) {
 
 // Whose job is whose. A friend only offers something that sounds like them, so
 // « Adam: La run de Chelsea » never comes out of Zahra's mouth.
+// The summer's beats (arc.js) come first in each list: if the next beat is open
+// and it is yours, that is what you lead with. Nobody offers the epilogue — that
+// one starts in your own driveway, with your father.
 export const JOB_OWNER = {
-  sayyad: ['racecivic', 'blitz', 'poutine', 'canot', 'dep'],
+  sayyad: ['arcbache', 'racecivic', 'blitz', 'poutine', 'canot', 'dep'],
   adam: ['racedave', 'circuit', 'chelsea'],
   margaret: ['tour', 'gang', 'cv', 'curfew'],
-  mike: ['divan', 'highwayhull'],
-  zahra: ['golfcart', 'school'],
+  mike: ['arcveillee', 'divan', 'highwayhull'],
+  zahra: ['arcsurchauffe', 'golfcart', 'school'],
 };
 
 /**

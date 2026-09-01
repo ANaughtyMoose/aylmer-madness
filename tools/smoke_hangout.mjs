@@ -15,7 +15,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { MAP } from '../src/game/mapdata.js';
 import { PLACES, resolvePlaces } from '../src/game/places.js';
-import { MISSIONS } from '../src/game/missions.js';
+import { MISSIONS, ALL_MISSIONS } from '../src/game/missions.js';
 
 let pass = 0, fail = 0;
 const fails = [];
@@ -254,11 +254,13 @@ group('the jobs come off the porch');
   ok(jobs.every((j) => MISSIONS.includes(j.def)), 'and they are real MISSIONS entries');
   ok(new Set(jobs.map((j) => j.who)).size === jobs.length, 'one job each, so two people get to talk');
 
-  const ids = new Set(MISSIONS.map((m) => m.id));
+  // ALL_MISSIONS, because the summer's beats are gated: a friend can only offer
+  // one once it is in MISSIONS, but the list has to name real jobs either way.
+  const ids = new Set(ALL_MISSIONS.map((m) => m.id));
   for (const who of Object.keys(JOB_OWNER)) {
     for (const id of JOB_OWNER[who]) ok(ids.has(id), `${who}'s ${id} is a real job`);
   }
-  const allDone = { done: new Set(MISSIONS.map((m) => m.id)) };
+  const allDone = { done: new Set(ALL_MISSIONS.map((m) => m.id)) };
   ok(porchJobs(allDone, FRIENDS).length === 0, 'nothing left to offer once you have done everything');
   ok(porchJobs({ done: new Set(['racecivic']) }, ['sayyad']).length === 1
     && porchJobs({ done: new Set(['racecivic']) }, ['sayyad'])[0].def.id !== 'racecivic',

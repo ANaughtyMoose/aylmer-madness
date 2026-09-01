@@ -16,7 +16,7 @@ import { loadCarSkin } from './game/carskin.js';
 import { Nav, routeLength } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
-import { MISSIONS, TIME_OF_DAY } from './game/missions.js';
+import { MISSIONS, TIME_OF_DAY, unlockArc } from './game/missions.js';
 // No query string on this import. A `?v=` suffix makes the browser treat the
 // file as a second, separate module: PLACES forks into two objects, only one of
 // them ever meets resolvePlaces(), and every mission target silently stops being
@@ -1289,6 +1289,10 @@ function tick(dt) {
   // mission. Everything else (props, dialogue, the bins) lives in hangout.js.
   if (!G.startMission) G.startMission = startMission;
   hangout.update(dt, G);
+  // The summer's five beats arrive in order (game/arc.js): unlockArc pushes the
+  // next one onto MISSIONS when its gate opens, which is why this file needs no
+  // idea that an arc exists — the marker just turns up.
+  unlockArc(G);
   // ---- end hangout hook ---------------------------------------------------
   heckle.update(dt, G);
 
