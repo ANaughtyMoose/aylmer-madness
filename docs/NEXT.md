@@ -7,26 +7,41 @@ public. Do not commit them.
 
 ---
 
-## 1. Memory — the blocker
+## 1. Memory — fixed on `wave/1-memory` (2026-09-01)
 
-The tab gets killed by Safari ("reloaded because it was using significant
-memory"). ~1 GB JS heap plus ~260 MB of GPU buffers, all built up front. What
-felt like an invisible wall on the Champlain Bridge was almost certainly this:
-385 samples along the whole deck return **zero colliders**, and the bridge is the
-far east edge of the map, so getting there holds the most geometry resident.
+~~The tab gets killed by Safari ("reloaded because it was using significant
+memory"). ~1 GB JS heap plus ~260 MB of GPU buffers, all built up front.~~
 
-Fix in this order:
+What it actually was, measured (`tools/measure_memory.mjs`, four points):
 
-1. **Sector gating.** Aylmer, Hull, Chelsea and Ottawa are already separate data
-   modules. Do not build Ottawa until the player crosses a bridge. Biggest win
-   per hour, lowest risk.
-2. **Free the CPU-side arrays after upload.** Check whether the heap is mostly
-   vertex arrays that nothing reads again once they are on the GPU.
-3. **Chunk streaming.** The world is already in 200 m chunks and the frustum
-   culler already knows what is visible; extend that to what is *resident*.
-4. Only then raise quality settings.
+- **83% of the heap was dead vertex arrays.** `buildWorld()` kept every
+  per-chunk `MeshBuilder` alive after upload through the `bAt()` closures.
+  Clearing them: heap 1057 MB → 182 MB, six lines. Memory never grew with
+  where you drove — everything was built up front — so the Champlain Bridge
+  was not worse than the driveway, it was simply the total.
+- **Sector gating** (`game/sectors.js`): Aylmer / Hull / Chelsea / Ottawa are
+  built one slice at a time as you approach (1200 m) and freed when you are
+  2600 m away. Driveway 148 MB heap / 183 MB GPU; Hull+Ottawa 169 / 213 MB.
+  Home build 1.1 s instead of 4.9 s. Ottawa is the land south of the river;
+  the river and the bridge decks are Hull's.
+- The seam card exists (`#seam`, `showSeamCard()` in main.js) and holds the
+  sim — not the clock — for 1.8 s. **Still to do from Thomas's decision:**
+  the illustrated landmark on the card (Peace Tower, Portage towers, the
+  hills) and the music shift. Both are Wave 5 / Wave 2 material; the hook is
+  there.
+- **The "invisible wall" on the Champlain Bridge was the river.** The deck
+  lies over the OSM water polygon for its whole span and `cars.js` counted any
+  water under the car as being in it, so the truck sank to a walk mid-bridge
+  with no collider anywhere. Same thing for one metre of the Alexandre-Taché
+  causeway. Fixed: a road over water is a bridge (`5100c3c`), with a driving
+  test and a deck-premise test. Nothing to do with memory.
+- `index.html?drive=ottawa` is a dev chauffeur (`game/autopilot.js`) for the
+  Safari test — it drives Aylmer ↔ Parliament Hill on the GPS route until the
+  tab is closed. Inert without the query string.
 
-Do not hand this to an unreliable model — it needs profiling a live browser.
+Not done in this wave, on purpose: chunk streaming inside a sector (PLAN step
+3). Two sectors resident is ~215 MB of GPU buffers; do it only if a laptop
+still complains.
 
 ## 2. Traffic drives on the wrong side
 

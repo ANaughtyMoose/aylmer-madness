@@ -102,47 +102,57 @@ warnings are expected and fine) · the screenshot shows the town.
 
 ---
 
-## Memory — the measurement protocol for Wave 1
+## Memory — the measurement protocol
 
 Do not change anything until you have a baseline, and re-measure after every
 step. "It feels lighter" is not a measurement.
 
-```js
-// in a page script, after reaching drive mode
-const m = performance.memory;                       // Chrome only
-const r = performance.getEntriesByType('resource');
-return JSON.stringify({
-  heapMB: Math.round(m.usedJSHeapSize / 1e6),
-  totalHeapMB: Math.round(m.totalJSHeapSize / 1e6),
-  downloadedMB: +(r.reduce((s,x)=>s+(x.transferSize||0),0)/1e6).toFixed(1),
-  buildMs: window.AYLMER.G.buildMs,
-  tris: window.AYLMER.G.world.stats,
-});
+```bash
+node tools/measure_memory.mjs            # needs the headless Chrome + server from the boot check
 ```
 
-**Baseline as of `fedc4b1` (quiet machine):** heap ~1044 MB · downloaded 21.4 MB ·
-world build 4.9 s · 3.79 M triangles · 6,068 chunks · ~260 MB vertex buffers.
+It boots the game cold, teleports to the four points below (plus Parliament
+Hill), lets the sim and the sector loader run, forces a GC, and prints heap,
+GPU bytes (`renderer.gpuBytes`, counted by `upload()`/`free()`) and which
+sectors are resident. Read `uptime` first: a number taken above load 8 is not
+a number.
 
-**Target:** heap under ~500 MB, and the game survives twenty minutes of driving
-in **Safari**, which is stricter than Chrome and is what actually killed it.
-
-Measure at four points, not one — the whole point is that memory grows with where
-you drive:
+**Points** — the whole point is that memory changes with where you drive:
 
 1. Just after reaching drive at 299 Chemin Fraser.
-2. After driving to the Galeries (Aylmer only).
-3. After crossing into Hull.
-4. After crossing the Champlain Bridge into Ottawa — **the worst case, and the
-   spot that reads as an invisible wall.**
+2. The Galeries (Aylmer only).
+3. Hull (Place du Portage).
+4. Across the Champlain Bridge into Ottawa, and Parliament Hill.
 
-Record all four before and after. A change that helps at step 1 and not at step 4
-has not fixed the bug.
+**History (quiet machine):**
 
-**Safari is the real test.** Open the local build in Safari, drive to Ottawa, and
-watch for the "reloaded because it was using significant memory" banner. Chrome
-tolerates far more, so a Chrome-only pass proves nothing.
+| commit | driveway | Galeries | Hull | Champlain / Parliament |
+|---|---|---|---|---|
+| `fedc4b1` (main, 2026-09-01) | 1057 MB heap / 390 MB GPU | same | same | same |
+| `4d36f57` builders freed | 182 / 390 | 182 / 390 | 182 / 390 | 182 / 390 |
+| `29d8333` sector gating | 148 / 183 | 148 / 183 | 168 / 213 | 169 / 213 |
 
----
+Everything on `main` was built up front, which is why the four numbers were
+identical: the bridge was never worse than the driveway, the total was just too
+much. **Target: heap under ~500 MB and twenty minutes of driving in Safari
+without the reload banner.** Both are now met on `wave/1-memory`; keep them.
+
+**Safari is the real test**, and it is stricter than Chrome. On this machine
+Safari cannot be scripted from outside (Remote Automation and JavaScript from
+Apple Events are both off, and that is what a friend's laptop looks like too),
+so the drive is done by the page itself:
+
+```bash
+open "http://localhost:8123/index.html?drive=ottawa"     # the dev chauffeur: Aylmer <-> Parliament, on the GPS route
+# memory: RSS of the WebContent process that holds the localhost:8123 socket
+lsof -nP -iTCP:8123 -sTCP:ESTABLISHED | awk '/WebContent/ {print $2}' | head -1 | xargs ps -o rss= -p
+# a reload shows up as a SECOND request for the page in the server log
+grep -c 'GET /index.html?drive=ottawa' server.log
+```
+
+Twenty minutes, sampling every 30 s. If the WebContent RSS climbs without a
+plateau, something is leaking per frame; if the page is requested twice, Safari
+reloaded it.
 
 ## Merging parallel work
 
