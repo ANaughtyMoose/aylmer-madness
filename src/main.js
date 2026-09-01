@@ -2198,3 +2198,29 @@ window.AYLMER = {
     return w ? { ...w, drawCalls: G.renderer.stats.draws, rendererTris: G.renderer.stats.tris } : null;
   },
 };
+
+// ==================================================================== modes agent
+// The three Midtown modes (game/modes.js) and the jump set (game/jumps.js). Both
+// reach in through G and neither draws or steps anything of its own: the mode
+// picker hands its courses to startMission() above, and the per-tick half of
+// both rides in on race.js's updateRivals(), which tick() already calls.
+//
+// installJumps() must run BEFORE buildWorld(), which it does — this is module
+// scope and the world is not built until somebody presses EMBARQUE.
+import { installJumps, JUMPS, resetJumps } from './game/jumps.js';
+import { installModes, openModes, startCourse, COURSES, MODES } from './game/modes.js';
+import { loadRacingText, TEXT } from './game/racingtext.js';
+installJumps();
+installModes(G, { startMission });
+// The written copy for the races, the jumps and the police radio. Nothing waits
+// on it: every pool has a fallback, so a slow or missing fetch costs flavour and
+// never a frame.
+loadRacingText().catch((e) => console.warn('racing text:', e.message));
+Object.assign(window.AYLMER, {
+  modes: MODES, courses: COURSES, jumps: JUMPS, text: TEXT,
+  openModes: (on = true) => openModes(G, on),
+  course: (id) => { const c = COURSES.find((x) => x.id === id); return c ? startCourse(G, c) : false; },
+  air: () => G.air,
+  resetJumps,
+});
+// ================================================================ end modes agent
