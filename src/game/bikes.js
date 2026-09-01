@@ -131,7 +131,7 @@ const CRUISER = {
   geom: {
     bb: [0.285, -0.08], head: [[0.80, 0.470], [1.005, 0.400]],
     seatTop: [0.885, -0.315], saddle: [0.945, -0.345], hip: [0.985, -0.345],
-    bar: [1.095, 0.395], barBack: 0.185, barHalf: 0.300, grip: [1.075, 0.215],
+    bar: [1.095, 0.395], barHalf: 0.300, grip: [1.075, 0.215],
   },
   tyreW: 0.058, tread: RUBBER, rim: CHROME, spokeC: 0xf0f2f4, spokes: 32, knobby: false,
   ridePose: { lean: 0.20, shirt: 0xf1f0ea, legs: 0x2c3446, skin: 0xcf9a72, hair: 0x2a2016 },
@@ -171,7 +171,7 @@ const DBIKE = {
   geom: {
     bb: [0.300, -0.055], head: [[0.815, 0.455], [1.035, 0.415]],
     seatTop: [0.925, -0.300], saddle: [0.975, -0.325], hip: [1.010, -0.325],
-    bar: [1.120, 0.412], barBack: 0.030, barHalf: 0.290, grip: [1.120, 0.382],
+    bar: [1.120, 0.412], barHalf: 0.290, grip: [1.120, 0.382],
   },
   tyreW: 0.052, tread: RUBBER, rim: RIM_ALLOY, spokeC: 0xd8dbde, spokes: 24, knobby: true,
   ridePose: { lean: 0.44, shirt: 0x2f5f9e, legs: 0x232a38, skin: 0xd7a37c, hair: 0x241a12 },
@@ -302,7 +302,7 @@ function buildDbike(s) {
 function buildCruiserSteer(s) {
   const mb = new MeshBuilder();
   const g = s.geom, Z = (z) => z - s.axleZ;
-  const chrome = rgb(CHROME), bright = shade(CHROME, 1.06), grip = rgb(0x141416);
+  const bright = shade(CHROME, 1.06), grip = rgb(0x141416);
   const [hLo, hHi] = g.head;
   const P = (y, z, x = 0) => [x, y, Z(z)];
   // Fork: two legs raked forward, curving to the dropouts.
@@ -322,7 +322,6 @@ function buildCruiserSteer(s) {
   }
   // The bell. It is why the horn on this thing is a bell.
   mb.cyl(0.09, g.bar[0] + 0.030, Z(g.bar[1] - 0.04), 0.035, 0.030, 10, bright, 'y');
-  void chrome;
   return mb;
 }
 

@@ -1,0 +1,49 @@
+{
+  "arc": [
+    {
+      "beat": "prologue",
+      "title": "Les clés du Ranger",
+      "what": "School ends. The player's father lends him the keys to the 1993 Ford Ranger for the summer on one condition: he does the family hauling, helps the neighbours when asked, and puts his own gas in it. He meets the crew at the dépanneur on Chemin d'Aylmer and the summer opens with the feeling that it will never end.",
+      "who": ["Player", "Ton père", "Sayyad", "Margaret", "Adam"],
+      "where": "299 Chemin Fraser driveway; the dépanneur on Chemin d'Aylmer; the Aylmer marina at dusk",
+      "playerDoes": "Drives the Ranger for the first time, runs an easy delivery of lawn tools, and cruises down to the marina to meet everyone.",
+      "emotionalNote": "The naive optimism of late June, when two months feels like forever."
+    },
+    {
+      "beat": "turn1",
+      "title": "La bâche bleue",
+      "what": "Late June into July. The town is setting up for the Saint-Jean and Canada Day. The player becomes the unofficial logistics for everyone in Aylmer — speakers, picnic tables, coolers, all of it to Plage des Cèdres. Sayyad starts needling him about his driving and sets up friendly late-night time trials on the empty stretches of Boulevard Lucerne.",
+      "who": ["Player", "Sayyad", "Zahra"],
+      "where": "Plage des Cèdres; Boulevard Lucerne; the Galeries d'Aylmer parking lot",
+      "playerDoes": "Hauls fragile speakers across town without breaking them, then races Sayyad's Civic in an impromptu midnight sprint along the river.",
+      "emotionalNote": "Peak July. Warm air, loud music, a truck bed full of friends, and something to prove."
+    },
+    {
+      "beat": "turn2",
+      "title": "La surchauffe du pont",
+      "what": "Mid-July heat wave. During afternoon rush hour, hauling an absurd sofa across the Champlain Bridge, the Ranger blows a radiator hose and strands everyone mid-span in front of a hundred honking commuters. Norm Lafleur tows it to his garage and gives the player a flat, unsentimental lecture about maintenance, money, and what it costs to keep a thing running.",
+      "who": ["Player", "Zahra", "Norm Lafleur"],
+      "where": "The Champlain Bridge span; Garage Lafleur on Chemin d'Aylmer",
+      "playerDoes": "Watches the temperature gauge, coasts the steaming truck onto the shoulder, and takes on three quick jobs across Hull to pay Norm for the parts.",
+      "emotionalNote": "Humiliation turning into resolve. Freedom has a bill attached and it just came due."
+    },
+    {
+      "beat": "turn3",
+      "title": "La dernière veillée",
+      "what": "Early August. Acceptance letters have arrived and two of the crew announce they are leaving for Montreal and Toronto in three weeks. Everyone organises one big convoy across all four Ottawa River bridges, ending with takeout eaten on the tailgates at Nepean Point with Parliament lit up across the water.",
+      "who": ["Player", "Sayyad", "Zahra", "Mike McDonald", "Margaret", "Adam"],
+      "where": "The river parkway; Nepean Point; the ByWard Market",
+      "playerDoes": "Leads a five-car convoy through downtown Ottawa and wins a last checkpoint race against Sayyad with nothing riding on it.",
+      "emotionalNote": "The ache underneath late summer. Everyone is quietly getting ready to leave."
+    },
+    {
+      "beat": "epilogue",
+      "title": "Le dernier voyage",
+      "what": "Late August, first cold morning. The player helps his closest friend load the last boxes into the truck bed, drops him at the bus depot, and takes one slow solitary lap down rue Principale. Then he parks the Ranger back in the driveway, washes the windshield with the garden hose, and puts the keys on the kitchen counter beside his father's coffee mug.",
+      "who": ["Player", "Mike McDonald", "Ton père"],
+      "where": "Rue Principale; the bus depot in Hull; 299 Chemin Fraser",
+      "playerDoes": "A quiet move with no timer, no police and no rivals, then parks the truck cleanly between the driveway lines.",
+      "emotionalNote": "The town is still there. You are not the same kid who took the keys in June."
+    }
+  ]
+}

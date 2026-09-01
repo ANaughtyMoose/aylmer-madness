@@ -22,7 +22,7 @@
 // exactly like a car; what is different is that everything hung off them is
 // here rather than in addDetails(), which is keyed on the ids cars.js owns.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
-import { loft, specRing, pl, tToZ } from './cars.js';
+import { loft, specRing, tToZ } from './cars.js';
 import { register, unlock, tube, discZ, ringZ, stripe, letters, lampMeshes } from './vehiclekit.js';
 
 const GLASS = 0x26313b, TIRE = 0x17181a, CHROME = 0xd4d6d8;
@@ -302,7 +302,7 @@ function buildSchoolBus(s, opts = {}) {
   const z = (t) => tToZ(s, t);
   const zF = z(1), zR = z(0);
   const yellow = rgb(s.body), black = rgb(SB_BLACK), roof = rgb(SB_ROOF);
-  const chrome = rgb(CHROME), glass = shade(GLASS, 0.9), dark = shade(SB_BLACK, 1.6);
+  const glass = shade(GLASS, 0.9);
   const both = (fn) => { fn(1); fn(-1); };
   const hw = 1.22;
 
@@ -385,7 +385,6 @@ function buildSchoolBus(s, opts = {}) {
   mb.box(-(hw + 0.020), 1.34, z(0.735), 0.024, 1.86, 0.92, black);
   mb.box(0, 3.08, z(0.44), 0.72, 0.06, 0.72, roof);
   mb.box(0, 3.07, z(0.16), 0.60, 0.05, 0.44, roof);
-  void chrome; void dark;
   return mb;
 }
 
