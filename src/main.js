@@ -1478,9 +1478,7 @@ function tick(dt) {
     heckle.say('Chauffeur', 'red');
   }
   updateMission(dt);
-<<<<<<< HEAD
   heckleTriggers(dt, v);
-=======
   // ---- hangout agent hook (the only lines this file owns for the porch) ----
   // Mike's place is not a job, so it runs after the mission runner and takes
   // the HUD prompt off it when you are actually in the driveway. It needs two
@@ -1494,7 +1492,6 @@ function tick(dt) {
   // idea that an arc exists — the marker just turns up.
   unlockArc(G);
   // ---- end hangout hook ---------------------------------------------------
->>>>>>> agent/hangout
   heckle.update(dt, G);
   // The achievements out of assets/text/ui.json. `landEvent` is the one-shot
   // bag; everything else the rules need is already on G.
