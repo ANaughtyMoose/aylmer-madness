@@ -1,0 +1,209 @@
+# Aylmer Madness — execution plan
+
+Written 2026-09-01 as a cold-start handoff. Read this, then `docs/NEXT.md` for
+the raw playtest notes. You should not need to ask Thomas anything already
+written down here.
+
+---
+
+## Where things are
+
+- Repo: `~/Desktop/Coding Projects/aylmer-madness`, branch `main`, pushed to
+  `github.com/ANaughtyMoose/aylmer-madness` (public, `main` protected: PR + 1
+  approval, admin can bypass with `gh pr merge N --merge --admin`).
+- **Live at https://anaughtymoose.github.io/aylmer-madness/** via GitHub Pages
+  off `main`. Any push to `main` redeploys in ~2 minutes. Thomas emails this
+  link to friends, so **do not break `main`**.
+- Run locally: `./serve.sh` → http://localhost:8123. Never `file://`.
+- Test: `for t in tools/smoke*.mjs; do node $t; done` — **26 suites, all green.**
+- Real browser: start Chrome `--headless=new --remote-debugging-port=9222
+  --use-angle=swiftshader --enable-unsafe-swiftshader`, then
+  `node tools/headless.mjs <url> <seconds> <shot.jpg> [--fresh] [--script s.js] [--menu]`.
+
+### Gotchas that will cost you an hour each
+
+- **The menu is two clicks now.** A page script must click `#start`, wait ~400 ms,
+  then click `#startconfirm` (a start point is pre-selected). Polling for
+  `window.AYLMER.G.mode === 'drive'` after only clicking `#start` hangs forever.
+- **No suite imports `src/main.js`.** All 26 can be green while the game is a
+  syntax error and does not load at all. This has already happened once. After
+  any change to `main.js`, boot it in a real browser.
+- A fresh game opens a modal story card that swallows driving keys — dismiss
+  with Escape before sending input.
+- Shared shader uniforms need identical precision in both stages (fragment is
+  `highp`) or ANGLE will not link. Never put a backtick in a GLSL template literal.
+- Don't run more than ~3 headless Chromes at once. Ten concurrent agents took the
+  machine to load average 30 and every browser verification silently failed.
+
+---
+
+## The rules (non-negotiable)
+
+- **The people are real.** Sayyad (Civic, 75 Denise-Friend, Hawaiian shirts),
+  **Zahra** (his sister, **15**, at Symmes), Margaret (Saturn, 299 Fraser),
+  Adam Actell (Sunfire, Deschênes), Mike McDonald (129 Frank-Robinson),
+  Russell (16, 1 rue Arial, skateboarder), Norm Lafleur (the paid garage),
+  **Tom** (the player, 299 Fraser), **Abraham** (841 Wilfrid-Lavigne, guitar),
+  **Tyler Yank** (~312 Samuel-Edey, lives with her aunt), **Rob French** (drives
+  in from out of town). **Never invent a surname for any of them.**
+- Internal keys `steph` / `marc` / `dave` / `racedave` are historical ids. Never
+  show them to a player.
+- **Only Mike gets to make a speech.** Everyone else gets a line and a shrug.
+- All player-facing text is Québécois French. Setting is summer 2004 — nothing
+  after it exists.
+- Comments explain WHY, in the dry specific voice of the surrounding code.
+- Reference photos are in `data/raw/reference/` and are **gitignored on purpose**:
+  they are photographs of real people and the repo is public. Never commit them.
+
+---
+
+## Wave 1 — Memory. Do this first, alone.
+
+**Why first:** Safari kills the tab ("reloaded because it was using significant
+memory"). ~1 GB JS heap + ~260 MB GPU buffers, all built up front. This is the
+only thing currently stopping Thomas's friends from playing, and it is almost
+certainly also the phantom "invisible wall" on the Champlain Bridge — 385 samples
+along that deck return **zero colliders**, and the bridge is the far east edge of
+the map, so reaching it holds the most geometry resident.
+
+**One agent, no parallelism**, because every step needs a real memory measurement.
+
+1. **Sector gating.** Aylmer, Hull, Chelsea and Ottawa are separate data modules
+   (`mapdata.js`, `hull_mapdata.js`, `ottawa_mapdata.js`, merged by
+   `highway_to_hull.js` and `ottawa.js`). Do not build a sector until the player
+   approaches it. Biggest win per hour, lowest risk.
+2. **Free CPU-side arrays after GPU upload.** Check whether the heap is mostly
+   vertex arrays nothing reads again. Possibly a very cheap large win.
+3. **Chunk streaming** — the world is already 200 m chunks and the frustum culler
+   already knows what is visible; extend that to what is *resident*.
+
+**Done means:** measured heap under ~500 MB, the game survives twenty minutes of
+driving in Safari, and 26 suites still green. Report before/after numbers.
+
+---
+
+## Wave 2 — The spine. The thing that makes it a game.
+
+Everything for this is written and validated in `assets/text/`; **none of it is
+wired.** This is code, not writing.
+
+**The goal (from `story.json`, and it is good):** buy the Ranger off your father
+for **$1,200 cash by Labour Day**. He leaves the keys on the kitchen table beside
+a Caisse populaire envelope marked *"Ranger — 1 200 $ avant septembre. Sinon le
+concessionnaire le prend en échange pis tu prends la bus."* The reasoning is
+sound and specifically Québécois: CEGEP cost ~$150 a session, so nobody saves all
+summer for tuition — what traps you at seventeen in Aylmer is having no car.
+
+1. **The envelope meter.** Always on screen, top-right, `340 $ / 1 200 $`. Goes
+   up with job pay, **down when you buy parts or gas.** This single change makes
+   the existing economy matter: a $300 set of tyres becomes a decision.
+2. **Wire the 18-job campaign** from `assets/text/campaign.json` — validated: no
+   invented places, zero consecutive destination repeats, seven kinds of reward.
+3. **The ending** from `story.json`: you make the $1,200, your father counts it,
+   **pushes it back**, and hands over the keys *and* the signed registration —
+   "keep it for your plates and insurance." Then the last scene: Tuesday
+   7 September 2004, 6:45am, stopped at the light on Wilfrid-Lavigne, wipers
+   going, cassette adapter, and you pull into the traffic.
+4. **Friends' differing views** on whether you leave, surfacing in the truck over
+   the summer. Mike is the only one who changes his mind — and the only one who
+   may deliver it as a speech.
+
+**Done means:** a new game states the goal in the first five minutes, the meter
+moves, and the ending fires.
+
+---
+
+## Wave 3 — Stop it feeling like a courier sim
+
+Currently every job is pick up / drive / drop off. Eighteen times.
+
+1. **Change the verb.** At most a third should be deliveries. Others: keep up
+   with someone who will not wait; arrive before something happens; don't get
+   caught; find something from a description only; carry something fragile so the
+   *driving* is the task; give someone a lift and listen; drop four people at
+   four places in an order you choose.
+2. **Races that interrupt.** Not a menu. Sayyad challenges you on the way home
+   from a delivery, on a road you just drove. The Rival AI, twelve named rivals
+   (`rivals.json`) and eight courses already exist — this is wiring.
+3. **Playable characters**, each learning differently:
+   - **Tom** — the truck is his; cargo stays put, hauling pays more.
+   - **Sayyad** — fast, reckless, carries nothing; races pay double.
+   - **Mike** — repairs cost less, sees shortcuts nobody else does.
+   - **Zahra** — 15, so **no licence**: she is on a bike. Paths, the beach,
+     between buildings, invisible to police. The most interesting one.
+   - **Abraham** — people want him in the car; passenger jobs open for him alone.
+4. **Skills that improve with use**, not purchase: brake later, hold a drift,
+   land straight. The *player* gets better, not just the car.
+5. **Vehicle capability matters** — `story.json.vehicleJobs` has eight worked
+   examples: the cedar canoe only fits the Ranger; the golf cart because a pickup
+   on the 18th green gets you thrown off; the school bus for timpani and twenty
+   music stands; the Diamondback because municipal concrete blocks close the path
+   to the Fraser Bay fishing spot.
+
+---
+
+## Wave 4 — Places and faces
+
+- **Russell's garage, 1 rue Arial.** White house, gambrel roof, deep red trim,
+  full-width porch. **A separate detached garage down a long driveway is where
+  the work happens** — rough, wood stove in the middle of the floor. Early-90s
+  **F-250** in the drive (not the modern truck in the photos; the neighbours in
+  the photos are modern too and should not be copied).
+  **Russell is a friend, not a vendor — Thomas and he fixed things together.**
+  He charges **pizza and beer for labour; you pay for parts.** Norm charges money
+  and does it properly. Rewrite `russell.json`, which frames it as a 50% discount.
+  Russell's dad: fifties, shoulder-length hair, green work jacket, moustache.
+- **Avatar corrections** (`avatars.js`): **Sayyad** — no glasses at all, slimmer,
+  no grey. **Margaret** — slimmer, dark brown hair, not white.
+- **New avatars**: Tom, Abraham, Tyler Yank, Rob French. Photo 37 is the best
+  single reference for Tom, Abraham and Adam together.
+
+---
+
+## Wave 5 — Graphics (only after Wave 1)
+
+The ceiling is not the renderer: **every surface is one flat colour.** In order:
+
+1. **Materials.** `assets/text/materials.json` has 33 tileable specs with hex
+   colours and real repeat sizes. `materials.js` already builds a 2048² atlas and
+   houses already carry per-vertex atlas rects — it is built for houses and off
+   everywhere else. Extend to roads, walls, ground. One shared texture, few MB,
+   changes everything.
+2. **Lighting contrast** — a sun shadow map, and bake ambient occlusion into
+   vertex colours where walls meet ground (free at runtime, huge readability win).
+3. **Tone mapping and mild bloom** — ~50 lines in the existing shader.
+4. **House variation** — `assets/text/houses.json` has 60 recipes. Variation on
+   existing archetypes, not more archetypes.
+
+---
+
+## Known bugs, ranked
+
+1. **Memory** (Wave 1).
+2. **Traffic drives on the wrong side of the road.** `traffic.js` `laneAt` /
+   `wantOn`; suspect the lane-offset sign for one direction, or a one-way being
+   read as two-way.
+3. **Camera still jitters over bumps** and slightly under acceleration. Already
+   softened once (two slow sines instead of one at 9.7 Hz, plus a shake slider).
+   Remaining source is the suspension feeding `camPitch` and the chase camera's
+   `dt * 9` position lerp ringing at the new higher top speeds.
+4. Both buses bog to 1.3 km/h on grass and cannot leave tarmac.
+5. `SURF.path` gives a footpath no penalty — the Ranger does 149 km/h down one.
+6. The « Poutine express » destination does not visibly exist at the Galeries.
+
+---
+
+## Written and unwired, in `assets/text/`
+
+~1,900 entries across 16 files. `campaign.json` (18 jobs), `story.json` (spine,
+ending, vehicle jobs, friends), `materials.json` (33), `houses.json` (60),
+`russell.json`, `places.json` (32 destinations), `arc.json`, `tutorial.json`,
+`support.json`, `rivals.json`, `racing.json`, `mechanic.json`, `storefronts.json`
+(120, wired), `heckles.json` (300, wired), `radio.json` (wired), `ambient.json`
+(wired), `dialogue.json` + `zahra.json` (wired).
+
+**Validate, don't trust.** Gemini wrote most of it and has been wrong in specific
+ways: it invented a surname for Sayyad, used real radio station names that did
+not match the game's own stations, described the 1831 Symmes Inn and labelled it
+as the school, and asserted the Maman sculpture was installed in 2004 when the
+gallery acquired it in 2005. All were caught by checking. Keep checking.
