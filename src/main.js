@@ -71,6 +71,10 @@ import { heckle } from './game/heckle.js';
 // the wet road and the thunder; main.js owns the four hook lines that feed it
 // (tint the env, scale the spec, step it, silence it in a menu).
 import { Weather } from './game/weather.js';
+// ...and the written flavour: loading-screen tips, the pause screen's quiet
+// line, and the achievements. All of it out of assets/text/ui.json, all of it
+// optional — see game/flavour.js.
+import { flavour } from './game/flavour.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -92,6 +96,16 @@ const DAY_PHASE = (() => {
 // the next one starts. Without this the cycle was a permanent crossfade and the
 // sky was never once actually the daylight in TIME_OF_DAY.day.
 const DAY_HOLD = 0.45;
+// Turning a phase NAME into a clock reading. It lands a quarter of the way into
+// the phase, not on its edge: DAY_HOLD means a quarter of the way in is still
+// exactly that phase's own colours, and sitting on the boundary means one
+// float's worth of rounding puts you in the phase BEFORE the one you asked for.
+// (0.16 * 600 / 600 is 0.15999999999999992, which is not 0.16. It cost an
+// afternoon.) save.js stores the phase by name, so this is the road back in.
+function phaseClock(name) {
+  const i = Math.max(0, DAY_KEYS.indexOf(name));
+  return (DAY_PHASE[DAY_KEYS[i]] + DAY_WEIGHT[i] * 0.25) * DAY_NIGHT_CYCLE;
+}
 // The QUALITY presets live in options.js now, because the options screen can
 // override the numbers they seed. Everything that used to read
 // QUALITY[G.quality].x each frame reads G.q.x, which applySettings maintains:
@@ -197,6 +211,13 @@ G.garage = garage;
 // and only then starts making its own weather.
 const weather = new Weather({ audio, seed: 0x0a17, state: 'clear' });
 G.weather = weather;
+G.flavour = flavour;
+// « SUCCÈS ». The name is French; the English half of it only shows when the
+// slang gloss is on, because that is the one switch for "translate things".
+flavour.onUnlock = (a) => {
+  hud.toast('SUCCÈS\n' + a.name + (heckle.showGloss && a.how ? '\n' + a.how : ''), 3600);
+  audio.chime(true);
+};
 const radio = new Radio(audio);
 G.radio = radio;
 radio.onChange = paintRadio;
@@ -221,9 +242,13 @@ function paintRadio(st) {
 
 function toggleRadio() {
   const st = radio.toggle();
+  // A tape with a label and no file behind it is a deliberate joke, but it is
+  // only funny if the player knows it is not a bug.
+  const dead = st.wantOn && st.station >= radio.dial.length && !radio.tape;
   hud.toast(st.wantOn
     ? `${st.stationName}${st.slogan ? ' \u2014 ' + st.slogan : ''}\n${st.track}`
-    : t('radio.off'), 1800);
+      + (dead ? '\n' + t('radio.none') : '')
+    : t('radio.off'), dead ? 2600 : 1800);
   paintRadio(st);
 }
 // Settings (audio / video / controls / language) are not part of a save: they
@@ -458,6 +483,7 @@ function applyMenuText() {
   }
 }
 
+let tipTimer = 0;
 // `save` is a slot's contents, or null for a new game. It is held across the
 // world build so the loading screen does not have to know about it.
 function startGame(save = null, startKey = null) {
@@ -482,10 +508,19 @@ function startGame(save = null, startKey = null) {
   if (!G.world) {
     $('start').textContent = t('menu.building');
     turntable.stop();
+    // A tip under the progress bar while the world bakes. It rotates on its own
+    // timer, because loading.run() blocks the main thread in long stretches and
+    // there is nowhere else to hang it.
+    flavour.showTip(heckle.showGloss);
+    if (tipTimer) clearInterval(tipTimer);
+    tipTimer = setInterval(() => flavour.showTip(heckle.showGloss), 5500);
     // Each stage paints its own label before it runs, so the screen is telling
     // the truth about what is taking the time. The bar animates on the
     // compositor, so it keeps moving even while buildWorld blocks.
-    loading.run(worldStages()).then(() => enterDrive(save, startKey)).catch((e) => {
+    loading.run(worldStages()).then(() => {
+      if (tipTimer) { clearInterval(tipTimer); tipTimer = 0; }
+      enterDrive(save, startKey);
+    }).catch((e) => {
       $('menuinner').innerHTML = `<h1>Ouch</h1><p class="tag">${e.message}</p>`;
       $('menu').classList.remove('hidden');
     });
@@ -619,8 +654,8 @@ function enterDrive(save = null, startKey = null) {
   G.world.setHouseNear(G.quality === 'low' ? 140 : HOUSE_NEAR);
   G.camYaw = G.veh.yaw + Math.PI;
   G.camPos = [G.veh.x, 4, G.veh.z];
-  const savedTime = save ? save.timeOfDay : 'day';
-  G.dayClock = (DAY_PHASE[savedTime] ?? DAY_PHASE.day) * DAY_NIGHT_CYCLE;
+  const savedTime = save && DAY_PHASE[save.timeOfDay] != null ? save.timeOfDay : 'day';
+  G.dayClock = phaseClock(savedTime);
   setCycleEnv(true);
   G.mission = null;
   G.boat = null; G.focus = null;
@@ -1347,6 +1382,13 @@ function tick(dt) {
   if (v.inAir) G.stats.airtime += dt;
   audio.whoosh(v.inAir ? clamp(v.clearance / 2.2, 0, 1) : 0);
   if (v.landed > 0) {
+    // What that landing was, for the achievement rules: how long the flight was
+    // and whether the thing you came down in was the Ottawa river.
+    landEvent = {
+      air: v.lastAir, force: v.landed,
+      landedInWater: !!(G.phys.waterAt && G.phys.waterAt(v.x, v.z)),
+      x: v.x, z: v.z,
+    };
     G.stats.landings++;
     if (v.landed > G.stats.hardest) G.stats.hardest = v.landed;
     audio.land(v.landed);
@@ -1396,6 +1438,10 @@ function tick(dt) {
   updateMission(dt);
   heckleTriggers(dt, v);
   heckle.update(dt, G);
+  // The achievements out of assets/text/ui.json. `landEvent` is the one-shot
+  // bag; everything else the rules need is already on G.
+  flavour.update(dt, G, landEvent);
+  landEvent = null;
 
   updateRepairSpot(dt, v);                 // feel agent: after the mission runner
   if (G.props) G.props.update(dt, G);
@@ -1427,6 +1473,10 @@ function tick(dt) {
   // Where the car is, so the Ottawa signal (CHEZ 106) can fade the further west
   // you get. The five local stations ignore it.
   radio.setPos(v.x, v.z);
+  // ...and what the sky is doing, so the DJ has something to talk about. A
+  // storm, a hot hazy afternoon, the middle of the night: radio_extra.json has
+  // lines for all three, per station.
+  radio.setScene(weather.rain > 0.25 || weather.dark > 0.6, weather.haze > 0.5, G.envKey === 'night');
   radio.update(dt, load, input.down('KeyH') || input.padHorn);
 
   tutorial.update(dt, {
@@ -1444,6 +1494,8 @@ function tick(dt) {
 // watches for them here — one place, one timer each, all of them deliberately
 // slow to fire so the town does not turn into a slot machine. The limiter in
 // heckle.js still has the last word: one line every four seconds, whatever.
+// The last landing, handed to flavour.update() for one tick and then dropped.
+let landEvent = null;
 const HK = {
   speedT: 0, revT: 0, wrongT: 0, stillT: 0, walkT: 0, props: 0, saidStuck: false,
 };
@@ -1883,6 +1935,7 @@ function optionsCtx() {
       resetCars: () => { if (G.veh) resetCarLocations(); },
       wipeSaves: () => {
         deleteAllSaves();
+        flavour.reset();          // the achievements go with the saves
         G.slot = null;
         hud.toast(t('toast.wiped'), 1600);
         applyMenuText();
@@ -1935,6 +1988,7 @@ function pause(on) {
     fillJobs();
     buildTabBar();
     applyPauseText();
+    flavour.showPause();
     showTab(tab);
     $('pause').classList.remove('hidden');
     audio.horn(false);
@@ -2031,7 +2085,18 @@ hud.setVisible(false);
 // loaders fail quietly and leave the built-in fallbacks in place, so the game
 // runs off a file:// URL or a checkout with assets/text/ missing.
 heckle.load().catch(() => {});
-radio.loadText().then(() => paintRadio()).catch(() => {});
+// ...and if the loading screen is already up when ui.json lands, replace the
+// fallback tip it is showing with a real one.
+flavour.load().then(() => { if (tipTimer) flavour.showTip(heckle.showGloss); }).catch(() => {});
+radio.loadText()
+  .then(() => radio.loadExtras())
+  .then(() => {
+    // Le Droit's headlines read as loading-screen trivia as well as they read
+    // as the talk station's news, so they do both.
+    flavour.addTrivia(radio.headlines);
+    paintRadio();
+  })
+  .catch(() => {});
 requestAnimationFrame(frame);
 
 // Debug hook: lets a console (or a test) step the sim without a live rAF.
@@ -2053,9 +2118,9 @@ window.AYLMER = {
   // frame actually drew (see world.js `stats`).
   env(name = 'day') {
     const key = DAY_PHASE[name] == null ? 'day' : name;
-    G.dayClock = DAY_PHASE[key] * DAY_NIGHT_CYCLE;
+    G.dayClock = phaseClock(key);
     setCycleEnv(true);
-    return key;
+    return G.envKey;
   },
   // Shell agent: the sky. `weather()` reads it, `weather(name)` forces one of
   // clear / cloudy / haze / overcast / rain / storm, so a screenshot of a

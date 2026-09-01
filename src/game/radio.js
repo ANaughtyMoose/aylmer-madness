@@ -17,6 +17,13 @@
 // Without it, the six built-in stations in STATIONS below play instead and
 // nothing else changes.
 //
+// assets/text/radio_extra.json adds three more things: DJ lines keyed to what
+// is happening outside the windscreen (a storm, a heatwave, three in the
+// morning, the last week of August, the signal breaking up), Le Droit's summer
+// 2004 headlines as the talk station's news, and thirty-nine handwritten
+// cassette labels. The weather system reaching the radio is the point of the
+// first of those: the DJ notices the storm you are driving through.
+//
 // EVERY note is synthesised. Each song is one eight-bar loop rendered ONCE into
 // an AudioBuffer on an OfflineAudioContext and then looped by a single
 // BufferSource, so the running graph is a handful of nodes no matter how long
@@ -392,6 +399,136 @@ export function stationsFromJSON(json) {
   return out.length > 1 ? out : null;
 }
 
+// ---------------------------------------------------------------- context
+//
+// assets/text/radio_extra.json carries DJ lines keyed to what is actually
+// happening outside the windscreen — a storm rolling in, a heatwave, three in
+// the morning, the last week of August, and the signal breaking up. That is the
+// whole point of the weather system reaching the radio: the DJ notices.
+//
+// The file's `station` field is a PLACEHOLDER vocabulary, deliberately not our
+// station ids. This is the remap, by FORMAT rather than frequency, which is the
+// only way a modern-rock line ends up on the modern-rock station:
+export const CONTEXT_STATION = {
+  ENERGIE: 'max_energie',        // modern rock -> CFOU 104.7
+  ROCKDETENTE: 'le_roc',         // classic rock -> CHLL 99.9
+  CKOI: 'cjrc_talk',             // traffic and advisories -> CJRC 1150 AM
+  ENGLISH: 'the_buzz_ottawa',    // the English sets -> CKOT 92.3, merged
+  CHEZ: 'the_buzz_ottawa',
+  HOT: 'the_buzz_ottawa',
+};
+export const CONTEXTS = ['fading', 'storm', 'latenight', 'heatwave', 'endofsummer'];
+
+// The file has nothing for the country station or the campus station, so their
+// lines are written here, in the voices radio.json already gave them: Ti-Gars
+// Pilon, sixty-two, de Quyon; and « B-O », a sociology grad student at UQO.
+export const EXTRA_CONTEXT = {
+  riviere_country: {
+    storm: [
+      'TI-GARS: Ça brasse en haut d’la côte. Rentre le linge, pis rentre le chien.',
+      'TI-GARS: Mon père disait: quand les vaches se couchent, tu couches pas dehors.',
+      'TI-GARS: Ça va tomber. Roule tranquille, y a pas d’prix pour arriver le premier.',
+    ],
+    heatwave: [
+      'TI-GARS: Trente-deux d’gré. J’ai vu un chien courir après un chat, les deux à pied.',
+      'TI-GARS: Y fait assez chaud que l’asphalte du 148 colle aux pneus.',
+    ],
+    latenight: [
+      'TI-GARS: Deux heures du matin. Si t’es su’a route, t’as une bonne raison ou une mauvaise.',
+      'TI-GARS: On joue doux jusqu’au lever du soleil. Bonne nuit, les camionneurs.',
+    ],
+    endofsummer: [
+      'TI-GARS: L’été achève. Les foins sont faits pis l’école recommence.',
+      'TI-GARS: Y commence à faire noir de bonne heure. Ça sent l’automne su’a rivière.',
+    ],
+    fading: [
+      'TI-GARS: …si ça grésille, c’est nos poteaux. Y datent d’avant moi.',
+    ],
+  },
+  radio_uqo: {
+    storm: [
+      'B-O: Il pleut. On a mis quarante minutes de field recordings de pluie. C’est méta.',
+      'B-O: Orage sur Aylmer. Le studio coule encore. On continue pareil.',
+    ],
+    heatwave: [
+      'B-O: Trente-et-un degrés pis pas d’air climatisé au sous-sol du pavillon Lucien-Brault.',
+      'B-O: Canicule. On passe une face B enregistrée dans un frigo. Sérieux.',
+    ],
+    latenight: [
+      'B-O: Trois heures du matin. Si t’écoutes, t’as pas d’examen demain, ou t’en as un.',
+      'B-O: La nuit, c’est nous autres pis les chauffeurs de taxi. Salut, les chauffeurs de taxi.',
+    ],
+    endofsummer: [
+      'B-O: La session recommence dans deux semaines. Profites-en, là.',
+      'B-O: Dernière semaine d’août. La programmation d’été meurt vendredi.',
+    ],
+    fading: [
+      'B-O: Notre émetteur fait dix watts pis un vœu. Si tu nous entends, écris-nous.',
+    ],
+  },
+};
+
+/**
+ * radio_extra.json's `contextual` -> { stationId: { context: [line, ...] } },
+ * remapped and de-duplicated, with the two stations the file forgot filled in
+ * from EXTRA_CONTEXT. Unknown placeholders are reported, not dropped in silence.
+ */
+export function contextFromJSON(json) {
+  const rows = json && Array.isArray(json.contextual) ? json.contextual : null;
+  const out = {};
+  const add = (id, ctx, line) => {
+    if (!id || !ctx || !line) return;
+    const s = (out[id] = out[id] || {});
+    const pool = (s[ctx] = s[ctx] || []);
+    if (!pool.includes(line)) pool.push(line);
+  };
+  if (rows) {
+    const unknown = new Set();
+    for (const r of rows) {
+      if (!r || typeof r.line !== 'string') continue;
+      const id = CONTEXT_STATION[r.station];
+      if (!id) { unknown.add(r.station); continue; }
+      add(id, r.context, r.line);
+    }
+    if (unknown.size) console.warn('radio: contextual lines for unknown stations —', [...unknown].join(', '));
+  }
+  for (const id of Object.keys(EXTRA_CONTEXT)) {
+    for (const ctx of Object.keys(EXTRA_CONTEXT[id])) {
+      for (const line of EXTRA_CONTEXT[id][ctx]) add(id, ctx, line);
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/** radio_extra.json's `headlines` -> CJRC news stingers, in the paper's voice. */
+export function headlinesFromJSON(json) {
+  const rows = json && Array.isArray(json.headlines) ? json.headlines : null;
+  if (!rows) return null;
+  const out = rows
+    .filter((r) => r && typeof r.headline === 'string' && r.headline)
+    .map((r) => 'LE DROIT — ' + r.headline);
+  return out.length ? out : null;
+}
+
+// ---------------------------------------------------------------- the tapes
+//
+// Thirty-nine handwritten cassette labels. They are the labels on the deck, and
+// they exist whether or not the player put any audio in assets/radio/: a tape
+// deck with a dead tape in it is more 2004 than an empty list, and two of them
+// belong to people in this story.
+export const FALLBACK_TAPES = [
+  { label: 'SUMMER 2004 CRUIZIN (DONT TOUCH)', handwriting: 'Sharpie noir, souligné deux fois.', story: '' },
+  { label: 'MIX — CÔTÉ A', handwriting: 'Crayon de plomb, à moitié effacé.', story: '' },
+];
+export function tapesFromJSON(json) {
+  const rows = json && Array.isArray(json.tapes) ? json.tapes : null;
+  if (!rows) return null;
+  const out = rows
+    .filter((r) => r && typeof r.label === 'string' && r.label)
+    .map((r) => ({ label: r.label, handwriting: r.handwriting || '', story: r.story || '' }));
+  return out.length ? out : null;
+}
+
 // A paragraph of ad copy, cut into HUD-sized pieces on sentence boundaries.
 export function chunkCopy(copy, max = AD_CHUNK) {
   const parts = String(copy || '').split(/(?<=[.!?])\s+/);
@@ -691,6 +828,13 @@ export class Radio {
     this.px = 0; this.pz = 0;
     this.signal = 1;
     this.sigT = 0;
+    // What is happening outside the windscreen, so the DJ can notice it. Set by
+    // main.js in one line; see CONTEXTS and _context().
+    this.scene = { storm: false, heat: false, night: false };
+    this.context = null;        // { stationId: { context: [line] } }, once loaded
+    this.tapes = FALLBACK_TAPES;
+    this.tapeIdxLabel = 0;
+    this.headlines = [];        // Le Droit, summer 2004 — the talk station's news
   }
 
   // ---- graph ----------------------------------------------------------
@@ -820,10 +964,77 @@ export class Radio {
    */
   setPos(x, z) { this.px = x; this.pz = z; return this; }
 
+  /**
+   * What the weather and the clock are doing. One call per frame from main.js,
+   * which is the only thing that knows; the DJ reads it at the next break.
+   */
+  setScene(storm, heat, night) {
+    this.scene.storm = !!storm; this.scene.heat = !!heat; this.scene.night = !!night;
+    return this;
+  }
+
+  /**
+   * Which contextual pool the DJ should reach for right now. A breaking-up
+   * signal beats everything, because it is the thing the listener can hear.
+   */
+  _context() {
+    const st = this.def;
+    if (!st) return null;
+    const pool = this.context && this.context[st.id];
+    if (!pool) return null;
+    const want = [];
+    if (st.weak && this.signal < 0.55) want.push('fading');
+    if (this.scene.storm) want.push('storm');
+    if (this.scene.night) want.push('latenight');
+    if (this.scene.heat) want.push('heatwave');
+    want.push('endofsummer');
+    for (const c of want) if (pool[c] && pool[c].length) return c;
+    return null;
+  }
+
+  /**
+   * The rest of the writing: DJ lines keyed to the weather and the hour, the
+   * cassette labels, and Le Droit's headlines as the talk station's news. Same
+   * contract as the others — one fetch, quiet on failure.
+   */
+  async loadExtras(url = 'assets/text/radio_extra.json') {
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (!res.ok) return null;
+      const j = await res.json();
+      const ctx = contextFromJSON(j);
+      if (ctx) this.context = ctx;
+      const tapes = tapesFromJSON(j);
+      if (tapes) { this.tapes = tapes; this.tapeReady = true; }
+      const heads = headlinesFromJSON(j);
+      this.headlines = heads || [];
+      // Le Droit goes to the talk station, which is where a headline belongs.
+      const cjrc = this.dial.find((st) => st.id === 'cjrc_talk');
+      if (heads && cjrc) cjrc.stingers = [...(cjrc.stingers || []), ...heads];
+      const n = ctx ? Object.keys(ctx).length : 0;
+      console.log(`radio: contextual DJ for ${n} stations, ${this.tapes.length} tape labels,`
+        + ` ${heads ? heads.length : 0} headlines`);
+      this._emit();
+      return true;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** The label on the tape that is in the deck right now. */
+  tapeLabel() {
+    if (!this.tapes.length) return null;
+    return this.tapes[this.tapeIdxLabel % this.tapes.length];
+  }
+
   state() {
     const st = this.def;
     const t = this.station === this.tapeIdx ? this._tapeTrack() : this._track();
-    const playing = t ? (t.artist ? `${t.artist} — ${t.title}` : t.title) : '';
+    const tape = this.station === this.tapeIdx ? this.tapeLabel() : null;
+    // A tape is known by what is written on it in Sharpie, not by an artist.
+    const playing = t
+      ? (t.artist ? `${t.artist} — ${t.title}` : t.title)
+      : (tape ? tape.label : '');
     return {
       on: this.on, wantOn: this.wantOn, station: this.station,
       stationName: st ? st.name : TAPE_NAME,
@@ -899,7 +1110,10 @@ export class Radio {
     }
     this.trackT += dt;
     const cur = this._track();
-    const len = this.station === this.tapeIdx ? Infinity : ((cur && cur.seconds) || 100);
+    // A dead tape (a label and no file) still turns over, so the deck reads out
+    // the next one instead of sitting on one line forever.
+    const deadTape = this.station === this.tapeIdx && !this._tapeTrack();
+    const len = deadTape ? 34 : (this.station === this.tapeIdx ? Infinity : ((cur && cur.seconds) || 100));
     if (this.trackT >= len) {
       this.trackT = 0;
       this._sting();
@@ -938,10 +1152,27 @@ export class Radio {
 
   _openBreak() {
     const st = this.def;
-    if (!st) return;
+    // The cassette deck has no DJ. What it has is whoever wrote on the label.
+    if (!st) {
+      const tape = this.tapeLabel();
+      if (!tape) return;
+      this.tapeIdxLabel++;
+      this.breakQueue = [tape.handwriting, tape.story].filter(Boolean);
+      this.breakLine = tape.label;
+      this.breakT = BREAK_SECONDS;
+      this._emit();
+      return;
+    }
     const n = this.breakIdx++;
     const slot = Radio.ROTATION[n % Radio.ROTATION.length];
     let pool = st[slot];
+    // The DJ slot goes to a line about what is actually happening — the storm,
+    // the heat, the hour, the signal breaking up — whenever there is one. That
+    // is the whole reason the weather system talks to the radio.
+    if (slot === 'patter') {
+      const ctx = this._context();
+      if (ctx) pool = this.context[st.id][ctx];
+    }
     // Not every station in the fallback carries stingers and contests; fall
     // through to the DJ rather than sitting there in silence.
     if (!pool || !pool.length) pool = st.patter;
@@ -1034,7 +1265,10 @@ export class Radio {
 
   _playTape() {
     const t = this._tapeTrack();
-    if (!t) { this.station = 0; this._playSynth(); return; }
+    // No files in assets/radio/, but there is a tape in the deck: the label is
+    // real, the music is not. This is more 2004 than an empty station, and the
+    // toast on tuning in says so. See loadTape() for how you fix it.
+    if (!t) { this.on = true; return; }
     if (!this.tape.el) {
       const el = new globalThis.Audio();
       el.crossOrigin = 'anonymous';

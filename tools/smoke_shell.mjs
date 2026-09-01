@@ -124,6 +124,30 @@ group('the day/night cycle');
   eq(keys, ['morning', 'day', 'dusk', 'night'], 'the phases are the ones missions.js knows');
   for (const k of keys) ok(!!TIME_OF_DAY[k], `TIME_OF_DAY has ${k}`);
   ok(/const DAY_HOLD = 0\.\d+/.test(MAIN), 'each phase holds its own colours before blending on');
+
+  // A phase NAME has to survive the round trip through the clock. It did not:
+  // 0.16 * 600 / 600 is 0.15999999999999992, so asking for 'day' landed one
+  // float short of it and came back as 'morning' — which save.js then stored.
+  const weights = nums, keys2 = keys;
+  const start = {};
+  { let acc = 0; for (let i = 0; i < keys2.length; i++) { start[keys2[i]] = acc; acc += weights[i]; } }
+  const phaseClock = (n) => {
+    const i = keys2.indexOf(n);
+    return (start[keys2[i]] + weights[i] * 0.25) * 600;
+  };
+  const keyAt = (clock) => {
+    const p = ((clock / 600) % 1 + 1) % 1;
+    let i = 0, acc = 0;
+    while (i < keys2.length - 1 && p >= acc + weights[i]) { acc += weights[i]; i++; }
+    return { key: keys2[i], frac: (p - acc) / weights[i] };
+  };
+  for (const n of keys2) {
+    const at = keyAt(phaseClock(n));
+    eq(at.key, n, `asking for ${n} lands in ${n}`);
+    ok(at.frac < 0.45, `…and inside the hold, so the sky is exactly ${n}`);
+  }
+  ok(/function phaseClock\(name\)/.test(MAIN), 'main.js turns a phase name into a clock in one place');
+  ok(/G\.dayClock = phaseClock\(savedTime\)/.test(MAIN), 'and a loaded save comes back to the right sky');
 }
 
 // ---------------------------------------------------------------- 3. gloss
@@ -560,6 +584,187 @@ else {
   ok(typeof before === 'string', 'breaks keep producing lines');
   r.tune('cjrc_talk');
   eq(r.breakQueue.length, 0, 'changing station drops the break you were in');
+}
+
+group('the DJ notices the weather');
+{
+  const {
+    contextFromJSON, headlinesFromJSON, tapesFromJSON, CONTEXT_STATION, CONTEXTS,
+    EXTRA_CONTEXT, FALLBACK_TAPES,
+  } = await import('../src/game/radio.js');
+  const file = path.join(TEXT, 'radio_extra.json');
+  if (!fs.existsSync(file)) ok(false, 'assets/text/radio_extra.json is present');
+  else {
+    const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+    ok(j.contextual.length >= 60, `${j.contextual.length} contextual DJ lines`);
+    eq([...new Set(j.contextual.map((r) => r.context))].sort(), [...CONTEXTS].sort(),
+      'the contexts are the ones the radio can be in');
+    // The file's station names are placeholders. Every one of them has to land
+    // on a real station, or the lines are written and never heard.
+    const placeholders = [...new Set(j.contextual.map((r) => r.station))];
+    for (const p of placeholders) {
+      ok(!!CONTEXT_STATION[p], `the placeholder « ${p} » maps onto a real station`);
+    }
+    const ctx = contextFromJSON(j);
+    ok(!!ctx, 'the contextual lines ingest');
+    const dial = stationsFromJSON(JSON.parse(fs.readFileSync(path.join(TEXT, 'radio.json'), 'utf8')));
+    // Every synthesised station ends up with something to say, including the
+    // two the file forgot — those are written here, in their own voices.
+    for (const st of dial) {
+      if (st.id === 'ckoi') continue;               // the built-in one, no copy in the file
+      ok(!!ctx[st.id], `${st.name} has contextual lines`);
+      ok(Object.keys(ctx[st.id]).length >= 4, `${st.name}: ${Object.keys(ctx[st.id]).length} contexts covered`);
+    }
+    ok(!!EXTRA_CONTEXT.riviere_country && !!EXTRA_CONTEXT.radio_uqo,
+      'the country station and the campus station were written in, not left silent');
+    ok(ctx.riviere_country.storm.some((l) => /TI-GARS/.test(l)), 'Ti-Gars Pilon keeps his name on his lines');
+    ok(ctx.radio_uqo.latenight.some((l) => /B-O/.test(l)), '…and so does B-O');
+    // Mapping by FORMAT, not frequency: the modern-rock lines are on the
+    // modern-rock station and the traffic advisories are on the talk station.
+    eq(CONTEXT_STATION.ENERGIE, 'max_energie', 'modern rock lines go to CFOU');
+    eq(CONTEXT_STATION.ROCKDETENTE, 'le_roc', 'classic rock lines go to CHLL');
+    eq(CONTEXT_STATION.CKOI, 'cjrc_talk', 'the traffic and advisory lines go to the talk station');
+    eq(CONTEXT_STATION.ENGLISH, 'the_buzz_ottawa', 'and the English ones to the Ottawa signal');
+    ok(ctx.the_buzz_ottawa.fading.length > 1, 'the fading lines are on the station that fades');
+
+    // Le Droit.
+    const heads = headlinesFromJSON(j);
+    ok(heads.length >= 20, `${heads.length} Le Droit headlines`);
+    ok(heads.every((h) => h.startsWith('LE DROIT — ')), 'read out as the paper');
+    ok(j.headlines.some((h) => h.confidence === 'high'), 'some of them are verified');
+    ok(j.headlines.some((h) => h.confidence === 'low'), '…and some are honest fiction');
+
+    // The tapes.
+    const tapes = tapesFromJSON(j);
+    ok(tapes.length >= 30, `${tapes.length} handwritten cassette labels`);
+    ok(tapes.every((t) => t.label), 'every one has something written on it');
+    ok(tapes.some((t) => /SAYYAD/i.test(t.label)), 'one of them is Sayyad’s, and overdue');
+    ok(tapes.some((t) => /ZAHRA/i.test(t.label)), 'and one is not for Zahra');
+    ok(FALLBACK_TAPES.length > 0, 'there is a tape in the deck even with no file at all');
+
+    // The deck, with the extras in it.
+    localStorage.clear();
+    const r = new Radio(null);
+    r.dial = dial;
+    r.context = ctx;
+    r.tapes = tapes;
+    r.tapeReady = true;
+    ok(r.count === dial.length + 1, 'the cassette deck is on the dial once there are labels');
+    r.tune('max_energie');
+    r.setScene(false, false, false);
+    eq(r._context(), 'endofsummer', 'a quiet afternoon in late August');
+    r.setScene(true, false, false);
+    eq(r._context(), 'storm', 'a storm outranks it');
+    r.setScene(false, true, false);
+    eq(r._context(), 'heatwave', 'so does a heatwave');
+    r.setScene(false, true, true);
+    eq(r._context(), 'latenight', 'and the hour beats the heat');
+    // A breaking-up signal beats everything, but only on the station that fades.
+    r.tune('the_buzz_ottawa');
+    r.signal = 0.2;
+    r.setScene(true, false, false);
+    eq(r._context(), 'fading', 'a station you can barely hear talks about that first');
+    r.signal = 1;
+    eq(r._context(), 'storm', '…and about the storm once it comes back in');
+    r.tune('max_energie');
+    r.signal = 0.2;
+    r.setScene(false, false, false);
+    ok(r._context() !== 'fading', 'a local station never claims to be fading');
+
+    // And the DJ slot actually reaches for it.
+    r.tune('le_roc');
+    r.setScene(true, false, false);
+    r.breakIdx = 1;                        // the patter slot
+    r._openBreak();
+    ok(ctx.le_roc.storm.includes(r.breakLine), `the DJ mentions the storm: « ${r.breakLine} »`);
+
+    // The dead tape: a label, no file, and it still turns over.
+    r.station = r.tapeIdx;
+    r.breakT = 0; r.breakQueue.length = 0;      // off the break we just opened
+    eq(r.def, null, 'the deck is not a station');
+    const label = r.tapeLabel();
+    ok(!!label && !!label.label, `there is a tape in it: « ${label.label} »`);
+    eq(r.state().track, label.label, 'and the HUD says what is written on it');
+    r._openBreak();
+    eq(r.breakLine, label.label, 'the break reads the label out');
+    ok(r.breakQueue.length >= 1, '…and then the story behind it');
+  }
+}
+
+group('the written UI flavour');
+{
+  const { Flavour, RULES, FALLBACK_TIPS } = await import('../src/game/flavour.js');
+  const f = new Flavour();
+  ok(f.tips.length > 0 && f.pause.length > 0, 'there is a fallback with no ui.json');
+  eq(f.achievements.length, 0, 'and no achievements until the file loads');
+
+  const file = path.join(TEXT, 'ui.json');
+  if (!fs.existsSync(file)) ok(false, 'assets/text/ui.json is present');
+  else {
+    const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+    ok(j.loading.length >= 50, `${j.loading.length} loading-screen lines`);
+    ok(j.loading.every((r) => r.line && r.en), 'every loading line has an English gloss');
+    ok(j.loading.every((r) => ['tip', 'trivia', 'joke'].includes(r.kind)),
+      'and each is tagged tip / trivia / joke');
+    ok(j.pause.length >= 15, `${j.pause.length} pause-screen lines`);
+    ok(j.achievements.length >= 12, `${j.achievements.length} achievements`);
+    ok(j.achievements.every((a) => a.name && a.howEarned), 'each with a name and how it is earned');
+    // Two things Gemini asserted that could not be verified, and must not come back.
+    const all = JSON.stringify(j);
+    ok(!/Maman/.test(all), 'the Maman sculpture claim is not in the file (2005, not 2004)');
+    // The Congress Centre is still mentioned; what went is the specific date.
+    // "démoli bien après 2004" is the vague form and is fine.
+    ok(!/Centre des congr[^"]{0,80}(200[5-9]|201\d)/.test(all),
+      'and the Congress Centre carries no specific demolition date');
+
+    // Ingest it by hand — no fetch under node.
+    f.tips = j.loading; f.pause = j.pause;
+    f.achievements = j.achievements.map((a) => ({ name: a.name, how: a.howEarned, live: !!RULES[a.name] }));
+    const live = f.achievements.filter((a) => a.live);
+    const dormant = f.achievements.filter((a) => !a.live);
+    ok(live.length >= 2, `${live.length} achievements this build can award: ${live.map((a) => a.name).join(', ')}`);
+    ok(dormant.length >= 10, `${dormant.length} defined but dormant — they belong to systems not built yet`);
+    for (const name of Object.keys(RULES)) {
+      ok(j.achievements.some((a) => a.name === name), `« ${name} » is a rule for an achievement that exists`);
+    }
+
+    // The rules themselves.
+    const G = { stats: { bigAir: 0 } };
+    eq(f.update(2, G), null, 'nothing fires on an empty run');
+    G.stats.bigAir = 3.4;
+    const got = f.update(2, G);
+    ok(got && got.name === "L'Envolée d'Aylmer", `three seconds of air earns « ${got && got.name} »`);
+    ok(f.has("L'Envolée d'Aylmer"), 'and it is remembered');
+    eq(f.update(2, G), null, 'it does not fire twice');
+    const swim = f.update(2, G, { air: 1.2, landedInWater: true });
+    ok(swim && swim.name === 'Bain de Minuit', `landing in the river earns « ${swim && swim.name} »`);
+    eq(f.update(2, G, { air: 0.2, landedInWater: true }), null, 'a short drop into the water does not');
+    f.reset();
+    ok(!f.has('Bain de Minuit'), 'wiping the saves wipes them too');
+    ok(f.list().length === j.achievements.length, 'the list still names every one of them, dormant included');
+  }
+
+  // main.js has to be the thing that fires them.
+  ok(/flavour\.update\(dt, G, landEvent\)/.test(MAIN), 'main.js checks the achievements each tick');
+  ok(/landedInWater/.test(MAIN), '…and tells them what a landing was');
+  ok(/flavour\.showTip/.test(MAIN), 'the loading screen gets a tip');
+  ok(/flavour\.showPause\(\)/.test(MAIN), 'the pause screen gets a line');
+  ok(/flavour\.reset\(\)/.test(MAIN), 'and "delete every save" wipes the achievements');
+  ok(FALLBACK_TIPS.every((t) => t.line && t.en), 'the fallback tips translate too');
+}
+
+group('the truck is an XL');
+{
+  // The owner has corrected this twice and it is the first text a new game
+  // shows. README.md is unowned, so it is fixed here; story.js and the story
+  // suite belong to other agents this wave and are reported, not touched.
+  const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  ok(!/Ranger XLT/.test(readme), 'README.md says Ranger XL');
+  const story = fs.readFileSync(path.join(ROOT, 'src/game/story.js'), 'utf8');
+  if (/Ranger XLT/.test(story)) console.log('      NOTE: src/game/story.js still narrates « Ranger XLT 1993 » (avatars agent)');
+  const cars = fs.readFileSync(path.join(ROOT, 'src/game/cars.js'), 'utf8');
+  if (/Ranger XLT/.test(cars)) console.log('      NOTE: src/game/cars.js still names the truck « 1993 Ford Ranger XLT » (cars agent)');
+  ok(true, 'the other two are flagged, not edited');
 }
 
 // ---------------------------------------------------------------- report

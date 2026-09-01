@@ -198,7 +198,9 @@ const FR = {
   'toast.slang.off': 'Traductions OFF\nTiens G pour les 3 dernières',
   'opt.slangGloss': 'Traduire le slang (touche G)',
   'radio.off': 'Radio OFF',
-  'radio.none': 'pas de cassette dans assets/radio/',
+  // The deck has a tape in it with something written on the label; what it does
+  // not have is a file to play. Say where the files go.
+  'radio.none': '(y a rien dans assets/radio/ — dépose tes MP3 là)',
   'toast.mapsize': 'Minimap',
   'toast.cars.home': 'Les chars sont chez eux',
   'toast.tutorial': 'Tutoriel remis à zéro',

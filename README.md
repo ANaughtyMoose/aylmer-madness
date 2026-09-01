@@ -56,7 +56,7 @@ through the keys once; the pause menu has a keyboard diagram and a Settings tab
 
 You start with one. The rest you earn or buy, and they do not drive alike.
 
-- **1993 Ford Ranger XLT** (white, 2.3 four-cylinder, three-across bench) —
+- **1993 Ford Ranger XL** (white, 2.3 four-cylinder, three-across bench) —
   yours. Slow, tall, leans in corners, and the bench means only **two
   passengers**. The "pick up the gang" job re-plans itself into two trips.
 - **1997 Saturn SL, 4-door** (blue) — Margaret's, parked next to yours at
