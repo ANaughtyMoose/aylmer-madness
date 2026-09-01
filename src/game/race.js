@@ -78,6 +78,38 @@ export const PROG_M = 2;          // ...meaning fewer than this many metres of i
 // Scratch. Module-level so the hot loop allocates nothing.
 const PA = [0, 0], PB = [0, 0];
 
+// A route with two identical points in it is a trap, not a route. _advance()
+// gets past a segment on the projection test, and on a zero-length segment the
+// numerator is exactly 0 over the 1e-6 fudge in the denominator, so it can
+// never reach 1; the hairpin escape hatch reads the direction of the *next*
+// leg against a zero vector and gets a cosine of 0, which is never below
+// HAIRPIN either. `i` sticks on the duplicate node for the rest of the race,
+// along() freezes at that node's distance, and the no-progress watchdog fires
+// every PROG_T seconds forever.
+//
+// A course built leg by leg grows one wherever a gate is the last node of the
+// leg into it and the first node of the leg back out — which is every gate on
+// a dead-end spur: the marina on bz_ouest and cp_traverse, the golf clubhouse
+// loop on cp_deschenes. Nothing downstream wants the duplicate, so drop it
+// here, once, at the one place the cum table is built. Only exact repeats and
+// millimetre noise: a genuine short segment is a corner and has to stay.
+const DEGENERATE = 0.01;                        // metres
+function dedupe(pts) {
+  let bad = false;
+  for (let k = 1; k < pts.length; k++) {
+    if (Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]) < DEGENERATE) {
+      bad = true; break;
+    }
+  }
+  if (!bad) return pts;                         // the common case allocates nothing
+  const out = [pts[0]];
+  for (let k = 1; k < pts.length; k++) {
+    const p = out[out.length - 1];
+    if (Math.hypot(pts[k][0] - p[0], pts[k][1] - p[1]) >= DEGENERATE) out.push(pts[k]);
+  }
+  return out;
+}
+
 export class Rival {
   constructor(spec, opts = {}) {
     this.spec = spec;
@@ -134,6 +166,8 @@ export class Rival {
    */
   setPath(pts) {
     if (!pts || pts.length < 2) return false;
+    pts = dedupe(pts);
+    if (pts.length < 2) return false;
     this.path = pts;
     this.n = pts.length;
     if (this.cum.length < this.n) this.cum = new Float64Array(this.n + 64);
@@ -161,6 +195,15 @@ export class Rival {
       if (d < bd) { bd = d; best = k; }
     }
     this.i = best;
+  }
+
+  // The segment that contains route distance `d`. Used where the car has been
+  // *placed* at a known distance along the route rather than found somewhere
+  // and matched to it — see unstick().
+  _segAt(d) {
+    let k = 0;
+    while (k + 2 < this.n && this.cum[k + 1] <= d) k++;
+    return k;
   }
 
   _segDist(k) {
@@ -373,9 +416,15 @@ export class Rival {
     this.veh.vLong = 4;
     this.veh.vx = Math.sin(yaw) * 4;
     this.veh.vz = Math.cos(yaw) * 4;
-    // The hop moved the car; re-baseline the progress watchdog on where it is
-    // now, or the very next check reads the jump as another stall.
-    if (this.n > 1) this._reindex();
+    // The hop moved the car to a KNOWN distance along the route, so index it by
+    // that distance rather than by asking which segment it is nearest.
+    // _reindex() takes the nearest and, on ties, the earliest — and an
+    // out-and-back spur is two legs of route lying on the same tarmac, so
+    // "nearest" to a car standing on the marina jetty is the leg it drove in
+    // on. The hop then puts it eight metres further *in*, it turns round in the
+    // car park, makes no progress, and unsticks again: a rival that reaches the
+    // marina never leaves it. Distance cannot tie with itself.
+    this.i = this._segAt(Math.min(before + hop, this.pathLength));
     this.progAt = this.along();
     this.lastReset = this.progAt;
   }
