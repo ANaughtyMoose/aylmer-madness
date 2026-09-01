@@ -294,6 +294,14 @@ export function updateStuck(G, dt, hud = null) {
 // bubbles, not toasts, so the name is in bold and they do not fight the big
 // mission text for the middle of the screen.
 export const FRIEND_LINES = {
+  highwayhull: {
+    start: [['Sayyad', '« La 148 jusqu’à Hull? Mets ma cassette. Celle avec le gros solo. »']],
+    end: [['Margaret', '« Bon. Maintenant faut retrouver le chemin pour revenir. »']],
+  },
+  chelsea: {
+    start: [['Adam', '« Continue sur la 105. Quand ça devient juste des arbres, t’es presque rendu. »']],
+    end: [['Sayyad', '« Chelsea aller-retour pour aucune raison. Ça, c’est une vraie ride. »']],
+  },
   school: {
     start: [['Ton père', '« Les clés sont dans le plat à monnaie. Touche pas au radio. »']],
     end: [['Ta mère', '« Ton prof a appelé. Il a dit que t’étais “à l’heure”. »']],

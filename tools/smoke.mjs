@@ -16,7 +16,7 @@ import {
 import { Wallet } from '../src/game/money.js';
 import {
   stageTarget, stageEnter, stageExit, stageStep, stageSettle, missionCleanup,
-  meterBar, fillBar,
+  meterBar, fillBar, missionStyleBonus,
 } from '../src/game/missionkit.js';
 
 let pass = 0, fail = 0;
@@ -33,9 +33,9 @@ const near = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
 const B = MAP.bounds, wm = MAP.waterMask;
 const mask = Uint8Array.from(Buffer.from(wm.b64, 'base64'));
 const waterAt = (x, z) => {
-  const i = Math.floor((x - B.minX) / wm.cell);
+  const i = Math.floor((x - (wm.minX ?? B.minX)) / wm.cell);
   if (i < 0 || i >= wm.w) return false;
-  const j = Math.floor((z - B.minZ) / wm.cell);
+  const j = Math.floor((z - (wm.minZ ?? B.minZ)) / wm.cell);
   if (j < 0 || j >= wm.h) return false;
   return mask[j * wm.w + i] === 1;
 };
@@ -77,6 +77,13 @@ resolvePlaces(fakeWorld);
 
 group('missions');
 ok(MISSIONS.length >= 10, `${MISSIONS.length} jobs registered`);
+{
+  const start = { stats: { nearMiss: 4, jumps: 1 }, damage: 12 };
+  const stylish = missionStyleBonus(start, { nearMiss: 7, jumps: 3 }, 14);
+  ok(stylish.money === 17 && stylish.clean, 'style bonus pays near misses, jumps, and a clean finish', JSON.stringify(stylish));
+  const capped = missionStyleBonus(start, { nearMiss: 99, jumps: 99 }, 40);
+  ok(capped.money === 17 && !capped.clean, 'style bonus caps risky play and withholds clean-car money', JSON.stringify(capped));
+}
 const ids = new Set();
 for (const m of MISSIONS) {
   ok(!ids.has(m.id), `unique id: ${m.id}`);

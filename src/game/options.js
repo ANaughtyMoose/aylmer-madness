@@ -9,7 +9,7 @@
 // The panel is used twice: full screen off the main menu (« Options ») and as
 // the pause menu's Options tab. Confirmations are two-click buttons inside the
 // panel — window.confirm() would freeze the headless harness.
-import { t, languages, setLang } from './i18n.js';
+import { t, setLang } from './i18n.js';
 import {
   loadSettings, saveSettings, normalizeSettings, DEFAULT_SETTINGS,
   MAP_SIZES, loadMapPrefs, saveMapPrefs,
@@ -89,10 +89,6 @@ export const SECTIONS = [
   },
   {
     id: 'gameplay', title: 'opt.gameplay', rows: [
-      {
-        k: 'lang', type: 'select',
-        options: languages().map(([k, n]) => [k, n]), literal: true,
-      },
       { k: 'autosave', type: 'check' },
       {
         k: 'difficulty', type: 'select',

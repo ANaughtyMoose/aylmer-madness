@@ -10,6 +10,17 @@ import { rgb } from '../core/mesh.js';
 import { loft } from './cars.js';
 
 const ATLAS = 2048;
+let skinManifest = null;
+
+async function availableSkins() {
+  if (!skinManifest) {
+    skinManifest = fetch('assets/cars/manifest.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((j) => new Set(Array.isArray(j) ? j : (j && j.cars) || []))
+      .catch(() => new Set());
+  }
+  return skinManifest;
+}
 // Atlas slots in pixels: [x, y, w, h]. `body` is a patch of flat paint that end
 // caps fall back to when there is no front/rear photo — smearing the side view
 // across the nose looked like a car that had been through a car wash sideways.
@@ -85,6 +96,11 @@ function findAxles(S) {
 }
 
 export async function loadCarSkin(renderer, spec) {
+  // Optional skins used to probe five missing files for every car on every
+  // boot. A small manifest makes "not installed" a normal state and keeps the
+  // console useful for real rendering errors.
+  const available = await availableSkins();
+  if (!available.has(spec.id)) return null;
   const base = `assets/cars/${spec.id}/`;
   const [side, top, front, rear, cfgRes] = await Promise.all([
     loadImage(base + 'side.png'), loadImage(base + 'top.png'),

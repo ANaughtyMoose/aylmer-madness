@@ -1,7 +1,6 @@
-// Storefront signage. The names are real: MAP.pois carries what OpenStreetMap
-// knows is at each address in old Aylmer (Cafe British, Cassis, Dépanneur
-// Palmyra…), and this hangs each one as a lit fascia board on the street-facing
-// wall of the nearest building footprint.
+// Storefront signage. Real OpenStreetMap POIs supply the locations; the featured
+// shops get fictional Québec-flavoured names. Each POI gets a lit fascia on a
+// nearby building or a freestanding roadside board when no suitable wall exists.
 //
 // One canvas atlas, one mesh, one draw call for the whole town.
 //
@@ -9,13 +8,14 @@
 //   planSigns()             -> [{name,x,z,yaw,w,h,y,slot}]  pure, runs under node
 //   buildSignage(renderer)  -> { mesh, tex, names } | null  (null with no DOM)
 import { MAP } from './mapdata.js';
+import { QUEBEC_POIS } from './quebec_pois.js';
 import { MeshBuilder } from '../core/mesh.js';
 
-const MAX_SIGNS = 60;
+const MAX_SIGNS = 120;
 const NEAR_BUILDING = 25;     // metres: no footprint this close, no sign
-const ATLAS = 1024;
-const COLS = 4, ROWS = 16;    // 64 cells of 256 x 64 — 4:1, same as the boards
-const CW = ATLAS / COLS, CH = ATLAS / ROWS;
+const ATLAS_W = 2048, ATLAS_H = 1024;
+const COLS = 8, ROWS = 16;    // 128 cells of 256 x 64 — 4:1, same as the boards
+const CW = ATLAS_W / COLS, CH = ATLAS_H / ROWS;
 
 // Anything residential or civic is not a storefront.
 const SKIP = new Set(['house', 'apartments', 'industrial', 'school', 'church',
@@ -83,18 +83,27 @@ let _plan = null;
 export function planSigns() {
   if (_plan) return _plan;
 
-  // 1. candidate businesses, nearest the high streets first
-  const cand = [];
-  for (const p of MAP.pois) {
-    if (!p.name || SKIP.has(p.k)) continue;
-    if (p.name.length > 26) continue;
-    cand.push({ p, d: highStreetD2(p.x, p.z) });
-  }
-  cand.sort((a, b) => a.d - b.d);
+  // All 120 geographically distributed businesses and landmarks get a sign.
+  const cand = QUEBEC_POIS.map((p) => ({ p: { ...p, name: p.label } }));
 
   // 2. hang each on the street-facing wall of the nearest footprint
   const out = [];
   const usedWall = new Set();
+  const roadside = (p) => {
+    const road = nearestRoadPoint(p.x, p.z);
+    let ux = p.x - road[0], uz = p.z - road[1];
+    const d = Math.hypot(ux, uz);
+    if (d < 0.1) { ux = 0; uz = 1; } else { ux /= d; uz /= d; }
+    // Stand just off the asphalt, facing traffic. The board extends down to a
+    // low plinth so it cannot look like floating text from the driver's seat.
+    const nx = -ux, nz = -uz, dx = -nz, dz = nx;
+    out.push({
+      name: p.name, slot: out.length, freestanding: true,
+      x: road[0] + ux * 4, z: road[1] + uz * 4,
+      dx, dz, nx, nz, w: p.landmark ? 4.6 : 3.8, h: 1.15, y: 0.35,
+      board: out.length % BOARDS.length,
+    });
+  };
   for (const c of cand) {
     if (out.length >= MAX_SIGNS) break;
     const p = c.p;
@@ -106,7 +115,7 @@ export function planSigns() {
       const d = dx * dx + dz * dz;
       if (d < bd) { bd = d; bi = i; }
     }
-    if (bi < 0) continue;                       // W5: skip if no building within 25 m
+    if (bi < 0) { roadside(p); continue; }
     const b = MAP.buildings[bi];
     const ring = b.p, n = ring.length;
     const fwd = ringArea2(ring) < 0;
@@ -133,13 +142,13 @@ export function planSigns() {
         bestGeom = { mx, mz, dx, dz, nx, nz, L };
       }
     }
-    if (bestI < 0 || bestScore < 0.1) continue;   // no wall actually faces the street
+    if (bestI < 0 || bestScore < 0.1) { roadside(p); continue; }
     usedWall.add(bi * 64 + bestI);
     const g = bestGeom;
     const w = Math.min(3.8, g.L * 0.78);
     const h = w / 4;
     const y = Math.min(Math.max(b.h - h - 0.35, 2.6), 3.6);   // above door height
-    if (y + h > b.h) continue;
+    if (y + h > b.h) { roadside(p); continue; }
     out.push({
       name: p.name, slot: out.length,
       x: g.mx + g.nx * 0.14, z: g.mz + g.nz * 0.14,
@@ -160,10 +169,10 @@ export function buildSignage(renderer) {
   if (typeof document === 'undefined' || !document.createElement) return null;
 
   const cv = document.createElement('canvas');
-  cv.width = cv.height = ATLAS;
+  cv.width = ATLAS_W; cv.height = ATLAS_H;
   const ctx = cv.getContext('2d');
   if (!ctx) return null;
-  ctx.clearRect(0, 0, ATLAS, ATLAS);
+  ctx.clearRect(0, 0, ATLAS_W, ATLAS_H);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -185,8 +194,8 @@ export function buildSignage(renderer) {
     ctx.fillText(s.name, px + CW / 2, py + CH / 2 + 2, CW - 18);
     names.push(s.name);
 
-    const u0 = (px + 1) / ATLAS, u1 = (px + CW - 1) / ATLAS;
-    const v0 = (py + 1) / ATLAS, v1 = (py + CH - 1) / ATLAS;
+    const u0 = (px + 1) / ATLAS_W, u1 = (px + CW - 1) / ATLAS_W;
+    const v0 = (py + 1) / ATLAS_H, v1 = (py + CH - 1) / ATLAS_H;
     const hw = s.w / 2, y0 = s.y, y1 = s.y + s.h;
     const ax = s.x - s.dx * hw, az = s.z - s.dz * hw;
     const bx = s.x + s.dx * hw, bz = s.z + s.dz * hw;

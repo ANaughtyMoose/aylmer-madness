@@ -49,6 +49,7 @@ const { Signals, planSignals, planStopSigns, roadNodes, GREEN, AMBER } =
   await import('../src/game/signals.js');
 const { planSigns, buildSignage } = await import('../src/game/signage.js');
 const { Traffic } = await import('../src/game/traffic.js');
+const { Nav, routeLength } = await import('../src/game/nav.js');
 
 const fails = [];
 let checks = 0;
@@ -64,6 +65,10 @@ const world = buildWorld(r);
 const buildMs = Date.now() - t0;
 
 console.log(`\nbuild: ${buildMs} ms, ${r.uploads} meshes, ${r.verts | 0} verts, ${r.tris | 0} tris\n`);
+
+ok('named golf clubhouse gets a pitched landmark roof', () => {
+  assert.equal(world.landmarkRoofs, 1);
+});
 
 // ------------------------------------------------- W3 intersections
 ok('W3 intersection polygons exist', () => {
@@ -81,6 +86,17 @@ ok('W3 junction nodes carry a positive extent', () => {
     assert.ok(nd.ext >= nd.maxHw, 'extent shorter than the widest kerb');
   }
   assert.equal(junctions, world.intersections, 'polygon count != junction count');
+});
+
+ok('W3 junction arms are geometrically unique', () => {
+  for (const nd of roadNodes().values()) {
+    for (let i = 0; i < nd.br.length; i++) {
+      for (let j = i + 1; j < nd.br.length; j++) {
+        const dot = nd.br[i].dx * nd.br[j].dx + nd.br[i].dz * nd.br[j].dz;
+        assert.ok(dot < 0.999, `duplicate arms at road node ${nd.id}`);
+      }
+    }
+  }
 });
 
 // ------------------------------------------------- W4 signals
@@ -167,8 +183,9 @@ ok('W4 traffic obeys a red without exploding', () => {
 // ------------------------------------------------- W5 signage
 ok('W5 sign atlas lists at least 20 storefront names', () => {
   const plan = planSigns();
-  assert.ok(plan.length >= 20, `only ${plan.length} signs planned`);
-  assert.ok(plan.length <= 60, `${plan.length} signs is over the cap`);
+  assert.ok(plan.length >= 100, `only ${plan.length} signs planned`);
+  assert.ok(plan.length <= 120, `${plan.length} signs is over the cap`);
+  assert.equal(plan.length, 120, 'every fictional POI gets a physical sign');
   const built = buildSignage(r);
   assert.ok(built, 'buildSignage returned null');
   assert.ok(built.names.length >= 20, `atlas carries ${built.names.length} names`);
@@ -236,13 +253,28 @@ ok('T3 MAP keeps the shape nav/bigmap/hud/places read', () => {
   assert.ok(typeof MAP.bounds.minX === 'number');
 });
 
+ok('Highway to Hull is a connected expansion, not an isolated road island', () => {
+  assert.equal(MAP.expansions?.highwayToHull, true);
+  assert.ok(MAP.bounds.maxX >= 5000);
+  assert.equal(MAP.expansions?.highwayToHullSource, 'OpenStreetMap');
+  assert.ok(MAP.roads.some((road) => road.name === 'Boulevard des Allumettières'));
+  assert.ok(MAP.pois.some((p) => p.name === "Musée canadien de l'histoire"));
+  const nav = new Nav();
+  const route = nav.route(932.9, 143.9, 9342.1, -3542.2);
+  assert.ok(route && route.length > 20, 'home cannot route to downtown Hull');
+  assert.ok(routeLength(route, 932.9, 143.9) > 5000, 'Hull route bypasses the highway corridor');
+  const north = nav.route(5564.4, -6917.7, 3092.4, -12175.3);
+  assert.ok(north && north.length > 20, 'Heritage College cannot route north to Chelsea');
+  assert.ok(routeLength(north, 5564.4, -6917.7) > 9000, 'Chelsea route is unexpectedly short');
+});
+
 // ------------------------------------------------- budget
 // The town itself (roads, ground, trees, non-house buildings) still has to fit
 // the old 500k budget; the houses are baked twice on top of it — lod 0 near and
 // lod 2 far — and only ever one of the two is drawn for a given chunk.
-ok('the town without houses is still under 500k triangles', () => {
+ok('the detailed two-sector world stays inside the expansion triangle budget', () => {
   const houses = world.stats.residentNear + world.stats.residentFar;
-  assert.ok(r.tris - houses < 500000, `${(r.tris - houses) | 0} triangles`);
+  assert.ok(r.tris - houses < 2500000, `${(r.tris - houses) | 0} triangles`);
 });
 
 ok('resident house geometry stays inside the LOD budget', () => {
@@ -253,7 +285,7 @@ ok('resident house geometry stays inside the LOD budget', () => {
   // Only the near bake carries UV + atlas-rect attributes (60 B a vertex); the
   // far bake and the whole town stay on the 36 B layout.
   const mb = (r.texVerts * 60 + (r.verts - r.texVerts) * 36) / (1024 * 1024);
-  assert.ok(mb < 190, `${mb.toFixed(0)} MB of vertex buffers`);
+  assert.ok(mb < 280, `${mb.toFixed(0)} MB of vertex buffers`);
   console.log(`       ${(st.residentNear / 1000) | 0}k near + ${(st.residentFar / 1000) | 0}k far tris, `
     + `${(r.texVerts / 1000) | 0}k textured verts, ${mb.toFixed(0)} MB vertex data`);
 });

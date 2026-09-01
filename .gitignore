@@ -6,3 +6,4 @@ __pycache__/
 assets/radio/*
 !assets/radio/README.md
 !assets/radio/playlist.example.json
+!assets/radio/playlist.json

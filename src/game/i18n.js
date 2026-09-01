@@ -25,6 +25,9 @@ const FR = {
   'menu.garageview': 'Le garage',
   'menu.back': 'Retour',
   'menu.pick': 'Choisis ton char',
+  'menu.pickstart': 'Choisis ton point de départ',
+  'menu.pickstart.hint': 'Ton char est choisi. Maintenant, choisis où commencer.',
+  'menu.pickstart.back': 'Retour aux chars',
 
   // saves
   'save.title': 'Sauvegarde',
@@ -210,6 +213,9 @@ const EN = {
   'menu.garageview': 'The garage',
   'menu.back': 'Back',
   'menu.pick': 'Pick your car',
+  'menu.pickstart': 'Pick your starting point',
+  'menu.pickstart.hint': 'Your car is chosen. Now pick where to begin.',
+  'menu.pickstart.back': 'Back to cars',
 
   'save.title': 'Save',
   'save.slot': 'Slot',
@@ -364,21 +370,16 @@ const EN = {
   'map.large': 'large',
 };
 
-const DICTS = { fr: FR, en: EN };
-
 let lang = 'fr';
 
-export function setLang(next) {
-  lang = DICTS[next] ? next : 'fr';
+export function setLang(_next) {
+  lang = 'fr';
   return lang;
 }
 export function getLang() { return lang; }
-export function languages() { return [['fr', 'Français'], ['en', 'English']]; }
+export function languages() { return [['fr', 'Français québécois']]; }
 
-// English first when it has the key, French otherwise, the key itself last.
 export function t(key) {
-  const over = DICTS[lang];
-  if (over && over !== FR && Object.prototype.hasOwnProperty.call(over, key)) return over[key];
   if (Object.prototype.hasOwnProperty.call(FR, key)) return FR[key];
   return key;
 }
