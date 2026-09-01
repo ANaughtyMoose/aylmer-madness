@@ -235,6 +235,12 @@ const START_MAP_LABELS = {
   hullcasino: 'Casino du Lac-Leamy', hullmall: 'Galeries de Hull',
   ottawa: 'Colline du Parlement', chelsea: 'Chelsea',
 };
+// ---- [agent/ottawa hook] the downtown Ottawa destinations, from the same
+// module that merges the sector. Same block as the addOttawaLandmarks() call
+// below; both fold into places.js and main.js's own tables later.
+import { addOttawaLandmarks, OTTAWA_STARTS, OTTAWA_START_LABELS } from './game/ottawa.js';
+START_POINTS.push(...OTTAWA_STARTS);
+Object.assign(START_MAP_LABELS, OTTAWA_START_LABELS);
 let pickedStart = null;
 const availableStartPoints = () => START_POINTS.filter((key) => PLACES[key]);
 
@@ -569,6 +575,11 @@ function enterDrive(save = null, startKey = null) {
     // Permanent scenery the map data has no idea about.
     G.props.add({ id: 'island', mesh: 'island', x: ISLAND.x, z: ISLAND.z, yaw: ISLAND.yaw, far: 2200 });
     G.props.add({ id: 'miketree', mesh: 'bigtree', x: MIKE_TREE.x, z: MIKE_TREE.z, far: 500 });
+    // ---- [agent/ottawa hook] downtown Ottawa. One block; fold into the owned
+    // files later. game/ottawa.js merges the sector into MAP, rolls the whole
+    // map back to 2004 and registers its PLACES at import time; this line is
+    // only the hero landmark geometry, which needs G.renderer and G.props.
+    addOttawaLandmarks(G);
   }
   G.mode = 'drive';
   $('menu').classList.add('hidden');
