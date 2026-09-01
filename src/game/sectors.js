@@ -30,15 +30,17 @@ const CELL = 500;                // the approach index's cell size
 
 // The Ottawa shoreline, x ascending: Ottawa is the land SOUTH of the river,
 // so the seam hugs the far bank (the river itself, and every bridge deck, is
-// Hull's). West of x≈5600 the Hull extract stops in the water at z = -332 and
-// there is no Ottawa land at all, hence the flat start. Points to x = 10250
+// Hull's). West of the Champlain Bridge there is no Ottawa land in the map at
+// all — the Hull extract carries Deschênes (north bank, z up to +1460) on that
+// side of the Aylmer seam and nothing across the water — so the seam starts
+// far south of everything and only meets the river at x ≈ 5750. Points to x = 10250
 // are the southernmost water edge of the Ottawa River polygons sampled every
 // 250 m; from Nepean Point east the polygons no longer carry the channel, so
 // the last points are the shore from the map itself (Parliament's cliff,
 // Nepean Point, Earnscliffe, Rideau Falls, Rockcliffe), a few tens of metres
 // out in the water.
 const RIVER = [
-  [2540, -320], [5500, -320], [5750, -520], [6000, -950], [6250, -1200],
+  [2540, 2500], [5550, 2500], [5750, -520], [6000, -950], [6250, -1200],
   [6500, -1250], [6750, -1450], [7000, -1650], [7250, -1880], [7500, -1920],
   [7750, -2040], [8000, -1980], [8250, -2050], [8500, -1980], [8750, -2020],
   [9000, -2160], [9250, -2700], [9500, -2760], [9750, -2900], [10000, -3120],

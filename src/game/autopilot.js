@@ -98,8 +98,10 @@ export function start(A, PLACES, want = 'ottawa') {
       return;
     }
 
+    // Gentle on purpose: at 85 km/h the Ranger was being towed home twice a
+    // trip after meeting traffic in a bend, and a tow resets the position.
     const sharp = Math.abs(err) > 0.5;
-    const cap = sharp ? 35 : Math.abs(err) > 0.2 ? 55 : 85;
+    const cap = sharp ? 28 : Math.abs(err) > 0.2 ? 45 : 65;
     press(KEYS.left, err > 0.04);
     press(KEYS.right, err < -0.04);
     press(KEYS.gas, kmh < cap);
