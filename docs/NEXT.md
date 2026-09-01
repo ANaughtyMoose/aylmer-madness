@@ -94,6 +94,13 @@ hair, olive/green work jacket, moustache, outdoorsman. Fifties by 2004.
 Cheap and rough is the point: Norm's is the proper garage, Russell's is the one
 you go to when you have eleven dollars.
 
+**Russell does not charge for labour — he charges pizza and beer.** You pay for
+parts, full stop, and the work itself is settled in a large pizza and a case of
+something. That is the whole economic joke and it should be literal: the bill
+splits into a dollar amount for parts and an item you have to actually go and
+fetch. Norm charges money for both and does it properly. Gemini's `russell.json`
+currently frames it as a 50% labour discount — rewrite that.
+
 ## 7. Graphics
 
 See the separate write-up. Short version: the ceiling here is not the renderer,
