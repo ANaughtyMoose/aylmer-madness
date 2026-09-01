@@ -185,10 +185,15 @@ export class Garage {
   }
 
   /**
-   * Could you buy it right now? Returns { ok, why } and touches nothing — this
-   * is what the HUD prompt at the lot is built from.
+   * Could you buy it right now? Returns { ok, why, price } and touches nothing —
+   * this is what the HUD prompt at the lot is built from.
+   *
+   * `discount` is what you argued him down to: the classifieds screen lets you
+   * inspect a car and ring the seller, and both of those move the number you
+   * actually hand over. It lives here rather than as a refund afterwards
+   * because the wallet check has to be against the price you are really paying.
    */
-  canBuy(id, wallet, done = this.done) {
+  canBuy(id, wallet, done = this.done, discount = 0) {
     const u = UNLOCKS[id];
     // A famous car has no price, so the answer is never about money. Saying so
     // in the prompt is the point: « ça s'achète pas » is the whole design.
@@ -201,21 +206,27 @@ export class Garage {
       const left = u.jobs - asSet(done).size;
       return { ok: false, why: `pas avant ${u.jobs} jobs — encore ${left}` };
     }
-    if (!wallet || !wallet.can(u.cost)) {
-      const short = Math.max(0, u.cost - (wallet ? wallet.value : 0));
-      return { ok: false, why: `il te manque ${Math.round(short)} $` };
+    const price = this.price(id, discount);
+    if (!wallet || !wallet.can(price)) {
+      const short = Math.max(0, price - (wallet ? wallet.value : 0));
+      return { ok: false, why: `il te manque ${Math.round(short)} $`, price };
     }
-    return { ok: true, why: null };
+    return { ok: true, why: null, price };
+  }
+
+  /** The asking price less whatever you talked him out of, never below zero. */
+  price(id, discount = 0) {
+    return Math.max(0, this.cost(id) - Math.max(0, discount || 0));
   }
 
   /**
    * Buy it. Same answer as canBuy(), except that when it says yes the wallet is
    * lighter and the car is yours.
    */
-  buy(id, wallet, done = this.done) {
-    const r = this.canBuy(id, wallet, done);
+  buy(id, wallet, done = this.done, discount = 0) {
+    const r = this.canBuy(id, wallet, done, discount);
     if (!r.ok || this.bought.has(id)) return r;
-    wallet.spend(UNLOCKS[id].cost);
+    wallet.spend(this.price(id, discount));
     this.bought.add(id);
     this.seen.add(id);
     this.save();

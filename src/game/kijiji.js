@@ -220,19 +220,140 @@ export const INSPECT_PRICE = 25;
 export const REBATE = 0.15;
 export const rebateOn = (cost) => Math.round((cost * REBATE) / 5) * 5;
 const inspected = new Set();
+const called = new Set();
 export const wasInspected = (ad) => inspected.has(ad && ad.title);
+export const wasCalled = (ad) => called.has(ad && ad.title);
 
-// What happens when you pick up the phone. Nobody answers a classified ad the
-// first time. `calls` on the ad is how many rings deep the seller is.
-const PHONE = [
-  'Ça sonne… ça sonne… ça sonne. Personne.',
-  'Répondeur : « Vous avez bien rejoint le… » — bip. Tu raccroches.',
-  'Une madame répond : « Y’é pas là. Rappelle à soir. » Clic.',
-  'Occupé. Quelqu’un est sur l’internet.',
-  'Ça décroche pis ça raccroche tu-suite.',
-  'Un enfant répond, échappe le téléphone, pis s’en va.',
-  'Sonnerie, sonnerie, sonnerie. Tu comptes jusqu’à quinze pis tu lâches.',
+/**
+ * What you would actually hand over: the asking price, less whatever the
+ * inspection let you argue for and whatever he knocked off on the phone. Capped
+ * at DEAL_CAP, because a car half off twice over is not a bargain, it is a bug.
+ */
+export function dealtPrice(ad, cost) {
+  if (!ad || !ad.car || !(cost > 0)) return cost;
+  let off = 0;
+  if (inspected.has(ad.title)) off += rebateOn(cost);
+  if (called.has(ad.title)) off += dealOn(callerFor(ad), cost);
+  return Math.max(Math.round(cost * (1 - DEAL_CAP) / 5) * 5, cost - off);
+}
+
+// ---------------------------------------------------------------- the phone
+//
+// Thirty sellers live in assets/text/calls.json, each with an opening, a middle
+// and an English stage direction for how the call ends. The two French lines
+// are spoken verbatim; the stage direction is what this table turns into
+// something the game can DO, because the point of picking up the phone is that
+// it changes the price — or wastes your afternoon, which was the other half of
+// buying a car in 2004.
+//
+//   'ferme'      he will not move, and says so
+//   'jase'       twenty minutes of somebody else's summer, no sale
+//   'repondeur'  a machine, a dog, and a call back four days too late
+//   'absent'     he will not give you an address
+//   'vendu'      gone, and the ad is still up
+//   'menteur'    he lies out loud — and the lie is free to check, because the
+//                red flag is on the table the moment he says it
+//   'deal'       `cut` off the asking price, offered before you ask
+export const CALLS_URL = 'assets/text/calls.json';
+export const DEAL_CAP = 0.5;   // no car is ever half off twice over
+
+const CALL_KIND = {
+  'Won\'t come down a dollar': { kind: 'ferme' },
+  'Mother selling her son\'s car while he\'s away': { kind: 'deal', cut: 0.45 },
+  'Already sold it but wants to talk': { kind: 'jase' },
+  'Answering machine, large dog': { kind: 'repondeur' },
+  'It\'s my buddy\'s car actually': { kind: 'jase' },
+  'Suspicious elderly farmer': { kind: 'absent' },
+  'Hyperactive teenager who tuned it himself': { kind: 'menteur' },
+  'Weary dad clearing out the garage': { kind: 'deal', cut: 0.25 },
+  'Mechanic selling an abandoned repair': { kind: 'deal', cut: 0.20 },
+  'Anglophone seller across the river': { kind: 'absent' },
+  'Public parking lot only': { kind: 'ferme' },
+  'Student moving tomorrow': { kind: 'deal', cut: 0.35 },
+  'Treats the car as a firstborn': { kind: 'ferme' },
+  'Doesn\'t know what he has': { kind: 'deal', cut: 0.40 },
+  'Chain-smoking uncle as middleman': { kind: 'jase' },
+  'School rival on his parents\' landline': { kind: 'ferme' },
+  'Painfully honest': { kind: 'menteur' },        // he tells you everything, which amounts to the same reveal
+  'Answering machine, screaming children': { kind: 'repondeur' },
+  'Unbearable line noise': { kind: 'repondeur' },
+  'Trades only': { kind: 'absent' },
+  'Grandmother selling her late husband\'s sedan': { kind: 'deal', cut: 0.20 },
+  'Night calls only': { kind: 'absent' },
+  'Forgot he posted the ad': { kind: 'deal', cut: 0.15 },
+  'Encyclopedic about trim packages': { kind: 'jase' },
+  'Practically brand new': { kind: 'menteur' },
+  'Lost his licence': { kind: 'deal', cut: 0.20 },
+  'Upsells you the rest of his yard': { kind: 'jase' },
+  'Polite civil servant': { kind: 'ferme' },
+  'Bring your own battery': { kind: 'menteur' },
+  'Crying about letting it go': { kind: 'deal', cut: 0.10 },
+};
+
+// How each kind reads in French once the receiver goes down. The `deal` line is
+// built with the number, because the number is the whole point.
+const CALL_END = {
+  ferme: 'Il raccroche. « Le prix c’est le prix. »',
+  jase: 'Vingt minutes plus tard tu sais tout de son été en Gaspésie. Pas le prix.',
+  repondeur: 'Répondeur. Tu laisses ton numéro. Il va rappeler dans quatre jours, en pleine course, pour dire « vendu ».',
+  absent: 'Il veut pas donner son adresse tant qu’il sait pas pour qui tu travailles.',
+  vendu: 'Vendu depuis mardi. L’annonce est encore là pareil.',
+  menteur: 'Il t’a tout dit. C’est pas ce qu’il pense t’avoir dit.',
+};
+
+// The five hardcoded ads keep a seller each; everything else is assigned one
+// deterministically off its own title, so the guy who will not budge is the
+// same guy every time you ring him.
+const CALL_BY_TITLE = [
+  [/TERCEL/, 'Mechanic selling an abandoned repair'],      // Garage Lafleur's lien sale
+  [/FORD TEMPO 1991/, 'Won\'t come down a dollar'],
+  [/CARAVAN 1988/, 'Mother selling her son\'s car while he\'s away'],
+  [/CUTLASS CIERA 1987/, 'Upsells you the rest of his yard'],
+  [/CAVALIER Z24 1991/, 'Hyperactive teenager who tuned it himself'],
+  [/AUTOBUS ORION/, 'Polite civil servant'],
+  [/SUBARU|AWD|4X4/, 'Doesn\'t know what he has'],
+  [/DIVAN/, 'Weary dad clearing out the garage'],
 ];
+
+export const CALLS = { list: [], byType: {} };
+let callsLoading = null;
+export function loadCalls(fetchFn) {
+  if (callsLoading) return callsLoading;
+  const f = fetchFn || (typeof fetch === 'function' ? fetch : null);
+  if (!f) return Promise.resolve(CALLS);
+  callsLoading = f(CALLS_URL, { cache: 'force-cache' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((j) => {
+      const rows = j && Array.isArray(j.calls) ? j.calls : [];
+      const fix = (t) => String(t || '').replace(/'/g, '\u2019');
+      CALLS.list = rows.map((c) => ({
+        sellerType: c.sellerType,
+        opening: fix(c.opening),
+        middle: fix(c.middle),
+        ...(CALL_KIND[c.sellerType] || { kind: 'jase' }),
+      }));
+      CALLS.byType = Object.fromEntries(CALLS.list.map((c) => [c.sellerType, c]));
+      return CALLS;
+    })
+    .catch(() => CALLS);
+  return callsLoading;
+}
+
+/** Which of the thirty sellers is on the other end of this ad. */
+export function callerFor(ad) {
+  if (!CALLS.list.length) return null;
+  const bound = CALL_BY_TITLE.find(([re]) => re.test(ad.title || ''));
+  if (bound && CALLS.byType[bound[1]]) return CALLS.byType[bound[1]];
+  let seed = 0;
+  for (let i = 0; i < ad.title.length; i++) seed = (seed * 33 + ad.title.charCodeAt(i)) >>> 0;
+  return CALLS.list[seed % CALLS.list.length];
+}
+
+/** What he knocks off, in dollars, or 0. Rounded to a bill he would actually count. */
+export function dealOn(caller, cost) {
+  if (!caller || caller.kind !== 'deal' || !(cost > 0)) return 0;
+  return Math.round((cost * caller.cut) / 5) * 5;
+}
 
 // ---------------------------------------------------------------- the photos
 
@@ -450,15 +571,18 @@ function listHTML(garage) {
 
 function detailHTML(ad, garage, wallet, done) {
   const cost = priceOf(ad);
-  const can = ad.car ? garage.canBuy(ad.car, wallet, done) : null;
   const spec = ad.car ? carById(ad.car) : null;
   const seen = wasInspected(ad);
-  const rebate = ad.car ? rebateOn(cost) : 0;
+  const rang = wasCalled(ad);
+  const pay = ad.car ? dealtPrice(ad, cost) : cost;
+  const off = cost - pay;
+  const can = ad.car ? garage.canBuy(ad.car, wallet, done, off) : null;
+  const caller = callerFor(ad);
   const buy = ad.car
-    ? `<div class="buyrow"><button data-act="buy">ACHETER &mdash; ${money(seen ? cost - rebate : cost)}</button>`
+    ? `<div class="buyrow"><button data-act="buy">ACHETER &mdash; ${money(pay)}</button>`
       + (can.ok
-        ? `<span class="meta">Il te rejoint au Tim Hortons de la Principale.${seen
-            ? ` Il a coupé ${money(rebate)} quand t’as parlé du rapport.` : ''}</span>`
+        ? `<span class="meta">Il te rejoint au Tim Hortons de la Principale.${off
+            ? ` Il a coupé ${money(off)}.` : ''}</span>`
         : `<span class="no">${can.why}</span>`) + '</div>'
     : `<div class="buyrow"><button disabled>PAS À VENDRE</button>`
       + `<span class="meta">${ad.sold ? 'L’annonce est encore là, l’affaire est partie.'
@@ -471,8 +595,11 @@ function detailHTML(ad, garage, wallet, done) {
          ${seen ? 'INSPECTÉ' : 'FAIRE INSPECTER — ' + money(INSPECT_PRICE)}</button>
        <span class="meta">Le mécanicien le met sur le pont avant que tu signes.</span></div>`
     : '';
-  const report = ad.car && seen && ad.flaw
-    ? `<div class="flag" id="kjrep"><b>Rapport d’inspection :</b> ${ad.flaw.text}</div>`
+  // The inspection report, and the free half of it: a seller who lied on the
+  // phone has already told you where to look.
+  const known = (seen || (rang && caller && caller.kind === 'menteur')) && ad.flaw;
+  const report = known
+    ? `<div class="flag" id="kjrep"><b>${seen ? 'Rapport d’inspection' : 'Ce qu’il t’a échappé au téléphone'} :</b> ${ad.flaw.text}</div>`
     : '<div id="kjrep"></div>';
   return `
   <div class="crumb"><a data-nav="list">&larr; Retour aux annonces</a></div>
@@ -484,7 +611,8 @@ function detailHTML(ad, garage, wallet, done) {
       <div class="meta" style="margin-top:4px">1 photo &middot; 640x480 &middot; 41 ko</div></div>
     <div style="flex:1">
       <div class="price" style="font-size:22px">${ad.car
-        ? money(seen ? cost - rebate : cost) : priceLabel(ad).toUpperCase()}</div>
+        ? (off ? `<span class="sold">${money(cost)}</span> ` : '') + money(pay)
+        : priceLabel(ad).toUpperCase()}</div>
       ${spec ? `<div class="meta" style="margin-top:6px">${spec.len} m &middot; ${spec.seats + 1} places
         &middot; ${spec.mass} kg</div>` : ''}
       <div class="desc">${ad.body}</div>
@@ -541,18 +669,30 @@ function onClick(e) {
     return;
   }
   if (act === 'call') {
-    const n = Math.min(PHONE.length - 1, (current.calls || 0) + callsMade);
+    const c = callerFor(current);
     callsMade++;
-    // Three tries in, somebody you know turns out to know the car. That is how
-    // anybody found out anything about a used car in a town this size, and it
-    // is the only way the phantom ads ever give up their red flag.
-    if (callsMade >= 3 && current.redFlag) {
-      say('kjnote', 'Ton chum le connaît, ce char-là : ' + current.redFlag);
-    } else if (callsMade >= 3) {
-      say('kjnote', 'Il rappellera pas. En 2004 on allait cogner à’ porte.');
-    } else {
-      say('kjnote', PHONE[n % PHONE.length]);
+    if (!c) { say('kjnote', 'Ça sonne. Ça sonne. Personne.'); return; }
+    // Three rings deep: he says hello, he tells you about it, and then the
+    // call ends the way that seller's calls always end.
+    if (callsMade === 1) { say('kjnote', c.opening); return; }
+    if (callsMade === 2) { say('kjnote', c.middle); return; }
+    if (callsMade > 3) { say('kjnote', 'T\u2019as fini de l\u2019achaler. Il décroche pu.'); return; }
+    if (c.kind === 'deal' && current.car) {
+      called.add(current.title);
+      paint();
+      const cut = dealOn(c, priceOf(current));
+      say('kjnote', `Il coupe ${money(cut)} avant que t\u2019aies fini ta question.`);
+      return;
     }
+    if (c.kind === 'menteur') {
+      // He lied out loud, and it was a big enough lie to be worth checking.
+      called.add(current.title);
+      paint();
+      say('kjnote', current.flaw || current.redFlag
+        ? CALL_END.menteur : 'Il t\u2019a tout dit. Deux fois.');
+      return;
+    }
+    say('kjnote', CALL_END[c.kind] || CALL_END.jase);
     return;
   }
   if (act === 'inspect' && current && current.car) {
@@ -569,16 +709,13 @@ function onClick(e) {
     const id = current.car;
     const ad = current;
     const seen = wasInspected(ad);
-    const r = ctx.garage.buy(id, ctx.wallet, ctx.done);
+    const cost = priceOf(ad);
+    const off = cost - dealtPrice(ad, cost);
+    const r = ctx.garage.buy(id, ctx.wallet, ctx.done, off);
     if (!r.ok) { say('kjnote', r.why); return; }
-    // The rebate is paid back rather than discounted: Garage.buy() owns the
-    // price, and the seller knocking money off because you can point at the rot
-    // is a separate transaction anyway.
-    const rebate = seen ? rebateOn(priceOf(ad)) : 0;
-    if (rebate) ctx.wallet.add(rebate);
     screen = 'list'; current = null;
     close();
-    ctx.onBuy(id, { flaw: ad.flaw || null, inspected: seen, rebate });
+    ctx.onBuy(id, { flaw: ad.flaw || null, inspected: seen, rebate: off });
   }
 }
 
@@ -607,7 +744,7 @@ export function open(opts) {
   e.classList.remove('hidden');
   // The classifieds file is fetched behind the modem screen, which is exactly
   // where a 56k connection would have spent that time anyway.
-  const ready = loadListings();
+  const ready = Promise.all([loadListings(), loadCalls()]);
   if (connected) { ready.then(() => { if (isOpen()) paint(); }); paint(); return e; }
   e.innerHTML = `<div class="modem"><b>Connexion…</b>
     Composition du 1&nbsp;800&nbsp;773&nbsp;9977…<br>Sympatico &mdash; 56 000 bps<br><br>

@@ -311,14 +311,19 @@ export const FAMOUS = [
   },
 ];
 
-// The legends the writers gave us that this build has no model for. Nobody can
-// earn these and nobody should be told they can — they are what Norm talks
-// about while he has your car on the hoist, which is exactly the right place
-// for a car that only exists as a story.
+// The legends the writers gave us that this build has no model for, and the
+// rivals who drive them in assets/text/rivals.json. Pato Gagnon, Le Rat
+// Lévesque, Big Dan Beaulieu and Sophie Tremblay are all written as people you
+// race; racejobs.js has four races and the only rivals in them are Adam,
+// Margaret and Sayyad. Rather than ship four cars nobody can earn, these stay
+// as what Norm talks about while your car is on the hoist — which is the right
+// place for a car that so far only exists as a story. When the modes agent adds
+// a race against one of them, its legend and its `howToEarn` are already
+// written and the pairing is one FAMOUS entry away.
 export const RUMOURS = [
   'Le Monte Carlo SS à Big Dan Beaulieu — noir, filets rouges, deux Flowmaster. '
-    + 'Y’a passé quatre ans dans grange de son grand-père à gosser le 350.',
-  'Le GTI 16V du prof Roy — rouge Tornado su’ des BBS. Il l’a barré dans un entrepôt '
+    + 'Y’a passé quatre ans dans grange de son grand-père à gosser le 350. Il court encore.',
+  'Le GTI du prof Roy — rouge Tornado su’ des BBS. Il l’a barré dans un entrepôt '
     + 'chauffé en arrière d’la Principale avant de partir en France, immatriculation pas signée.',
   'Le Mustang 5.0 notchback à Pato Gagnon — blanc, pas de décalque, straight pipes. '
     + 'Il courait le quart de mille su’ les Allumettières avant même que ça ouvre.',

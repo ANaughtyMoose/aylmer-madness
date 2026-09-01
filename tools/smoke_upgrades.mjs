@@ -206,7 +206,8 @@ group('Kijiji');
 group('the forty ads in assets/text/kijiji.json');
 {
   const fs = await import('node:fs');
-  const raw = JSON.parse(fs.readFileSync(new URL('../assets/text/kijiji.json', import.meta.url), 'utf8'));
+  const url = (u) => new URL('../' + u, import.meta.url);
+  const raw = JSON.parse(fs.readFileSync(url('assets/text/kijiji.json'), 'utf8'));
   ok(Array.isArray(raw.listings) && raw.listings.length >= 30, `${raw.listings.length} listings in the file`);
 
   const all = K.mergeListings(raw);
@@ -251,6 +252,51 @@ group('the forty ads in assets/text/kijiji.json');
     ok(a.flaw.text.length > 30, `${a.car}: ${a.flaw.text}`);
   }
   ok(!K.wasInspected(K.ADS[0]), 'and nothing is inspected until you pay for it');
+
+  // ---- the phone -------------------------------------------------------
+  const callFetch = (u) => Promise.resolve({ ok: true, json: () => JSON.parse(fs.readFileSync(url(u), 'utf8')) });
+  await K.loadCalls(callFetch);
+  ok(K.CALLS.list.length === 30, `${K.CALLS.list.length} sellers on the other end of the phone`);
+  ok(K.CALLS.list.every((c) => c.opening && c.middle && c.kind),
+    'each with two lines of his own and something the game can do with him');
+  ok(!/'/.test(K.CALLS.list.map((c) => c.opening + c.middle).join('')), 'curly apostrophes throughout');
+
+  const kinds = {};
+  for (const a of all) { const c = K.callerFor(a); kinds[c.kind] = (kinds[c.kind] || 0) + 1; }
+  console.log('  who answers, across all ' + all.length + ' ads: '
+    + Object.entries(kinds).map(([k, n]) => `${k} ${n}`).join(', '));
+  ok(Object.keys(kinds).length >= 5, 'every kind of seller is out there somewhere');
+  ok(kinds.deal > 0 && (kinds.ferme || 0) + (kinds.jase || 0) + (kinds.repondeur || 0) > kinds.deal,
+    'and most calls waste your afternoon, which is the joke');
+
+  // The one that ties the classifieds to the mechanic: Norm's lien sale.
+  const tercel = all.find((a) => /TERCEL/.test(a.title));
+  ok(tercel && K.callerFor(tercel).sellerType === 'Mechanic selling an abandoned repair',
+    'the Tercel out front is Garage Lafleur selling a repair the customer never paid for');
+  ok(/Garage Lafleur/.test(K.callerFor(tercel).opening), `« ${K.callerFor(tercel).opening.slice(0, 60)}… »`);
+
+  // Calling changes the price, and being lied to is worth as much as paying for
+  // the inspection — because it tells you exactly where to look.
+  const g2 = fresh();
+  const w2 = new Wallet(null); w2.set(400);
+  const van = K.ADS.find((a) => a.car === 'caravan');
+  const vanCaller = K.callerFor(van);
+  ok(vanCaller.kind === 'deal', `the Caravan is « ${vanCaller.sellerType} »`);
+  const sticker = UNLOCKS.caravan.cost;
+  const cut = K.dealOn(vanCaller, sticker);
+  ok(cut > 0 && cut < sticker, `she takes $${cut} off $${sticker} to clear her driveway`);
+  ok(K.dealtPrice(van, sticker) === sticker, 'but not until you actually ring her');
+  ok(K.dealOn({ kind: 'ferme' }, sticker) === 0, 'and the guy who will not budge does not budge');
+
+  // Garage.buy() is the one till, and it now knows about a discount.
+  ok(g2.price('caravan', 100) === sticker - 100, `a $100 discount makes the van $${g2.price('caravan', 100)}`);
+  ok(g2.price('caravan', 99999) === 0, 'and never less than free');
+  w2.set(sticker - 60);
+  ok(!g2.canBuy('caravan', w2, new Set()).ok, 'sixty short is sixty short at the sticker');
+  ok(g2.canBuy('caravan', w2, new Set(), 80).ok, '...and enough once he has come down eighty');
+  const before2 = w2.value;
+  ok(g2.buy('caravan', w2, new Set(), 80).ok && w2.value === before2 - (sticker - 80),
+    `and the till takes $${sticker - 80}, not $${sticker}`);
 }
 
 // ---------------------------------------------------------------- 5. famous
