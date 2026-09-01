@@ -618,7 +618,7 @@ export class Hangout {
     if (!it) return;
     const who = this.roster.map((k) => this.name(k)).join(', ');
     G.hud && G.hud.setObjective(`Sur le perron: ${who}`,
-      'E choisit   ·   Q change   ·   repars quand tu veux (W)');
+      'E choisit   ·   Q change   ·   W pour repartir');
     G.hud && G.hud.prompt(`E  —  ${it.label}   ·   Q  —  autre chose  (${this.pick + 1}/${this.menu.length})`);
   }
 
@@ -849,7 +849,10 @@ export class Hangout {
     }
     this.roster.forEach((who, i) => {
       const look = LOOKS[who] || LOOKS.adam;
-      const along = (i - (this.roster.length - 1) / 2) * 1.35;
+      // Offset up the street as well as across it: people stand at the front
+      // corner of a lawn, not dead abeam of the truck in the driveway, and it
+      // puts them in frame instead of at the edge of it.
+      const along = 3.4 + (i - (this.roster.length - 1) / 2) * 1.35;
       const inset = 7.4 + (i % 2 ? 0.9 : 0);
       const base = yaw + (i % 2 ? 0.25 : -0.2);
       const mesh = this.meshFor(G, who, () => buildPerson(look, who === 'mike'));
