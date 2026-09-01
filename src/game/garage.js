@@ -9,15 +9,21 @@
 // is unlocked, why is that one not, and can I buy it — and it answers them.
 import { CARS } from './cars.js';
 import { readJSON, writeJSON, KEYS } from './store.js';
+import { normalizeMods, emptyMods, isStock } from './upgrades.js';
 
 // `kind`:
 //   'start'    you have it from the first drive
 //   'mission'  somebody hands you the keys when `mission` is finished
-//   'buy'      it is for sale at PLACES.usedlot for `cost`, once `jobs` jobs
-//              have been finished
+//   'buy'      it is for sale at PLACES.usedlot (or on Kijiji) for `cost`, once
+//              `jobs` jobs have been finished
 //   'free'     nobody owns it in any way that matters: it is sitting there with
 //              the key in it, and you can drive it whenever you like. The golf
 //              cart on the apron at Club de Golf Gatineau is the only one.
+//   'famous'   a car the whole town would recognise. There is no price on it and
+//              no mission that hands it over on its own: game/famouscars.js
+//              watches what you have actually DONE and calls earn() when you
+//              have deserved it. canBuy() refuses these outright, so no amount
+//              of money and no hand-edited save can shortcut one.
 export const UNLOCKS = {
   ranger: { kind: 'start' },
   saturn: {
@@ -60,14 +66,82 @@ export const FOR_SALE = CARS.filter((c) => UNLOCKS[c.id] && UNLOCKS[c.id].kind =
 
 const asSet = (v) => (v instanceof Set ? v : new Set(Array.isArray(v) ? v : []));
 
+// Per-car upgrade state out of a save file, with every level clamped to a level
+// the shop actually sells. A car nobody has touched keeps no record at all.
+function loadMods(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const id of Object.keys(raw)) {
+    if (!UNLOCKS[id]) continue;
+    const m = normalizeMods(raw[id]);
+    if (!isStock(m)) out[id] = m;
+  }
+  return out;
+}
+
 export class Garage {
   constructor(done) {
     this.done = asSet(done);
     const raw = readJSON(KEYS.cars, {});
     this.bought = new Set(Array.isArray(raw.bought) ? raw.bought.filter((id) => UNLOCKS[id]) : []);
     this.seen = new Set(Array.isArray(raw.seen) ? raw.seen.filter((id) => UNLOCKS[id]) : []);
+    // What the mechanic has fitted, per car, and the things you have done that
+    // a famous car is watching for (a jump landed, a chain finished). Both ride
+    // in the same record save.js already carries as `unlocks`, which is why
+    // buying a camshaft persists exactly the way buying a car does.
+    this.mods = loadMods(raw.mods);
+    this.feats = new Set(Array.isArray(raw.feats) ? raw.feats.filter((f) => typeof f === 'string') : []);
     this.seen.add(START_CAR);
     for (const id of FREE_CARS) this.seen.add(id);
+  }
+
+  // ---- upgrades ---------------------------------------------------------
+
+  /**
+   * The parts fitted to one car. Always a full record, never undefined — and
+   * deliberately NOT stored when it is empty: this is read every frame for
+   * whatever you are driving, and a stock car has no business growing a row in
+   * the save file just because you sat in it.
+   */
+  modsFor(id) {
+    return this.mods[id] || emptyMods();
+  }
+
+  /** What is actually recorded, or null. The per-frame read path uses this. */
+  rawMods(id) { return this.mods[id] || null; }
+
+  /** Write back what the shop did, and forget a car that is stock again. */
+  setMods(id, mods) {
+    const m = normalizeMods(mods);
+    if (isStock(m)) delete this.mods[id];
+    else this.mods[id] = m;
+    this.save();
+    return m;
+  }
+
+  // ---- what you have done -----------------------------------------------
+
+  hasFeat(f) { return this.feats.has(f); }
+
+  /** Record something that happened. Returns true the FIRST time only. */
+  addFeat(f) {
+    if (!f || this.feats.has(f)) return false;
+    this.feats.add(f);
+    this.save();
+    return true;
+  }
+
+  /**
+   * Hand over a famous car. Deliberately separate from buy(): there is no
+   * wallet in the signature, because there is no price.
+   */
+  earn(id) {
+    const u = UNLOCKS[id];
+    if (!u || u.kind !== 'famous' || this.bought.has(id)) return false;
+    this.bought.add(id);
+    this.seen.add(id);
+    this.save();
+    return true;
   }
 
   // The mission progress this garage should answer questions against. main.js
@@ -116,6 +190,11 @@ export class Garage {
    */
   canBuy(id, wallet, done = this.done) {
     const u = UNLOCKS[id];
+    // A famous car has no price, so the answer is never about money. Saying so
+    // in the prompt is the point: « ça s'achète pas » is the whole design.
+    if (u && u.kind === 'famous') {
+      return { ok: this.bought.has(id), why: this.bought.has(id) ? null : 'Ça s’achète pas. ' + u.need };
+    }
     if (!u || u.kind !== 'buy') return { ok: false, why: 'Celui-là est pas à vendre' };
     if (this.bought.has(id)) return { ok: true, why: null };
     if (u.jobs && asSet(done).size < u.jobs) {
@@ -162,12 +241,19 @@ export class Garage {
   // The save-slot system owns the real save file; this is the shape it wants,
   // and `aylmer.cars` is only the fallback for when nothing calls restore().
 
-  serialize() { return { bought: [...this.bought], seen: [...this.seen] }; }
+  serialize() {
+    return {
+      bought: [...this.bought], seen: [...this.seen],
+      mods: this.mods, feats: [...this.feats],
+    };
+  }
 
   restore(obj) {
     const o = obj && typeof obj === 'object' ? obj : {};
     this.bought = new Set(Array.isArray(o.bought) ? o.bought.filter((id) => UNLOCKS[id]) : []);
     this.seen = new Set(Array.isArray(o.seen) ? o.seen.filter((id) => UNLOCKS[id]) : []);
+    this.mods = loadMods(o.mods);
+    this.feats = new Set(Array.isArray(o.feats) ? o.feats.filter((f) => typeof f === 'string') : []);
     this.seen.add(START_CAR);
     for (const id of FREE_CARS) this.seen.add(id);
     this.save();
@@ -179,6 +265,8 @@ export class Garage {
   reset() {
     this.bought = new Set();
     this.seen = new Set([START_CAR, ...FREE_CARS]);
+    this.mods = {};
+    this.feats = new Set();
     this.save();
     return this;
   }

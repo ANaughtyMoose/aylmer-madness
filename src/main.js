@@ -1835,3 +1835,14 @@ window.AYLMER = {
     return w ? { ...w, drawCalls: G.renderer.stats.draws, rendererTris: G.renderer.stats.tris } : null;
   },
 };
+
+// ---------------------------------------------------------------- economy agent
+// ONE hook, on purpose: three other agents are editing this file this wave.
+// Everything the money loop does — the mechanic's screen (U at a garage), the
+// Kijiji classifieds (K), the upgrade modifier layer that puts the parts you
+// bought onto whatever Vehicle enterDrive/swapCar most recently built, and the
+// watcher that hands over a famous car the moment you have earned it — lives in
+// game/economy.js and the three modules it pulls in. Nothing below this line
+// reads or writes anything main.js owns except the objects handed to it here.
+import { installEconomy } from './game/economy.js';
+installEconomy({ G, hud, audio, PLACES, OWNER, carById, curbSpot, api: window.AYLMER });
