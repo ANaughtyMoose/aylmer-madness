@@ -113,9 +113,9 @@ function buildCityBus(s, opts = {}) {
     mb.box(sx * (hw + 0.010), 1.90, -1.15, 0.018, 0.075, 11.0, teal);   // thin band under the sill
     mb.box(sx * (hw + 0.010), 1.16, -1.15, 0.018, 0.30, 11.0, teal);    // the wide turquoise band
     // The magenta comma: it comes up out of the band ahead of the centre door,
-    // curls over and drops back into it. Fourteen segments of ribbon.
-    // Fourteen segments of a spiral, widening as it goes, so it ends in a
-    // tail rather than closing back on itself into a ring.
+    // curls over and drops back into it. Fourteen segments of a spiral whose
+    // radius grows as it goes, so it ends in a tail instead of closing back on
+    // itself into a ring — which is what the first attempt did.
     for (let k = 0; k < 14; k++) {
       const u0 = k / 14, u1 = (k + 1) / 14;
       const seg = [u0, u1].map((u) => {
