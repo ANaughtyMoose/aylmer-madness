@@ -1,0 +1,145 @@
+{
+  "_": "Le perron du 129 Frank-Robinson. `need` is a space-separated list of conditions; every one has to hold. Tokens: done:<id>, !done:<id>, couch, !couch, car:<id>, radio:on, radio:off, here:<key> (that person is on the lawn tonight), and <fact><op><n> over races/jobs/money/damage/nights/best. More conditions = more specific = said first. `gift` pays out once ever. Zahra's about-sayyad lines come from zahra.json and are folded in with need 'here:sayyad'. src/game/hangout.js carries a trimmed copy of this file as its fallback.",
+
+  "names": {
+    "mike": "Mike",
+    "sayyad": "Sayyad",
+    "margaret": "Margaret",
+    "adam": "Adam",
+    "zahra": "Zahra"
+  },
+
+  "day": [
+    "L'entrée est vide. La Buick de la mère de Mike est là, pas Mike.",
+    "Y a personne. Le monde arrive quand le soleil descend.",
+    "Le perron est vide. C'est un perron de soir, ça."
+  ],
+
+  "greet": [
+    { "who": "mike", "line": "Heille! Coupe le moteur, ma mère dort à dix heures." },
+    { "who": "mike", "line": "T'arrives juste à temps, j'étais en train d'expliquer quelque chose d'important." },
+    { "who": "sayyad", "line": "ENFIN. Ça fait vingt minutes qu'on parle de rien." },
+    { "who": "sayyad", "line": "Check la chemise. Palmiers jaunes. C'est pas tout le monde qui porte ça." },
+    { "who": "margaret", "line": "Assis-toi. Y a de la place sur les marches." },
+    { "who": "margaret", "line": "T'as mangé? Y a des chips en dedans. Sers-toi." },
+    { "who": "adam", "line": "...t'es en retard." },
+    { "who": "adam", "line": "Ouais." },
+    { "who": "zahra", "line": "Sayyad a dit que t'avais pas ton permis pour vrai. Je le crois pas, mais il l'a dit." },
+    { "who": "zahra", "line": "Je rentre à dix heures. Pas parce que je veux." }
+  ],
+
+  "catch": [
+    { "who": "mike", "need": "", "line": "...faque le gars me dit que le moteur est correct. Correct! Écoute. Écoute-moi deux secondes." },
+    { "who": "mike", "need": "", "line": "Y a une manière de reculer dans l'entrée sans toucher au bac. Une seule. Je vais te la montrer avec mes mains." },
+    { "who": "mike", "need": "couch", "line": "Regarde-le. REGARDE-LE. Trois semaines qu'y est là-haut. Ça, c'est de l'ingénierie." },
+    { "who": "mike", "need": "couch", "line": "Ma mère l'a vu hier. A l'a rien dit. Rien! C'est ça le plus beau de l'affaire." },
+    { "who": "mike", "need": "couch nights>=3", "line": "Le monde ralentit devant chez nous pour le voir. Le monde. Ralentit. Pour NOUS." },
+    { "who": "mike", "need": "!couch !done:divan", "line": "J'ai un plan pour le divan. Un vrai plan. Faut juste que t'amènes ton truck." },
+    { "who": "mike", "need": "!couch done:divan", "line": "Y est retombé. Je sais pas comment. On recommence, pis cette fois on vise le gros bras." },
+    { "who": "mike", "need": "done:racecivic", "line": "T'as battu sa Civic?! Attends. Attends attends attends. Recommence par le début." },
+    { "who": "mike", "need": "done:canot", "line": "Un canot. Au Bondo. Jusqu'à l'île. Je l'ai conté à trois personnes pis y a personne qui me croit." },
+    { "who": "mike", "need": "car:bus", "line": "T'es venu en BUS. Un bus d'école. Dans MON entrée. Non mais." },
+    { "who": "mike", "need": "car:cart", "line": "C'est... c'est un cart de golf. Ok. OK! Non mais ok. Explique." },
+    { "who": "mike", "need": "damage>=30", "line": "Qu'est-ce qui est arrivé au char?! Non — dis-moi pas. Dis-moi. Dis-moi tout." },
+    { "who": "mike", "need": "jobs>=12", "line": "T'as faite plus d'affaires cet été que moi dans toute ma vie, pis j'ai un an de plus que toi." },
+    { "who": "mike", "need": "damage>=15", "line": "Non non non, écoute. Écoute-moi. Norm Lafleur va te charger le double si t'attends. Le DOUBLE. Regarde ma main." },
+    { "who": "mike", "need": "here:zahra", "line": "...pis c'est là que Zahra m'a dit que j'avais tort. Elle avait raison. Mais écoute pareil." },
+    { "who": "mike", "need": "here:adam here:sayyad", "line": "Attends attends attends. Les deux, là. Écoutez-moi les deux en même temps. C'est important." },
+    { "who": "mike", "need": "races>=1", "line": "Le Tour des Maringouins, c'est pas une course, c'est un test de nerfs. Je te le dis avec mes mains: c'est ÇA le virage." },
+
+    { "who": "sayyad", "need": "radio:on", "line": "C'est quoi ça? Non. Non non non. Ôte-moi ça pis mets ma cassette." },
+    { "who": "sayyad", "need": "radio:off", "line": "Y a pas de musique. Pourquoi y a pas de musique? Pars le radio, mon chum." },
+    { "who": "sayyad", "need": "", "line": "J'ai gravé une compile hier soir. Blink, 50 Cent, pis une toune de Jean Leloup pour ma mère." },
+    { "who": "sayyad", "need": "!done:racecivic", "line": "Ma Civic te mangerait tout rond. On se le dit une fois pis on l'oublie." },
+    { "who": "sayyad", "need": "done:racecivic", "line": "J'ai laissé faire, c'te soir-là. C'tait pour te faire plaisir. Demande à Adam." },
+    { "who": "sayyad", "need": "done:sayyad", "line": "Trois doughnuts devant chez nous à minuit. Ma mère en parle encore. À l'épicerie." },
+    { "who": "sayyad", "need": "couch", "line": "Le divan, c'tait mon idée. Mike va dire que c'tait la sienne. C'tait mon idée." },
+    { "who": "sayyad", "need": "car:civic", "line": "T'es venu avec MA Civic. ...continue. Ça me dérange pas. Continue de parler." },
+    { "who": "sayyad", "need": "money<40", "line": "T'es cassé, hein? Ça paraît dans ta face, mon homme." },
+    { "who": "sayyad", "need": "money>=250", "line": "Où t'as pris c't'argent-là? Non. Laisse faire. J'veux pas le savoir." },
+    { "who": "sayyad", "need": "done:blitz", "line": "Six checkpoints en soixante secondes. La ville t'appartient. Officiellement." },
+    { "who": "sayyad", "need": "races>=3", "line": "Trois courses. Y a plus personne dans Aylmer qui veut se mesurer à toi. Ça inclut moi." },
+
+    { "who": "margaret", "need": "", "line": "Assis-toi deux minutes. Ça changera rien que tu partes à dix heures ou à dix heures et quart." },
+    { "who": "margaret", "need": "", "line": "Y font le même party à Deschênes chaque vendredi pis y pensent qu'on le sait pas." },
+    { "who": "margaret", "need": "damage>=30", "line": "T'as scrappé le char de ton père. Assis-toi, pis explique-moi ça calmement." },
+    { "who": "margaret", "need": "done:curfew", "line": "T'es rentré avant minuit hier. J'ai vu la lumière de ta cuisine s'éteindre. C'est bien." },
+    { "who": "margaret", "need": "jobs>=10", "line": "Tu travailles pas mal pour un été. Y en aura pas d'autre comme celui-là, tu sais." },
+    { "who": "margaret", "need": "couch", "line": "Y a un divan dans l'arbre. Je vais faire comme si je l'avais pas vu." },
+    { "who": "margaret", "need": "races>=2", "line": "Vous courez sur des rues où le monde reste. Un jour vous allez comprendre ça." },
+    { "who": "margaret", "need": "nights>=4", "line": "T'es rendu que tu viens tous les soirs. C'est correct. C'est ça, un été." },
+    { "who": "margaret", "need": "done:tour", "line": "Cinq spots au coucher de soleil. T'es plus un touriste dans ta propre ville." },
+    { "who": "margaret", "need": "money<25", "line": "Tiens. Prends dix piasses. Non. Prends-les. Tu me les redonneras en septembre.", "gift": 10 },
+
+    { "who": "adam", "need": "", "line": "...ouais." },
+    { "who": "adam", "need": "", "line": "J'ai marché depuis Deschênes. ...non. J'ai le Sunfire. J'voulais juste voir si t'écoutais." },
+    { "who": "adam", "need": "!done:racedave", "line": "Mon Sunfire est plus vite que ton char. C'est mathématique." },
+    { "who": "adam", "need": "done:racedave", "line": "Tu m'as battu. Une fois. Sur une rue. Un mardi. En juillet." },
+    { "who": "adam", "need": "car:sunfire", "line": "C'est mon char, ça." },
+    { "who": "adam", "need": "couch", "line": "Y a un divan dans l'arbre." },
+    { "who": "adam", "need": "done:chelsea", "line": "T'es monté jusqu'à Chelsea. Pour rien. ...respect." },
+    { "who": "adam", "need": "damage>=40", "line": "Ton char a l'air de ma vie." },
+    { "who": "adam", "need": "done:highwayhull", "line": "Hull. T'es allé à Hull. Y ont un musée, paraît. J'irai pas." },
+
+    { "who": "zahra", "need": "", "line": "Vous dites les mêmes affaires chaque soir. Je les ai comptées. Y en a onze." },
+    { "who": "zahra", "need": "couch", "line": "Le divan va tomber. Pas à soir. Mais y va tomber, pis y va y avoir quelqu'un en dessous." },
+    { "who": "zahra", "need": "races>=2", "line": "T'as gagné combien de courses? Deux? Sayyad en a raconté cinq à ma mère." },
+    { "who": "zahra", "need": "money>=200", "line": "T'as de l'argent pis tu conduis encore le truck de ton père. Explique-moi ça." },
+    { "who": "zahra", "need": "damage>=25", "line": "L'aile droite. Tu l'as frappée en reculant. J'ai vu la peinture sur le poteau." },
+    { "who": "zahra", "need": "done:golfcart", "line": "T'as volé un cart de golf. Je le dis à personne. Ça va te coûter cher, par exemple." },
+    { "who": "zahra", "need": "best<32", "line": "Trente-et-une secondes. Je t'ai chronométrée. Sayyad a dit quarante pis y ment." },
+    { "who": "zahra", "need": "nights>=3", "line": "T'es icitte plus souvent que moi, pis moi je reste à trois rues." },
+    { "who": "zahra", "need": "jobs>=12", "line": "T'as faite toutes les jobs de la ville. Y te reste quoi, à part nous autres?" },
+    { "who": "zahra", "need": "done:canot", "line": "L'île, c'est à 1,2 km. J'ai mesuré sur la carte de géo. Vous êtes tous fous." },
+    { "who": "zahra", "need": "here:mike", "line": "Mike explique la même affaire depuis mardi. Personne lui a dit qu'on avait compris." },
+    { "who": "zahra", "need": "damage>=20", "line": "Amène-le à Norm Lafleur avant que ton père le voie. Norm dira rien. Il dit jamais rien." },
+
+    { "who": "margaret", "need": "here:zahra", "line": "Zahra, y est neuf heures et demie. ...oui je sais que tu le sais." },
+    { "who": "sayyad", "need": "here:zahra", "line": "Écoute-la pas. A l'a treize ans pis a pense qu'a l'a raison. ...a l'a souvent raison." }
+  ],
+
+  "slalom": {
+    "pitch": [
+      { "who": "mike", "line": "Les bacs de ma mère sont déjà dans rue. Jusqu'à Smiley pis tu revires. Chrono." },
+      { "who": "sayyad", "line": "J'ai sorti les bacs. Slalom jusqu'à Smiley, pis tu reviens dans l'entrée. Dix piasses." },
+      { "who": "zahra", "line": "J'ai la montre de mon père. Je pars le chrono quand tu bouges. Triche pas." },
+      { "who": "adam", "line": "Les bacs sont dehors. Va jusqu'à Smiley. Reviens. C'est tout." }
+    ],
+    "win": [
+      { "who": "sayyad", "line": "OUAIS! T'AS VU ÇA? Quelqu'un a-tu vu ça?" },
+      { "who": "mike", "line": "Le troisième bac — comment t'as faite pour le troisième bac? Montre-moi avec tes mains." },
+      { "who": "zahra", "line": "C'est un bon temps. Je le dirai pas trop fort, y vont vouloir recommencer." },
+      { "who": "adam", "line": "...pas pire." },
+      { "who": "margaret", "line": "Beau travail. Astheure ramasse les bacs, c'est la collecte demain." }
+    ],
+    "lose": [
+      { "who": "adam", "line": "Non." },
+      { "who": "sayyad", "line": "Laisse-moi essayer. LAISSE-MOI ESSAYER." },
+      { "who": "zahra", "line": "T'as manqué deux barrières pis t'as pété un bac. J'ai tout écrit." },
+      { "who": "mike", "line": "C'est correct. C'est correct! Le bac était mal placé. C'est de ma faute." },
+      { "who": "margaret", "line": "Recommence donc. Y a personne qui s'en va nulle part." }
+    ],
+    "bin": [
+      { "who": "mike", "line": "LE BAC!" },
+      { "who": "sayyad", "line": "Ayoye." },
+      { "who": "zahra", "line": "Un." },
+      { "who": "margaret", "line": "C'est le bac du voisin, ça." }
+    ]
+  },
+
+  "job": [
+    { "who": "sayyad", "line": "J'ai de quoi pour toi. Embarque, je t'explique en chemin." },
+    { "who": "margaret", "line": "Y a une affaire à faire à soir. Ça te ferait de l'argent propre." },
+    { "who": "adam", "line": "Y a une job. J'irais bien mais j'irai pas." },
+    { "who": "mike", "line": "AH! J'oubliais. J'oubliais! Attends. Écoute-moi." },
+    { "who": "zahra", "line": "J'ai lu l'annonce. Personne d'autre l'a lue. Vas-y avant eux autres." }
+  ],
+
+  "leave": [
+    { "who": "mike", "line": "Reviens demain! J'aurai fini mon explication." },
+    { "who": "sayyad", "line": "Klaxonne en passant. Tout le temps." },
+    { "who": "margaret", "line": "Roule doucement dans rue. Y a des kids." },
+    { "who": "adam", "line": "Bye." },
+    { "who": "zahra", "line": "Salut. Fais pas de niaiseries avant demain." }
+  ]
+}

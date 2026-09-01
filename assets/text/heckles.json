@@ -1,0 +1,1804 @@
+{
+  "heckles": [
+    {
+      "trigger": "nearmiss",
+      "fr": "Où c'est qu't'as pogné ton permis, dans une boîte de Cracker Jack, calvince?!",
+      "en": "Where'd you get your licence, in a Cracker Jack box, damn it?!",
+      "note": "Classic Québécois insult implying your driving credentials came as a free junk-food toy."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "T'as failli m'arracher le bras, hostie d'épais!",
+      "en": "You almost ripped my arm off, you dense prick!",
+      "note": "'Épais' literally means thick/dense; combined with 'hostie' (host sacre) it's a staple insult."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Regarde où tu vas avec ton asti d'tas d'ferraille!",
+      "en": "Watch where you're going with your damn pile of scrap metal!",
+      "note": "'Tas d'ferraille' is affectionate or scathing contempt for a rusted-out jalopy."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "T'as des yeux d'ins trous d'nez ou quoi, ciboire?!",
+      "en": "Do you have eyes in your nostrils or what, holy host?!",
+      "note": "Vivid imagery for someone clearly unable to look in front of their face."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Passe à deux pouces d'moé encore une fois pis j'te garroche mon café, câlisse!",
+      "en": "Come two inches from me one more time and I'll chuck my coffee at you, damn it!",
+      "note": "'Garrocher' is pure Québécois for hurling an object violently."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Aye! J'suis pas un cône orange su'l chemin d'Aylmer, tabarnak!",
+      "en": "Hey! I'm not an orange traffic cone on chemin d'Aylmer, for fuck's sake!",
+      "note": "Orange cones are the provincial tree of Québec; pedestrians dislike being treated like them."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "T'as manqué ma poussette de deux poils de poche, imbécile!",
+      "en": "You missed my stroller by two pubes, you idiot!",
+      "note": "'Deux poils de poche' is the crude standard unit of microscopic proximity in joual."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Y a des brakes là-dessus ou c'est juste pour décorer, esti d'chaudaille?!",
+      "en": "Are there brakes on that thing or are they just decoration, you drunk bastard?!",
+      "note": "'Chaudaille' refers to a notoriously tipsy character staggering home from the tavern."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "T'as appris à chauffer dans les autos tamponneuses à Plage des Cèdres?!",
+      "en": "Did you learn to drive in the bumper cars at Plage des Cèdres?!",
+      "note": "Bumper-car insult tailored to local Aylmer waterfront summer memories."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Un coup d'vent de plus pis j'ramassais ton antenne dans gorge!",
+      "en": "One more gust of wind and I'd be swallowing your whip antenna!",
+      "note": "Referencing the Ford Ranger's notoriously long, whipping steel radio antenna."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Lâche ton esti de cellulaire à clapet avant d'tuer quelqu'un!",
+      "en": "Drop your goddamn flip phone before you kill someone!",
+      "note": "Early 2004 texting-and-driving rage when Motorola flip phones became widespread."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Envoye, rase-moé d'encore plus près, m'a t'donner un coup d'godasse dans porte!",
+      "en": "Go on, shave me even closer, I'll put my work boot right through your door!",
+      "note": "'Godasse' is slang for a heavy boot; usually steel-toed work boots in the Outaouais."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Mon cœur a arrêté pendant trois secondes, saint-crême d'abruti!",
+      "en": "My heart stopped for three seconds, holy-cream idiot!",
+      "note": "'Saint-crême' is a milder, colorful Catholic sacre blending saint and chrism."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Prends donc toute la rue pendant qu't'es là, ciboire de sans-cœur!",
+      "en": "Why don't you take the whole damn street while you're at it, heartless prick!",
+      "note": "Sarcastic pedestrian rage when a wide pickup truck swerves across both lanes."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "J'viens d'échapper mes beignes du Tim Hortons à cause de toé, crisse!",
+      "en": "I just dropped my Tim Hortons donuts because of you, christ!",
+      "note": "A tragic loss of crullers and Timbits caused by reckless driving."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Ferme tes yeux, ça va t'aider à mieux viser la prochaine fois!",
+      "en": "Close your eyes, it'll help you aim better next time!",
+      "note": "Biting sarcasm aimed at a driver with zero spatial awareness."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Aye Jacques Villeneuve, calme tes nerfs su'a pédale!",
+      "en": "Hey Jacques Villeneuve, ease up on the pedal!",
+      "note": "Québécois F1 champion Jacques Villeneuve was every teen's aggressive driving role model in 2004."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "J'ai senti le vent d'ton miroir dans mes cheveux, asti d'malade!",
+      "en": "I felt the breeze of your side mirror in my hair, you psycho!",
+      "note": "Describing a close brush with the Ranger's oversized chrome truck mirrors."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Si tu m'touches, j'poursuis ton père jusqu'à sa cinquième génération!",
+      "en": "If you touch me, I'm suing your dad back five generations!",
+      "note": "Everyone in town knows whose truck this is and knows the kid's dad."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Checke l'autre avec son pickup blanc qui s'pense su'une piste d'atterrissage!",
+      "en": "Check out this guy in his white pickup who thinks he's on an airport runway!",
+      "note": "Mocking the white Ford Ranger barrel-rolling through suburban side streets."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Câlisse, y s'est manqué d'un cheveu d'bécyk!",
+      "en": "Holy shit, he missed by a bicycle spoke!",
+      "note": "Hyperbolic Outaouais phrase indicating the narrowest possible escape."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "T'as failli m'envoyer ad patres direct dans fosse, ciboire!",
+      "en": "You almost sent me straight to kingdom come into the ditch, holy hell!",
+      "note": "'Ad patres' is old-fashioned religious-tinted French for kicking the bucket."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Fais sonner tes wipers, des fois que ça t'aiderait à voir en avant!",
+      "en": "Turn on your wipers, maybe that'll help you see what's in front of you!",
+      "note": "Sarcastic advice suggesting the windshield might be cleaner than the driver's brain."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "Va chier dans l'bois pis r'viens quand t'auras des lunettes!",
+      "en": "Go shit in the woods and come back when you've got glasses!",
+      "note": "Classic rural Outaouais dismissal: tells you to take a hike into the brush."
+    },
+    {
+      "trigger": "nearmiss",
+      "fr": "T'es passé tellement proche que j'ai vu la garniture d'tes freins finis!",
+      "en": "You passed so close I could see the worn-out pads on your brakes!",
+      "note": "Mechanic-level observation delivered by an observant bystander."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Pèse su'ton klaxon encore, y va peut-être t'pousser des couilles!",
+      "en": "Honk that horn again, maybe you'll grow some balls!",
+      "note": "Standard reply to impatient honkers in Gatineau traffic."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Ta yeule avec ton pouet-pouet de bécyk à pédales!",
+      "en": "Shut up with your little tricycle horn!",
+      "note": "The 1993 Ranger's horn sounds pitifully weak compared to modern trucks."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Klaxonne tant qu'tu veux, la lumière est encore rouge, crisse de sans-génie!",
+      "en": "Honk all you want, the light is still red, you brainless prick!",
+      "note": "'Sans-génie' is a scathing traditional Québécois insult meaning utterly lacking intellect."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Mets-le toé dans l'cul ton klaxon, ça va faire un plus beau son!",
+      "en": "Shove that horn up your ass, it'll make a much nicer tune!",
+      "note": "Vulgarly suggests anatomical relocation for a smoother acoustics."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Aye! Mon père klaxonne plus fort quand y dort su'l divan!",
+      "en": "Hey! My dad honks louder when he's snoring on the couch!",
+      "note": "Compares the vehicle's horn to an old man's afternoon nap."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Énarve-toé pas l'poil des jambes, j'avance, tabarnak!",
+      "en": "Don't get your leg hair all riled up, I'm moving, damn it!",
+      "note": "'Énarve-toé pas l'poil des jambes' is an idiosyncratic joual idiom for 'calm your tits'."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Tu m'klaxonnes moé? Viens débarquer d'ton truck voir si t'es brave!",
+      "en": "You honking at me? Get out of your truck and let's see how brave you are!",
+      "note": "Aggressive Outaouais road rage invitation to step onto the gravel."
+    },
+    {
+      "trigger": "honked",
+      "fr": "T'as l'doigt collé su'l volant ou t'as des spasmes musculaires, ciboire?!",
+      "en": "Is your finger glued to the wheel or are you having muscle spasms, damn it?!",
+      "note": "Mocking someone who leans continuously on their horn."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Klaxonne après ta mère, a va p't-être venir te moucher!",
+      "en": "Go honk at your mother, maybe she'll come wipe your snotty nose!",
+      "note": "Infantilizing counter-heckle aimed at young drivers."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Aye le baveux! Pèse encore pis j'arrache ton volant!",
+      "en": "Hey smartass! Honk again and I'll rip your steering wheel off!",
+      "note": "'Baveux' means arrogant, cocky, or mouthy."
+    },
+    {
+      "trigger": "honked",
+      "fr": "C'est ça, réveille toute la rue Principale avec ta trompette rouillée!",
+      "en": "That's it, wake up the entire Main Street with your rusty trumpet!",
+      "note": "Referring to rue Principale in old Aylmer on a sleepy Sunday."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Ton klaxon use plus d'électricité que ton moteur a de forces, esti!",
+      "en": "Your horn draws more power than your engine has horsepower, damn!",
+      "note": "A savage roast of the Ranger's puny 2.3-litre 4-cylinder engine."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Arrête de faire le boss de bécyk avec ta minoune!",
+      "en": "Stop acting like the king of the castle in your jalopy!",
+      "note": "'Boss de bécyk' (bicycle boss) means acting like a big shot with zero authority."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Un autre coup d'klaxon pis j'te bloque la voie jusqu'à Noël!",
+      "en": "One more honk and I'll block this lane till Christmas!",
+      "note": "Passive-aggressive driving retaliation, Outaouais style."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Aye! Tu penses-tu qu'la reine d'Angleterre s'en vient ou quoi?!",
+      "en": "Hey! Do you think the Queen of England is coming through or what?!",
+      "note": "Mocking the urgency of someone clearing traffic with their horn."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Klaxonne à Ottawa si t'es pas content, icitte on est au Québec!",
+      "en": "Go honk in Ottawa if you're unhappy, over here you're in Quebec!",
+      "note": "Cross-border regional friction between Hull/Aylmer and Ottawa."
+    },
+    {
+      "trigger": "honked",
+      "fr": "J'espère que ton klaxon va sauter un fusible, ostie d'impatient!",
+      "en": "I hope your horn blows a fuse, you impatient asshole!",
+      "note": "Wishing electrical failure upon the offender's dashboard."
+    },
+    {
+      "trigger": "honked",
+      "fr": "C'est pas un bouton de manette de Nintendo, lâche ça!",
+      "en": "It's not a button on a Nintendo controller, let go of it!",
+      "note": "Gaming-era reference reminding the youth that real cars aren't video games."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Ta blonde t'a laissé fait que tu t'venges su'l klaxon, hein?",
+      "en": "Your girlfriend dumped you so you're taking it out on the horn, eh?",
+      "note": "Psychologizing the driver's obvious emotional issues."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Pouet-pouet! Regardez-lé, y a découvert l'électricité!",
+      "en": "Beep-beep! Look at him, he discovered electricity!",
+      "note": "Sarcastic cheer treating the honk as a primitive technological breakthrough."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Si tu pèses encore, j'appelle ton père au bureau!",
+      "en": "If you push that again, I'm calling your dad at his office!",
+      "note": "The ultimate Aylmer threat: small town social surveillance."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Aye! Va faire chanter ton char ailleurs, le bébé gâteux!",
+      "en": "Hey! Go make your car sing somewhere else, you whiny baby!",
+      "note": "'Bébé gâteux' mocks infantile, spoiled tantrums."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Tu m'donnes mal à tête, saint-sacrament de crétin!",
+      "en": "You're giving me a headache, holy-sacrament moron!",
+      "note": "Classic Catholic compound sacre expressing auditory agony."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Pèse su'l gaz au lieu d'peser su'l piton, t'avancerais plus vite!",
+      "en": "Step on the gas instead of stepping on the button, you'd go faster!",
+      "note": "Constructive mechanical advice delivered with contempt."
+    },
+    {
+      "trigger": "honked",
+      "fr": "Lâche la trompette, ti-gars, t'es pas dans fanfare municipale!",
+      "en": "Drop the trumpet, kid, you're not in the town marching band!",
+      "note": "Comparing the horn to an out-of-tune brass instrument."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Aye le grand champion, les chars c'est dans rue, pas su'l trottoir!",
+      "en": "Hey big champion, cars go on the street, not the sidewalk!",
+      "note": "'Le grand champion' is heavily sarcastic praise for an absolute disaster of an act."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Mon trottoir c'est pas une troisième voie, ostie d'malade mental!",
+      "en": "My sidewalk isn't a third lane, you lunatic!",
+      "note": "Suburban property owner furious about curb-hopping shortcuts."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Tu penses-tu qu't'es en quatre-roues dans garnotte à Quyon?!",
+      "en": "Do you think you're on a four-wheeler in the gravel in Quyon?!",
+      "note": "Quyon is the rural Pontiac boondocks where anything with wheels rides anywhere."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Descends d'là avant d'démolir mon bac de recyclage, tabarnak!",
+      "en": "Get off of there before you smash my recycling bin, damn it!",
+      "note": "Blue recycling bins were sacred suburban curb furniture in 2004."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Y a monté l'trottoir comme un veau dans l'trèfle!",
+      "en": "He hopped the curb like a calf plowing into clover!",
+      "note": "Rural farming metaphor for unguided, clumsy momentum."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Aye! Les piétons ont des droits, esti d'chauffeur de tondeuse!",
+      "en": "Hey! Pedestrians have rights, you lawnmower driver!",
+      "note": "Equates the 4-cylinder Ranger to a John Deere riding mower."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "T'as-tu pris une brosse avant d'prendre le volant ce matin?!",
+      "en": "Did you go on a bender before getting behind the wheel this morning?!",
+      "note": "'Prendre une brosse' is idiomatic joual for getting roaring drunk."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Tu vas payer pour la bordure en ciment si tu l'ébreches, viarge!",
+      "en": "You're gonna pay for the concrete curb if you chip it, holy virgin!",
+      "note": "'Viarge' is an Outaouais phonetic softening of the Virgin Mary sacre."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Checke-lé, y prend l'trottoir pour couper l'trafic des Galeries!",
+      "en": "Check him out, taking the sidewalk to bypass traffic from the mall!",
+      "note": "Galeries d'Aylmer mall parking lot spillover behavior."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "T'as des pneus d'char ou des chenilles de tank, calvince?!",
+      "en": "Do you have car tires or tank tracks, damn it?!",
+      "note": "Questioning why the driver feels entitled to mount raised pedestrian infrastructure."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "C'est fait pour marcher icitte, pas pour tes cascades à deux cennes!",
+      "en": "This is made for walking on, not for your two-bit stunts!",
+      "note": "'Cascades à deux cennes' mocks cheap, inept amateur stunt driving."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Envoye, monte donc direct dans l'salon chez l'voisin pendant qu't'y es!",
+      "en": "Go on, drive right into the neighbor's living room while you're at it!",
+      "note": "Exaggerates the vehicle's encroachment past the curb line."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "T'as brisé mon parterre de fleurs, maudite vidange!",
+      "en": "You ruined my flowerbed, you piece of garbage!",
+      "note": "'Vidange' (garbage) is a cutting insult for a person with zero civic respect."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Aye! Va parker ton tas d'rouille dans ton entrée, pas su'a promenade!",
+      "en": "Hey! Park your rustbucket in your own driveway, not on the boardwalk!",
+      "note": "Referring to the scenic walkways near the marina or Rue Principale."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "T'es tellement saoul que tu vois des routes partout, ciboire!",
+      "en": "You're so hammered you see highways everywhere, holy host!",
+      "note": "Assumes curb-mounting requires a severe blood-alcohol level."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Laisse les trottoirs aux poussettes pis aux p'tits vieux, sans-dessein!",
+      "en": "Leave the sidewalks for strollers and old folks, you thoughtless prick!",
+      "note": "'Sans-dessein' describes someone acting completely devoid of common sense."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Si tu crèves un pneu su'a bordure, viens pas m'brailler!",
+      "en": "If you blow a tire on the curb, don't come crying to me!",
+      "note": "'Brailler' is standard joual for bawling your eyes out."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "C'est une zone piétonne, pas le rallye de Charlevoix, esti d'fou!",
+      "en": "It's a pedestrian zone, not the Charlevoix Rally, you crazy bastard!",
+      "note": "References Québec's famous professional gravel-rally championship."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Aye le cave! Tu vas accrocher le poteau d'Hydro-Québec!",
+      "en": "Hey moron! You're gonna clip the Hydro-Québec pole!",
+      "note": "Wooden green-creosoted Hydro poles are everywhere along Aylmer curbs."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Rentre chez vous à pied, t'es dangereux pour la société!",
+      "en": "Walk home on foot, you're a menace to society!",
+      "note": "Demands the driver immediately abandon the vehicle."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "T'as confondu la rue avec la piste cyclable des Voyageurs ou quoi?!",
+      "en": "Did you mix up the road with the Voyageurs bike trail or what?!",
+      "note": "The Route Verte bike path hugs the Ottawa River along Lucerne."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Mon chien a failli chier su'ton capot tellement t'es monté haut!",
+      "en": "My dog almost took a dump on your hood you drove up so high!",
+      "note": "Crude humor regarding a dog walker's sudden close encounter."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "T'as frotté ton cardan su'l ciment, ça t'apprendra, cabochon!",
+      "en": "You scraped your axle on the concrete, that'll teach ya, blockhead!",
+      "note": "'Cabochon' refers to a stubborn, thick-headed fool."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "Descends d'là avant qu'la Ville t'envoie la facture du pavé uni!",
+      "en": "Get down before the City sends you the bill for the interlocking pavers!",
+      "note": "Old Aylmer's heritage district paved sections are municipal holy ground."
+    },
+    {
+      "trigger": "sidewalk",
+      "fr": "C'est le trottoir municipal, pas ton raccourci personnel, crisse!",
+      "en": "It's the town sidewalk, not your personal shortcut, christ!",
+      "note": "Indignant municipal citizen defending public goods."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "La lumière était rouge comme la face à ton père quand y pogne les nerfs!",
+      "en": "The light was as red as your dad's face when he loses his temper!",
+      "note": "Everyone knows the father's legendary temper."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Y a des feux d'circulation à Aylmer, c'est pas juste des décorations d'Noël!",
+      "en": "There are traffic lights in Aylmer, they're not just Christmas decorations!",
+      "note": "Reminding rural/suburban drivers that red signals carry legal obligations."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Passe su'a rouge, c'est ça! Les caméras t'ont pogné, champion!",
+      "en": "Run the red, go ahead! The cameras got you, champ!",
+      "note": "Early 2000s paranoia about mythical red-light cameras."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Rouge cerise depuis trois minutes, ostie d'aveugle!",
+      "en": "Cherry red for three whole minutes, you blind bastard!",
+      "note": "'Rouge cerise' is the classic hyperbole for a light that wasn't remotely yellow."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "T'as brûlé l'feu comme si t'avais le feu au cul, tabarnak!",
+      "en": "You blew through that light like your ass was on fire, holy fuck!",
+      "note": "Vivid folk idiom describing frantic, heedless haste."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "L'autre bord c'était vert, t'as failli ramasser un autobus de la STO!",
+      "en": "The other side was green, you almost t-boned an STO bus!",
+      "note": "STO is the Société de transport de l'Outaouais blue-and-white transit buses."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Aye! La lumière jaune ça veut dire ralentis, pas 'écrase la pédale au fond'!",
+      "en": "Hey! Yellow light means slow down, not 'floor the pedal through the floor'!",
+      "note": "Universally ignored rule of the road."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "C'est un arrêt obligatoire, pas un arrêt facultatif, ciboire d'épais!",
+      "en": "It's a mandatory stop, not an optional suggestion, you thick idiot!",
+      "note": "Rolling stops ('arrêts américains') taken to criminal extremes."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "T'as brûlé la rouge su'l boulevard Wilfrid-Lavigne, t'es malade mental!",
+      "en": "You ran the red on Wilfrid-Lavigne, you're mentally sick!",
+      "note": "Aylmer's busy main commercial thoroughfare intersection."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Le stop était écrit en lettres de deux pieds, tu sais-tu lire l'français?!",
+      "en": "The STOP sign had two-foot letters, do you know how to read French?!",
+      "note": "Quebec stop signs famously say 'ARRÊT', sparking language jokes."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Continue de même, tu vas finir en crêpe su'l capot d'une minivan!",
+      "en": "Keep that up and you'll end up flat as a pancake on a minivan's hood!",
+      "note": "The ever-present threat of suburban Dodge Caravans."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "T'avais rendez-vous chez l'croque-mort ou t'avais juste envie d'mourir?!",
+      "en": "Did you have an appointment with the undertaker or did you just feel like dying?!",
+      "note": "Grim dark comedy questioning the reckless hurry."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Aye le fou! Les flèches vertes c'est pas pour toé!",
+      "en": "Hey crazy! The green arrows weren't for you!",
+      "note": "Misinterpreting protected turn signals at complex Gatineau intersections."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "T'as traversé l'intersection comme une balle de carabine, câlisse!",
+      "en": "You shot through that intersection like a rifle bullet, damn it!",
+      "note": "Hunting imagery common in the Outaouais countryside."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "C'est rouge sang, crétin! Apprends tes couleurs de maternelle!",
+      "en": "It's blood red, moron! Go learn your kindergarten colors!",
+      "note": "Mocking basic cognitive deficiencies."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Tu vas t'faire couper en deux par un fardier de gravelle, imbécile!",
+      "en": "You're gonna get cut in two by a gravel dump truck, idiot!",
+      "note": "Gravel trucks from Pontiac quarries barreling toward Ottawa construction sites."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Même à Montréal y osent pas brûler des rouges de même, viarge!",
+      "en": "Even in Montreal they wouldn't dare burn red lights like that, holy virgin!",
+      "note": "Montreal drivers are stereotyped as aggressive, so this is high condemnation."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Aye! T'as pas vu l'p'tit bonhomme blanc pour les piétons, asti d'sans-dessein?!",
+      "en": "Hey! Didn't you see the little white pedestrian walking figure, you thoughtless prick?!",
+      "note": "Pedestrian crossing light priority violation."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "La police de Gatineau va t'arranger ça avec un ticket de trois cents piasses!",
+      "en": "The Gatineau police will sort you out with a three-hundred-dollar ticket!",
+      "note": "Threat of hefty fine from local patrol cars."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "T'as les yeux collés par la chassie ou t'es daltonien de naissance?!",
+      "en": "Are your eyes glued shut with crust or were you born colorblind?!",
+      "note": "'La chassie' is eye crust/sleep; colorblindness insult."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "En plein jour, à midi, devant tout l'monde! Zéro honte, calvince!",
+      "en": "In broad daylight, at noon, right in front of everyone! Zero shame, damn it!",
+      "note": "Shock at the brazenness of daytime infraction."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "T'as sauté la lumière comme si t'avais volé l'char!",
+      "en": "You blew that light like you stole the car!",
+      "note": "Little does the bystander know, the kid basically did borrow dad's truck without full clearance."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Ralentis, maudit chaud! Y a des enfants qui sortent de l'école!",
+      "en": "Slow down, you damn drunk! Kids are coming out of school!",
+      "note": "Community safety concern for school zones."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Si la traverse était pleine, tu faisais un strike de piétons, tabarnak!",
+      "en": "If the crosswalk was full, you would've bowled a strike on pedestrians, fuck!",
+      "note": "Bowling metaphor for pedestrian slaughter."
+    },
+    {
+      "trigger": "ranred",
+      "fr": "Aye! La lumière a viré rouge avant même qu'tu sortes de ton lit ce matin!",
+      "en": "Hey! The light turned red before you even got out of bed this morning!",
+      "note": "Exaggerated timing insult emphasizing how stale the red was."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "T'as rentré dans mon pare-choc, ostie d'charnier ambulant!",
+      "en": "You rammed right into my bumper, you walking disaster!",
+      "note": "'Charnier ambulant' literally walking mass grave/carnage, used for total menaces."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Mon Cavalier 95! Y avait même pas une scratch dessus, tabarnak!",
+      "en": "My '95 Cavalier! It didn't even have a scratch on it, fuck!",
+      "note": "Tragic dent on a pristine 10-year-old teal Chevy Cavalier."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Sors de ton truck pis donne-moé tes papiers d'assurances, esti d'épais!",
+      "en": "Get out of your truck and give me your insurance papers, you dense prick!",
+      "note": "The dreaded exchange of insurance papers at the side of the road."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "T'as défoncé ma valise! Où c'est qu'j'vais mettre mon épicerie du Métro?!",
+      "en": "You smashed my trunk in! Where am I gonna put my Metro groceries?!",
+      "note": "Suburban grocery storage crisis."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Aye! T'as pas appris les distances de sécurité à l'école de conduite?!",
+      "en": "Hey! Didn't you learn following distance in driving school?!",
+      "note": "Lecturing on fundamental braking distance laws."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Bravo l'artiste! Deux chars de scrapés pour le prix d'un!",
+      "en": "Bravo, maestro! Two wrecked cars for the price of one!",
+      "note": "'L'artiste' is sarcastic praise for someone who created a masterpiece of carnage."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Mon frame est tordu, j'le sens d'icitte, ciboire de pourriture!",
+      "en": "My frame is bent, I can feel it from here, you rotten bastard!",
+      "note": "Every Outaouais backyard mechanic can diagnose a bent frame by eye."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "T'as reculé dans ma porte de côté comme un bœuf aveugle!",
+      "en": "You backed into my side door like a blind ox!",
+      "note": "Farm animal clumsiness comparison."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Regarde l'huile qui coule de ton radiateur... Ton père va t'tuer, mon gars!",
+      "en": "Look at the fluid leaking from your radiator... Your dad is gonna kill you, boy!",
+      "note": "Predicting immediate filial doom when father sees the Ranger."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Tu m'as fessé par en arrière tellement fort que mon chapeau a revolé!",
+      "en": "You rear-ended me so hard my hat flew right off!",
+      "note": "Classic rear-end whiplash anecdote."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Esti d'minoune blanche, y t'manquait juste des freins pour faire un char complet!",
+      "en": "Goddamn white jalopy, all you were missing was brakes to make a complete car!",
+      "note": "Roasting the 1993 Ford Ranger XL's mechanical incompleteness."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "T'as grafigné ma peinture deux tons! Ça coûte une beurrée à refaire!",
+      "en": "You scratched my two-tone paint job! That costs a fortune to repaint!",
+      "note": "'Coûter une beurrée' means costing a hefty slab of butter/money."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Aye le sans-dessein! Regarde donc dans tes miroirs avant d'déménager ma carrosserie!",
+      "en": "Hey brainless! Look in your mirrors before remodeling my bodywork!",
+      "note": "Reminding driver about mirrors after rear collision."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "J'viens d'finir de payer mes paiements su'l char le mois passé, câlisse!",
+      "en": "I just finished making my final car payments last month, damn it!",
+      "note": "Peak tragedy: car wrecked the minute the loan is paid off."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "T'as laissé ta calandre dans mon hayon, ramasse tes morceaux!",
+      "en": "You left your front grille embedded in my tailgate, pick up your pieces!",
+      "note": "Debris field aftermath instructions."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Aye! C'est un char de collection, pas une canne de conserve à écraser!",
+      "en": "Hey! That's a collector's car, not a tin can to crush!",
+      "note": "Said of an aging 1980s American sedan held together by pride."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "J'ai le cou barré raide! M'a appeler la SAAQ pis des avocats!",
+      "en": "My neck is locked stiff! I'm calling SAAQ and lawyers!",
+      "note": "Société de l'assurance automobile du Québec no-fault insurance claim threats."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "T'as poussé mon char de trois pieds dans l'fossé, gros jambon!",
+      "en": "You pushed my car three feet into the ditch, you big ham!",
+      "note": "'Gros jambon' is playful/harsh joual for a thick, clumsy lug."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Sacrement, t'as même pas essayé d'freiner! Y a pas une trace de gomme à terre!",
+      "en": "Sacrament, you didn't even try to brake! There's not a single skid mark on the ground!",
+      "note": "Zero reaction time evidence on asphalt."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Prends une photo avec ton Kodak jetable, ça s'ra pas long qu'on va aller en cour!",
+      "en": "Take a picture with your disposable Kodak, we'll be in court in no time!",
+      "note": "Disposable single-use film cameras kept in glove compartments in 2004."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Mon hitch a défoncé ton devant de plastique, bien fait pour toé!",
+      "en": "My trailer hitch punched right through your plastic grille, serves you right!",
+      "note": "Trailer hitch triumphing over flimsy front ends."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "T'as de la peinture de Ranger étampée su'mon aile arrière, asti d'ti-cul!",
+      "en": "You've got Ranger paint stamped on my rear quarter panel, you little punk!",
+      "note": "Indelible paint-transfer proof of blame."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Tu t'es pris pour un char bélier aux Galeries d'Aylmer?!",
+      "en": "Did you think you were a battering ram at the Galeries d'Aylmer?!",
+      "note": "Mall parking lot demolition derby."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Mon muffler est plié en deux comme une banane, calvince!",
+      "en": "My exhaust pipe is bent in two like a banana, damn it!",
+      "note": "Exhaust pipe transformed into fruit geometry."
+    },
+    {
+      "trigger": "hitcar",
+      "fr": "Bouge pas d'icitte! Si tu décolles, c'est un délit d'fuite pis t'es en prison ce soir!",
+      "en": "Don't move from here! If you take off, it's a hit-and-run and you're in jail tonight!",
+      "note": "Immediate warning against fleeing the accident scene."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Ma boîte aux lettres! Y avait mon chèque d'assurance-emploi dedans, tabarnak!",
+      "en": "My mailbox! My employment insurance check was inside, fuck!",
+      "note": "Rural roadside mailbox destruction holding precious government EI checks."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as couché le lampadaire de la Ville! Y va faire noir en maudit à soir!",
+      "en": "You knocked down the city lamppost! It's gonna be pitch black tonight!",
+      "note": "Urban street furniture collateral damage."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Le bac vert a revolé jusqu'en haut de mon érable, esti d'fou!",
+      "en": "The green compost bin flew all the way into the top of my maple tree, crazy bastard!",
+      "note": "Extreme physics applied to municipal curbside bins."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as fauché la clôture en perches à Ti-Guy, y va t'attendre avec sa fourche!",
+      "en": "You mowed down Ti-Guy's cedar rail fence, he'll be waiting for you with his pitchfork!",
+      "note": "Country fence destruction invoking an angry farmer with agricultural tools."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Bravo! La borne-fontaine pisse l'eau jusqu'au deuxième étage!",
+      "en": "Bravo! The fire hydrant is spraying water up to the second floor!",
+      "note": "Geyser eruption from a snapped hydrant."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as détruit la pancarte 'Bienvenue à Aylmer', tu fais honte au quartier!",
+      "en": "You destroyed the 'Welcome to Aylmer' sign, you're a disgrace to the neighborhood!",
+      "note": "Defacing civic pride signage on Chemin d'Aylmer."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Le parcomètre est rendu incrusté dans ton radiateur, champion!",
+      "en": "The parking meter is now embedded in your radiator, champ!",
+      "note": "Old mechanical parking meter fused with the Ford truck front end."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as plié l'poteau d'arrêt en deux, comment l'monde va savoir d'arrêter?!",
+      "en": "You bent the stop sign pole in half, how are people gonna know to stop?!",
+      "note": "Destroying critical traffic signage."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Aye! Mon nain de jardin en plâtre! Y avait quarante ans d'âge, câlisse!",
+      "en": "Hey! My plaster garden gnome! He was forty years old, damn it!",
+      "note": "Tragic demolition of vintage suburban lawn kitsch."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as rentré direct dans l'abri Tempo en plein mois d'juillet?!",
+      "en": "You drove straight into the Tempo car shelter in the middle of July?!",
+      "note": "Tempo shelters are iconic Quebec winter canvas carports that lazy people never take down."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "La cabine téléphonique du Bell! Y en reste juste deux dans toute la ville!",
+      "en": "The Bell payphone booth! There's only two left in the whole town!",
+      "note": "Payphones were disappearing fast in 2004, making this an archaeological tragedy."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as arraché la corde à linge de madame Tremblay avec tes ridelles!",
+      "en": "You tore down Mrs. Tremblay's clothesline with your truck bed rails!",
+      "note": "Bed rails hooking laundry lines strung across back alleys."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Le poteau d'téléphone vibre encore, t'as coupé l'câble de Vidéotron!",
+      "en": "The phone pole is still vibrating, you severed the Vidéotron cable!",
+      "note": "Cutting off the entire block's dial-up and cable TV."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as écrasé le cône orange! C'était l'seul travailleur su'l chantier!",
+      "en": "You ran over the orange cone! That was the only worker on the job site!",
+      "note": "Classic Quebec roadwork joke: cones do more work than road crews."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Aye le sans-génie! Le bac bleu c'est pour le carton, pas pour stationner ton pickup!",
+      "en": "Hey brainless! The blue bin is for cardboard, not for parking your pickup!",
+      "note": "Recycling bin crushed under truck wheels."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as fessé la clôture à neige de l'hiver passé qui traînait là!",
+      "en": "You smacked the leftover orange snow fence that was still sitting there!",
+      "note": "Wooden slat snow fences left forgotten on lawn borders into summer."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "La table de pique-nique de la marina! On mangeait nos hot-dogs dessus, viarge!",
+      "en": "The marina picnic table! We were eating our hot dogs on that, holy virgin!",
+      "note": "Waterfront park amenity obliterated."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as scalpé la haie d'cèdres! Le voisin va nous voir tout nus su'l patio!",
+      "en": "You scalped the cedar hedge! The neighbor's gonna see us naked on the patio!",
+      "note": "Suburban cedar hedges provide privacy for beer drinking and sunbathing."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Regarde la trace de garnotte dans l'plate-bande... T'as massacré mes bégonias!",
+      "en": "Look at the gravel rut in the flowerbed... You massacred my begonias!",
+      "note": "Floral casualties in front-yard garden beds."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as arraché l'rétroviseur su'l poteau d'angle, maudit sans-allure!",
+      "en": "You ripped off your side mirror on the corner post, you good-for-nothing!",
+      "note": "'Sans-allure' means having neither class, skill, nor decency."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Le banc de parc en fonte est cassé net, t'as du métal lourd dans tête!",
+      "en": "The cast-iron park bench snapped clean in two, you've got scrap metal for brains!",
+      "note": "Industrial municipal bench destruction."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as rentré dans poubelle municipale, y a des pelures d'banane su'ton windshield!",
+      "en": "You crashed into the city garbage can, there are banana peels on your windshield!",
+      "note": "Comedic garbage explosion covering the truck."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "La pancarte 'Attention à nos enfants' a revolé à trente pieds, l'ironie, tabarnak!",
+      "en": "The 'Slow Down - Children at Play' sign flew thirty feet, the irony, holy fuck!",
+      "note": "Morbid comedic irony of destroying child-safety signs."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "T'as ramassé l'étal de fraises de l'Île d'Orléans au bord du chemin!",
+      "en": "You plowed through the roadside strawberry stand!",
+      "note": "Summer roadside berry stands set up along rural routes."
+    },
+    {
+      "trigger": "hitprop",
+      "fr": "Le pot d'fleurs en ciment de la Caisse Populaire! Y pesait trois cents livres!",
+      "en": "The cement flower planter from the Caisse Populaire! It weighed three hundred pounds!",
+      "note": "Crashing into heavy concrete planters outside the local credit union."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Ralentis, asti! Y a pas d'feu au lac, le Dépanneur ferme juste à onze heures!",
+      "en": "Slow down, dammit! The lake's not on fire, the dep doesn't close till eleven!",
+      "note": "'Y a pas d'feu au lac' means there's no frantic rush."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Checke le ti-cul qui s'prend pour Gilles Villeneuve avec son 4-cylindres!",
+      "en": "Check out the kid who thinks he's Gilles Villeneuve with his 4-banger!",
+      "note": "Father of Jacques Villeneuve, legendary speed icon in Quebec."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Tu roules tellement vite que ton antenne fouette l'arrière d'ta cabine!",
+      "en": "You're driving so fast your whip antenna is lashing the back of the cab!",
+      "note": "Physics of the Ranger's 6-foot whip antenna flexing in the slipstream."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Aye! C'est une zone de trente, pas l'autoroute 50, calvince!",
+      "en": "Hey! This is a thirty zone, not Highway 50, damn it!",
+      "note": "Highway 50 is the notoriously dangerous two-lane speedway connecting Gatineau to Montreal."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Tes pneus crient plus fort que ma belle-mère un dimanche de Pâques!",
+      "en": "Your tires are screeching louder than my mother-in-law on Easter Sunday!",
+      "note": "Folk comparison for screaming tire rubber."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Tu vas faire sauter ton gasket de tête, lâche le champignon!",
+      "en": "You're gonna blow your head gasket, let off the gas pedal!",
+      "note": "'Le champignon' (mushroom) is old slang for the accelerator pedal."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Y roule à tombeau ouvert, y veut arriver au cimetière avant midi!",
+      "en": "He's driving headlong into an open grave, trying to get to the cemetery before noon!",
+      "note": "'Rouler à tombeau ouvert' is a classic French expression for suicidal speed."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Aye! Les radars de la police de Gatineau t'attendent au bas d'la côte!",
+      "en": "Hey! Gatineau police speed traps are waiting for you at the bottom of the hill!",
+      "note": "Notorious speed trap location in Aylmer."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Tu vas t'envoler su'l chemin Pink si tu pognes la bosse à c'te vitesse-là!",
+      "en": "You're gonna take flight on chemin Pink if you hit the crest at that speed!",
+      "note": "Chemin Pink has famous roller-coaster dips and crests."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Pèse su'l brake, esti d'fou! Tu vas tuer l'chat à madame Gendron!",
+      "en": "Hit the brake, crazy bastard! You're gonna kill Mrs. Gendron's cat!",
+      "note": "Neighborhood pets endangered by reckless teenagers."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "T'as l'feu au derrière ou ta blonde t'attend avec un test de grossesse?!",
+      "en": "Is your ass on fire or is your girlfriend waiting with a pregnancy test?!",
+      "note": "Crude speculation on why a 17-year-old is tearing down the street."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Y a du son mais y a pas d'torque, ça avance pas ton affaire!",
+      "en": "Lots of noise but zero torque, your rig ain't moving for shit!",
+      "note": "Mocking a 4-cylinder truck redlining at high RPM without accelerating."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Aye! Garde tes deux mains su'l volant, t'as l'air d'une feuille su'l vent!",
+      "en": "Hey! Keep both hands on the wheel, you look like a leaf in the wind!",
+      "note": "Severe steering instability at high speed."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Tu passes tellement vite qu'on a juste vu la rouille su'tes ailes!",
+      "en": "You blew by so fast all we saw was the rust on your fenders!",
+      "note": "Rust flying off at highway velocities."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Ralentis ton char d'assaut, tu vas décoller les bardeaux des maisons!",
+      "en": "Slow down your tank, you're gonna peel the shingles right off the houses!",
+      "note": "Exaggerated aerodynamic wake turbulence."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "C'est pas le Grand Prix du Canada icitte, ostie d'Schumacher en carton!",
+      "en": "This isn't the Canadian Grand Prix, you cardboard Schumacher!",
+      "note": "Michael Schumacher reference, reigning F1 king in 2004."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "À c'te train-là, ton plein d'gaz va durer dix minutes!",
+      "en": "At that rate, your tank of gas is gonna last ten minutes!",
+      "note": "Fuel economy concerns when gas prices are painful."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Aye le cave! Tu vas ramasser une roche dans ton pare-brise!",
+      "en": "Hey idiot! You're gonna take a flying stone right through your windshield!",
+      "note": "Gravel kicked up by excessive speed."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Tu pèses su'l gaz comme si ton père payait les pneus... Oh wait, y paye pour!",
+      "en": "Stepping on the gas like your dad pays for the tires... Oh wait, he does!",
+      "note": "Calling out the teenager driving dad's truck on dad's dime."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Y roule tellement vite qu'le speedomètre doit tourner deux fois autour du cadran!",
+      "en": "Driving so fast the speedometer needle must've spun twice around the gauge!",
+      "note": "Hyperbolic instrument cluster behavior."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Baisse ton allure! Y a des nids-de-poule qui vont t'avaler tout rond!",
+      "en": "Slow down your pace! There are potholes that'll swallow you whole!",
+      "note": "Outaouais potholes capable of destroying entire suspensions."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Aye! Tu t'en vas chercher une poutine ou tu livres des organes humains?!",
+      "en": "Hey! Are you picking up a poutine or doing emergency organ delivery?!",
+      "note": "Questioning the absurd urgency."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Si tu pognes une garnotte à c'te vitesse, ton windshield explose en confettis!",
+      "en": "If you hit a pebble at that speed, your windshield explodes like confetti!",
+      "note": "Tempered glass shattering under gravel impact."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "T'es en deuxième vitesse à 70 km/h, passe ta troisième, calvince!",
+      "en": "You're in second gear at 70 km/h, shift into third, damn it!",
+      "note": "Audible engine distress from improper manual transmission shifting."
+    },
+    {
+      "trigger": "speeding",
+      "fr": "Regarde-lé passer! Un vrai missile su'a Principale!",
+      "en": "Look at him fly by! A real cruise missile on Main Street!",
+      "note": "Spectators marveling at the sheer recklessness."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Recule encore, y reste au moins deux pouces avant d'monter su'mon capot!",
+      "en": "Keep backing up, there's at least two inches before you climb onto my hood!",
+      "note": "Sarcastic parking guide directing a blind reversal."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "T'as des miroirs ou c'est juste pour t'peigner les cheveux, tabarnak?!",
+      "en": "Do you have mirrors or are they just for combing your hair, holy fuck?!",
+      "note": "Reminding the vanity-obsessed driver to check rearview mirrors."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Bip! Bip! Bip! Attention, convoi exceptionnel de jambon qui recule!",
+      "en": "Beep! Beep! Beep! Attention, oversized load of pure ham backing up!",
+      "note": "Imitating heavy truck backup beepers for an incompetent parker."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Aye! Arrête! Tu vas écraser mon vélo contre la clôture, esti!",
+      "en": "Hey! Stop! You're gonna crush my bike against the fence, damn!",
+      "note": "Bicycle crushed behind reversing pickup tailgate."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Y recule comme un crabe saoul dans l'fond d'la rivière!",
+      "en": "He's backing up like a drunk crab at the bottom of the river!",
+      "note": "Poetic comparison to underwater crustacean movement."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Tourne la tête au lieu d'regarder ton radio cassette, champion!",
+      "en": "Turn your head around instead of staring at your cassette deck, champ!",
+      "note": "Teen distracted by picking mixtapes while backing up."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Aye le sans-génie! Le reculons c'est 'R', pas 'Rocket'!",
+      "en": "Hey brainless! 'R' is for Reverse, not Rocket!",
+      "note": "Automatic/manual transmission gear selection joke."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Tu vas finir dans vitrine du dépanneur si tu continues d'même!",
+      "en": "You'll end up in the dépanneur front window if you keep that up!",
+      "note": "Depanneur storefront crash risk in tight parking spaces."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "C'est un pickup, pas un train blindé, regarde en arrière, ciboire!",
+      "en": "It's a pickup, not an armored train, look behind you, holy host!",
+      "note": "Ignoring blind spots on the regular-cab Ford Ranger."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "T'as failli ramasser la poussette à madame Bélanger, décolle de d'là!",
+      "en": "You almost plowed over Mrs. Bélanger's stroller, get out of here!",
+      "note": "Local neighborhood gossip danger."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Recule droit au moins, t'as l'air d'un serpent qui a avalé un tire-bouchon!",
+      "en": "At least back up straight, you look like a snake that swallowed a corkscrew!",
+      "note": "Crooked, zigzagging reverse trajectory."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Aye! Qui c'est qui t'a appris à faire un créneau, un aveugle en béquilles?!",
+      "en": "Hey! Who taught you to parallel park, a blind man on crutches?!",
+      "note": "Parallel parking incompetence roasted."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Si tu touches à ma haie, m'a te faire reculer jusqu'à Pontiac à bras!",
+      "en": "If you touch my hedge, I'll make you push that truck in reverse all the way to Pontiac by hand!",
+      "note": "Suburban property line defense threat."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Y a monté su'l terre-plein en reculant! Du grand art, câlisse!",
+      "en": "He backed up onto the median! Pure high art, damn it!",
+      "note": "Mounting concrete medians during reverse maneuvers."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Aye le clown! Tes feux d'reculons sont brûlés ou t'aimes juste l'obscurité?!",
+      "en": "Hey clown! Are your reverse lights burned out or do you just love darkness?!",
+      "note": "Burned-out white reverse bulbs on aging trucks."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "T'as rentré dans poubelle en marche arrière, belle prise!",
+      "en": "You backed right into the trash can, nice catch!",
+      "note": "Garbage can impact score."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Arrête! T'es accoté su'a chaîne de trottoir, les roues tournent dans l'beurre!",
+      "en": "Stop! You're wedged against the curb, your wheels are spinning in butter!",
+      "note": "'Tourner dans l'beurre' means spinning wheels uselessly without traction."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Fais sonner tes wipers, des fois que tu verrais la vitre arrière!",
+      "en": "Turn on your rear wipers... oh wait, pickups don't have those!",
+      "note": "Mocking pickup truck rear visibility."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Y r'garde en avant pour reculer... Ça invente des nouvelles méthodes!",
+      "en": "He's looking forward while backing up... Inventing new driving techniques!",
+      "note": "Total absence of rearward glance."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Aye! Pèse su'a clutch, ça sent le cramé jusqu'au Tim Hortons!",
+      "en": "Hey! Push the clutch in, it smells burnt all the way to Tim Hortons!",
+      "note": "Clutch slipping at high RPM during agonizing reverse parking."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Un vrai danger public en marche arrière! Reste parqué!",
+      "en": "A genuine public menace in reverse! Stay parked!",
+      "note": "Advising total vehicle immobility."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "T'as reculé dans flaque d'eau, t'as arrosé trois personnes su'l trottoir!",
+      "en": "You backed into a puddle and splashed three people on the sidewalk!",
+      "note": "Muddy tidal wave sent toward innocent bystanders."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Aye le génie! La tailgate est baissée, tu vois rien pantoute!",
+      "en": "Hey genius! The tailgate is down, you can't see shit!",
+      "note": "'Pantoute' is pure joual for 'not at all'."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "Encore deux pouces pis tu pognes le câble d'haubanage d'Hydro!",
+      "en": "Two more inches and you clip the Hydro-Québec guy-wire!",
+      "note": "Steel utility pole support cables waiting to snare trucks."
+    },
+    {
+      "trigger": "reversing",
+      "fr": "T'as manqué le poteau d'un quart de poil, va t'acheter un 6/49!",
+      "en": "You missed the pole by a fraction of a whisker, go buy a 6/49 lottery ticket!",
+      "note": "Lotto 6/49 reference for insane blind luck."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "C'est un sens unique, ostie d'moron! Tu t'en vas direct dans l'trafic!",
+      "en": "It's a one-way street, you moron! You're heading straight into oncoming traffic!",
+      "note": "Blatant wrong-way driving in old Aylmer's narrow heritage streets."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Sens inverse, calvince! Y a une flèche grosse comme ton bras su'l poteau!",
+      "en": "Wrong way, damn it! There's an arrow the size of your arm on the pole!",
+      "note": "Clear one-way signage completely ignored."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Aye! Tu penses-tu qu't'es en Angleterre avec ta minoune à bras?!",
+      "en": "Hey! Do you think you're in England with your manual clunker?!",
+      "note": "British left-side driving comparison."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Tourne de bord avant d'te ramasser face à face avec un camion d'vidanges!",
+      "en": "Turn around before you end up head-to-head with a garbage truck!",
+      "note": "Heavy municipal truck showdown imminent."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "C'est pas un boulevard à deux sens, c'est la ruelle de l'église, ciboire!",
+      "en": "It's not a two-way boulevard, it's the church alley, holy host!",
+      "note": "Old Aylmer alleyways near St-Paul church mistaken for thoroughfares."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Checke l'autre saumon qui remonte le courant su'a rue Court!",
+      "en": "Look at this salmon swimming upstream on Court Street!",
+      "note": "Salmon metaphor for swimming against the flow of traffic."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Aye le cabochon! Tout l'monde s'en vient en face, allume tes méninges!",
+      "en": "Hey knucklehead! Everyone is coming straight at you, turn your brain on!",
+      "note": "Calling out utter lack of situational awareness."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "T'as pris le rond-point à l'envers, t'es complètement malade!",
+      "en": "You took the roundabout backwards, you're completely insane!",
+      "note": "Outaouais drivers' notorious confusion over newly built roundabouts in 2004."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Y chauffe à contresens comme si la rue y appartenait, tabarnak!",
+      "en": "He's driving the wrong way like he owns the road, holy fuck!",
+      "note": "Arrogant entitlement meets one-way street."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Fais un demi-tour avant qu'la police de Gatineau t'enligne!",
+      "en": "Do a U-turn before the Gatineau cops lock onto you!",
+      "note": "Urgent tactical advice to avoid license confiscation."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "La flèche pointait par là-bas, t'as-tu de la misère avec la géométrie?!",
+      "en": "The arrow pointed that way, do you have trouble with geometry?!",
+      "note": "School-grade spatial reasoning roast."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Aye! T'es du mauvais bord du terre-plein, esti d'kamikaze!",
+      "en": "Hey! You're on the wrong side of the median, you kamikaze bastard!",
+      "note": "Divided boulevard navigation failure."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Recule, recule! Tu bloques toute la file pour les Galeries!",
+      "en": "Back up, back up! You're blocking the whole lineup for the mall!",
+      "note": "Gridlock caused by entering the exit lane at Galeries d'Aylmer."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "T'as sauté su'a voie d'dépassement en sens inverse, t'as des désirs de mort?!",
+      "en": "You jumped into the passing lane the wrong way, do you have a death wish?!",
+      "note": "Fatal head-on collision flirtation."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "C'est pas une piste de drag privée, c'est une sortie d'école, sans-cœur!",
+      "en": "It's not a private drag strip, it's a school exit, heartless prick!",
+      "note": "Entering school drop-off zones backwards."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Aye l'américain! Au Québec on roule à droite, pis dans l'bon sens!",
+      "en": "Hey American! In Quebec we drive on the right, and in the right direction!",
+      "note": "Blaming cross-border tourists or clueless newcomers."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Tout l'monde te klaxonne pis tu comprends pas encore, saint-ciboire!",
+      "en": "Everyone is honking at you and you still haven't figured it out, holy christ!",
+      "note": "Surrounded by blaring horns yet still pressing forward."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "T'as tourné à gauche su'un sens unique interdit, beau champion!",
+      "en": "You turned left onto a forbidden one-way, nice job champ!",
+      "note": "Classic illegal left turn."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Y s'en vient d'en face les deux yeux grands ouverts comme une chouette!",
+      "en": "He's coming head-on with both eyes wide open like a barn owl!",
+      "note": "Panic-stricken expression of a driver realizing they're facing a wall of grilles."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Aye! Va parker ton truck dans bonne direction avant d'créer un carambolage!",
+      "en": "Hey! Park your truck in the right direction before you cause a pileup!",
+      "note": "Pileup risk on narrow streets."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Tu viens de passer sous l'panneau 'NE PAS ENTRER', tu penses que c'est pour qui?!",
+      "en": "You just passed under the DO NOT ENTER sign, who do you think that's for?!",
+      "note": "Literacy test for road signs."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "La rue Principale c'est pas un jeu d'arcade, revire de d'bord!",
+      "en": "Main Street isn't an arcade game, spin it around!",
+      "note": "Video game reality check."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "T'as manqué ton coup, l'ami! Recule avant qu'le fardier t'écrase!",
+      "en": "You messed up, pal! Back up before the 18-wheeler crushes you!",
+      "note": "Heavy rig approaching on narrow one-way."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Le trafic s'en vient sur toé comme la misère su'l pauvre monde, tasse-toé!",
+      "en": "Traffic is coming down on you like poverty on poor folk, get out of the way!",
+      "note": "Folk proverb about unavoidable overwhelming disaster."
+    },
+    {
+      "trigger": "wrongway",
+      "fr": "Y roule à l'envers pis y fait des signes d'la main comme si c'était nous autres les fous!",
+      "en": "He's driving backwards and waving his arms like we're the crazy ones!",
+      "note": "Driver projecting their own catastrophic mistake onto oncoming traffic."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'es juché su'l banc d'neige comme une poule su'un piquet, champion!",
+      "en": "You're perched on that snowbank like a hen on a fencepost, champ!",
+      "note": "'Juché' means awkwardly perched high on an obstacle."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Envoye, spinne tes roues! Ça sent l'caoutchouc brûlé dans tout l'voisinage!",
+      "en": "Go on, spin your wheels! It smells like burnt rubber across the whole neighborhood!",
+      "note": "Fruitlessly spinning tires while high-centered."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'as calé ton truck dans garnotte molle jusqu'aux essieux, beau travail!",
+      "en": "You sank your truck in soft gravel right up to the axles, great work!",
+      "note": "Soft spring gravel trap along riverbank or construction shoulder."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Prends une pelle pis commence à creuser, t'es là pour la fin d'semaine!",
+      "en": "Grab a shovel and start digging, you're stuck there for the weekend!",
+      "note": "Weekend sentence to hard labor."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Aye! C'est un deux-roues motrices ton tas d'ferraille, t'es pas un Bigfoot 4x4!",
+      "en": "Hey! Your rustbucket is two-wheel drive, you're not a Bigfoot 4x4 monster truck!",
+      "note": "Base Ranger XL delusion of off-road prowess."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'es pogné su'l frame! Appelle ton beau-frère avec son câble d'acier!",
+      "en": "You're hung up on the frame! Call your brother-in-law with his tow strap!",
+      "note": "The universal solution to Quebec off-road mishaps: a relative with a tow strap."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Mets des branches d'épinette sous tes pneus, ça va peut-être pogner!",
+      "en": "Stick some spruce branches under your tires, maybe they'll bite!",
+      "note": "Bush remedy for getting unstuck in mud."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Aye le grand comique, pèse su'l gaz encore, tu vas creuser jusqu'en Chine!",
+      "en": "Hey comedian, hit the gas again, you'll dig a hole all the way to China!",
+      "note": "Spinning wheels digging deeper ruts."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'as resté pris dans pelouse municipale du parc des Cèdres, quelle honte!",
+      "en": "You got stuck in the municipal lawn at Parc des Cèdres, what a disgrace!",
+      "note": "Waterfront park turf ruined by tire trenches."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Ton différentiel est accoté su'un bloc de ciment, t'es fait comme un rat!",
+      "en": "Your differential is resting on a cement parking block, you're trapped like a rat!",
+      "note": "Rear differential caught on low parking bollard."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Va chercher un sac de litière à chat pour mettre sous tes roues, imbécile!",
+      "en": "Go get a bag of kitty litter to put under your wheels, idiot!",
+      "note": "Classic Canadian winter traction hack applied to summer mud."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Aye! Sortez les cordes, on a un Ranger échoué su'a plage comme une baleine!",
+      "en": "Hey! Bring out the tow ropes, we got a beached Ranger like a whale on the shore!",
+      "note": "Maritime rescue jokes at the Aylmer marina."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'as fait chauffer ta clutch pour rien, ça boucane en dessous d'la cabine!",
+      "en": "You roasted your clutch for nothing, smoke's pouring from under the cab!",
+      "note": "Acrid smell of fried clutch plate lining."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Y bouge pu pantoute! Le frame touche à terre des deux bords!",
+      "en": "It won't move at all! The frame is touching the dirt on both sides!",
+      "note": "High-centered with wheels spinning uselessly in midair."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'as essayé d'monter la côte de garnotte en troisième vitesse, cabochon?!",
+      "en": "Did you try to tackle the gravel hill in third gear, blockhead?!",
+      "note": "Stalling out on steep inclines due to wrong gear choice."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Aye! Pousse avec tes bras au lieu d'faire brailler l'moteur!",
+      "en": "Hey! Push with your arms instead of making the engine scream!",
+      "note": "Demanding manual human labor over throttle abuse."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'as planté l'nez d'ton truck direct dans l'fossé chez les Tremblay!",
+      "en": "You planted the nose of your truck right into the Tremblays' ditch!",
+      "note": "Classic rural roadside ditch plunge."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Si t'avais acheté des bons pneus au lieu de tes casquettes de marque, t'avancerais!",
+      "en": "If you bought decent tires instead of designer baseball caps, you'd be moving!",
+      "note": "Critique of teenage spending priorities."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Pèse su'a pédale tant qu'tu veux, y a juste d'la boue qui vole su'ma maison!",
+      "en": "Step on the pedal all you want, you're just slinging mud all over my house!",
+      "note": "Mud rooster-tail hitting residential siding."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Attends la remorqueuse de Gendron, ça va t'coûter soixante-quinze piasses!",
+      "en": "Wait for Gendron's tow truck, it's gonna run you seventy-five bucks!",
+      "note": "Local towing rates reality check."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'as pris l'chemin d'terre après l'orage, t'es ben un vrai citadin de Hull!",
+      "en": "You took the dirt road right after the rainstorm, you really are a city boy from Hull!",
+      "note": "Pontiac country folk mocking city kids who can't handle mud roads."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Regarde le fond d'ton char... T'as laissé ta panne à l'huile su'a roche!",
+      "en": "Look underneath your car... You left your oil pan behind on that rock!",
+      "note": "Catastrophic undercarriage oil pan rupture."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Y spinne su'une roue! C'est beau un différentiel ouvert, tabarnak!",
+      "en": "He's spinning one single wheel! Beautiful open differential, fuck!",
+      "note": "Mechanic sarcasm regarding base-trim two-wheel-drive open diffs."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "Lâche la pédale avant qu'les pompiers débarquent pour éteindre tes pneus!",
+      "en": "Off the pedal before the fire department shows up to hose down your tires!",
+      "note": "Tire blowout fire risk from excessive friction."
+    },
+    {
+      "trigger": "stuck",
+      "fr": "T'es planté solide, mon chum! Laisse les clés dans l'contact pis rentre en bus!",
+      "en": "You're buried deep, buddy! Leave the keys in the ignition and take the bus!",
+      "note": "Suggesting total vehicle abandonment."
+    },
+    {
+      "trigger": "cops",
+      "fr": "V'là les cerises! Clanche, esti, ou prépare ton portefeuille!",
+      "en": "Here come the cherries! Floor it, dammit, or get your wallet ready!",
+      "note": "'Les cerises' refers to red flashing police lights."
+    },
+    {
+      "trigger": "cops",
+      "fr": "La police de Gatineau dans tes rétros! Adieu ton permis probatoire!",
+      "en": "Gatineau police in your mirrors! Kiss your probationary license goodbye!",
+      "note": "Zero-tolerance point loss for 17-year-old drivers."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Aye! Y ont sorti le cinémomètre sur Lucerne, t'es fait à l'os!",
+      "en": "Hey! They got the radar gun out on Lucerne, you're cooked to the bone!",
+      "note": "'Fait à l'os' means completely busted/screwed."
+    },
+    {
+      "trigger": "cops",
+      "fr": "T'as dépassé l'char fantôme de la SQ, t'es le roi des imbéciles!",
+      "en": "You passed an unmarked SQ cruiser, you're the king of idiots!",
+      "note": "Unmarked Sûreté du Québec patrol cruisers along the provincial highway."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Ça va te coûter quatre points d'inaptitude pis une claque derrière la tête!",
+      "en": "That's gonna cost you four demerit points and a smack upside the head!",
+      "note": "Points plus paternal corporal punishment."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Planque tes cannettes de bière sous l'banc passager, câlisse!",
+      "en": "Stash your beer cans under the passenger seat, holy shit!",
+      "note": "Underage panic over contraband beverages in the cab."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Les gyrophares bleus et rouges! Y t'ont spotté depuis Plage des Cèdres!",
+      "en": "Blue and red lights! They've had their eye on you since Plage des Cèdres!",
+      "note": "Long-distance police pursuit."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Pogne la traverse vers Ottawa! La police provinciale traverse pas l'pont!",
+      "en": "Take the crossing to Ottawa! The provincial cops won't cross the bridge!",
+      "note": "Classic border-town urban legend about jurisdictional limits on bridges."
+    },
+    {
+      "trigger": "cops",
+      "fr": "T'as chauffé comme un voleur, v'là la facture qui s'en vient avec la sirène!",
+      "en": "You drove like a thief, here comes the bill accompanied by a siren!",
+      "note": "Auditory warning of imminent fine."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Éteins tes lumières pis tourne dans ruelle... Non, j'blague, t'es mort!",
+      "en": "Kill your headlights and cut down the alley... Nah just kidding, you're dead!",
+      "note": "Mock Hollywood movie escape advice."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Checke le policier qui ajuste sa casquette... Y a l'air de mauvaise humeur!",
+      "en": "Look at the officer adjusting his cap... He looks in a terrible mood!",
+      "note": "Body language analysis of approaching traffic officer."
+    },
+    {
+      "trigger": "cops",
+      "fr": "T'as ton enregistrement pis tes assurances ou tu vas finir au poste à soir?!",
+      "en": "Got your registration and insurance papers or are you sleeping at the station tonight?!",
+      "note": "Glove compartment scramble for paperwork."
+    },
+    {
+      "trigger": "cops",
+      "fr": "La sirène part! Tu pensais que ton Ford Ranger allait semer une Crown Victoria?!",
+      "en": "Siren's wailing! You thought your Ford Ranger could outrun a 4.6L Crown Vic?!",
+      "note": "Comparing the 4-cylinder Ranger to police V8 Ford Crown Victorias."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Aye! Si y fouillent la boîte en arrière, t'es dans marde jusqu'au cou!",
+      "en": "Hey! If they search the bed in the back, you're in deep shit up to your neck!",
+      "note": "Unspecified illicit cargo in the pickup bed."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Dis-y que l'speedomètre marche pas, des fois que l'flic serait niaiseux!",
+      "en": "Tell him the speedometer doesn't work, maybe the cop is an idiot!",
+      "note": "Terrible legal defense strategy."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Y ont bloqué le chemin d'Aylmer avec deux autopatrouilles, t'es coincé!",
+      "en": "They blocked chemin d'Aylmer with two cruisers, you're cornered!",
+      "note": "Roadblock across the main drag."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Prépare tes excuses plates: 'Monsieur l'agent, mon pied a glissé su'a pédale'!",
+      "en": "Get your lame excuses ready: 'Officer, my foot slipped off the pedal'!",
+      "note": "Rehearsing laughable explanations."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Trois autopatrouilles pour une minoune rouillée... T'es rendu une légende!",
+      "en": "Three squad cars for one rusty clunker... You're a living legend now!",
+      "note": "Excessive police response for minor delinquency."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Baisse ton radio! Fais pas jouer NWA quand l'agent s'approche d'la vitre!",
+      "en": "Turn down your radio! Don't be blasting N.W.A when the officer walks up to the glass!",
+      "note": "Soundtrack management during traffic stops."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Y va te faire souffler dans la baloune, j'espère que t'as pas bu d'la Laurentide!",
+      "en": "He's gonna make you blow into the breathalyzer, hope you didn't drink any Laurentide!",
+      "note": "'Souffler dans la baloune' is the universal joual term for roadside breathalyzers."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Aye! Mets tes deux mains su'l volant pis fais ton p'tit saint n'y touche!",
+      "en": "Hey! Put both hands on the wheel and act like a little innocent angel!",
+      "note": "'Faire son saint n'y touche' means pretending to be a butter-wouldn't-melt goody-two-shoes."
+    },
+    {
+      "trigger": "cops",
+      "fr": "La SQ sur la 148 pardonne pas aux ti-culs avec des casquettes à l'envers!",
+      "en": "The SQ on the 148 doesn't show mercy to teenagers with backward caps!",
+      "note": "Targeted demographic profiling."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Tu vas perdre tes permis, tes clés, pis la confiance de ton père pour dix ans!",
+      "en": "You're losing your license, your keys, and your dad's trust for ten whole years!",
+      "note": "The harsh trifecta of consequences."
+    },
+    {
+      "trigger": "cops",
+      "fr": "L'agent sort son carnet à contraventions... Prépare le chèque d'été!",
+      "en": "Officer's whipping out his ticket booklet... Prepare the summer earnings check!",
+      "note": "Summer job income vanishing into provincial infractions."
+    },
+    {
+      "trigger": "cops",
+      "fr": "Mets tes clignotants quand tu te ranges su'l côté, fais pas le fier-à-bras!",
+      "en": "Use your blinker when pulling over, don't act like a tough guy!",
+      "note": "Basic compliance advice."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Y a décollé! On voyait l'asphalte entre ses quatre roues pis la terre, tabarnak!",
+      "en": "He went airborne! You could see daylight under all four wheels, holy fuck!",
+      "note": "Total vehicular levitation over road crest."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as pris la voie ferrée pour un tremplin de saut à ski à Saint-Sauveur?!",
+      "en": "Did you take the railway crossing for a ski jump in Saint-Sauveur?!",
+      "note": "Railway crossing launched into ski jump."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Aye! Ton pot d'échappement a fait des flammèches en atterrissant, ciboire!",
+      "en": "Hey! Your muffler threw sparks when you touched down, holy host!",
+      "note": "Sparks flying on chassis bottom-out."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "La suspension a fessé dans l'fond comme un marteau-piqueur!",
+      "en": "The suspension bottomed out hard like a jackhammer!",
+      "note": "Struts smashing into the bump stops."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Checke-lé! Y s'prend pour les Ducs de Hazzard dans son Ranger 93!",
+      "en": "Look at him! Thinks he's the Dukes of Hazzard in his '93 Ranger!",
+      "note": "General Lee comparison for a battered white pickup."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as failli décrocher les fils électriques avec ton antenne fouet, calvince!",
+      "en": "You almost snagged the power lines with your whip antenna, damn it!",
+      "note": "Whip antenna reaching dangerous altitudes."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Atterrissage brutal! La boîte de ton truck s'est déformée d'un pouce!",
+      "en": "Rough touchdown! Your truck bed warped a whole inch!",
+      "note": "Frame flex on impact."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Y vole mieux qu'les montgolfières du festival de Gatineau, esti d'fou!",
+      "en": "He flies better than the hot air balloons at the Gatineau festival, crazy bastard!",
+      "note": "Gatineau Hot Air Balloon Festival reference."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as laissé tes deux shocks avant su'a bosse du chemin Pink!",
+      "en": "You left both your front shocks behind on that bump on chemin Pink!",
+      "note": "Shock absorbers blown clean through the shock towers."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Aye! Mon dentier a revolé su'l banc arrière tellement ça a tapé dur!",
+      "en": "Hey! My false teeth flew onto the back seat from that brutal landing!",
+      "note": "Geriatric passenger impact report."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Beau vol plané, champion! Y manque juste les ailes d'Air Canada!",
+      "en": "Nice glide, champ! All you're missing is Air Canada wings!",
+      "note": "Aeronautical sarcasm."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as décollé assez haut pour voir le parlement d'Ottawa par-dessus les arbres!",
+      "en": "You caught enough air to spot the Ottawa Parliament over the treeline!",
+      "note": "Exaggerated altitude viewing Parliament Hill."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Quand t'as touché terre, les vitres de mon sous-sol ont vibré!",
+      "en": "When you hit the ground, my basement windows rattled!",
+      "note": "Seismic shockwaves from two tons of steel landing."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as du coeur au ventre ou t'as juste pas d'cerveau pantoute?!",
+      "en": "Do you have nerves of steel or just no brain at all?!",
+      "note": "Courage vs stupidity debate."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "La batterie a sauté d'son support, ça doit faire des flammèches sous l'capot!",
+      "en": "The battery jumped clean out of its tray, sparks must be flying under the hood!",
+      "note": "Battery bracket failure during hard landing."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Aye! C'est un dos d'âne pour ralentir, pas une rampe de lancement de la NASA!",
+      "en": "Hey! That's a speed bump to slow down, not a NASA launch pad!",
+      "note": "Suburban speed bump abuse."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as perdu deux caps de roue dans l'atterrissage, y roulent encore su'l trottoir!",
+      "en": "You lost two hubcaps on landing, they're still rolling down the sidewalk!",
+      "note": "Classic hubcaps bouncing into oblivion."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Un vrai cascadeur de chez Métivier! Dommage que l'char soit scrap!",
+      "en": "A real movie stuntman! Too bad the truck is totaled!",
+      "note": "Cinematic driving bravado ruined by mechanical reality."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as fait crier ton moteur en plein vol, y avait pu d'résistance su'es pneus!",
+      "en": "You redlined the engine in midair, there was no resistance on the tires!",
+      "note": "Airborne engine revving sound."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Y a décollé tellement d'aplomb que les mouettes ont eu peur à la marina!",
+      "en": "He took off so hard the seagulls at the marina got spooked!",
+      "note": "Waterfront fauna startled by leaping truck."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Aye le pilote! Prépare ton chèque pour faire réaligner tes roues d'en avant!",
+      "en": "Hey pilot! Get your check ready to get your front wheels realigned!",
+      "note": "Severe camber and toe misalignment incoming."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "T'as atterri croche, t'as failli faire un tonneau su'l gazon du curé!",
+      "en": "You landed sideways, almost rolled onto the priest's lawn!",
+      "note": "Church rectory lawn near disaster."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "La radio cassette a craché la cassette direct dans boîte à gants!",
+      "en": "The tape deck spat the cassette straight into the glove compartment!",
+      "note": "Impact force ejecting the cassette tape."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "C'était beau en maudit... mais ton père va t'arracher la tête quand y va voir le frame!",
+      "en": "That was damn impressive... but your dad's gonna rip your head off when he sees the frame!",
+      "note": "Spectators admiring the stunt while anticipating domestic homicide."
+    },
+    {
+      "trigger": "bigair",
+      "fr": "Atterrissage réussi! Prochain arrêt: le garage de la scrap!",
+      "en": "Successful landing! Next stop: the scrapyard!",
+      "note": "Inevitable destination after high-altitude truck jumping."
+    }
+  ]
+}
