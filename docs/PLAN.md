@@ -1,7 +1,7 @@
 # Aylmer Madness — execution plan
 
-Written 2026-09-01 as a cold-start handoff. Read this, then `docs/NEXT.md` for
-the raw playtest notes. You should not need to ask Thomas anything already
+Written 2026-09-01 as a cold-start handoff. Read this, then `docs/VERIFY.md` (how to know a change worked — it is the
+merge gate), then `docs/NEXT.md` for the raw playtest notes. You should not need to ask Thomas anything already
 written down here.
 
 ---
@@ -54,6 +54,52 @@ written down here.
 - Comments explain WHY, in the dry specific voice of the surrounding code.
 - Reference photos are in `data/raw/reference/` and are **gitignored on purpose**:
   they are photographs of real people and the repo is public. Never commit them.
+
+---
+
+## How to run the work (fan-out, integration, and not breaking the live site)
+
+**`main` is live.** GitHub Pages serves it to Thomas's friends within ~2 minutes
+of any push. So:
+
+- Never commit directly to `main`. Work on `wave/<n>-<name>`, open a PR, merge
+  with `gh pr merge N --merge --admin` once the boot check passes.
+- **`docs/VERIFY.md` is the gate.** Nothing merges to `main` that has not booted
+  in a real browser and had its screenshot looked at.
+
+**Fanning out.** Waves 3, 4 and 5 parallelise cleanly; Waves 1 and 2 do not.
+
+| Wave | Agents | Why |
+|---|---|---|
+| 1 Memory | **1, alone** | Every step needs a real measurement, and concurrent Chromes make measurement meaningless |
+| 2 Spine | **1** | One coherent system: meter, campaign, ending. Splitting it splits the design |
+| 3 Verbs / races / characters | 3 | Verbs+missions · races+rivals · playable characters and skills |
+| 4 Places and faces | 2 | Russell's (geometry + dialogue) · avatars (corrections + four new) |
+| 5 Graphics | 2 | Materials atlas · lighting, AO and tone mapping |
+
+**Rules for parallel agents**, learned the hard way:
+
+- **Disjoint file ownership, stated explicitly in each brief.** Name the files an
+  agent owns and the files it must not touch. Every collision today came from two
+  agents editing the same file without knowing.
+- **New modules over edits to `main.js`.** An agent gets *one* clearly-marked hook
+  block in `main.js` and nothing more. Four of five merge conflicts were in that
+  file.
+- **Each agent claims its keybindings in its brief**, so two do not take `K`.
+- **At most 3 concurrent headless Chromes** across all agents combined.
+- Each agent works in its own `git worktree` off the wave branch; merge them
+  sequentially with a full boot check after **each** merge.
+
+**Integration.** After a wave's agents are merged, one integration pass:
+regenerate any golden tables from the merged code, run the duplicate-keybinding
+check, do the four-point memory measurement, boot in Safari, and only then PR to
+`main`.
+
+**The bar for "it just works":** a friend opens
+https://anaughtymoose.github.io/aylmer-madness/ on a laptop they already own,
+clicks GO twice, and is driving within fifteen seconds — no install, no account,
+no crash after twenty minutes, and nothing on screen in a language the game does
+not otherwise speak. If a change cannot survive that, it is not done.
 
 ---
 
