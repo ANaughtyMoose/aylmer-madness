@@ -5,6 +5,8 @@ import { Audio } from './core/audio.js';
 import { MeshBuilder, rgb } from './core/mesh.js';
 import { m4, clamp, lerp, angleDelta } from './core/math.js';
 import { buildWorld, buildHeadlights, nightAmount, HOUSE_NEAR } from './game/world.js';
+import { installLandmarks } from './game/landmarks.js';   // landmarks hook (agent/landmarks)
+import { primeSignage } from './game/signage.js';         // landmarks hook (agent/landmarks)
 import { loadMaterials } from './game/materials.js';
 import MATS_STUB from './game/materials_stub.js';
 import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow, DAMAGE } from './game/cars.js';
@@ -561,6 +563,17 @@ function worldStages() {
     })],
     [t('load.world'), () => {
       G.world = buildWorld(r, G.mats || MATS_STUB);
+      // ---- landmarks hook (agent/landmarks) -------------------------------
+      // The hero buildings — Philemon Wright, Heritage, the schools, the two
+      // stone inns, the marina, 129 Frank-Robinson — are baked and hung off the
+      // world here. installLandmarks wraps world.draw and world.querySegments,
+      // so it MUST run before G.phys captures them just below.
+      installLandmarks(G.world, r, G.mats || MATS_STUB, { say: (s) => hud.toast(s, 4200) });
+      // The 120 hand-written storefront names live in assets/text/, which is a
+      // fetch; buildWorld is synchronous, so signage bakes once with the
+      // fallback names and this swaps the real atlas in a frame or two later.
+      primeSignage(r, G.world.signage);
+      // ---- end landmarks hook ---------------------------------------------
       G.phys = {
         roadAt: (x, z) => G.world.roadAt(x, z),
         querySegments: (x, z, rad) => G.world.querySegments(x, z, rad),
