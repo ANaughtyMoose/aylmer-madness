@@ -71,6 +71,12 @@ async function connect() {
         }
         if (m.method === 'Runtime.exceptionThrown') {
           logs.push('[EXCEPTION] ' + (m.params.exceptionDetails.exception?.description || '').split('\n')[0]);
+        } else if (m.method === 'Runtime.consoleAPICalled') {
+          // world.js logs its bake — chunk counts, triangle total and the build
+          // time in ms — on the way in. That line is the budget number, so keep
+          // it rather than making a separate measurement run.
+          const txt = m.params.args.map((a) => a.value ?? a.description ?? '').join(' ');
+          if (/^(world|react):/.test(txt)) logs.push(txt);
         }
       };
       ws = sock;
@@ -88,7 +94,7 @@ async function connect() {
 
 const S = (method, params) => Promise.race([
   send(ws, pending, method, params),
-  new Promise((_, rej) => setTimeout(() => rej(new Error(method + ' timed out')), 180000)),
+  new Promise((_, rej) => setTimeout(() => rej(new Error(method + ' timed out')), 600000)),
 ]);
 
 await connect();
@@ -105,8 +111,10 @@ await S('Network.enable');
 await S('Network.setCacheDisabled', { cacheDisabled: true });
 await S('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
 await S('Storage.clearDataForOrigin', { origin: new URL(PAGE).origin, storageTypes: 'all' });
+console.log('navigating to', PAGE);
 await S('Page.navigate', { url: PAGE });
-await sleep(2500);
+await sleep(4000);
+console.log('booting (the world bake blocks the main thread; on a loaded machine this is minutes)');
 
 // #start opens the start-point picker, not the game: pick the first point and
 // confirm. The picker's own first entry is home, which is where we want to be
@@ -120,7 +128,7 @@ const boot = await evaluate(`(async () => {
   list.children[0].click();
   await s(250);
   document.getElementById('startconfirm').click();
-  for (let i = 0; i < 400; i++) { await s(100); if (window.AYLMER?.G?.mode === 'drive') return 'drive'; }
+  for (let i = 0; i < 2400; i++) { await s(100); if (window.AYLMER?.G?.mode === 'drive') return 'drive'; }
   return 'stuck in ' + window.AYLMER?.G?.mode;
 })()`);
 console.log('boot:', boot);

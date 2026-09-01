@@ -139,7 +139,7 @@ ok(routed === Object.keys(OTTAWA_PLACES).length, 'every Ottawa destination is re
 // The Champlain Bridge specifically: the owner's crossing, and the one a bike
 // has to be able to take. Route from the Québec end of the bridge to Parliament
 // and insist the path actually uses the bridge deck.
-const champ = MAP.roads.filter((r) => /Champlain Bridge|Pont Champlain/i.test(r.name || ''));
+const champ = MAP.roads.filter((r) => /^(Champlain Bridge|Pont Champlain Bridge)$/.test(r.name || ''));
 ok(champ.length > 0, `Champlain Bridge is in the road graph (${champ.length} ways)`);
 const deck = champ.flatMap((r) => r.pts);
 const qcEnd = deck.reduce((a, b) => (a[0] < b[0] ? a : b));   // west/Québec end
@@ -151,6 +151,32 @@ for (let i = 0; i + 1 < bridgePath.length; i++) {
   bl += Math.hypot(bridgePath[i + 1][0] - bridgePath[i][0], bridgePath[i + 1][1] - bridgePath[i][1]);
 }
 console.log(`    ${'Champlain Bridge -> Parliament'.padEnd(28)} ${(bl / 1000).toFixed(2)} km`);
+
+// Starting ON the bridge is not the same as crossing it. OSM splits this
+// crossing into thirteen ways under two names — "Champlain Bridge" and "Pont
+// Champlain Bridge", which meet at the provincial boundary in mid-river — so
+// the failure mode to guard against is the halves NOT sharing nodes, leaving a
+// router that quietly goes seven kilometres round by the Chaudière while every
+// other test still passes.
+const onEnd = deck.reduce((a, b) => (a[0] > b[0] ? a : b));      // Ontario end
+const straight = Math.hypot(onEnd[0] - qcEnd[0], onEnd[1] - qcEnd[1]);
+const across = nav.route(qcEnd[0], qcEnd[1], onEnd[0], onEnd[1]);
+ok(across, 'the bridge deck is drivable end to end');
+let dl = 0;
+for (let i = 0; i + 1 < across.length; i++) {
+  dl += Math.hypot(across[i + 1][0] - across[i][0], across[i + 1][1] - across[i][1]);
+}
+ok(dl < straight * 1.5,
+  `crossing the Champlain Bridge is ${(dl / 1000).toFixed(2)} km over a `
+  + `${(straight / 1000).toFixed(2)} km span — it uses the deck, not a detour`);
+console.log(`    ${'Champlain Bridge, QC to ON'.padEnd(28)} ${(dl / 1000).toFixed(2)} km `
+  + `(span ${(straight / 1000).toFixed(2)} km)`);
+const qcHalf = new Set(champ.filter((r) => r.name === 'Pont Champlain Bridge').flatMap((r) => r.ids));
+const onHalf = champ.filter((r) => r.name === 'Champlain Bridge').flatMap((r) => r.ids);
+ok(onHalf.some((id) => qcHalf.has(id)),
+  'the Québec and Ontario halves of the bridge share OSM nodes');
+// Nothing on the deck is one-way, so a bike can come back.
+ok(champ.every((r) => !r.oneway), 'the bridge is two-way in both directions');
 
 // One connected component either side of the river: pick a node in Aylmer and a
 // node in the Ottawa sector and insist the graph joins them. This is what a

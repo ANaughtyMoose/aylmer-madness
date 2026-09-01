@@ -314,12 +314,14 @@ function buildParliament(mb, o) {
   windows(mb, centre, 3.0, 8.0, 2, 4.6, 1.5, 4.4, rgb(C.glass), 320, { arch: true });
 
   const cLo = offsetRing(centre, 0.35);
-  const cHi = offsetRing(centre, 12.0);
+  const cHi = offsetRing(centre, 10.5);
   skirt(mb, cLo, cHi, EAVE, EAVE + 14.5, rgb(C.copper));
   cap(mb, cHi, EAVE + 14.5, rgb(C.copperDim));
   // A ridge lantern down the middle: the deck is 137 m across and without
   // something standing on it the roof reads as a chamfered box from the street.
-  const cRidge = offsetRing(centre, 17.0);
+  // 14 m is as far in as this footprint's wings allow — past about 16 the
+  // offset ring starts folding through itself and the lantern turns to spikes.
+  const cRidge = offsetRing(centre, 14.0);
   walls(mb, cRidge, EAVE + 14.5, EAVE + 17.6, C.copperDim);
   cap(mb, cRidge, EAVE + 17.6, rgb(C.copperLit));
   dormers(mb, offsetRing(centre, 2.4), EAVE + 4.2, 18, 3.4, 3.2,
