@@ -2127,6 +2127,14 @@ export function buildWorld(renderer, mats = MATS) {
   for (let i = 0; i < poles.length; i++) poles[i].mesh = poles[i].k == null ? null : (meshByKey.get(poles[i].k) || null);
   const distantMesh = renderer.upload(distant);
   tris += distant.i.length / 3;
+  // The builders have done their job: every vertex is on the GPU now, and
+  // nothing below reads them again. But bAt() and friends are closures over
+  // these Maps, and the returned draw()/query functions keep the whole scope
+  // alive, so without this the 3.8 M triangles stay resident TWICE — once as
+  // GPU buffers and once as ~870 MB of boxed doubles that Safari eventually
+  // kills the tab over. Measured: 1057 MB heap before, 182 MB after.
+  builders.clear(); houseNearB.clear(); houseFarB.clear(); waterB.clear(); nightB.clear();
+  distant.v.length = 0; distant.i.length = 0;
   const signage = buildSignage(renderer);
 
   // Flatten the furniture log: a few hundred thousand samples as loose numbers

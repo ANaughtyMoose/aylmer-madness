@@ -106,6 +106,10 @@ export class Renderer {
     this.gl = gl;
     this.scale = 1;
     this.maxDpr = 1.5;
+    // Bytes handed to the GPU by upload() and not yet given back by free().
+    // The JS heap is visible in DevTools; this is the half of the memory bill
+    // that is not, and Safari counts both when it decides to kill the tab.
+    this.gpuBytes = 0;
 
     const vs = this._shader(gl.VERTEX_SHADER, VS);
     const fs = this._shader(gl.FRAGMENT_SHADER, FS);
@@ -202,8 +206,11 @@ export class Renderer {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(builder.i), gl.STATIC_DRAW);
     gl.bindVertexArray(null);
+    const bytes = (builder.v.length + builder.uv.length + (builder.rect ? builder.rect.length : 0)
+      + builder.i.length) * 4;
+    this.gpuBytes += bytes;
     return {
-      vao, ibo: ib, count: builder.i.length,
+      vao, ibo: ib, count: builder.i.length, bytes,
       min: builder.min.slice(), max: builder.max.slice(),
     };
   }
