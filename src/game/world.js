@@ -209,6 +209,28 @@ export function buildWorld(renderer, mats = MATS) {
   const segGrid = new Map();
   const gkey = (i, j) => (i + 256) * 512 + (j + 256);
 
+  // A footprint edge that lies across a carriageway is an invisible wall in the
+  // middle of a road. OpenStreetMap genuinely has buildings drawn over roadways
+  // — canopies, bridged blocks, and plain mapping errors — and downtown Ottawa
+  // has enough of them to stop you dead on Wellington Street and on Kichi Zībī
+  // Mīkan. Street furniture is already kept off the asphalt (see clearRuns);
+  // this is the same rule for the walls.
+  //
+  // The test is deliberately mean. A building that merely meets the kerb is a
+  // real building and its wall has to stay, so an edge is only dropped when it
+  // is at least WALL_INSET *inside* the asphalt at its midpoint AND at one end
+  // — one point clipping a corner is not enough.
+  const WALL_INSET = -0.6;              // metres inside the road edge, so negative
+  let wallsOffRoad = 0;
+  function addWallSegment(ax, az, bx, bz) {
+    if (pavedAt((ax + bx) / 2, (az + bz) / 2, -1, WALL_INSET)
+      && (pavedAt(ax, az, -1, WALL_INSET) || pavedAt(bx, bz, -1, WALL_INSET))) {
+      wallsOffRoad++;
+      return -1;
+    }
+    return addSegment(ax, az, bx, bz);
+  }
+
   function addSegment(ax, az, bx, bz) {
     const idx = segs.length >> 2;
     segs.push(ax, az, bx, bz);
@@ -845,7 +867,7 @@ export function buildWorld(renderer, mats = MATS) {
       // colliders — the far copy is the same house, so it must not add them again.
       const hr = buildHouse(hnAt(c[0], c[1]), b, b.hs || null, mats, mulberry32(seed), {
         lod: 0, index: bi, streetYaw: sy,
-        addSegment,                 // one call per footprint edge, same order as before
+        addSegment: addWallSegment, // one call per footprint edge, same order as before
       });
       // Far: same seed, so recipe() draws the same tiles and the silhouette
       // wears the same brick; the stub provider keeps it vertex-coloured.
@@ -882,7 +904,7 @@ export function buildWorld(renderer, mats = MATS) {
       const ia = fwd ? i : (i + 1) % n, ib = fwd ? (i + 1) % n : i;
       const a = p[ia], q = p[ib];
       bd.quad([a[0], 0, a[1]], [q[0], 0, q[1]], [q[0], h, q[1]], [a[0], h, a[1]], wall);
-      addSegment(p[i][0], p[i][1], p[(i + 1) % n][0], p[(i + 1) % n][1]);
+      addWallSegment(p[i][0], p[i][1], p[(i + 1) % n][0], p[(i + 1) % n][1]);
     }
 
     const ang = b.a, ca = Math.cos(ang), sa = Math.sin(ang);
@@ -2124,7 +2146,7 @@ export function buildWorld(renderer, mats = MATS) {
     + `${tris | 0} tris, ${buildings.length} buildings (${houseCount} archetype houses, `
     + `${houseTris | 0} near + ${houseFarTris | 0} far tris, atlas ${mats && mats.tex ? 'on' : 'OFF'}), `
     + `${MAP.roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
-    + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${stopLineCount} stop lines, `
+    + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${wallsOffRoad} walls off the asphalt, ${stopLineCount} stop lines, `
     + `${furnDropped} pieces kept off the asphalt), `
     + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${plantingCount} shrubs, ${poleCount} poles, `
     + `${shoreCount} shore, ${rockCount} rocks, ${dockCount} docks, ${poolCount} lamp pools, `
