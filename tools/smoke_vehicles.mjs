@@ -276,6 +276,40 @@ group('places a truck cannot follow');
     ok(b > 15, `${kind}: the bike still does ${r1(b)} km/h`);
     if (kind === 'sand') ok(t < b, `sand: the Ranger manages ${r1(t)} km/h in the same ten seconds`);
   }
+  // The kerb, which is the actual border between the road and the sidewalk.
+  // cars.js kicks anything that crosses one with speed on and scrubs it; a bike
+  // that hops the kerb is in the air when it crosses and pays nothing.
+  {
+    const kerbWorld = (v) => ({
+      roadAt: (x) => x < 0,                       // the kerb line is x = 0
+      querySegments: () => [], queryPoles: () => [], waterAt: () => false,
+      groundAt: () => ({ h: 0, nx: 0, ny: 1, nz: 0, kind: v.x < 0 ? 'asphalt' : 'grass' }),
+      groundY: () => 0, bounds: MAP.bounds,
+    });
+    // The scrub is spent in the moment of crossing and pedalled back within a
+    // second, so what is measured is the dip, not the speed a hundred metres on.
+    const cross = (hop) => {
+      const v = new Vehicle(carById('dbike'));
+      v.reset(-14, 0, Math.PI / 2);               // pointing at +X, at the kerb
+      const G = { veh: v };
+      const w = kerbWorld(v);
+      let hopped = false, over = -1, dip = Infinity;
+      for (let i = 0; i < 60 * 12; i++) {
+        const c = CTL(); c.throttle = 1;
+        // Hop with a metre and a half to go, which is where you would.
+        if (hop && !hopped && v.x > -1.6) { c.handbrake = true; hopped = true; }
+        bikeControl(G, c, 1 / 60);
+        v.update(1 / 60, c, w);
+        if (over < 0 && v.x > 0) over = i;
+        if (over >= 0 && i - over < 20) dip = Math.min(dip, v.speedKmh);
+        if (over >= 0 && i - over >= 20) break;
+      }
+      return dip;
+    };
+    const rolled = cross(false), hopped = cross(true);
+    ok(hopped > rolled + 0.5,
+      `hopping the kerb keeps ${r1(hopped)} km/h across it where riding into it drops to ${r1(rolled)}`);
+  }
   // Grip, not just power: SURF x spec.turf is what the model multiplies by.
   for (const kind of ['grass', 'path', 'sand']) {
     const d = carById('dbike');
