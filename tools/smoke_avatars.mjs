@@ -411,5 +411,26 @@ group('overheard street life');
   ok(zoneAt(1e5, 1e5) === 'residential', 'and the middle of nowhere is residential');
 }
 
+group('every authored line has somewhere to be heard');
+{
+  // A pool nothing ever reaches is a writer's afternoon on the floor. Sayyad,
+  // Margaret and Mike say theirs getting in and out; Zahra never rides, so
+  // hers have to come out on the lawn instead.
+  const heard = {
+    Sayyad: ['start', 'end'], Margaret: ['start', 'end'],
+    Zahra: ['start', 'about-sayyad'],
+  };
+  for (const [who, sets] of Object.entries(heard)) {
+    for (const when of sets) {
+      ok((DIALOGUE[who][when] || []).length > 0, `${who}/${when} is reachable`);
+    }
+  }
+  ok(CAST.zahra.seatless && !!DIALOGUE.Zahra['about-sayyad'].length,
+    'Zahra does not ride, so her lawn lines are the ones that run');
+  // riders() only ever names somebody CAST can draw, so a boarding line can
+  // never be looked up under a name nothing answers to.
+  for (const who of Object.values(FRIEND_AT)) ok(!!CAST[who], who + ' is in the cast');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

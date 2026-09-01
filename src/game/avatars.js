@@ -871,12 +871,15 @@ export class Avatars {
           // Rotate the pool rather than rolling for it: four lines picked at
           // random repeat inside a minute and the repeat is what you notice.
           const k = this.said[who] = ((this.said[who] || 0) + 1);
-          // Zahra standing on the same lawn as her brother has eight lines
-          // written about exactly that, so she uses them while he is out here
-          // and her own the rest of the time.
-          const sib = who === 'zahra' && AWAY.sayyad.indexOf(job) < 0
-            && personLine('Zahra', 'about-sayyad', k - 1);
-          const line = sib || greeting(who, k - 1);
+          // Zahra never rides, so her twelve « start » lines would never be
+          // heard and her eight about-her-brother ones only apply while he is
+          // out here too. She alternates between the two rather than living off
+          // the four written in this module.
+          const line = (who === 'zahra'
+            && (k % 2 === 0 && AWAY.sayyad.indexOf(job) < 0
+              ? personLine('Zahra', 'about-sayyad', k / 2)
+              : personLine('Zahra', 'start', (k - 1) >> 1)))
+            || greeting(who, k - 1);
           if (line) heckle.line(CAST[who].name, line, 3200);
         }
       }
