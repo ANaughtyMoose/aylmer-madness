@@ -11,6 +11,10 @@ import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShado
 import { asBody, collideCars, driftBody, contact } from './game/collide.js';
 import { DriveFx, updateRepairs, repairSpotAt, nearestRepair, repairHint, REPAIR, restoreDamage } from './game/damage.js';
 import { Traffic } from './game/traffic.js';
+// [vehicles] The two buses and the two bicycles. Importing this registers them
+// in CARS, in the garage and in the save slots; the three call sites tagged
+// [vehicles] below are everything else main.js has to know about them.
+import { VEHICLE_OWNERS, vehicleTick, drawVehicleExtras } from './game/vehicles.js';
 import { Hud } from './game/hud.js';
 import { loadCarSkin } from './game/carskin.js';
 import { Nav, routeLength } from './game/nav.js';
@@ -203,6 +207,9 @@ const OWNER = {
   // The Club's cart. It stays at the golf course whatever you do with it.
   cart: 'golf',
 };
+// [vehicles] The school bus lives in the yard at École de l'Aigle, Sayyad's
+// chrome cruiser outside 75 Denise-Friend, and your Diamondback at 299 Fraser.
+Object.assign(OWNER, VEHICLE_OWNERS);
 // Bought beaters come home with you; everything else lives with its owner.
 const homeKey = (id) => (OWNER[id] === 'usedlot' ? 'home' : OWNER[id]);
 const homeOf = (id) => PLACES[homeKey(id)] || PLACES.home;
@@ -1390,6 +1397,10 @@ function tick(dt) {
     if (ctl.throttle > 0.05 && !G.relayOn) { G.relayOn = true; audio.blip(v.spec.relay, 0.035, 'square', 0.05); }
     else if (ctl.throttle <= 0.05) G.relayOn = false;
   }
+  // [vehicles] A bicycle has legs instead of an engine and a bunny-hop instead
+  // of a handbrake, so it gets at the controls before the vehicle does. It is
+  // a no-op in anything with a motor.
+  vehicleTick(G, ctl, dt);
   const preImpact = v.impact;
   v.update(dt, ctl, G.phys);
   // Air and landings. `v.landed` is the vertical speed the springs killed, set
@@ -1721,6 +1732,9 @@ function render(dt) {
 
 function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y = 0, gy = 0) {
   const r = G.renderer;
+  // [vehicles] Two-wheelers: the fork and bars that turn with the steering, and
+  // the rider, who pedals and leans. Nothing happens here for a car.
+  drawVehicleExtras(G, spec, x, z, yaw, roll, spin, steer, y);
   const skin = G.meshes.skins[spec.id];
   const opts = tint ? { colorMul: tint } : {};
   if (skin) opts.tex = skin.tex;

@@ -158,11 +158,16 @@ export function nearestAnyJob(G, list = MISSIONS) {
 // the year and nobody says the make: it is the Civic, and it is a "la".
 const CAR_SHORT = {
   ranger: 'Ranger', saturn: 'Saturn', civic: 'Civic', sunfire: 'Sunfire',
-  cutlass: 'Cutlass', cavalier: 'Cavalier Z24', caravan: 'Caravan', bus: 'bus scolaire',
+  cutlass: 'Cutlass', cavalier: 'Cavalier Z24', caravan: 'Caravan',
+  // The lot bus is a transit bus and always was; there is a real school bus in
+  // the game now (game/buses.js), so the two of them cannot share a name.
+  bus: 'bus de ville', schoolbus: 'bus scolaire',
+  cruiser: 'cruiser chromé', dbike: 'bicycle',
 };
 const CAR_ART = {
   ranger: 'le', saturn: 'la', civic: 'la', sunfire: 'la',
   cutlass: 'la', cavalier: 'la', caravan: 'la', bus: 'le',
+  schoolbus: 'le', cruiser: 'le', dbike: 'le',
 };
 
 /** What you would call that car out loud. Falls back to dropping the year. */
@@ -185,6 +190,9 @@ const CAR_WHY = {
   cavalier: 'quelqu’un a mis des flammes dessus. Quelqu’un.',
   caravan: 'sept places, zéro dignité',
   bus: 'personne va te demander ton permis de classe 2',
+  schoolbus: 'c’est l’été, la clé est au-dessus du pare-soleil',
+  cruiser: 'Sayyad le barre jamais, il est trop fier de lui',
+  dbike: 'il est dans l’entrée depuis que t’as douze ans',
 };
 
 /** A friend's car parked within reach, and whether it is yours to take. */

@@ -34,9 +34,13 @@ export class CarTurntable {
       this.r.scale = 1;
       this.r.setEnvironment(ENV);
       this.bodies = {}; this.wheels = {};
+      this.steers = {};
       for (const c of CARS) {
-        this.bodies[c.id] = this.r.upload(buildCarBody(c));
-        this.wheels[c.id] = this.r.upload(buildWheel(c));
+        // A vehicle that builds its own body (game/vehicles.js: the two buses,
+        // the two bicycles) says so on its spec; everything else is lofted.
+        this.bodies[c.id] = this.r.upload((c.buildBody || buildCarBody)(c));
+        this.wheels[c.id] = this.r.upload((c.buildWheel || buildWheel)(c));
+        if (c.buildSteer) this.steers[c.id] = this.r.upload(c.buildSteer(c));
       }
       const floor = new MeshBuilder();
       floor.flat(-14, -14, 14, 14, 0, rgb(0x1c242c));
@@ -98,6 +102,10 @@ export class CarTurntable {
       m4.compose(mm, 0, 0, 0, 0, 0, 0);
       r.draw(this.bodies[spec.id], mm);
       const wr = spec.wheelR;
+      if (this.steers[spec.id]) {
+        m4.compose(mm, 0, 0, spec.axleZ, -steer, 0, 0);
+        r.draw(this.steers[spec.id], mm);
+      }
       for (const sz of [1, -1]) for (const sx of [-1, 1]) {
         m4.compose(mm, sx * spec.track / 2, wr, sz * spec.axleZ,
           sz > 0 ? -steer : 0, ms * 0.0015, 0);

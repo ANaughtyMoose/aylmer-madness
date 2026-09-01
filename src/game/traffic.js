@@ -3,6 +3,10 @@
 // for whatever is in front of them, which is all you can see at 50 km/h.
 import { MAP } from './mapdata.js';
 import { TRAFFIC_CARS } from './cars.js';
+// The ambient population that is not a car: cyclists on the shoulder, one STO
+// bus working a route, and — it being July — one school bus on a camp run.
+import { CITY_BUS, SCHOOL_BUS } from './buses.js';
+import { BIKES } from './bikes.js';
 import { collideCars, driftBody, contact } from './collide.js';
 import { clamp, angleDelta, mulberry32 } from '../core/math.js';
 // Story agent: somebody you shoved, or somebody stuck behind you, has something
@@ -32,6 +36,16 @@ const HONK_AT = 0.30;    // ...and how long before the horn goes
 // Right-hand side of a heading (dx,dz) is (-dz,dx): east (1,0) → south (0,1).
 // Québec drives on the right, so that is the side of the centreline we want.
 const laneOffset = (w) => Math.max(1.6, w * 0.25);
+
+// What the ambient population that is not a car is allowed to do. `lane` is
+// extra offset to the right of the driving lane — a metre puts a cyclist on the
+// shoulder where one actually rides — and `cap` is a speed ceiling in m/s,
+// because the road graph's `want` is set for cars and nobody pedals at 47.
+const AMBIENT = {
+  bike: { lane: 1.05, cap: 5.4, pace: [0.72, 0.30] },
+  city: { lane: 0.10, cap: 12.5, pace: [0.86, 0.16], stopEvery: [16, 12], stopFor: 5.5 },
+  school: { lane: 0.10, cap: 11.0, pace: [0.80, 0.14] },
+};
 
 export class Traffic {
   constructor(count = 12, seed = 7) {
@@ -151,6 +165,48 @@ export class Traffic {
       car.speed = car.want * 0.7;
       this.cars.push(car);
     }
+
+    // ---------------------------------------------------- the rest of town
+    // Appended after the cars so the loop above keeps drawing exactly the same
+    // numbers out of the generator that it always did.
+    //
+    // Cyclists scale with the traffic setting and ride the shoulder. One STO
+    // bus works the big roads and pulls over every twenty seconds or so, which
+    // from behind is indistinguishable from a route. The school bus is a single
+    // vehicle moving slowly on a summer morning: in July there is no run, only
+    // a camp, and the rest of the fleet is parked at École de l'Aigle.
+    const riders = Math.max(2, Math.round(count * 0.28));
+    for (let i = 0; i < riders; i++) {
+      this.cars.push(this.ambient(rnd, small.length ? small : big, BIKES[i % BIKES.length], 'bike'));
+    }
+    this.cars.push(this.ambient(rnd, big.length ? big : small, CITY_BUS, 'city'));
+    this.cars.push(this.ambient(rnd, big.length ? big : small, SCHOOL_BUS, 'school'));
+  }
+
+  /**
+   * One ambient non-car on the graph. `spec` is cloned so the renderer can tell
+   * a cyclist (which gets a rider drawn on it) from the identical bicycle
+   * parked outside the house it belongs to.
+   */
+  ambient(rnd, pool, base, kind) {
+    const A = AMBIENT[kind];
+    const spec = { ...base, rider: kind === 'bike' };
+    const ei = pool[Math.floor(rnd() * pool.length) % pool.length];
+    const car = {
+      x: 0, z: 0, y: 0, yaw: 0, spin: 0, speed: 0, horn: 0,
+      spec, tint: null, edge: ei, want: 10,
+      pace: A.pace[0] + rnd() * A.pace[1],
+      lane: A.lane, cap: A.cap, kind,
+      stopEvery: A.stopEvery || null, stopFor: A.stopFor || 0,
+      nextStop: A.stopEvery ? A.stopEvery[0] + rnd() * A.stopEvery[1] : 0,
+      dwellT: 0,
+      stopT: 0, respawnT: 0,
+      vx: 0, vz: 0, yawSpin: 0, stunT: 0, honkT: 0, honk: 0,
+      len: spec.len, wid: spec.wid, mass: spec.mass, hitBy: 0,
+    };
+    this.place(car, ei, rnd());
+    car.speed = car.want * 0.6;
+    return car;
   }
 
   cellKey(x, z) {
@@ -160,21 +216,30 @@ export class Traffic {
   }
 
   // Lane point t along an edge (0 = start, 1 = end), offset to the right.
-  laneAt(e, t, out) {
+  // `lane` is extra offset for something that does not use the whole lane: a
+  // cyclist rides a metre further right than a Caravan does.
+  laneAt(e, t, out, lane = 0) {
     const A = this.nodes[e.a], B = this.nodes[e.b];
-    const rx = -e.dz * e.off, rz = e.dx * e.off;
+    const off = e.off + lane;
+    const rx = -e.dz * off, rz = e.dx * off;
     out[0] = A.x + (B.x - A.x) * t + rx;
     out[1] = A.z + (B.z - A.z) * t + rz;
     return out;
   }
 
+  // What this driver wants to be doing on this edge. Nobody pedals at 47.
+  wantOn(car, e) {
+    const w = e.want * car.pace;
+    return car.cap ? Math.min(w, car.cap) : w;
+  }
+
   place(car, ei, t) {
     const e = this.edges[ei];
-    const p = this.laneAt(e, t, [0, 0]);
+    const p = this.laneAt(e, t, [0, 0], car.lane || 0);
     car.edge = ei;
     car.x = p[0]; car.z = p[1];
     car.yaw = Math.atan2(e.dx, e.dz);
-    car.want = e.want * car.pace;
+    car.want = this.wantOn(car, e);
     car.stopT = 0;
     car.vx = 0; car.vz = 0; car.yawSpin = 0;
     car.stunT = 0; car.honkT = 0; car.honk = 0; car.hitBy = 0;
@@ -211,7 +276,7 @@ export class Traffic {
     }
     if (best < 0) return false;
     car.edge = best;
-    car.want = this.edges[best].want * car.pace;
+    car.want = this.wantOn(car, this.edges[best]);
     car.stopT = 0;
     return true;
   }
@@ -255,7 +320,7 @@ export class Traffic {
           const d2 = mx * mx + mz * mz;
           if (d2 < lo || d2 > hi) continue;
           const t = 0.15 + this.rnd() * 0.7;
-          this.laneAt(e, t, p);
+          this.laneAt(e, t, p, car.lane || 0);
           const px = p[0] - player.x, pz = p[1] - player.z;
           if (px * px + pz * pz < KEEP_CLEAR * KEEP_CLEAR) continue;
           seen++;
@@ -308,7 +373,7 @@ export class Traffic {
       }
 
       let e = this.edges[c.edge];
-      this.laneAt(e, 1, tgt);
+      this.laneAt(e, 1, tgt, c.lane || 0);
       let dx = tgt[0] - c.x, dz = tgt[1] - c.z;
       if (Math.hypot(dx, dz) < ARRIVE) {
         // Fake stop sign: three or more differently-named roads meeting here.
@@ -321,10 +386,10 @@ export class Traffic {
           else { c.speed = 0; }
         } else {
           c.edge = nx;
-          c.want = this.edges[nx].want * c.pace;
+          c.want = this.wantOn(c, this.edges[nx]);
         }
         e = this.edges[c.edge];
-        this.laneAt(e, 1, tgt);
+        this.laneAt(e, 1, tgt, c.lane || 0);
         dx = tgt[0] - c.x; dz = tgt[1] - c.z;
       }
 
@@ -356,6 +421,16 @@ export class Traffic {
       }
 
       if (c.stopT > 0) { c.stopT -= dt; block = Math.max(block, 0.94); }
+      // The bus stop. There is no stop furniture on the graph, so the route is
+      // modelled as what you see of one from three cars back: it pulls in, sits
+      // there for five seconds, and pulls out again.
+      if (c.stopEvery) {
+        if (c.dwellT > 0) { c.dwellT -= dt; block = 1; }
+        else if ((c.nextStop -= dt) <= 0) {
+          c.dwellT = c.stopFor;
+          c.nextStop = c.stopEvery[0] + this.rnd() * c.stopEvery[1];
+        }
+      }
 
       // Slow into corners: the sharper the heading error, the slower we go.
       const corner = 1 - Math.min(0.75, Math.abs(err) * 0.9);

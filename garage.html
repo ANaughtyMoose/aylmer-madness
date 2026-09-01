@@ -15,11 +15,16 @@ import { Renderer } from './src/core/gl.js';
 import { MeshBuilder, rgb } from './src/core/mesh.js';
 import { m4 } from './src/core/math.js';
 import { CARS, buildCarBody, buildWheel } from './src/game/cars.js';
+// The two buses and the two bicycles register themselves and bring their own
+// builders; see src/game/vehicles.js.
+import './src/game/buses.js';
+import './src/game/bikes.js';
 import { loadCarSkin } from './src/game/carskin.js';
 const r = new Renderer(document.getElementById('gl'));
 r.setEnvironment({ sky:[0.62,0.7,0.82], ground:[0.28,0.3,0.3], sun:[0.85,0.8,0.72], lightDir:[0.4,0.8,0.45], fog:[0.1,0.125,0.16], fogDensity:0.004 });
 const bodies = {}, wheels = {}, skins = {};
-for (const c of CARS) { bodies[c.id] = r.upload(buildCarBody(c)); wheels[c.id] = r.upload(buildWheel(c)); loadCarSkin(r, c).then(s => { if (s) skins[c.id] = s; }); }
+const steers = {};
+for (const c of CARS) { bodies[c.id] = r.upload((c.buildBody||buildCarBody)(c)); wheels[c.id] = r.upload((c.buildWheel||buildWheel)(c)); if (c.buildSteer) steers[c.id] = r.upload(c.buildSteer(c)); loadCarSkin(r, c).then(s => { if (s) skins[c.id] = s; }); }
 const floor = new MeshBuilder(); floor.flat(-30,-30,30,30,0,rgb(0x2a3038)); const floorM = r.upload(floor);
 let idx = 0, useSkin = true, yaw = 0.7, pitch = -0.28, dist = 8.5, drag = null;
 // Front-wheel steering: A/D while held, otherwise a slow sweep so the knuckles
@@ -52,6 +57,7 @@ function frame(t) {
   m4.identity(mm); r.draw(floorM, mm);
   m4.compose(mm, 0, 0, 0, 0, 0, 0); r.draw(skin ? skin.mesh : bodies[spec.id], mm, skin ? { tex: skin.tex } : undefined);
   const wr = skin ? skin.wheelR : spec.wheelR, k = wr / spec.wheelR;
+  if (steers[spec.id]) { m4.compose(mm, 0, 0, spec.axleZ, -steer, 0, 0); r.draw(steers[spec.id], mm); }
   for (const sz of [1,-1]) for (const sx of [-1,1]) { const z = skin ? (sz>0?skin.wheelZ[0]:skin.wheelZ[1]) : sz*spec.axleZ; m4.compose(mm, sx*spec.track/2, wr, z, sz>0 ? -steer : 0, t*0.002, 0, 1, k, k); r.draw(wheels[spec.id], mm); }
   r.end();
 }

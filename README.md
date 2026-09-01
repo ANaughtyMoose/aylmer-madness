@@ -238,6 +238,10 @@ src/game/cars.js    the four car models, the driving model, damage and lights
 src/game/collide.js car-vs-car impulse solver
 src/game/damage.js  crumples, steam, headlights, fallen poles, repairs
 src/game/traffic.js ambient traffic driving the real road graph, on the right, obeying lights
+src/game/vehiclekit.js   the primitives a bus and a bicycle need that a lofted car does not
+src/game/buses.js   the GM New Look city bus (STO livery, dot-matrix sign) and the Blue Bird school bus
+src/game/bikes.js   the two bicycles: the rider who pedals, the sprint that runs out, the bunny-hop
+src/game/vehicles.js registers the four above into CARS / the garage / the save slots
 src/game/missions.js the core jobs, and the time-of-day lighting presets
 src/game/missionkit.js the stage model (hold/cost/condition/onTick...) the runner understands
 src/game/sidejobs.js the canoe, Sayyad, and Mike's couch

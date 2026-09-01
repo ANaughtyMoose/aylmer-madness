@@ -9,6 +9,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { CARS, buildCarBody, buildWheel, tToZ, pl } from '../src/game/cars.js';
 import { STRIDE } from '../src/core/mesh.js';
+// Registers the two buses and the two bicycles into CARS. They carry their own
+// buildBody/buildWheel/buildSteer, which is what the (c.buildX || ...) below is.
+import '../src/game/buses.js';
+import '../src/game/bikes.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CELL_W = 420, PAD = 16, LABEL_H = 34;
@@ -16,7 +20,8 @@ const SCALE = (CELL_W - 2 * PAD) / 5.1;           // px per metre, common to eve
 const CELL_H = Math.round(2.05 * SCALE) + LABEL_H + PAD;
 // Keep this in step with cars.js — a van rides on truck tyres and a bus on
 // something a lot fatter than either.
-const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24
+const WHEEL_W = (s) => (s.tyreW != null ? s.tyreW : s.style === 'bus' ? 0.32
+  : s.style === 'truck' || s.style === 'van' ? 0.24
   : s.style === 'cart' ? 0.14 : 0.20);
 
 // ---- mesh helpers -----------------------------------------------------------
@@ -94,22 +99,48 @@ const rows = [];
 const report = [];
 let y = PAD;
 for (const s of CARS) {
-  const body = buildCarBody(s);
+  // The two buses and the two bicycles bring their own builders; a car is
+  // lofted by cars.js the way it always was.
+  const mkBody = s.buildBody || buildCarBody, mkWheel = s.buildWheel || buildWheel;
+  const body = mkBody(s);
   // Measured against the spec sheet with everything that sticks out past the
   // body envelope left off: the mirrors, and the Ranger's whip antenna. A real
   // 1993 brochure quotes 69.4 in wide and 64.8 in tall for the same reason.
-  const bodyNoMirrors = buildCarBody(s, { noMirrors: true, noAerial: true });
-  const wheel = buildWheel(s);
-  const wTris = triangles(wheel).length, bTris = body.i.length / 3;
+  // A custom builder that ignores either flag simply gets the full body back.
+  const bodyNoMirrors = mkBody(s, { noMirrors: true, noAerial: true });
+  const wheel = mkWheel(s);
+  // A two-wheeler's bars and fork turn with the steering, so they are a mesh of
+  // their own; they are most of its width and half of what identifies it, so
+  // they go into the contact sheet and into the dimension check.
+  const steer = s.buildSteer ? s.buildSteer(s) : null;
+  const wTris = triangles(wheel).length + (steer ? steer.i.length / 3 : 0);
+  const bTris = body.i.length / 3;
 
   // assemble body + four wheels (as the game places them)
   const tris = triangles(body);
+  if (steer) {
+    tris.push(...triangles(steer, [0, 0, s.axleZ]));
+    for (const p of steer.min.keys()) {
+      bodyNoMirrors.min[p] = Math.min(bodyNoMirrors.min[p], steer.min[p] + (p === 2 ? s.axleZ : 0));
+      bodyNoMirrors.max[p] = Math.max(bodyNoMirrors.max[p], steer.max[p] + (p === 2 ? s.axleZ : 0));
+    }
+  }
   for (const sx of [1, -1]) for (const sz of [1, -1]) {
     tris.push(...triangles(wheel, [sx * s.track / 2, s.wheelR, sz * s.axleZ]));
   }
 
-  // dimensions
+  // dimensions. A two-wheeler is measured over the whole assembly: its wheels
+  // are half its length and its bars are all of its width.
   const bb = bbox(bodyNoMirrors), bbAll = bbox(body);
+  if (s.twoWheel) {
+    // The wheels: half a tyre wide, two radii tall, and a wheelbase plus two
+    // radii long. Both of them sit in the frame's own plane.
+    const ext = [WHEEL_W(s) / 2, 0, s.axleZ + s.wheelR];
+    for (const p of [0, 1, 2]) {
+      bb.min[p] = Math.min(bb.min[p], p === 1 ? 0 : -ext[p]);
+      bb.max[p] = Math.max(bb.max[p], p === 1 ? 2 * s.wheelR : ext[p]);
+    }
+  }
   const L = bb.max[2] - bb.min[2], W = bb.max[0] - bb.min[0], H = bb.max[1];
   const pct = (a, b) => ((a / b - 1) * 100);
   const rearOverhang = s.len - s.wheelbase - s.overhangF;
@@ -123,8 +154,11 @@ for (const s of CARS) {
     L, W, H, dL: pct(L, s.len), dW: pct(W, s.wid), dH: pct(H, s.h),
     Wmirrors: bbAll.max[0] - bbAll.min[0],
     wheelOuter, proud, bTris, wTris, wind, wheelWind,
+    twoWheel: !!s.twoWheel,
+    // A bicycle has one track: both drawn wheels sit in the frame's own plane,
+    // so "how far does the tyre stand proud of the body" is not a question.
     ok: Math.abs(pct(L, s.len)) <= 3 && Math.abs(pct(W, s.wid)) <= 3 && Math.abs(pct(H, s.h)) <= 3
-      && proud.every((p) => p.proud >= 0.06 && p.proud <= 0.09),
+      && (s.twoWheel || s.duals || proud.every((p) => p.proud >= 0.06 && p.proud <= 0.09)),
   });
 
   // svg row
