@@ -1,0 +1,472 @@
+{
+  "part_1_residential": {
+    "locations": [
+      {
+        "name": "1 rue Arial (House)",
+        "lat": 45.38703,
+        "lng": -75.822728,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.387030,-75.822728&cbp=11,345,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "storeys": 1.5,
+        "roof": "Gambrel roof with multiple side dormers and asphalt shingles",
+        "roofColour": "Deep reddish-brown",
+        "walls": "Horizontal vinyl or aluminum siding",
+        "wallColour": "White",
+        "windows": "Horizontal rectangular sliding and single-hung windows with wide frames and contrasting surrounds",
+        "trim": "Deep red / burgundy trim around all window casings, roof fascia, and eaves",
+        "entrance": "Side entrance door accessed from the driveway and front facade openings",
+        "setback": "Deep grass front yard setback from Rue Arial with mature evergreen conifer partially obstructing the facade",
+        "surroundings": "Residential lot bounded by red vertical-slat wooden privacy fence on the west and long paved driveway on the east leading to the detached garage",
+        "recognisable": [
+          "White horizontal siding contrasted with bold deep red/burgundy trim around windows and roofline",
+          "Dutch colonial / barn-style gambrel roof with reddish-brown shingles and upper dormers",
+          "Large mature evergreen tree centered in the front lawn and red-painted wooden perimeter fence on the west"
+        ],
+        "changedSince": "Large mature evergreen conifer in front lawn removed / cut down; young saplings planted in its place",
+        "inferred": [
+          "Roof underlayment and specific structural framing details"
+        ],
+        "confidence": "high"
+      },
+      {
+        "name": "1 rue Arial (Detached Garage)",
+        "lat": 45.38704,
+        "lng": -75.822606,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.387040,-75.822606&cbp=11,335,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "storeys": 1,
+        "roof": "Gable roof with asphalt shingles and red fascia trim matching the main house",
+        "roofColour": "Reddish-brown / grey",
+        "walls": "Horizontal siding matching the house",
+        "wallColour": "White",
+        "windows": "Single pedestrian door on left with red surround; no visible front windows",
+        "trim": "Deep red / burgundy fascia and pedestrian door trim matching the main house",
+        "entrance": "White panel vehicular overhead garage door(s) and a separate pedestrian entry door on the left",
+        "setback": "Set far back behind the main house at the rear terminus of the long paved asphalt driveway",
+        "surroundings": "Long asphalt driveway along east property line bordered by stacked firewood and trees; open rear yard",
+        "recognisable": [
+          "Detached two-bay width white siding garage positioned far behind the house at the end of a long driveway",
+          "Matching deep red trim along the roof gables and pedestrian doorway",
+          "Extensive stacked firewood pile covered with sheeting and dark utility trailer parked along the driveway approach"
+        ],
+        "changedSince": "In 2009 right bay was obscured by parked vehicles/woodpile; later captures clearly show two distinct white panel garage doors side-by-side",
+        "inferred": [
+          "Exact interior depth and foundation type"
+        ],
+        "confidence": "high"
+      },
+      {
+        "name": "129 avenue Frank-Robinson",
+        "lat": 45.393446,
+        "lng": -75.840726,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.393446,-75.840726&cbp=11,300,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "storeys": 1.5,
+        "roof": "Side-gable roof with large central front shed dormer and prominent red brick chimney; asphalt shingles",
+        "roofColour": "Dark charcoal / grey",
+        "walls": "Red-brown brick masonry on ground floor and gable ends; wood shakes / shingles on shed dormer face and cheeks",
+        "wallColour": "Red-brown brick with natural weathered brown wood shake dormer",
+        "windows": "Three-part rectangular window grouping on dormer (wide central pane flanked by narrower sashes); rectangular double-hung windows on ground floor",
+        "trim": "Crisp white painted porch entablature, column capitals, bases, and fascia boards; dark green/black window sashes",
+        "entrance": "Full-width covered front veranda/porch supported by four substantial square tapered white columns on brick pedestals, with central wooden steps to front door",
+        "setback": "Substantial corner lot setback at the intersection of Avenue Frank-Robinson and Rue Smiley, with dense shrubbery at the corner",
+        "surroundings": "Lord Aylmer Junior Campus school property across Frank-Robinson to the east; adjacent single-family homes to the south and north across Smiley",
+        "recognisable": [
+          "Classic Craftsman bungalow silhouette with prominent front shed dormer clad in wood shakes and side red brick chimney",
+          "Full-width covered front porch with four thick white square columns resting on red brick pedestals",
+          "Red-brown brick masonry ground floor with white trim and corner lot positioning at Rue Smiley"
+        ],
+        "changedSince": "Wood shakes on the shed dormer repainted from weathered natural brown to dark charcoal/grey; porch steps/railings repaired; foliage trimmed",
+        "inferred": [
+          "Rear elevation and backyard layout"
+        ],
+        "confidence": "high"
+      },
+      {
+        "name": "75 rue Denise-Friend",
+        "lat": 45.398078,
+        "lng": -75.844739,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.398078,-75.844739&cbp=11,350,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "storeys": 2,
+        "roof": "Truncated hip / mansard roof with shallow flat top deck, plus separate forward-sloping pent roof over the front veranda; asphalt shingles",
+        "roofColour": "Weathered dark charcoal / black",
+        "walls": "Horizontal wood clapboard siding",
+        "wallColour": "Muted olive / sage green",
+        "windows": "Two tall, narrow rectangular double-hung windows symmetrically placed on the second floor; single tall rectangular window on the left of the ground-floor porch and transom window over the front door",
+        "trim": "Deep burgundy / maroon porch posts, header, and trim; dark green railings with diagonal X-brace balustrades and dark green window surrounds",
+        "entrance": "Full-width covered ground-floor front veranda with four square burgundy posts, dark green decking, and white front door with glass insert on the right",
+        "setback": "Shallow to moderate front yard setback from Rue Denise-Friend with low wooden steps leading onto the porch",
+        "surroundings": "Dense mature cedar hedge / arborvitae along the left (west) boundary; unpaved/gravel driveway on the right leading alongside the house",
+        "recognisable": [
+          "Compact two-storey volume with truncated hip/mansard roof and olive-green horizontal clapboard siding",
+          "Pair of tall narrow upper-floor windows above an asymmetrical ground-floor arrangement (window left, door with transom right)",
+          "Full-width front veranda with distinct burgundy/maroon square columns and green diagonal X-cross railing balustrades"
+        ],
+        "changedSince": "Exterior trim and porch completely repainted from burgundy/green to clean white; siding repainted to slate/blue-grey; metal chimney pipe installed on left roof slope",
+        "inferred": [
+          "Rear elevation and interior floorplan"
+        ],
+        "confidence": "high"
+      },
+      {
+        "name": "299 chemin Fraser",
+        "lat": 45.392673,
+        "lng": -75.823921,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.392673,-75.823921&cbp=11,90,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "storeys": 2,
+        "roof": "Side-gable roof on central two-storey block and lower side-gable roof on attached single-storey left garage wing; asphalt shingles",
+        "roofColour": "Dark grey / charcoal",
+        "walls": "Red-brown brick masonry veneer with light concrete foundation exposed at grade",
+        "wallColour": "Red-brown brick",
+        "windows": "Second floor has three rectangular windows (one smaller vertical on left, two larger horizontal units in center and right); ground floor has large multi-pane picture window to the right of the door and small basement hopper windows below",
+        "trim": "White / off-white window frames, white fascia, white soffits, and white front entryway canopy",
+        "entrance": "Centrally positioned front entrance with white door, vertical light pane, and projecting shallow portico/canopy overhang supported by slender posts",
+        "setback": "Deep suburban front yard setback with lawn, gravel/asphalt driveway on the left leading to the attached single-car garage",
+        "surroundings": "Dense tall mature cedar privacy hedge bordering the entire left (north) property line; front lawn features a prominent conifer and a red Japanese maple",
+        "recognisable": [
+          "Two-storey red-brick gable-roof facade with single-storey attached garage wing on the left",
+          "Front lawn featuring a tall pointed conifer tree paired with a distinct red-leaf Japanese maple",
+          "Continuous tall green cedar hedge running down the left property boundary alongside the driveway"
+        ],
+        "changedSince": "Front porch steps updated with wider wooden landing and railings; trees in front lawn have matured and grown significantly taller",
+        "inferred": [
+          "Rear elevation and garage interior depth"
+        ],
+        "confidence": "high"
+      }
+    ]
+  },
+  "part_2_commercial_strip": {
+    "street": {
+      "name": "Rue Principale (Vieux-Aylmer)",
+      "width": "Standard 2-lane urban commercial corridor (~10-12m roadway carriage)",
+      "parking": "Parallel on-street parking along both north and south sides; painted curb cutouts and side parking pockets",
+      "sidewalk": "Wide pedestrian sidewalks (approx. 2.5-3.5m) composed of poured concrete slabs framed by dark red/buff interlocking brick paver bands and stone curbs",
+      "lamps": "Heritage Victorian-style black cast-iron fluted lamp posts equipped with dual hanging flower baskets (seasonal red/green foliage) and pedestrian-scale lantern heads",
+      "trees": "Evenly spaced mature deciduous street trees (maple, elm, ash) set in sidewalk cutouts with cast-iron tree grates and surrounding turf patches",
+      "furniture": "Black wrought-iron benches with slatted wooden seats, cast-iron garbage/recycling receptacles, bike rings, decorative wooden directional signs, overhead utility wires on wooden poles on south side, parking meters",
+      "earliestYear": 2009
+    },
+    "storefronts": [
+      {
+        "n": 1,
+        "side": "north",
+        "lat": 45.394781,
+        "lng": -75.847198,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394781,-75.847198&cbp=11,0,0,0,0",
+        "storeys": 3,
+        "walls": "Coursed grey limestone ashlar block masonry",
+        "wallColour": "Light grey / weathered beige limestone",
+        "roof": "Low-pitch / flat roof with stone parapet line",
+        "shopfront": "Wide multi-pane gridded commercial picture window with white mullions to the left of a prominent grand arched stone entrance portal",
+        "awning": "None",
+        "awningColour": "None",
+        "sign": "Large vertical projecting double-sided blade sign mounted on stone wall between 1st and 2nd storeys",
+        "trim": "White window sash frames and natural grey stone arch voussoirs and sills",
+        "changedSince": "Extensive historic restoration of The British Hotel & Pub; stone facade cleaned, modern British Pub signage installed, interior hotel reopened",
+        "confidence": "high"
+      },
+      {
+        "n": 2,
+        "side": "south",
+        "lat": 45.39475,
+        "lng": -75.84715,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394750,-75.847150&cbp=11,180,0,0,0",
+        "storeys": 1,
+        "walls": "Orange-brown brick masonry facade",
+        "wallColour": "Orange-brown brick",
+        "roof": "Flat roof with black architectural parapet beam structure",
+        "shopfront": "Four large rectangular plate-glass display windows with central recessed double glazed entry doors",
+        "awning": "Flat metal canopy overhang over central entrance",
+        "awningColour": "Black",
+        "sign": "Flat wall-mounted rectangular identification plaque beside entrance door",
+        "trim": "Black window frames, dark entrance surround, dark parapet header",
+        "changedSince": "Tenancy change from commercial office to service clinic; window graphic updates",
+        "confidence": "high"
+      },
+      {
+        "n": 3,
+        "side": "north",
+        "lat": 45.394807,
+        "lng": -75.846689,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394807,-75.846689&cbp=11,0,0,0,0",
+        "storeys": 2,
+        "walls": "Painted faux-ashlar trompe-l'œil rusticated stone on ground level with painted classical pilasters; beige stucco on upper level",
+        "wallColour": "Light grey faux stone base, cream upper floor",
+        "roof": "Flat roof with dark cornice parapet",
+        "shopfront": "Symmetrical facade with central double glass entry doors (transom with oval logo), flanked by two large rectangular display windows with teal upper transoms; 4 concrete entry steps with black wrought-iron railings",
+        "awning": "None",
+        "awningColour": "None",
+        "sign": "Wide horizontal black vinyl fascia banner: 'Jolie Plus / Maquillage Manucure Pédicure Épilation Cire Pose d'Ongles 819-684-6891'; upper painted wall sign 'Centre de Santé et Beauté d'Aylmer'",
+        "trim": "Teal / blue window framing and transom muntins, white sills, black iron handrails",
+        "changedSince": "Salon business rebranding; facade repaint and updated signage",
+        "confidence": "high"
+      },
+      {
+        "n": 4,
+        "side": "south",
+        "lat": 45.394644,
+        "lng": -75.846545,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394644,-75.846545&cbp=11,180,0,0,0",
+        "storeys": 1.5,
+        "walls": "Grey stone and stucco masonry with white trim",
+        "wallColour": "Grey stone",
+        "roof": "Steep red gabled/mansard roof with gabled white dormer window",
+        "shopfront": "Commercial/office conversion with front white wooden veranda terrace and wheelchair access ramp",
+        "awning": "None",
+        "awningColour": "None",
+        "sign": "Free-standing wooden post lawn signboard: 'Bienvenue à tous / Welcome'",
+        "trim": "White dormer siding, white porch railings and window trim, red roof fascia",
+        "changedSince": "Terrace modifications and updated entrance landscaping",
+        "confidence": "high"
+      },
+      {
+        "n": 5,
+        "side": "north",
+        "lat": 45.394826,
+        "lng": -75.846374,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394826,-75.846374&cbp=11,0,0,0,0",
+        "storeys": 3,
+        "walls": "Red-brown brick masonry with rough-hewn stone foundation plinth",
+        "wallColour": "Red brick",
+        "roof": "Flat roof with decorative corbelled brick cornice",
+        "shopfront": "Three-bay commercial ground floor; center unit (Bambou) features a large plate-glass display window and recessed red entry door reached by 3 concrete steps with red metal railing",
+        "awning": "Wedge-shaped fabric canopy awning across the display window",
+        "awningColour": "Bright red fabric with white 'BAMBOU' text and bamboo motif (yellow awning on adjacent unit)",
+        "sign": "Directly printed onto the awning fabric: 'BAMBOU'",
+        "trim": "Light grey/white classical storefront cornice entablature with brackets; dark window sashes",
+        "changedSince": "Restaurant ownership transition, awning replacement, and updated storefront signage",
+        "confidence": "high"
+      },
+      {
+        "n": 6,
+        "side": "south",
+        "lat": 45.394746,
+        "lng": -75.84635,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394746,-75.846350&cbp=11,180,0,0,0",
+        "storeys": 1.5,
+        "walls": "Dark brown vertical board-and-batten siding with rooftop timber deck; adjacent red brick 2-storey block",
+        "wallColour": "Dark brown siding / Red brick",
+        "roof": "Flat roof deck with wooden balustrade; adjacent brick building with flat/mansard roof",
+        "shopfront": "Two multi-pane 6-over-6 windows flanking a central white multi-pane entry door; adjacent brick unit has side door with striped awning",
+        "awning": "Striped brown-and-white fabric canopy over the adjacent brick entryway",
+        "awningColour": "Brown and white stripes",
+        "sign": "Small wall-mounted house number and address plaques",
+        "trim": "Cream/white window casings and white door frames",
+        "changedSince": "Ground floor cladding refresh and modernized entry doors",
+        "confidence": "high"
+      },
+      {
+        "n": 7,
+        "side": "north",
+        "lat": 45.394926,
+        "lng": -75.845054,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394926,-75.845054&cbp=11,0,0,0,0",
+        "storeys": 4,
+        "walls": "Orange-red brick masonry with green painted spandrel panels (Maison du Citoyen / Cultural Centre)",
+        "wallColour": "Orange-red brick and sage green spandrels",
+        "roof": "Flat roof with brick parapet and prominent polygonal brick clock tower at corner",
+        "shopfront": "Continuous arcade of tall Romanesque brick arches housing full-height commercial/public display glazing and double glass entry doors with electronic intercom",
+        "awning": "None",
+        "awningColour": "None",
+        "sign": "Wall-mounted brushed metal letters and municipal civic signage",
+        "trim": "Sage green painted metal window frames and storefront mullions",
+        "changedSince": "Cultural venue branding updates (Cabaret La Basoche) and interior civic renovations",
+        "confidence": "high"
+      },
+      {
+        "n": 8,
+        "side": "south",
+        "lat": 45.394708,
+        "lng": -75.845363,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394708,-75.845363&cbp=11,180,0,0,0",
+        "storeys": 2,
+        "walls": "Rich red brick masonry with contrasting white stone rusticated corner quoins (110-114 Principale)",
+        "wallColour": "Red brick with white stone corner quoins",
+        "roof": "Mansard profile with decorative stone-capped parapet",
+        "shopfront": "Series of glazed multi-pane commercial doors and tall rectangular sash windows fronting a landscaped gravel courtyard with a central bronze sculpture/water fountain",
+        "awning": "None",
+        "awningColour": "None",
+        "sign": "Flat wall-mounted signboards and professional suite plaques (e.g. Bouquinart)",
+        "trim": "White stone quoins, white stone lintels/sills, white window sashes and door frames",
+        "changedSince": "Tenancy turnover to bookstore/art gallery (Bouquinart Librairie & Galerie d'art); courtyard garden updates",
+        "confidence": "high"
+      },
+      {
+        "n": 9,
+        "side": "south",
+        "lat": 45.394722,
+        "lng": -75.844399,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394722,-75.844399&cbp=11,180,0,0,0",
+        "storeys": 2,
+        "walls": "Red brick masonry with second-floor dormers",
+        "wallColour": "Red brick",
+        "roof": "Black mansard/side-gable roof with gabled dormers",
+        "shopfront": "Covered ground-floor porch veranda with white turned posts, glazed storefront door, and adjacent large picture display window",
+        "awning": "None (covered by porch roof)",
+        "awningColour": "None",
+        "sign": "Projecting hanging wooden sign bracket and flat fascia signboard above porch",
+        "trim": "White porch posts, white window surrounds, black roof fascia",
+        "changedSince": "Retail boutique renovations and updated exterior porch paint",
+        "confidence": "high"
+      },
+      {
+        "n": 10,
+        "side": "north",
+        "lat": 45.394937,
+        "lng": -75.843895,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394937,-75.843895&cbp=11,0,0,0,0",
+        "storeys": 2,
+        "walls": "Light grey/beige clapboard and stone veneer facade",
+        "wallColour": "Beige / stone",
+        "roof": "Gable roof with front-facing dormers and asphalt shingles",
+        "shopfront": "Restaurant/bistro facade with divided-light casement windows, outdoor patio seating fenced with black iron railings, and central wooden entrance door",
+        "awning": "Retractable dark green fabric awning over the outdoor patio seating area",
+        "awningColour": "Dark green",
+        "sign": "Carved hanging wooden board sign with decorative iron bracket",
+        "trim": "White window trims, dark green awning framework, black iron patio fence",
+        "changedSince": "Patio enlargement and seasonal terrace structure winterization upgrades",
+        "confidence": "high"
+      },
+      {
+        "n": 11,
+        "side": "south",
+        "lat": 45.394705,
+        "lng": -75.843601,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394705,-75.843601&cbp=11,180,0,0,0",
+        "storeys": 2,
+        "walls": "Horizontal vinyl/clapboard siding with heritage window surrounds (130 Principale)",
+        "wallColour": "Warm yellow / cream",
+        "roof": "Medium pitch gable roof with asphalt shingles",
+        "shopfront": "Hair salon / boutique storefront with large street-level display window filled with product displays, side entry door with glass panel, concrete step",
+        "awning": "None",
+        "awningColour": "None",
+        "sign": "Horizontal flat-mounted fascia board sign: 'Salon Willy' / 'Coiffure'",
+        "trim": "White window casing, white corner boards, dark roof drip edge",
+        "changedSince": "Signage refresh and exterior repainting",
+        "confidence": "high"
+      },
+      {
+        "n": 12,
+        "side": "north",
+        "lat": 45.394816,
+        "lng": -75.84156,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394816,-75.841560&cbp=11,0,0,0,0",
+        "storeys": 2,
+        "walls": "Historic red brick masonry with limestone sills and foundation (150 Principale - Bistro Antonyme / historic house)",
+        "wallColour": "Deep red brick",
+        "roof": "Side-gable roof with standing-seam sheet metal / asphalt shingles and brick chimney",
+        "shopfront": "Converted heritage restaurant storefront with central recessed front door flanked by large multi-pane sash windows, outdoor wooden terrace deck with perimeter seating railing",
+        "awning": "None (parasol umbrellas on patio)",
+        "awningColour": "Burgundy / cream umbrellas",
+        "sign": "Hanging painted wooden oval sign mounted on decorative wrought-iron arm",
+        "trim": "Dark grey / black painted window frames, white exterior door, natural cedar deck",
+        "changedSince": "Transition to fine dining bistro (Antonyme); enhanced outdoor dining terrace and kitchen expansion",
+        "confidence": "high"
+      }
+    ]
+  },
+  "part_3_landmarks": {
+    "landmarks": [
+      {
+        "name": "L'Auberge Symmes (Symmes Inn)",
+        "lat": 45.394119,
+        "lng": -75.85469,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.394119,-75.854690&cbp=11,200,0,0,0",
+        "earliestYear": 2012,
+        "coverage": "good",
+        "arriving": "A commanding 1831 heritage stone building terminating the visual axis of Rue Principale right where the street meets the Ottawa River and Parc des Cèdres, flanked by mature conifer trees and the waterfront promenade.",
+        "structure": "2.5-storey rectangular Georgian/vernacular stone building with coursed limestone ashlar masonry, large corner quoins, medium-pitch side-gable roof, two tall cut-stone chimneys rising at the gable ends, an exterior wooden staircase on the gable end, and a symmetrical 5-bay fenestration pattern with 12-pane (6-over-6) sash windows and dark shutters.",
+        "materials": "Coursed grey limestone ashlar blocks with mortar joints, stone lintels and sills, sheet metal/standing seam gabled roof, painted wood window sashes, shutters, exterior wooden stair/balcony, and panelled wooden entry door.",
+        "colours": "Weathered light grey and beige limestone masonry, dark forest green roof, shutters, doors, and trim; white window sashes.",
+        "groundSurfaces": "Smooth asphalt roadway (Rue Principale/Rue Front) ending at the park turnaround; red/buff brick-paver sidewalk along the street edge; gravel driveway apron; mown green turf lawn surrounding the building; shoreline rip-rap boulders along the riverbank.",
+        "recognisable": [
+          "Massive 1831 Georgian cut-limestone ashlar facade with distinct corner quoins and symmetrical 5-bay window rhythm",
+          "Twin tall stone chimneys at opposite gable ends and steep green gabled roof with exterior timber fire escape stair",
+          "Scenic waterfront park setting at the foot of Rue Principale overlooking Lac Deschênes (Ottawa River)"
+        ],
+        "changedSince": "Ongoing museum preservation maintenance, landscape enhancements, interpretive signage updates, and historical plaque installations.",
+        "inferred": [
+          "Interior structural timber framing and basement cellar masonry"
+        ],
+        "confidence": "high"
+      },
+      {
+        "name": "Les Galeries d'Aylmer",
+        "lat": 45.395415,
+        "lng": -75.836465,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.395415,-75.836465&cbp=11,340,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "arriving": "A vast sea of asphalt parking stretching horizontally in front of a sprawling low-profile single-storey suburban enclosed shopping mall, punctuated by tall illuminated pylon signage and distinct retail anchor facades.",
+        "structure": "Single-storey horizontal commercial complex with varying parapet heights for anchor boxes (Canadian Tire, Zellers, Cinema, SAQ), glass-and-steel entrance vestibules with projecting canopies, and service bays along the rear/side perimeters.",
+        "materials": "Precast concrete panels, fluted concrete block, brick masonry accents, steel-framed glass storefronts, flat commercial membrane roof, painted metal fascia bands, and tubular steel light poles.",
+        "colours": "Beige and light grey concrete block walls, bright red Canadian Tire fascia, vintage red Zellers lettering and signage, white and blue cinema/transit pylon signage, dark asphalt pavement.",
+        "groundSurfaces": "Multi-lane asphalt boulevard (Rue Principale/Chemin d'Aylmer) bordered by concrete curbs and red-brick accent sidewalks; massive asphalt parking lot with painted yellow/white parking stalls and driving lanes; grass swale/berm with low ornamental shrubs separating the lot from the roadway.",
+        "recognisable": [
+          "Vast open asphalt surface parking lot with tall high-mast floodlight standards fronting the long horizontal mall facade",
+          "Prominent roadside pylon sign near the main road entrance announcing Cinema, Billard, Terminus, and SAQ Classique",
+          "Classic vintage 2000s retail anchor branding, notably the prominent red Zellers store and Canadian Tire"
+        ],
+        "changedSince": "Zellers anchor replaced following chain closure; exterior facade reclad/modernized in sections; updated mall tenant branding and entrance renovations.",
+        "inferred": [
+          "Internal enclosed mall concourse layout and structural steel roof spans"
+        ],
+        "confidence": "high"
+      },
+      {
+        "name": "Aylmer Marina & Plage des Cèdres",
+        "lat": 45.39346,
+        "lng": -75.85311,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.393460,-75.853110&cbp=11,200,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "arriving": "A sweeping expanse of the Ottawa River / Lac Deschênes framed by mature cedar trees, a long curved stone breakwater sheltering hundreds of boat slips, a clubhouse/capitainerie, paved boat launch ramp, and sandy public beach.",
+        "structure": "Long curved rock-armoured rip-rap breakwater jetty extending into the bay with a navigation light beacon at its head; wooden/aluminium floating dock pontoons arranged in finger slips; 1.5-storey wood/siding capitainerie clubhouse; concrete multi-lane boat launch ramp; open crescent sand beach with lifeguard stands.",
+        "materials": "Granite/limestone rock boulder armouring on breakwater, treated wood and aluminium floating dock systems, wood and vinyl siding on clubhouse/service pavilions, concrete boat ramp slabs, steel security gates, wooden picnic tables.",
+        "colours": "Grey and charcoal rock boulders, natural weathered grey wood decking, white and dark green boat club buildings, golden-brown sand beach, deep green lawn and cedar groves.",
+        "groundSurfaces": "Asphalt approach roads and designated parking areas (main marina lot and beach lot) with concrete curbs; packed gravel boat trailer staging areas; wide sandy beach along the shoreline; manicured grass turf parkland throughout Parc des Cèdres with paved multi-use asphalt bicycle paths.",
+        "recognisable": [
+          "Curved stone rip-rap breakwater extending into Lac Deschênes sheltering the marina docks and boat slips",
+          "Wide crescent-shaped sandy public beach flanked by expansive grassy parkland and mature cedar trees (Parc des Cèdres)",
+          "Dedicated multi-lane concrete boat launch ramp with adjacent paved trailer parking area"
+        ],
+        "changedSince": "Upgrades to floating dock infrastructure, shoreline stabilization work, rebuilt park pavilion facilities, and modernized beach amenities.",
+        "inferred": [
+          "Submerged bathymetry around dock slips and breakwater base"
+        ],
+        "confidence": "high"
+      },
+      {
+        "name": "Champlain Bridge (Pont Champlain - Québec Side & Bate Island)",
+        "lat": 45.4076,
+        "lng": -75.75645,
+        "url": "https://www.google.com/maps?q&layer=c&cbll=45.407600,-75.756450&cbp=11,150,0,0,0",
+        "earliestYear": 2009,
+        "coverage": "good",
+        "arriving": "A wide multi-lane bridge structure carrying traffic across the rapids of the Ottawa River toward Ottawa, framed by overhead gantries with electronic lane control signals and sweeping views of the river and forested Bate Island midway across.",
+        "structure": "Multi-span prestressed concrete girder bridge supported by rounded concrete piers anchored into the rocky riverbed; 3 vehicular travel lanes (including a reversible centre lane controlled by overhead gantry signals); raised concrete sidewalk / multi-use cycling path on the western (upstream) edge; continuous steel tubular railing and concrete crash barriers.",
+        "materials": "Reinforced and prestressed concrete deck, concrete piers and abutments, steel overhead signal gantry truss, painted white/grey steel tubular bridge parapet railings, asphalt deck wearing course.",
+        "colours": "Light grey concrete structure, dark asphalt roadway, yellow and white painted lane markings, white/grey railings, silver steel overhead gantry with black electronic signal boxes showing green arrows and red X marks.",
+        "groundSurfaces": "Smooth dark asphalt road surface across the entire bridge deck and approach roads; concrete curbs and raised pedestrian/bike walkway; on Bate Island: asphalt loop road, gravel parking shoulders and turnouts, natural grass picnic meadows, and exposed rocky river shorelines.",
+        "recognisable": [
+          "Overhead steel gantry with electronic reversible lane control signals (illuminated green arrows, red X, and HOV diamond icons)",
+          "Multi-span low-profile concrete girder bridge crossing over the rapids to Bate Island and the Ontario shore",
+          "Forested Bate Island midway across the bridge with gravel park pull-offs, mature pines, and rapids access"
+        ],
+        "changedSince": "Complete deck reconstruction and widening in recent years to add a dedicated bidirectional active transportation path with high architectural safety barriers; updated electronic lane gantries.",
+        "inferred": [
+          "Sub-surface pier foundation depth into bedrock"
+        ],
+        "confidence": "high"
+      }
+    ]
+  }
+}

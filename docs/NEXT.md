@@ -160,3 +160,19 @@ The `changedSince` field is the valuable one — it says what to **undo** to rea
 Also: the big evergreen in the front lawn at **1 rue Arial has since been cut
 down** — in 2004 it is there and it partly hides the house. And the front-lawn
 trees at 299 Fraser are much smaller in 2009 than today, smaller still in 2004.
+
+**Fuller pack: `assets/text/streetview_pack.json`** — the same 2009 technique
+extended to **12 rue Principale storefronts in order along the street** (with the
+streetscape: cast-iron lamp posts with flower baskets, brick-banded concrete
+sidewalks, tree grates, curbside parking) and **4 landmarks** (Auberge Symmes,
+Les Galeries, the marina and Plage des Cèdres, the Champlain Bridge).
+
+Period gold in there: **Les Galeries had a Zellers** as an anchor in 2009
+alongside Canadian Tire, with a roadside pylon reading Cinéma / Billard /
+Terminus / SAQ. Zellers is exactly right for 2004 and is the kind of detail that
+will land with the people playing this.
+
+**⚠️ Conflict to resolve.** The pack says the Champlain Bridge's dedicated
+bidirectional cycling path was added in a *recent* reconstruction. Thomas
+previously confirmed the separated path existed in 2004 after a 2002-03 NCC
+rebuild. Both cannot be true. Thomas rode it — **ask him, do not pick.**
