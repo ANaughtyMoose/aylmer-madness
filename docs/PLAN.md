@@ -311,3 +311,31 @@ from that.
 | Sayyad | 2 May | Before the summer. |
 
 Nobody else in the cast has a spring or summer birthday.
+
+### Who drives what — and why it makes the characters play differently
+
+**Tom is the only one with a truck.** That is the point: hauling is *his*
+capability, not a generic one. Every other character's vehicle is the one that
+actually suits them, and each gives a genuinely different game.
+
+| Character | Vehicle | Playable | What it can do that others cannot |
+|---|---|---|---|
+| **Tom** | 1993 Ford Ranger XL | ✅ | Hauls — couch, canoe, lumber, bikes, a fridge. Slow. The only cargo bed in the cast. |
+| **Sayyad** | 1988 Honda Civic Si | ✅ | Fast, light, carries nothing. Races pay; deliveries punish. |
+| **Zahra** | **no licence — she is 15** | ✅ | A bike. Paths, the beach, between buildings, kerbs, and no police interest whatsoever. The most different of the five. |
+| **Mike** | **green 1998 Subaru Forester** | ✅ | All-wheel drive: gravel, mud, wet grass, the Chelsea hills. Goes where the others get stuck rather than where they cannot fit. |
+| **Abraham** | **beaten-up ~1999 Toyota Sienna** | ✅ | Seven seats. The people-mover — everybody piles in. Fits his trait: he is the one others want along. |
+| Margaret | 1997 Saturn SL | — | Four doors, soft ride. Passengers who must not be jostled. |
+| Adam Actell | 1997 Pontiac Sunfire | — | Side character. **Now established as out of town** (see conflict below). |
+| Tyler Yank | **Chevrolet Cavalier** | — | ~312 rue Samuel-Edey, lives with her aunt. |
+| Rob French | — | — | Out of town, drives in. Last to arrive, first to leave. |
+
+**Zahra needs her own bike.** Existing canon gives the chrome cruiser to Sayyad
+and the Diamondback to Tom, so a third is needed — or she borrows her brother's,
+which is funnier and free.
+
+**⚠️ Canon conflict to resolve with Thomas.** Adam is now "from out of town", but
+existing code and missions place him at **20 chemin Vanier, Deschênes**, which is
+inside the Aylmer sector, and « Ramasser la gang » is built around the long
+detour to fetch him. Either Deschênes counts as out of town for these purposes,
+or he moves and those missions need re-pointing. **Do not silently pick one.**
