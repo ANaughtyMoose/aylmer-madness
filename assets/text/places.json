@@ -1,0 +1,260 @@
+{
+  "places": [
+    {
+      "name": "299 Chemin Fraser (chez nous)",
+      "arriving": "Tu t'engages dans l'entrée en gravelle familière sous l'ombre fraîche des deux grands érables argentés du terrain. Le ventilateur du compresseur de l'air climatisé de la maison ronronne doucement contre le solage de béton gris. Une odeur de gazon fraîchement coupé par ton père se mélange aux effluves d'huile chaude et de prestone du vieux Ranger qui refroidit.",
+      "sound": "Crissement doux de la gravelle concassée sous les pneus et grésillement des cigales dans la haie de cèdres.",
+      "smell": "Herbe coupée séchée au soleil de juillet, pinède environnante et odeur métallique du bloc moteur chaud.",
+      "onlyHere": "Ton père qui sort sur le perron en bas de laine, regarde sa montre Casio, vérifie d'un coup d'œil si la tailgate est bien barrée, et hoche la tête sans dire un mot.",
+      "confidence": "Haute — le point d'ancrage émotionnel et domestique du protagoniste."
+    },
+    {
+      "name": "75 Denise-Friend (Sayyad)",
+      "arriving": "La Civic noire de Sayyad repose fièrement dans l'allée asphaltée, le capot relevé et un néon de travail bleu branché sur une rallonge orange. Les baffles de son système de son crachent les refrains des Cowboys Fringants à plein volume à travers la porte moustiquaire ouverte. L'air sent la cire à char au carnauba, les saucisses au barbecue du voisin et le tabac à chicha à la pomme.",
+      "sound": "Basse rythmée qui fait vibrer les fenêtres du split-level et claquement sec de la porte moustiquaire.",
+      "smell": "Cire à carrosserie parfumée, viande grillée au charbon de bois et brise tiède de banlieue.",
+      "onlyHere": "Sayyad qui surgit en chemise hawaïenne ouverte avec une clé de 10 mm dans une main et une cannette de Crush aux fraises dans l'autre pour juger ton stationnement.",
+      "confidence": "Haute — le quartier général des ados et du bricolage audio."
+    },
+    {
+      "name": "129 av. Frank-Robinson (Mike)",
+      "arriving": "Tu aperçois une demi-douzaine de vélos de montagne démontés et deux motoneiges sur blocs de bois alignés le long du garage détaché. Mike gesticule au bout de l'allée en tenant un chalumeau éteint au milieu d'un nuage de sciure de bois franc. L'atmosphère est saturée d'odeurs d'huile à chaîne deux-temps, de copeaux d'épinette fraîche et de café réchauffé dans un percolateur en métal.",
+      "sound": "Bruit aigu d'une meuleuse d'angle qui s'éteint et voix criarde de Mike qui parle sans arrêt avec les mains.",
+      "smell": "Bois résineux fraîchement scié, métal meulé et huile à engrenages lourde.",
+      "onlyHere": "Mike qui t'accueille en t'expliquant en détail le système de refroidissement d'un moteur de souffleuse sans que tu n'aies posé la moindre question.",
+      "confidence": "Haute — repaire du patenteux hyperactif du quartier."
+    },
+    {
+      "name": "20 chemin Vanier, Deschênes (Adam)",
+      "arriving": "Le bungalow beige d'Adam semble figé dans une torpeur d'après-midi d'été, les stores vénitiens fermés pour bloquer le soleil écrasant. Le Sunfire turquoise est stationné croche dans la couronne d'herbe jaune avec un chargeur de batterie branché sous le capot entrouvert. Une odeur de goudron chaud émanant de la vieille voie ferrée voisine côtoie le parfum d'un sac de chips sel et vinaigre éventé.",
+      "sound": "Bourdonnement électrique sourd du chargeur de batterie Motomaster et claquement paresseux des feuilles de peuplier.",
+      "smell": "Créosote de traverses de chemin de fer cuite au soleil, poussière de garnotte et vinaigre blanc.",
+      "onlyHere": "Adam qui ouvre la porte latérale sans enthousiasme, mange une poignée de chips en silence, et déclare que la vie est trop courte pour changer un alternateur.",
+      "confidence": "Haute — l'ambiance flegmatique et désabusée de Deschênes."
+    },
+    {
+      "name": "1 rue Arial (Russell)",
+      "arriving": "La maison mansardée blanche se dresse au bout de la ruelle avec son garage en blocs de béton noirci crachant une mince colonne de fumée de bois. Un F-250 vert forêt 1991 monte la garde devant deux carcasses de voitures dépouillées de leurs roues. L'air est lourd de fumée d'érable, de vapeurs de solvant à freins chloré et de graisse à essieu noire.",
+      "sound": "Claquement d'un skateboard atterrissant sur une dalle de béton et son sec d'une clé à chocs pneumatique.",
+      "smell": "Boucane de poêle à bois en plein été, dégraissant pour freins et terreau humide de fond de cour.",
+      "onlyHere": "Russell qui fait un kickflip par-dessus une pile de pneus usagés avant de venir ajuster ta courroie avec un tournevis plat pendant que son père le surveille d'un œil sévère.",
+      "confidence": "Haute — le sanctuaire de la débrouillardise mécanique clandestine."
+    },
+    {
+      "name": "Les Galeries d'Aylmer",
+      "arriving": "L'immense stationnement en asphalte noirci miroite sous la canicule avec des lignes jaunes délavées par les hivers. Des groupes de jeunes en casquettes à l'envers traînent près des portes automatiques vitrées sous l'enseigne géante en plastique beige. Une odeur d'asphalte brûlant se mêle aux parfums de frites de casse-croûte et à l'air climatisé glacé qui s'échappe chaque fois que les portes coulissent.",
+      "sound": "Chuintement pneumatique des portes automatiques, bruits de chariots d'épicerie poussés sur le bitume et basses étouffées d'un Cavalier qui passe.",
+      "smell": "Goudron surchauffé, friture de cantine et air conditionné chimique de centre d'achats.",
+      "onlyHere": "Des ados assis sur le capot d'une Neon néon-bleue qui comparent leurs téléphones à clapet Motorola et leurs sonneries polyphoniques.",
+      "confidence": "Haute — le pôle commercial et social des jeunes en 2004."
+    },
+    {
+      "name": "Plage des Cèdres",
+      "arriving": "Le sable doré s'étend jusqu'aux eaux calmes de la rivière des Outaouais bordée de grands cèdres noueux centenaires. Des dizaines de serviettes de plage multicolores et de glacières en plastique tapissent la rive sous les cris joyeux des baigneurs. L'air sent la lotion solaire Coppertone à la noix de coco, l'eau douce de rivière un peu herbacée et le charbon de bois des barbecues de parc.",
+      "sound": "Clapotis régulier des vagues sur la grève, rires d'enfants éclaboussant l'eau et musique pop québécoise sortant d'un boombox sur le sable.",
+      "smell": "Crème solaire à la noix de coco, algues d'eau douce séchées au soleil et fumée de briquettes de charbon.",
+      "onlyHere": "Un groupe de gars de shop qui jouent au fer à cheval en maillot de bain avec des bouteilles de Labatt 50 dissimulées dans des koozies en mousse.",
+      "confidence": "Haute — le cœur récréatif de l'été aylmerois."
+    },
+    {
+      "name": "Marina d'Aylmer",
+      "arriving": "Les pontons de bois flottants grincent doucement au rythme du ressac tandis que les mâts des voiliers tintent contre leurs haubans métalliques. Des chaloupes d'aluminium et des bateaux à moteur Sea Ray impeccables sont amarrés côte à côte le long de la jetée de pierre. L'air est imprégné d'odeurs d'essence deux-temps pour hors-bord, d'eau de rivière saumâtre et de bois traité imprégné de sel marin.",
+      "sound": "Tintement métallique continu des drisses de voiliers contre les mâts d'aluminium et grondement grave des moteurs in-board au ralenti.",
+      "smell": "Gaz d'échappement marin, eau de rivière riche en sédiments et bois de quai chauffé par le soleil.",
+      "onlyHere": "Un vieux pêcheur en casquette de la Société de la faune qui décroche un doré jaune frétillant sous le regard émerveillé de deux enfants accoudés à la rampe.",
+      "confidence": "Haute — haut-lieu nautique historique sur le lac Deschênes."
+    },
+    {
+      "name": "le phare de la marina",
+      "arriving": "La petite structure pyramidale rouge et blanche se dresse fièrement à la pointe extrême de la jetée de blocs de calcaire géants. Les mouettes planent dans le vent d'ouest qui balaie la baie en soulevant de fins embruns rafraîchissants. L'air y est pur et vivifiant, dominé par l'odeur de roche calcaire humide, d'algues fraîches et de peinture à l'huile rouge séchée au soleil.",
+      "sound": "Cri rauque des goélands et fracas sourd des vagues de fond frappant les gros blocs de moellons protecteurs.",
+      "smell": "Embruns d'eau douce fraîche, pierre calcaire mouillée et brise fluviale ouverte.",
+      "onlyHere": "Des adolescents assis au bord du vide les jambes pendantes au-dessus de l'eau, gravant leurs initiales au canif dans le bois peint du phare.",
+      "confidence": "Haute — point de repère visuel et symbole maritime local."
+    },
+    {
+      "name": "rue Principale (Vieux-Aylmer)",
+      "arriving": "Les façades de briques rouges et de pierres grises centenaires défilent sous la canopée majestueuse des érables matures bordant la chaussée. Les terrasses de bistros et les boutiques d'artisans débordent de vie avec des drapeaux québécois flottant doucement aux balcons supérieurs. Une odeur chaleureuse de café torréfié, de frites fraîches de cantine et de cire d'antiquaire flotte dans l'air tiède de fin d'après-midi.",
+      "sound": "Brouhaha animé des conversations sur les terrasses, tintement des couverts sur les assiettes et passage régulier des camionnettes locales.",
+      "smell": "Café fraîchement moulu, vinaigre de cantine sur frites chaudes et odeur de vieux bois ciré.",
+      "onlyHere": "Le facteur en bermuda bleu de Postes Canada qui s'arrête jaser sur un banc avec la propriétaire de la boutique d'antiquités en buvant un Orangina.",
+      "confidence": "Haute — l'artère patrimoniale et culturelle par excellence."
+    },
+    {
+      "name": "l'Auberge Symmes",
+      "arriving": "L'imposant édifice de calcaire taillé de 1831 domine majestueusement le bord de l'eau avec son toit à quatre versants et ses lucarnes d'époque. L'herbe du parc entourant le musée est impeccable et parsemée de plaques commémoratives en bronze patiné par le temps. L'air y sent la vieille maçonnerie de pierre fraîche, la cire à parquet patrimoniale et l'humidité bienfaisante du rivage voisin.",
+      "sound": "Murmure apaisant du vent dans les grands saules et pas feutrés des visiteurs sur le plancher de bois franc historique.",
+      "smell": "Pierre calcaire fraîche séculaire, encaustique à la cire d'abeille et terre de jardin humide.",
+      "onlyHere": "Une guide bénévole en robe d'époque 1850 qui salue poliment les conducteurs qui se stationnent le long du parc riverain.",
+      "confidence": "Haute — joyau du patrimoine national au confluent de l'histoire locale."
+    },
+    {
+      "name": "l'Hôtel British",
+      "arriving": "L'édifice historique en pierre de taille massive surplombe le coin de la rue Principale avec ses hautes fenêtres victoriennes et son enseigne en fer forgé. La terrasse extérieure du pub est bondée d'habitués savourant des pichets de rousse sous les parasols vert forêt. L'air dégage un mélange capiteux de bière pression artisanale renversée sur le bois, de fumée de cigare et de bœuf braisé mijotant en cuisine.",
+      "sound": "Éclats de rire gras des ouvriers en fin de quart, claquement des chopes en verre épais et son lointain d'une guitare acoustique qu'on accorde au sous-sol.",
+      "smell": "Ale rousse maltée, tabac de pipe aromatique et pierre calcaire gorgée de bière séchée.",
+      "onlyHere": "Un musicien de blues anglophone d'Ottawa qui négocie en franglais avec le barman québécois pour brancher son ampli dans la prise du vestibule.",
+      "confidence": "Haute — carrefour historique de rencontre entre anglophones et francophones."
+    },
+    {
+      "name": "Aréna Frank-Robinson",
+      "arriving": "Le grand complexe municipal en briques brunes et tôle émaillée se découpe contre le ciel avec ses portes doubles en métal peint en bleu roi. Le stationnement arrière en gravier est parsemé de traces de pneus de skateboards et de cônes d'entraînement de hockey orange. Une odeur caractéristique de réfrigération à l'ammoniac, de caoutchouc de rondelles de hockey et de hot-dogs vapeur s'échappe des trappes de ventilation.",
+      "sound": "Bruit sourd des compresseurs de glace qui tournent en continu et claquement répétitif des planches de skateboards sautant sur la bordure de béton.",
+      "smell": "Vapeur d'ammoniac glacée, caoutchouc vulcanisé et moutarde jaune de casse-croûte d'aréna.",
+      "onlyHere": "Des jeunes en équipement de hockey d'été sur patins à roues alignées qui slaloment entre les remorques de camion stationnées à l'ombre.",
+      "confidence": "Haute — temple des sports de glace et point de ralliement des ados du quartier."
+    },
+    {
+      "name": "Tim Hortons Principale",
+      "arriving": "La file du service au volant fait le tour du bâtiment en briques rouges avec des moteurs de pickups tournant au ralenti sous l'enseigne ovale rouge et blanche. Les tables de pique-nique extérieures sont occupées par des travailleurs de la construction en salopettes de chantier et casquettes Canadian Tire. L'atmosphère est saturée d'arômes de café filtre fraîchement coulé, de beignes glacés au miel et de vapeurs d'essence d'échappement.",
+      "sound": "Voix métallique grésillante de l'interphone du service au volant criant 'Prochaine commande!' et bips constants des caisses enregistreuses.",
+      "smell": "Café filtre chaud, beignes à la crème Boston fraîchement préparés et gaz d'échappement matinal.",
+      "onlyHere": "Un contremaître de pavage qui commande seize cafés deux-deux et trois boîtes de cinquante Timbits en payant avec un billet de cent dollars froissé.",
+      "confidence": "Haute — le centre névralgique social et carburant de l'Outaouais le matin."
+    },
+    {
+      "name": "la station Petro-Canada",
+      "arriving": "L'immense auvent rouge et blanc illumine les quatre îlots de pompes électroniques avec les afficheurs à cristaux liquides indiquant le prix du litre à 83.9 cents. Des camionnettes s'arrêtent constamment près du compresseur à air comprimé pour vérifier la pression des pneus avant de prendre la route 148. L'air est imprégné de vapeurs piquantes d'essence sans plomb, de liquide lave-glace bleu et de parfum synthétique d'arbre magique au sapin.",
+      "sound": "Bips électroniques stridents des pompes à essence, claquement métallique des pistolets de ravitaillement et ronronnement du compresseur d'air.",
+      "smell": "Vapeurs d'essence super sans plomb, méthanol de lave-glace et caoutchouc de boyaux d'arrosage chauds.",
+      "onlyHere": "Un travailleur forestier du Pontiac qui gratte son billet de loterie Banco sur le capot de son pick-up en discutant du prix du bois franc avec le caissier.",
+      "confidence": "Haute — point de passage obligé pour la survie mécanique et le plein de points."
+    },
+    {
+      "name": "Canadian Tire",
+      "arriving": "La grande baie vitrée du magasin arbore les affiches des spéciaux de la circulaire de la semaine avec le célèbre triangle rouge et la feuille d'érable verte. Les portes des ateliers mécaniques sont grandes ouvertes sur des alignements de ponts élévateurs hydrauliques avec des pneus neufs empilés jusqu'au plafond. L'air dégage une odeur inimitable de caoutchouc de pneus neufs, d'engrais à gazon en sacs de plastique et de quincaillerie métallique huilée.",
+      "sound": "Chuintement puissant des clés à chocs pneumatiques dans les baies de service et haut-parleurs diffusant les annonces de rabais dans les allées.",
+      "smell": "Pneus en caoutchouc neuf, huile pour moteur à tondeuse et terreau d'empotage horticole.",
+      "onlyHere": "Un père de famille qui fouille fièrement dans son portefeuille pour payer une batterie Motomaster en déployant une liasse épaisse de billets de monnaie Canadian Tire.",
+      "confidence": "Haute — l'institution commerciale canadienne par excellence de la banlieue québécoise."
+    },
+    {
+      "name": "le lot d'autos usagées",
+      "arriving": "Une cinquantaine de berlines et de camionnettes d'occasion sont garées en chevrons serrés sous des rangées de fanions triangulaires en plastique coloré claquant au vent. Les pare-brises sont barbouillés de gros chiffres blancs au savon à chaussures proclamant 'SPECIAL ETUDIANT' ou 'V6 AUBAINE'. L'air sent la cire à pneus en aérosol, l'asphalte chauffé à blanc et les désodorisants industriels parfum cerise cachés sous les sièges.",
+      "sound": "Claquement frénétique des fanions au vent chaud et grincement métallique de la barrière à chaîne qu'on repousse.",
+      "smell": "Produit brillant pour vinyle Armor All, poussière de garnotte et parfum artificiel de cerise noire.",
+      "onlyHere": "Le vendeur en chemise à manches courtes qui démarre une Cavalier 1996 en donnant trois grands coups d'accélérateur pour prouver que le silencieux 'a juste besoin de rouler'.",
+      "confidence": "Haute — théâtre des négociations automobiles adolescentes et des espoirs à petit budget."
+    },
+    {
+      "name": "Club de Golf Gatineau",
+      "arriving": "L'allée bordée de massifs de pétunias impeccables mène au pavillon champêtre en bardeaux de cèdre dominant des hectares de verdure vallonnée. Des voiturettes de golf électriques blanches glissent silencieusement sur les sentiers de béton entre les tertres de départ bien entretenus. L'air y est remarquablement frais et humide, parfumé par l'arrosage automatique du gazon de golf, le bois coupé et les déjeuners de club-sandwichs.",
+      "sound": "Claquement sec et cristallin d'un driver en titane frappant une balle de golf suivi du murmure feutré des voiturettes électriques.",
+      "smell": "Gazon luxuriant fraîchement tondu et arrosé, bière blonde en cannette et crème solaire haut de gamme.",
+      "onlyHere": "Deux fonctionnaires fédéraux en polos pastel qui débattent des négociations syndicales tout en cherchant une balle perdue dans les quenouilles du fossé.",
+      "confidence": "Haute — contraste de banlieue huppée au cœur du corridor d'Aylmer."
+    },
+    {
+      "name": "École de l'Aigle",
+      "arriving": "L'école primaire en briques jaunes des années 1960 dort paisiblement sous les vacances d'été avec sa grande cour asphaltée déserte. Les marelles peintes au sol et les paniers de basket sans filets projettent de longues ombres nettes sur le solage de béton. L'atmosphère est calme, imprégnée d'odeurs de bitume chaud, d'herbes folles poussant dans les fissures et de peinture municipale délavée.",
+      "sound": "Chant solitaire des tourterelles tristes perchées sur les poteaux de clôture et bruissement des feuilles de tremble.",
+      "smell": "Bitume chauffé par le soleil, poussière de craie imaginaire et mauvaises herbes coupées.",
+      "onlyHere": "Un groupe de préadolescents du quartier qui ont installé une rampe de lancement artisanale en contreplaqué pour sauter par-dessus quatre cannettes de boisson gazeuse en BMX.",
+      "confidence": "Haute — nostalgie estivale des cours d'écoles québécoises désertes."
+    },
+    {
+      "name": "Philemon Wright",
+      "arriving": "Le vaste campus de l'école secondaire anglophone s'étale sur son terrain vallonné avec ses pistes d'athlétisme en terre battue et ses grands terrains de football. Des gradins en aluminium métallique reflètent la lumière aveuglante du midi au bord des terrains de pratique. L'air sent la terre battue calcinée, la poussière d'herbe sèche et le plastique chaud des casiers extérieurs.",
+      "sound": "Grincement métallique des chaînes de balançoires du parc adjacent et bourdonnement sourd de la circulation sur la promenade voisine.",
+      "smell": "Terre battue sèche, herbe brûlée par le soleil et caoutchouc de semelles de chaussures de course.",
+      "onlyHere": "Des ados anglophones et francophones assis en cercle sur les gradins d'aluminium partageant un sac de Doritos en écoutant Simple Plan sur un Discman avec deux paires d'écouteurs.",
+      "confidence": "Haute — point de rencontre bilingue emblématique de la jeunesse étudiante."
+    },
+    {
+      "name": "Heritage College",
+      "arriving": "Le pavillon moderne du cégep anglophone domine le plateau boisé avec ses panneaux d'aluminium gris et ses immenses baies vitrées teintées. Le grand stationnement d'étudiants est presque vide en juillet, laissant voir des rangées de parcomètres solitaires sous les pins blancs. L'atmosphère est aérée et paisible, imprégnée d'odeurs d'aiguilles de pin séchées, de résine d'écorce et de vent des collines de la Gatineau.",
+      "sound": "Souffle constant du vent s'engouffrant dans les cimes des pins et crissement lointain des freins d'un autobus de la STO au terminus.",
+      "smell": "Aiguilles de pin chauffées au soleil, résine balsamique et béton propre d'institution moderne.",
+      "onlyHere": "Un étudiant en arts visuels assis à l'ombre d'un auvent en béton esquissant au fusain les collines boisées en écoutant une cassette sur son Walkman jaune.",
+      "confidence": "Haute — porte d'entrée de l'éducation supérieure dans le secteur Hull-Aylmer."
+    },
+    {
+      "name": "Symmes",
+      "arriving": "L'école secondaire Symmes présente son architecture pavillonnaire typique des années 1970 avec ses briques beiges et ses rangées d'arbres matures offrant de l'ombre au stationnement du personnel. Les terrains de soccer municipaux à l'arrière sont tapissés d'une herbe drue où sèchent les lignes de craie blanche des derniers matchs. L'air est doux, parfumé par les champs voisins et l'asphalte tiédi des allées piétonnes.",
+      "sound": "Sifflement du vent dans les câbles des mats de drapeaux et claquement occasionnel d'une porte de service métallique.",
+      "smell": "Craie de traçage de terrain de sport, terreau d'herbe fraîche et ombre fraîche sous les grands érables.",
+      "onlyHere": "Deux moniteurs de camp de jour en chandails tie-dye jaunes qui chargent des ballons de volley-ball et des nouilles de piscine en mousse dans la boîte d'un pick-up.",
+      "confidence": "Haute — cœur scolaire francophone de la jeunesse aylmeroise."
+    },
+    {
+      "name": "Lord Aylmer",
+      "arriving": "La vénérable école primaire anglophone en briques rouges traditionnelles s'intègre harmonieusement au tissu résidentiel ancien du village. Les grands châtaigniers et les clôtures de mailles frost ceinturent la cour de récréation avec son module de jeux coloré. L'atmosphère dégage un charme d'époque intemporel, mêlant odeurs de briques chauffées, de paillis de cèdre protecteur et de fleurs sauvages.",
+      "sound": "Bruit feutré des pas sur les copeaux de bois du terrain de jeu et rires étouffés d'enfants jouant à la tague dans la ruelle arrière.",
+      "smell": "Paillis de cèdre rouge frais, briques d'argile anciennes et lilas séchés de fin de floraison.",
+      "onlyHere": "Une mère de famille du quartier marchant avec sa poussette double qui salue les voisins en passant de l'anglais au français avec une aisance parfaite.",
+      "confidence": "Haute — symbole de la communauté anglophone historique d'Aylmer."
+    },
+    {
+      "name": "centre-ville de Hull",
+      "arriving": "Tu plonges dans le canyon urbain des grands édifices gouvernementaux fédéraux en béton brut de la Place du Portage et de la rue Principale de Hull. La circulation est dense, dominée par les autobus articulés bleus et blancs de la STO et les taxis qui klaxonnent aux carrefours. L'air y est vibrant, saturé d'effluves de shawarma à l'ail, de fumée d'échappement diesel et de vapeur d'eau des tours de refroidissement industrielles.",
+      "sound": "Grondement sourd et métallique des autobus de transport en commun, sifflets des agents de circulation et écho des pas de milliers de fonctionnaires sur les trottoirs de granite.",
+      "smell": "Sauce à l'ail de shawarma libanais, gaz d'échappement diesel et humidité minérale des grands complexes de béton.",
+      "onlyHere": "Des fonctionnaires cravatés marchant d'un pas pressé avec leur badge du gouvernement fédéral autour du cou, mangeant un sandwich sur le pouce entre deux feux rouges.",
+      "confidence": "Haute — le cœur administratif et urbain bouillonnant de l'Outaouais."
+    },
+    {
+      "name": "Galeries de Hull",
+      "arriving": "Le vaste pôle commercial sur le boulevard Saint-Joseph déploie son labyrinthe de stationnements à plusieurs niveaux sous un soleil de plomb. Les vitrines des grands magasins Sears et La Baie brillent sous leurs auvents métalliques imposants. L'air y est chaud et chargé d'odeurs de pneus frottant sur le béton du garage étagé, de friture de l'aire de restauration et de parfums de grands magasins.",
+      "sound": "Écho assourdissant des moteurs résonnant dans la structure de béton du stationnement étagé et musique pop d'ascenseur diffusée aux entrées.",
+      "smell": "Béton chaud de stationnement couvert, parfum commercial de grande surface et friture de casse-croûte.",
+      "onlyHere": "Des ados de Hull en jeans amples et casquettes des Sénateurs qui comparent leurs achats de cassettes de rap chez HMV appuyés contre le muret de béton.",
+      "confidence": "Haute — le carrefour du magasinage de la rive québécoise."
+    },
+    {
+      "name": "Musée canadien de l'histoire",
+      "arriving": "Les spectaculaires façades ondulées en pierre calcaire de l'architecte Douglas Cardinal s'élèvent majestueusement face à la rivière des Outaouais et au Parlement d'Ottawa. Les grands bassins d'eau et les cascades artificielles apportent une fraîcheur saisissante au milieu des sentiers de dalles de granite. L'atmosphère est grandiose, parfumée par l'eau des fontaines, le cèdre rouge des grands totems monumentaux et la brise fluviale.",
+      "sound": "Rumeur apaisante des cascades d'eau artificielle couvrant le bruit de la ville et exclamations de touristes en plusieurs langues devant la vue panoramique.",
+      "smell": "Eau de bassin traitée et fraîche, bois de cèdre des totems de la côte Ouest et pierre calcaire polie.",
+      "onlyHere": "Des touristes japonais photographiant la Colline du Parlement en arrière-plan pendant qu'un musicien de rue joue des airs folkloriques au violon québécois.",
+      "confidence": "Haute — monument architectural et culturel de renommée mondiale."
+    },
+    {
+      "name": "Casino du Lac-Leamy",
+      "arriving": "L'étincelant complexe hôtelier de verre et de cuivre se mire dans les eaux calmes du lac Leamy sous les fontaines jaillissantes illuminées. Des berlines de luxe et des limousines s'arrêtent sous le grand auvent d'entrée avec des voituriers en livrée noire impeccable. L'air dégage un mélange sophistiqué de parfums de luxe, de chlore des grandes fontaines décoratives et de cuisine gastronomique de grands chefs.",
+      "sound": "Tintement musical des machines à sous qui s'échappe des portes tournantes et ronronnement soyeux des moteurs V8 des grosses berlines allemandes.",
+      "smell": "Parfum d'ambiance raffiné, eau traitée des fontaines illuminées et cuir de sellerie automobile.",
+      "onlyHere": "Un couple de retraités bien habillés célébrant un gain aux machines à sous en partageant une coupe de champagne sur la terrasse avec vue sur le spectacle pyrotechnique.",
+      "confidence": "Haute — le pôle de divertissement nocturne et de glamour de la région."
+    },
+    {
+      "name": "Chelsea",
+      "arriving": "Tu franchis les premiers lacets de la route 105 pour entrer dans le charmant village champêtre niché au pied des falaises de la Gatineau. Les maisons centenaires en bois peint entourées de jardins de vivaces fleuris abritent des cafés artisanaux et des galeries d'art chaleureuses. L'air y est frais et pur, dominé par les effluves de feuillages d'érables denses, de pain au levain cuit au four à bois et de terre forestière humide.",
+      "sound": "Chant mélodieux des grives des bois, crissement des pneus de vélos de route sur l'accotement et murmure de la rivière Gatineau toute proche.",
+      "smell": "Humus forestier riche, pain chaud de boulangerie artisanale et café équitable fraîchement torréfié.",
+      "onlyHere": "Des cyclistes d'élite en cuissards lycra qui s'arrêtent au café de village pour déguster un scone aux bleuets sauvages aux côtés de bûcherons locaux en chemises de flanelle.",
+      "confidence": "Haute — le havre bohème et bucolique aux portes du parc de la Gatineau."
+    },
+    {
+      "name": "pont Champlain",
+      "arriving": "Tu t'engages sur la longue chaussée surélevée en béton franchissant les eaux tumultueuses des rapides de Deschênes au milieu du fleuve. Le vent du large s'engouffre avec puissance à travers les fenêtres baissées du camion en faisant siffler l'antenne radio métallique. L'air sent le grand vent fluvial ouvert, l'eau vive oxygénée par les rapides rocheux et les gaz d'échappement des files de voitures traversant la frontière provinciale.",
+      "sound": "Rugissement sourd du vent latéral contre la carrosserie, cliquetis régulier des joints de dilatation en acier sous les pneus et grondement lointain des rapides.",
+      "smell": "Air pur du fleuve battu par le vent, eau de rapides rocheux et friction d'asphalte autoroutier.",
+      "onlyHere": "Le basculement instantané des stations de radio sur le tableau de bord: le signal français de CJRC qui commence à faiblir pendant que The Buzz d'Ottawa prend le relais dans un grésillement statique.",
+      "confidence": "Haute — le lien physique et culturel fondamental entre le Québec et l'Ontario."
+    },
+    {
+      "name": "Colline du Parlement",
+      "arriving": "Les imposants édifices néo-gothiques en grès vert et cuivre de la Colline du Parlement se dressent au-dessus de la falaise escarpée surplombant la rivière. La vaste pelouse d'honneur est sillonnée de centaines de visiteurs déambulant autour de la Flamme du centenaire toujours ardente. L'atmosphère est solennelle et grandiose, imprégnée d'odeurs de gaz naturel brûlant à la flamme éternelle, de gazon soigné et de pierre ancienne séchée.",
+      "sound": "Carillon majestueux de la tour de la Paix sonnant l'heure avec ses 53 cloches en bronze et roulement des sabots de la garde cérémonielle à cheval.",
+      "smell": "Gaz naturel de la Flamme éternelle, pierre de grès ensoleillée et gazon institutionnel arrosé.",
+      "onlyHere": "Des gardes en tuniques rouges écarlates et hauts bonnets en poil d'ours marchant au pas cadencé sous le regard médusé de touristes dégustant des Queues de Castor à la cannelle.",
+      "confidence": "Haute — le cœur symbolique de la démocratie canadienne."
+    },
+    {
+      "name": "Marché By",
+      "arriving": "Tu t'insères au pas dans les ruelles pavées vibrantes du marché historique bondé de kiosques de maraîchers aux auvents rayés multicolores. Les étals débordent de fleurs fraîches, de fraises sucrées de l'Ontario et de légumes croquants empilés dans des paniers de bois tressé. L'air est un festival d'odeurs: cannelle chaude des Queues de Castor, herbes fraîches coupées, fromage affiné et friture de food trucks.",
+      "sound": "Cris sonores des maraîchers vantant leurs paniers de tomates, accordéon d'un troubadour de rue et cliquetis de la vaisselle sur les terrasses pleines à craquer.",
+      "smell": "Pâtisseries chaudes à la cannelle et au citron, basilic frais des maraîchers et café espresso italien.",
+      "onlyHere": "Un livreur de caisses de bière en débardeur qui décharge son camion à bras au milieu d'une foule bigarrée d'étudiants, de diplomates étrangers et d'artistes de rue.",
+      "confidence": "Haute — l'épicentre festif, gourmand et touristique du centre d'Ottawa."
+    },
+    {
+      "name": "Centre Rideau",
+      "arriving": "L'immense complexe commercial urbain en verre et en briques rouges s'étend le long du canal Rideau et de la rue Rideau animée. Les autobus d'OC Transpo déversent des flots ininterrompus de passagers sous les grandes passerelles piétonnes en verre reliant les édifices. L'atmosphère est ultra-urbaine et cosmopolite, mêlant effluves de bretzels chauds au beurre, de café glacé et d'air conditionné pulsé vers la rue.",
+      "sound": "Sifflement strident des freins à air comprimé des autobus rouges et blancs d'OC Transpo et rumeur dense de la foule piétonne traversant la rue Rideau.",
+      "smell": "Bretzels chauds cuits au four, gaufres vanillées et vapeurs d'air conditionné commercial.",
+      "onlyHere": "Des skaters d'Ottawa et de Gatineau réunis sur les marches extérieures en granit près de la statue en bronze, échangeant des cassettes VHS de skate sous l'œil vigilant des gardes de sécurité.",
+      "confidence": "Haute — le point de convergence urbain et commercial incontournable du centre de la capitale."
+    }
+  ]
+}

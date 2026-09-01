@@ -1,0 +1,274 @@
+{
+  "campaign": [
+    {
+      "n": 1,
+      "title": "La cassette de Sayyad",
+      "setup": "Ton père te prête les clés du Ranger pour aller porter un boîtier de CD chez Sayyad avant midi.",
+      "giver": "Ton père",
+      "from": "299 Chemin Fraser (chez nous)",
+      "to": "75 Denise-Friend (Sayyad)",
+      "what": "Une première course tranquille de 90 secondes le long du chemin Fraser pour prendre le truck en main.",
+      "complication": "La clutch est raide et le 2.3 litres cale si tu ne donnes pas un filet de gaz au coin de Fraser.",
+      "unlocks": {
+        "kind": "character",
+        "what": "Sayyad devient disponible comme copilote avec ses commentaires et sa chemise hawaïenne."
+      },
+      "connects": "Lance l'été et établit la dynamique avec Sayyad, qui propose aussitôt d'aller chercher de la bouffe au Tim."
+    },
+    {
+      "n": 2,
+      "title": "Deux-deux pis des beignes",
+      "setup": "Sayyad a soif d'un Ice Capp géant et veut deux cafés deux-deux au Tim de la Principale.",
+      "giver": "Sayyad",
+      "from": "75 Denise-Friend (Sayyad)",
+      "to": "Tim Hortons Principale",
+      "what": "Descendre le boulevard Wilfrid-Lavigne pour rejoindre le cœur historique du Vieux-Aylmer.",
+      "complication": "Bouchon de camionnettes de construction devant les Galeries forçant à trouver une ruelle de déviation.",
+      "unlocks": {
+        "kind": "shortcut",
+        "what": "Ruelle arrière pavée entre la rue Court et la rue Principale pour éviter le feu de circulation."
+      },
+      "connects": "En buvant son café, Sayyad remarque que la courroie du Ranger sille et propose d'aller voir Russell."
+    },
+    {
+      "n": 3,
+      "title": "Le fond d'la cour à Russell",
+      "setup": "Aller porter une vieille courroie d'alternateur dans l'atelier de fond de cour de Russell pour un ajustement.",
+      "giver": "Sayyad",
+      "from": "Tim Hortons Principale",
+      "to": "1 rue Arial (Russell)",
+      "what": "Naviguer dans les ruelles résidentielles jusqu'à la maison mansardée blanche de la rue Arial.",
+      "complication": "L'entrée de cour est bloquée par un vieux F-250; il faut reculer au millimètre près le long de la corde de bois.",
+      "unlocks": {
+        "kind": "discount",
+        "what": "Rabais de 50% sur la main-d'œuvre mécanique au garage de Russell par rapport aux garages officiels."
+      },
+      "connects": "Russell mentionne que Mike McDonald cherche un pickup pour transporter des madriers de bois d'œuvre."
+    },
+    {
+      "n": 4,
+      "title": "Les madriers de l'Aréna",
+      "setup": "Mike McDonald a besoin de la boîte longue du Ranger pour charger des 2x4 destinés à une rampe de skate.",
+      "giver": "Mike McDonald",
+      "from": "1 rue Arial (Russell)",
+      "to": "Aréna Frank-Robinson",
+      "what": "Charger les planches de pin et traverser la ville jusqu'au stationnement arrière de l'aréna municipal.",
+      "complication": "Les madriers dépassent de trois pieds de la ridelle et glissent sur les dos d'âne si tu roules trop vite.",
+      "unlocks": {
+        "kind": "tool",
+        "what": "Coffre de douilles Mastercraft en pouces et millimètres déposé dans la boîte du camion."
+      },
+      "connects": "À l'aréna, Mike t'apprend que le Sunfire d'Adam Actell a rendu l'âme dans son allée à Deschênes."
+    },
+    {
+      "n": 5,
+      "title": "Le Sunfire étouffé",
+      "setup": "Aller booster la batterie du Pontiac Sunfire d'Adam avec les câbles de démarrage du Ranger.",
+      "giver": "Mike McDonald",
+      "from": "Aréna Frank-Robinson",
+      "to": "20 chemin Vanier, Deschênes (Adam)",
+      "what": "Descente rapide vers le secteur Deschênes le long des vieilles voies ferrées désaffectées.",
+      "complication": "L'asphalte bosselé du chemin Vanier fait rebondir le train arrière vide du pickup à chaque crevasse.",
+      "unlocks": {
+        "kind": "character",
+        "what": "Adam Actell devient disponible comme passager avec ses remarques flegmatiques et son sac de chips."
+      },
+      "connects": "Adam constate que ses bougies d'allumage sont brûlées et a besoin de pièces neuves immédiatement."
+    },
+    {
+      "n": 6,
+      "title": "La course au Canadian Tire",
+      "setup": "Acheter quatre bougies Champion et une pinte d'huile 5W30 avant la fermeture du comptoir des pièces.",
+      "giver": "Adam Actell",
+      "from": "20 chemin Vanier, Deschênes (Adam)",
+      "to": "Canadian Tire",
+      "what": "Remontée rapide vers le pôle commercial des Galeries d'Aylmer.",
+      "complication": "Un orage d'été soudain éclate et les essuie-glaces d'origine étalent l'eau au lieu de l'essuyer.",
+      "unlocks": {
+        "kind": "tool",
+        "what": "Manomètre de pression des pneus et entonnoir flexible rangés sous le siège passager."
+      },
+      "connects": "Dans le stationnement, Margaret te croise et te demande de l'aide pour transporter des archives patrimoniales."
+    },
+    {
+      "n": 7,
+      "title": "L'archive de Madame Margaret",
+      "setup": "Transporter trois cartons de registres historiques fragiles jusqu'à l'Auberge Symmes au bord du fleuve.",
+      "giver": "Margaret",
+      "from": "Canadian Tire",
+      "to": "l'Auberge Symmes",
+      "what": "Conduite soignée et fluide vers les berges de la marina à travers les rues ombragées du village.",
+      "complication": "Margaret exige zéro secousse pour ne pas abîmer les reliures centenaires sous peine de réprimande douce.",
+      "unlocks": {
+        "kind": "cash",
+        "what": "60$ en argent comptant remis par Margaret avec une poignée de bonbons durs à la menthe."
+      },
+      "connects": "Au bord de l'eau, Sayyad entend parler d'un vieux Ranger donneur d'organes au lot d'autos usagées."
+    },
+    {
+      "n": 8,
+      "title": "Le prospect du lot d'autos",
+      "setup": "Aller négocier un rétroviseur conducteur en acier sur une épave de Ford au lot d'autos d'occasion.",
+      "giver": "Sayyad",
+      "from": "l'Auberge Symmes",
+      "to": "le lot d'autos usagées",
+      "what": "Remonter le chemin d'Aylmer en longeant le club de golf sous le soleil de l'après-midi.",
+      "complication": "Le vendeur du lot ne vous accorde que 5 minutes pour démonter la pièce avant de fermer son portail.",
+      "unlocks": {
+        "kind": "place",
+        "what": "Accès permanent à la cour du lot d'autos usagées pour trouver des pièces rares."
+      },
+      "connects": "Sur place, le cellulaire vibre: Zahra a terminé sa pratique théâtrale et cherche un lift pour la plage."
+    },
+    {
+      "n": 9,
+      "title": "Zahra à la rescousse",
+      "setup": "Passer prendre Zahra avec son sac de plage et ses amies pour descendre au bord du lac Deschênes.",
+      "giver": "Zahra",
+      "from": "le lot d'autos usagées",
+      "to": "Plage des Cèdres",
+      "what": "Traverser les quartiers résidentiels en direction du parc riverain le plus populaire de la ville.",
+      "complication": "Les enfants à vélo et les vacanciers traversent la chaussée n'importe où aux abords du parc des Cèdres.",
+      "unlocks": {
+        "kind": "shortcut",
+        "what": "Sentier de terre secret de la baie Fraser reliant le boulevard Lucerne directement à la plage."
+      },
+      "connects": "À la plage, Zahra remarque que la jauge à essence frôle la réserve et te rappelle la consigne de ton père."
+    },
+    {
+      "n": 10,
+      "title": "Le plein de Petro-Points",
+      "setup": "Faire le plein de 20$ d'essence ordinaire et rapporter le reçu officiel avec le numéro de carte Pétro-Points.",
+      "giver": "Ton père",
+      "from": "Plage des Cèdres",
+      "to": "la station Petro-Canada",
+      "what": "Remonter vers la station-service au carrefour achalandé de Wilfrid-Lavigne.",
+      "complication": "L'imprimante extérieure est en panne; il faut faire la file à la caisse pendant qu'un camion bloque la sortie.",
+      "unlocks": {
+        "kind": "discount",
+        "what": "Rabais permanent de 5 cents par litre d'essence aux pompes Petro-Canada de la région."
+      },
+      "connects": "À la pompe, Mike McDonald arrive en trombe: l'Hôtel British manque de son pour son spectacle rock du soir."
+    },
+    {
+      "n": 11,
+      "title": "Le son du British",
+      "setup": "Transporter deux gros amplificateurs de guitare Marshall à lampes jusqu'au pub de l'Hôtel British.",
+      "giver": "Mike McDonald",
+      "from": "la station Petro-Canada",
+      "to": "l'Hôtel British",
+      "what": "Glisser au cœur de la rue Principale bordée de terrasses animées et de foules du vendredi soir.",
+      "complication": "Terrasses bondées débordant sur la chaussée étroite et camionnettes de livraison garées en double file.",
+      "unlocks": {
+        "kind": "shortcut",
+        "what": "Passage pavé de la rue Court permettant de contourner les deux feux de circulation de la Principale."
+      },
+      "connects": "Au pub, Sayyad et Zahra te mettent au défi d'aller faire une livraison étudiante de nuit jusqu'à Hull."
+    },
+    {
+      "n": 12,
+      "title": "La virée vers Heritage",
+      "setup": "Livrer des cartons de guides étudiants pour la rentrée d'automne au campus de Heritage College à Hull.",
+      "giver": "Zahra",
+      "from": "l'Hôtel British",
+      "to": "Heritage College",
+      "what": "Première grande traversée intersectorielle à haute vitesse sur le boulevard des Allumettières.",
+      "complication": "Patrouilles de la police de Gatineau surveillant les excès de vitesse sur les longues lignes droites.",
+      "unlocks": {
+        "kind": "place",
+        "what": "Accès officiel débloqué aux voies rapides et au secteur universitaire/collégial de Hull."
+      },
+      "connects": "Au collège, un responsable logistique te charge d'une cargaison urgente pour le centre commercial de Hull."
+    },
+    {
+      "n": 13,
+      "title": "La livraison des Galeries",
+      "setup": "Acheminer six boîtes de dépliants publicitaires aux Galeries de Hull avant la fermeture des portes.",
+      "giver": "Sayyad",
+      "from": "Heritage College",
+      "to": "Galeries de Hull",
+      "what": "Navigation dans le trafic dense du boulevard Saint-Joseph au milieu des autobus de la STO.",
+      "complication": "Carrefour Saint-Joseph encombré avec feux synchronisés très courts et nids-de-poule profonds.",
+      "unlocks": {
+        "kind": "cash",
+        "what": "120$ en billets de banque pour une livraison express sans retard."
+      },
+      "connects": "Aux Galeries, le mécanicien Norm Lafleur te repère et a besoin d'un transport transfrontalier vers Ottawa."
+    },
+    {
+      "n": 14,
+      "title": "La traversée d'Ottawa",
+      "setup": "Transporter un carburateur d'époque rectifié chez un spécialiste situé au cœur du Marché By à Ottawa.",
+      "giver": "Norm Lafleur",
+      "from": "Galeries de Hull",
+      "to": "Marché By",
+      "what": "Traverser la rivière des Outaouais sur le pont Champlain et rouler dans les artères de la capitale fédérale.",
+      "complication": "Fort vent de travers sur le pont Champlain faisant tanguer le pickup et ruelles bondées de piétons au marché.",
+      "unlocks": {
+        "kind": "place",
+        "what": "Libre passage permanent sur tous les ponts interprovinciaux vers Ottawa (Marché By, Rideau, Parlement)."
+      },
+      "connects": "Au Marché By, Margaret vous attend avec un contrat pour ramener des pièces muséales de l'autre côté de l'eau."
+    },
+    {
+      "n": 15,
+      "title": "La navette du Musée",
+      "setup": "Rapatrier des maquettes historiques fragiles depuis Ottawa vers l'esplanade du Musée canadien de l'histoire.",
+      "giver": "Margaret",
+      "from": "Marché By",
+      "to": "Musée canadien de l'histoire",
+      "what": "Franchir le pont du Portage de nuit avec vue illuminée sur les édifices du Parlement.",
+      "complication": "Chantier de voirie nocturne avec cônes orange réduisant la circulation à une seule voie étroite.",
+      "unlocks": {
+        "kind": "shortcut",
+        "what": "Bretelle de service réservée sous le pont Portage longeant la rive de la rivière."
+      },
+      "connects": "Au Musée, Mike McDonald t'appelle en panique: sa remorque s'est embourbée dans les hauteurs de Chelsea."
+    },
+    {
+      "n": 16,
+      "title": "Le sauvetage de Chelsea",
+      "setup": "Monter la route 105 vers le nord dans les collines boisées de Chelsea pour remorquer la remorque de Mike.",
+      "giver": "Mike McDonald",
+      "from": "Musée canadien de l'histoire",
+      "to": "Chelsea",
+      "what": "Ascension sportive des côtes abruptes du parc de la Gatineau sur route sinueuse.",
+      "complication": "Le moteur 2.3L peine dans les pentes à 12%; il faut rétrograder en deuxième et surveiller la jauge de température.",
+      "unlocks": {
+        "kind": "tool",
+        "what": "Sangle de remorquage professionnelle en nylon renforcé 10 000 lbs avec crochets d'acier."
+      },
+      "connects": "À Chelsea, Mike te parle du festival pyrotechnique au Casino du Lac-Leamy où un gros pourboire est en jeu."
+    },
+    {
+      "n": 17,
+      "title": "La nuit des feux du Casino",
+      "setup": "Livrer des caisses de champagne et des laissez-passer VIP au Casino du Lac-Leamy avant le feu d'artifice de 22h.",
+      "giver": "Sayyad",
+      "from": "Chelsea",
+      "to": "Casino du Lac-Leamy",
+      "what": "Descente rapide des collines vers le complexe illuminé du lac Leamy au milieu d'une marée de spectateurs.",
+      "complication": "Milliers de voitures stationnées sur les accotements et barrages d'agents de sécurité à contourner.",
+      "unlocks": {
+        "kind": "cash",
+        "what": "250$ en pourboires des organisateurs du festival pyrotechnique."
+      },
+      "connects": "La mission réussie sous les feux d'artifice, ton père t'appelle: il t'attend à la maison pour le bilan de l'été."
+    },
+    {
+      "n": 18,
+      "title": "Le retour au bercail",
+      "setup": "Rentrer à la maison en empruntant le boulevard Lucerne au coucher du soleil pour garer le Ranger dans l'entrée.",
+      "giver": "Ton père",
+      "from": "Casino du Lac-Leamy",
+      "to": "299 Chemin Fraser (chez nous)",
+      "what": "Une longue chevauchée crépusculaire le long des rives de l'Outaouais d'est en ouest jusqu'à Fraser.",
+      "complication": "Le soleil rasant éblouit le pare-brise, mais tu maîtrises désormais chaque courbe et chaque dos d'âne.",
+      "unlocks": {
+        "kind": "vehicle",
+        "what": "Les clés du Ford Ranger 1993 remises officiellement pour tout le restant de l'été avec les félicitations de ton père."
+      },
+      "connects": "Grande conclusion de la campagne: tu as gagné le respect de tout Aylmer et la liberté totale sur quatre roues."
+    }
+  ]
+}

@@ -1,0 +1,484 @@
+{
+  "materials": [
+    {
+      "id": "brick_1920s_soft_red",
+      "name": "Brique rouge tendre années 1920",
+      "baseColour": "#A24B38",
+      "variations": [
+        "#8C3827",
+        "#B95C46",
+        "#732D20"
+      ],
+      "pattern": "Appareil en panneresses traditionnel avec joints de mortier à la chaux beige pâle de 10 mm",
+      "repeatMetres": 0.6,
+      "roughness": "Forte porosité, arrêtes légèrement érodées par le gel, surface granuleuse sableuse.",
+      "weathering": "Efflorescences de sel blanchâtres sous les corniches, noircissement de suie près des cheminées, mousses verdâtres à la base.",
+      "confidence": "Haute — typique des maisons patrimoniales et anciens magasins de la rue Principale dans le Vieux-Aylmer."
+    },
+    {
+      "id": "brick_1960s_buff",
+      "name": "Brique chamois/sable années 1960",
+      "baseColour": "#CDB087",
+      "variations": [
+        "#BF9E73",
+        "#DAC19C",
+        "#AC885E"
+      ],
+      "pattern": "Appareil linéaire régulier avec joints de ciment gris clair creusés au fer demi-rond",
+      "repeatMetres": 0.6,
+      "roughness": "Texture piquée à empreinte de rouleau, surface semi-lisse et dense.",
+      "weathering": "Taches grises de ruissellement d'eau sous les allèges de fenêtres en aluminium, décoloration par les UV su'l côté sud.",
+      "confidence": "Haute — standard des bungalows d'après-guerre et écoles primaires de la Commission scolaire des Portages-de-l'Outaouais."
+    },
+    {
+      "id": "brick_1980s_dark_wirecut",
+      "name": "Brique brune flammée années 1980",
+      "baseColour": "#5E3929",
+      "variations": [
+        "#48291C",
+        "#724734",
+        "#3D2015"
+      ],
+      "pattern": "Appareil modulaire américain avec joints étroits au mortier gris foncé",
+      "repeatMetres": 0.6,
+      "roughness": "Stries horizontales prononcées coupées au fil de fer (wire-cut), angles vifs et rugueux.",
+      "weathering": "Dépôts blanchâtres de calcaire sur les briques inférieures, traces de boue séchée projetée par les pneus dans l'entrée.",
+      "confidence": "Haute — omniprésente sur les maisons à étages et split-levels des banlieues 1980 d'Aylmer (secteurs Lucerne et Wilfrid-Lavigne)."
+    },
+    {
+      "id": "aluminium_siding_earth_brown",
+      "name": "Déclin d'aluminium brun terre cuite",
+      "baseColour": "#543E33",
+      "variations": [
+        "#443026",
+        "#644D41"
+      ],
+      "pattern": "Profil horizontal à clin simple de 8 pouces avec gaufrage imitation veinure de bois",
+      "repeatMetres": 0.4,
+      "roughness": "Peinture émaillée semi-mate cuite au four, fine ondulation métallique.",
+      "weathering": "Farinage blanc poudreux sur les surfaces exposées au soleil, bosses rondes de balles de tennis ou grêlons.",
+      "confidence": "Haute — couleur classique CanExel / VicWest des années 1970 et 1980 dans les développements de Deschênes."
+    },
+    {
+      "id": "aluminium_siding_sage_green",
+      "name": "Déclin d'aluminium vert amande délavé",
+      "baseColour": "#7B8A78",
+      "variations": [
+        "#6A7867",
+        "#8C9C89"
+      ],
+      "pattern": "Profil horizontal double de 4 pouces avec gorge d'ombre prononcée",
+      "repeatMetres": 0.4,
+      "roughness": "Fini mat velouté par l'érosion éolienne et les pluies acides.",
+      "weathering": "Décoloration inégale sous les débords de toit, oxydation blanchâtre aux pourtours des têtes de clous.",
+      "confidence": "Haute — couleur très populaire sur les split-levels 1975 d'Aylmer."
+    },
+    {
+      "id": "aluminium_siding_maize_yellow",
+      "name": "Déclin d'aluminium jaune paille",
+      "baseColour": "#D8C488",
+      "variations": [
+        "#C5B074",
+        "#E5D39D"
+      ],
+      "pattern": "Profil horizontal simple de 8 pouces avec lèvre d'égouttement",
+      "repeatMetres": 0.4,
+      "roughness": "Satiné d'origine devenu mat calcaire après vingt ans d'exposition.",
+      "weathering": "Traces noires de moisissure superficielle sur les façades nord à l'ombre des grands pins.",
+      "confidence": "Haute — vue fréquemment sur les bungalows 1970 près du chemin Fraser."
+    },
+    {
+      "id": "aluminium_siding_baby_blue",
+      "name": "Déclin d'aluminium bleu pastel rétro",
+      "baseColour": "#839BA6",
+      "variations": [
+        "#718893",
+        "#95ADB8"
+      ],
+      "pattern": "Profil horizontal double de 4 pouces avec fini brossé",
+      "repeatMetres": 0.4,
+      "roughness": "Surface mince et métallique sonnant creux au contact.",
+      "weathering": "Farinage prononcé laissant des traces blanches sur les doigts quand on frotte la carrosserie.",
+      "confidence": "Haute — teinte distinctive des premières phases de bungalows de banlieue à Wychwood."
+    },
+    {
+      "id": "aluminium_siding_faded_beige",
+      "name": "Déclin d'aluminium beige mastic",
+      "baseColour": "#B8A990",
+      "variations": [
+        "#A6967D",
+        "#C8BBA4"
+      ],
+      "pattern": "Profil horizontal classique 8 pouces avec joint de dilatation visible tous les 3 mètres",
+      "repeatMetres": 0.4,
+      "roughness": "Semi-lisse avec léger grain d'apprêt d'usine.",
+      "weathering": "Taches de rouille autour des vis d'ancrage de la soucoupe satellite Star Choice fixée au mur.",
+      "confidence": "Haute — couleur par défaut des rénovations économiques des années 1980."
+    },
+    {
+      "id": "aluminium_siding_pearl_grey",
+      "name": "Déclin d'aluminium gris perle",
+      "baseColour": "#9EA1A1",
+      "variations": [
+        "#8C8F8F",
+        "#B0B3B3"
+      ],
+      "pattern": "Profil horizontal hollandais (Dutch lap) à double décroché",
+      "repeatMetres": 0.4,
+      "roughness": "Peinture d'usine cuite mate avec texture d'écorce discrète.",
+      "weathering": "Pellicule de poussière de route grise et d'échappement accumulée le long du chemin d'Aylmer.",
+      "confidence": "Haute — répandu sur les maisons multifamiliales et duplex de banlieue."
+    },
+    {
+      "id": "vinyl_siding_horizontal",
+      "name": "Revêtement de vinyle horizontal blanc cassé",
+      "baseColour": "#DCD7CA",
+      "variations": [
+        "#CCC7BA",
+        "#ECE7DA"
+      ],
+      "pattern": "Double déclin de 4.5 pouces à profil biseauté avec joints d'emboîtement souples",
+      "repeatMetres": 0.45,
+      "roughness": "Plastique souple gaufré faux-bois, brillant atténué.",
+      "weathering": "Légère déformation thermique (gondolement) au soleil du midi, algues vertes minuscules sur le côté humide.",
+      "confidence": "Haute — revêtement de référence des constructions neuves 1990-2004 sur le plateau de la Capitale."
+    },
+    {
+      "id": "wood_clapboard_heritage",
+      "name": "Planches de bois à clin biseauté patrimonial",
+      "baseColour": "#F0EBE0",
+      "variations": [
+        "#DDD6C7",
+        "#FFFBF2"
+      ],
+      "pattern": "Planches d'épinette ou de pin de 5 pouces posées à recouvrement avec têtes de clous forgés apparentes",
+      "repeatMetres": 0.25,
+      "roughness": "Texture organique fibreuse, nœuds de bois scellés à la gomme laque.",
+      "weathering": "Peinture à l'huile écaillée en petites écailles carrées révélant le bois grisé par endroits.",
+      "confidence": "Haute — historique, typique des maisons victoriennes et georgiennes du Vieux-Aylmer."
+    },
+    {
+      "id": "asphalt_shingle_charcoal",
+      "name": "Bardeaux d'asphalte gris anthracite / charbon",
+      "baseColour": "#323539",
+      "variations": [
+        "#25272B",
+        "#42454A",
+        "#1E2023"
+      ],
+      "pattern": "Bardeaux 3 pattes standard de 12x36 pouces avec décalage d'un demi-pureau",
+      "repeatMetres": 0.9,
+      "roughness": "Granulats de basalte et céramique rugueux enrobés de bitume.",
+      "weathering": "Perte de granules dans les noues laissant voir la membrane noire, soulèvement par le vent printanier aux coins.",
+      "confidence": "Haute — couverture de toit la plus commune à 60% sur l'ensemble de la ville."
+    },
+    {
+      "id": "asphalt_shingle_weathered_grey",
+      "name": "Bardeaux d'asphalte gris moyen délavé",
+      "baseColour": "#5E6366",
+      "variations": [
+        "#4F5356",
+        "#6F7578",
+        "#3E4244"
+      ],
+      "pattern": "Bardeaux 3 pattes classiques avec bandes d'ombre horizontales",
+      "repeatMetres": 0.9,
+      "roughness": "Granulométrie moyenne à forte rugosité.",
+      "weathering": "Mousses et lichens circulaires jaunâtres poussant sur les versants nord sous les grands chênes.",
+      "confidence": "Haute — présent sur les maisons des années 1970 n'ayant pas refait leur toit récemment."
+    },
+    {
+      "id": "asphalt_shingle_driftwood_brown",
+      "name": "Bardeaux d'asphalte brun bois flotté",
+      "baseColour": "#5B4D41",
+      "variations": [
+        "#4C3F35",
+        "#6B5C50",
+        "#3E332A"
+      ],
+      "pattern": "Bardeaux laminés architecturaux à double épaisseur avec découpe aléatoire",
+      "repeatMetres": 1.0,
+      "roughness": "Forte texture tridimensionnelle à relief marqué.",
+      "weathering": "Dépôts de feuilles d'arbres mortes décomposées et de brindilles dans les gouttières.",
+      "confidence": "Haute — choix haut de gamme populaire dans les quartiers cossus d'Aylmer dans les années 1990."
+    },
+    {
+      "id": "asphalt_shingle_bark_cedar",
+      "name": "Bardeaux d'asphalte brun écorce",
+      "baseColour": "#46362C",
+      "variations": [
+        "#382B23",
+        "#564438",
+        "#2C211B"
+      ],
+      "pattern": "Bardeaux 3 pattes économiques posés en rangs réguliers",
+      "repeatMetres": 0.9,
+      "roughness": "Granulaire dense et granuleux.",
+      "weathering": "Bords des pattes légèrement recourbés (curling) sous l'effet de la chaleur des étés québécois.",
+      "confidence": "Haute — standard des toitures de chalets d'été convertis à l'année le long de la rivière."
+    },
+    {
+      "id": "sheet_metal_roof_galvanized",
+      "name": "Toiture de tôle à baguettes galvanisée",
+      "baseColour": "#7A8288",
+      "variations": [
+        "#686E74",
+        "#8D969D",
+        "#5A6065"
+      ],
+      "pattern": "Panneaux verticaux de tôle pincée à joints debout (standing seam) espacés de 18 pouces avec rangée de clous à tête de plomb",
+      "repeatMetres": 0.45,
+      "roughness": "Métal lisse à reflets spéculaires durs et résonance acoustique à la pluie.",
+      "weathering": "Taches de rouille orange vif le long des plis d'agrafage et aux sorties d'égouttement.",
+      "confidence": "Haute — indispensable sur les granges, hangars de ferme su'a 148 et vieux toits à forte pente du Vieux-Aylmer."
+    },
+    {
+      "id": "limestone_rubble_ottawa_valley",
+      "name": "Moellon de calcaire brut de la vallée de l'Outaouais",
+      "baseColour": "#8E8D88",
+      "variations": [
+        "#767570",
+        "#A4A39D",
+        "#62615D"
+      ],
+      "pattern": "Maçonnerie de moellons informes non taillés hourdés au mortier de chaux gréseux épais",
+      "repeatMetres": 1.2,
+      "roughness": "Extrêmement accidentée, blocs bruts de carrière avec fossiles marins incrustés et veines de calcite.",
+      "weathering": "Joints effrités et creusés par les cycles gel-dégel centenaires, patine grise foncée de pluie.",
+      "confidence": "Haute — signature géologique locale incontournable (Auberge Symmes, vieux murs de clôture)."
+    },
+    {
+      "id": "dressed_limestone_smooth",
+      "name": "Pierre de calcaire taillée lisse (pierre de taille)",
+      "baseColour": "#A8A7A0",
+      "variations": [
+        "#95948D",
+        "#BAB9B2"
+      ],
+      "pattern": "Grands blocs rectangulaires réguliers de 12x24 pouces à joints fins de 6 mm",
+      "repeatMetres": 1.2,
+      "roughness": "Fini bouchardé ou adouci au ciseau de tailleur de pierre.",
+      "weathering": "Salissures noires de carbone urbain sous les larmiers et les appuis de fenêtre.",
+      "confidence": "Haute — édifices institutionnels, Hôtel British et églises patrimoniales de la région."
+    },
+    {
+      "id": "poured_concrete_foundation",
+      "name": "Béton coulé de fondation (solage)",
+      "baseColour": "#8A8D8F",
+      "variations": [
+        "#777A7C",
+        "#9C9FA1"
+      ],
+      "pattern": "Lignes horizontales et trous de tirants laissés par les coffrages en contreplaqué tous les 24 pouces",
+      "repeatMetres": 1.0,
+      "roughness": "Texture semi-rugueuse avec nids d'abeilles mineurs et bavures de laitance.",
+      "weathering": "Fissures verticales fines de retrait thermique colmatées au mastic noir, remontées d'humidité foncées à la base.",
+      "confidence": "Haute — solages visibles de 2 à 3 pieds sous toutes les résidences unifamiliales d'Aylmer."
+    },
+    {
+      "id": "cinder_block_wall",
+      "name": "Blocs de béton manufacturés (cinder block)",
+      "baseColour": "#949698",
+      "variations": [
+        "#828486",
+        "#A5A7A9"
+      ],
+      "pattern": "Appareil régulier de blocs creux de 8x16 pouces avec joints de mortier creux",
+      "repeatMetres": 0.8,
+      "roughness": "Surface poreuse très abrasive à grains de scories visibles.",
+      "weathering": "Peinture blanche pelée découvrant le béton gris, efflorescences poudreuses le long des joints.",
+      "confidence": "Haute — murs de garages détachés, ateliers de fond de cour (garage de Russell) et arrières de commerces."
+    },
+    {
+      "id": "asphalt_fresh",
+      "name": "Asphalte neuf noir compacté",
+      "baseColour": "#232528",
+      "variations": [
+        "#1B1D1F",
+        "#2D2F33"
+      ],
+      "pattern": "Tapis bitumineux continu uniforme avec traces de rouleau compresseur légères",
+      "repeatMetres": 2.0,
+      "roughness": "Micro-rugosité dense à forte adhérence de pneus, grain fin uniforme.",
+      "weathering": "Traces grasses irisées de liant bitumineux frais scintillant sous le soleil chaud de juillet.",
+      "confidence": "Haute — sections récemment resurfacées sur le boulevard Wilfrid-Lavigne ou entrées pavées neuves."
+    },
+    {
+      "id": "asphalt_worn",
+      "name": "Asphalte vieilli gris à granulats apparents",
+      "baseColour": "#595B5E",
+      "variations": [
+        "#4B4D50",
+        "#6A6C6F",
+        "#3F4143"
+      ],
+      "pattern": "Surface homogène érodée laissant ressortir les petits cailloux de rivière gris et roses",
+      "repeatMetres": 1.5,
+      "roughness": "Rugosité moyenne à élevée, bruit de roulement prononcé sous les pneus.",
+      "weathering": "Décoloration due aux rayons UV et à l'usure des pneus à clous d'hiver, petits nids-de-poule superficiels.",
+      "confidence": "Haute — état par défaut de 80% des rues résidentielles d'Aylmer en 2004."
+    },
+    {
+      "id": "asphalt_patched",
+      "name": "Asphalte rapiécé au goudron froid",
+      "baseColour": "#4E5053",
+      "variations": [
+        "#252729",
+        "#616467",
+        "#1E1F21"
+      ],
+      "pattern": "Rectangles et polygones irréguliers d'enrobé noir frais incrustés dans l'asphalte gris vieilli avec bordures goudronnées",
+      "repeatMetres": 1.5,
+      "roughness": "Dénivellation sensible de 1 à 2 cm entre l'ancien pavage et la rustine, surface bosselée.",
+      "weathering": "Granulats libres projetés sur les accotements lors des passages de camionnettes.",
+      "confidence": "Haute — omniprésent sur le chemin d'Aylmer et le chemin Pink après le dégel printanier."
+    },
+    {
+      "id": "asphalt_crack_sealed",
+      "name": "Asphalte scellé aux serpents de bitume liquide",
+      "baseColour": "#55585B",
+      "variations": [
+        "#18191B",
+        "#65686C"
+      ],
+      "pattern": "Lignes sinueuses noires luisantes de 5 à 10 cm de largeur serpentant sur la chaussée grise selon les fractures du gel",
+      "repeatMetres": 2.5,
+      "roughness": "Bandes de bitume lisses et collantes sous la chaleur intense de juillet, contrastant avec la roche rugueuse.",
+      "weathering": "Traces de pneus ayant arraché des bandes fraîches au carrefour.",
+      "confidence": "Haute — technique de colmatage municipale standard de la Ville de Gatineau."
+    },
+    {
+      "id": "concrete_sidewalk",
+      "name": "Trottoir municipal en dalles de béton balayé",
+      "baseColour": "#A8A9A6",
+      "variations": [
+        "#969794",
+        "#BABBB8"
+      ],
+      "pattern": "Dalles carrées de 1.5 x 1.5 mètre séparées par des joints de retrait de 10 mm",
+      "repeatMetres": 1.5,
+      "roughness": "Stries fines de finition au balai pour l'antidérapant, bords arrondis à la truelle.",
+      "weathering": "Coins épaufrés par les chenilles des petites déneigeuses de trottoir Bombardier, taches de gomme séchée foncée.",
+      "confidence": "Haute — trottoirs bordant la rue Principale, le boulevard Lucerne et les abords des écoles."
+    },
+    {
+      "id": "gravel_crushed_stone",
+      "name": "Gravier concassé 0-3/4 et poussière de pierre calcaire",
+      "baseColour": "#98948B",
+      "variations": [
+        "#858178",
+        "#AAA69D",
+        "#726E66"
+      ],
+      "pattern": "Mélange aléatoire de gravillons angulaires de 10 à 20 mm compactés dans une matrice de poussière fine",
+      "repeatMetres": 1.0,
+      "roughness": "Très meuble en surface, crissement distinct sous la semelle et projection sous les garde-boues.",
+      "weathering": "Deux ornières parallèles tassées et brunies par le passage répété des pneus, crête centrale d'herbe folle.",
+      "confidence": "Haute — allées de garage privées, accotements du chemin Eardley et cours d'ateliers."
+    },
+    {
+      "id": "mown_suburban_lawn",
+      "name": "Pelouse de banlieue tondue",
+      "baseColour": "#557B36",
+      "variations": [
+        "#47682D",
+        "#669141",
+        "#8C843E"
+      ],
+      "pattern": "Rayures parallèles alternées claires et sombres de 21 pouces laissées par le rouleau de la tondeuse",
+      "repeatMetres": 1.05,
+      "roughness": "Feuillage dense de pâturin du Kentucky coupé à 3 pouces de hauteur.",
+      "weathering": "Taches jaunes de pissenlits séchés et zones jaunies par la sécheresse de juillet près des bordures de béton.",
+      "confidence": "Haute — pelouses soignées des résidences de Denise-Friend et Wychwood."
+    },
+    {
+      "id": "long_ditch_grass",
+      "name": "Herbes hautes et foin des fossés",
+      "baseColour": "#647D42",
+      "variations": [
+        "#516733",
+        "#7D9854",
+        "#9E8E50"
+      ],
+      "pattern": "Touffes denses et désordonnées de graminées sauvages de 50 à 90 cm de haut mélangées à des quenouilles",
+      "repeatMetres": 2.0,
+      "roughness": "Tiges flexibles ondulant sous le vent, panicules de graines plumeuses.",
+      "weathering": "Tiges couchées par les roues de pickups ayant mordu l'accotement, débris d'emballages de Tim Hortons piégés dans les tiges.",
+      "confidence": "Haute — fossés du chemin Pink, de la montée Breckenridge et de la route 148."
+    },
+    {
+      "id": "beach_sand_cedres",
+      "name": "Sable fin doré de la Plage des Cèdres",
+      "baseColour": "#CDB78C",
+      "variations": [
+        "#BBA57B",
+        "#DFC89E",
+        "#9A8763"
+      ],
+      "pattern": "Surface sablonneuse continue avec petites rides éoliennes et empreintes de pas de baigneurs",
+      "repeatMetres": 1.5,
+      "roughness": "Grains de quartz et de feldspath arrondis fins et doux au toucher.",
+      "weathering": "Frange de sable mouillé brun foncé le long de la ligne de ressac avec dépôts de bois flotté et coquilles de moules d'eau douce.",
+      "confidence": "Haute — spécifique à la grève sablonneuse du parc des Cèdres le long du lac Deschênes."
+    },
+    {
+      "id": "ottawa_river_water",
+      "name": "Eau de la rivière des Outaouais",
+      "baseColour": "#374E4A",
+      "variations": [
+        "#2A3C39",
+        "#48635E",
+        "#1F2D2B"
+      ],
+      "pattern": "Clapotis régulier de petites vagues de surface de 10 à 20 cm orientées par le vent d'ouest",
+      "repeatMetres": 3.0,
+      "roughness": "Fluide réfléchissant à faible transparence (profondeur de vision de 60 cm), teinté de tanins forestiers.",
+      "weathering": "Écume blanche sur les hauts-fonds rocheux près du phare et reflets dorés du soleil rasant en fin d'après-midi.",
+      "confidence": "Haute — rivière des Outaouais / lac Deschênes entourant Aylmer."
+    },
+    {
+      "id": "chainlink_fence_frost",
+      "name": "Clôture frost en mailles de chaîne galvanisée",
+      "baseColour": "#8A8F92",
+      "variations": [
+        "#777C7E",
+        "#9CA1A4"
+      ],
+      "pattern": "Grillage losangé en fil d'acier de calibre 9 avec poteaux ronds en acier de 2 pouces espacés de 8 pieds",
+      "repeatMetres": 2.4,
+      "roughness": "Fils métalliques durs semi-rugueux laissant passer 90% de la lumière.",
+      "weathering": "Petites herbes sauvages et liserons grimpant dans le bas, fil supérieur légèrement courbé par les enfants qui grimpent dessus.",
+      "confidence": "Haute — clôtures de cours d'écoles (Lord Aylmer, Philemon Wright) et limites de parcs municipaux."
+    },
+    {
+      "id": "cedar_hedge_trimmed",
+      "name": "Haie de cèdres blancs du Québec taillée",
+      "baseColour": "#3D5B32",
+      "variations": [
+        "#2F4726",
+        "#4C703F",
+        "#6B613A"
+      ],
+      "pattern": "Mur végétal dense et continu de 6 à 8 pieds de hauteur taillé droit au taille-haie mécanique",
+      "repeatMetres": 1.2,
+      "roughness": "Feuillage squamiforme compact et odorant masquant entièrement le tronc intérieur.",
+      "weathering": "Intérieur brun de ramilles mortes visible aux endroits creux, pointes roussies par les embruns de sel d'hiver près de la rue.",
+      "confidence": "Haute — élément d'intimité universel séparant 90% des terrains résidentiels d'Aylmer."
+    },
+    {
+      "id": "cedar_privacy_fence_weathered",
+      "name": "Clôture d'intimité en planches de cèdre grisées",
+      "baseColour": "#7B776F",
+      "variations": [
+        "#69655E",
+        "#8E8A81",
+        "#57544E"
+      ],
+      "pattern": "Planches verticales de 1x6 pouces de 6 pieds de haut avec découpe en chapeau de gendarme (dog-ear) au sommet",
+      "repeatMetres": 1.8,
+      "roughness": "Bois brut de sciage non raboté avec gerces longitudinales et échardes.",
+      "weathering": "Grisaillement complet par les UV, clous rouillés ayant laissé de longues coulisses noires verticales sur le bois.",
+      "confidence": "Haute — clôtures de fond de cour entourant les piscines hors-terre des banlieues 1980."
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "russell": {
+    "greetings": [
+      "Yo! Parke ton truck à côté du F-250 à mon père, fais juste attention aux planches avec des clous.",
+      "Salut man! Qu'est-ce qui claque su'ton tas d'ferraille aujourd'hui?",
+      "Yo! J'étais en train de cirer mon deck de skate... Ouvre le capot, m'a jeter un œil.",
+      "T'es encore là? Ton 2.3 litres a l'air de faire un son de moulin à café ce matin.",
+      "Entre dans l'garage, approche du poêle à bois, y fait plus chaud icitte que dehors avec le vent.",
+      "Yo! Mon père m'a dit qu'y avait entendu ton muffler arriver depuis le coin de la rue.",
+      "Salut mon gars! Si tu cherches des pièces propres, j'viens de stripper un vieux Ranger dans l'fond d'la cour.",
+      "Qu'est-ce qui se passe? T'as encore essayé de shifter la troisième sans peser su'a clutch?",
+      "Yo! Laisse tourner le moteur deux secondes que j'écoute d'où vient la fuite de prestone.",
+      "Salut man! J'ai une couple d'heures avant que mon père parte à la chasse, on peut checker ça vite fait.",
+      "Yo! Rentre ça dans l'allée en gravelle, recule pas dans le tas d'pneus su'l côté.",
+      "Salut! J'espère que t'as du cash en papier, mon père veut pas d'chèques de banque d'Aylmer icitte."
+    ],
+    "work": [
+      {
+        "part": "alternateur",
+        "line": "Ton alternateur chargeait à peine 11 volts. J't'ai posé un vieux Motorcraft qui traînait su'a tablette, y pousse du 14.2 solide!"
+      },
+      {
+        "part": "starter",
+        "line": "Le starter collait parce que la couette de fils était fondue su'l collecteur. J'ai tapé dessus avec un marteau pis remis du tape noir d'électricien."
+      },
+      {
+        "part": "freins_avant",
+        "line": "Tes plaquettes d'en avant frottaient métal su'métal. J'ai fitté des pads d'un Tempo 91 en meulant les coches... Ça freine droit comme un neuf!"
+      },
+      {
+        "part": "muffler",
+        "line": "Le tuyau d'exhaust était cassé net en deux après le catalytique. J't'ai manchonné ça avec une canne de soupe aux tomates et deux collets en U."
+      },
+      {
+        "part": "radiateur",
+        "line": "Ton rad pissait par le haut. J'ai vidé deux cuillères à soupe de poivre noir moulu dans l'bouchon... Magie, pu une goutte qui coule!"
+      },
+      {
+        "part": "bearing_de_roue",
+        "line": "Ton bearing avant droit grondait comme un Boeing 747. J'ai bourré ça de graisse à trailer marine bleue pis resserré la nut au feeling."
+      },
+      {
+        "part": "bougies_allumage",
+        "line": "Tes quatre bougies étaient encrassées de suie noire. J'ai passé une brosse d'acier dessus pis ajusté l'écartement avec un dix-cennes."
+      },
+      {
+        "part": "carburateur_throttle",
+        "line": "Ton câble de throttle restait jammé à moitié ouvert. J'ai aspergé une demi-canne de WD-40 dans gaine, la pédale revient toute seule!"
+      },
+      {
+        "part": "choc_suspension",
+        "line": "La tête de shock en arrière était arrachée de su'l frame. J'ai percé un trou au travers du plancher de boîte pis vissé une grosse bolt de grade 8."
+      },
+      {
+        "part": "clutch_cable",
+        "line": "Le câble de clutch était effiloché à trois brins d'casser. J't'ai rabouté ça avec un serre-câble d'attache de remorque, pèse doux!"
+      },
+      {
+        "part": "alignement",
+        "line": "Ton char tirait dans l'fossé à droite. J'ai aligné tes deux roues avant à l'œil avec une corde à craie et un ruban à mesurer Stanley."
+      },
+      {
+        "part": "pompe_a_gaz",
+        "line": "La pompe à gaz coupait dans les bosses. C'était juste le relais sous l'dash qui avait du vert-de-gris; j'ai gratté les pins avec ma clé d'skate."
+      },
+      {
+        "part": "filtre_a_air",
+        "line": "Ton filtre à air était plein de graines de tournesol et de nids de souris. J'ai soufflé dedans avec la hose à compresseur, y est bon pour l'été."
+      },
+      {
+        "part": "ball_joint",
+        "line": "Ton ball joint inférieur avait un demi-pouce de lousse. J'ai donné deux coups de pointeau su'a bague pour le mater en place... Fais pas de sauts avec!"
+      },
+      {
+        "part": "wiper_motor",
+        "line": "Les essuie-glaces arrêtaient dans l'milieu d'la vitre. J'ai resoudé la pine de plastique du linkage avec mon fer à souder au butane."
+      }
+    ],
+    "broke": [
+      "T'as pas une cenne? Laisse-moé ton lecteur CD Sony ou ta cassette adaptatrice jusqu'à vendredi.",
+      "Pas d'argent? Va m'chercher une boîte de 20 Timbits pis deux grands cafés au Tim de la Principale pis on est quittes.",
+      "T'es à sec? Mon père a une corde de bois d'érable à corder dans l'fond d'la remise, pogne les gants.",
+      "Sans cash, j'te remets pas les clés du Ranger, mon vieux. Trouve vingt piasses ou appelle Sayyad.",
+      "Donne-moé ton skateboard Blind ou tes lunettes fumées pis j'te laisse partir avec la pièce posée.",
+      "Pas de piasses? Reviens me payer quand ton père te donnera ton allocation de fin d'semaine, mais oublie pas.",
+      "J'suis pas une banque populaire, man! Va vider les cannettes de bière vides dans boîte de ton truck au dépanneur.",
+      "Écoute, j't'ai arrangé ça pour rien aujourd'hui, mais la prochaine fois amène-moé une canne de brake cleaner neuve."
+    ],
+    "wrecked": [
+      "Tabarnak, man! T'as fessé quoi? On dirait que t'as fait un face-à-face avec une moissonneuse-batteuse!",
+      "L'aile avant gauche est pliée en accordéon... Attends deux secondes, m'a sortir la masse de douze livres.",
+      "Yo! Le radiateur touche presque à fan de moteur! Éteins ça tout de suite avant de faire fondre les pistons!",
+      "T'as mangé un poteau d'Hydro ou un banc de trottoir? Le bumper traîne à terre comme une lèvre pendante!",
+      "Checke le frame en avant... Y est croche de deux pouces. On va attacher une chaîne après le F-250 pis tirer dessus en reculant!",
+      "Man, ton père va te décapiter avec une scie à chaîne quand y va voir l'état de la calandre!",
+      "Y a du prestone vert qui coule partout su'mon allée de gravelle... Mets un bac de litière à chat en dessous, vite!",
+      "C'est pas un accident de char ça, c'est une œuvre d'art moderne! Rentre-lé dans l'garage avant que les flics passent."
+    ]
+  },
+  "dad": {
+    "lines": [
+      "Touche pas à la torche sans mettre les lunettes de sécurité, Russell, t'as juste deux yeux.",
+      "La bolt de quatorze millimètres su'l manifold est rouillée raide. Chauffe-la avant d'casser la tête dedans.",
+      "Ton alignement à la ficelle, Russell... Y va user ses pneus en dedans de deux semaines su'l chemin Pink.",
+      "Arrêtez d'faire spinner vos roues dans mon allée, vous pitchez d'la garnotte su'a peinture de mon F-250.",
+      "Si vous serrez pas la nut de cardan avec un bon bras de levier, la roue va l'dépasser su'l pont Champlain.",
+      "Le jeune a raison pour le bruit: c'est son bearing de clutch qui sille, pas sa courroie d'alternateur.",
+      "Fermez la porte du garage, le vent d'ouest fait refouler la boucane du poêle à bois dans toute la maison.",
+      "Mettez un cric en dessous du différentiel avant de vous glisser sous la boîte, j'ai pas envie d'ramasser un gars écrasé.",
+      "Ton père sait-tu que t'es icitte à faire poser des pièces de rebut su'son truck de compagnie?",
+      "Laisse refroidir le bloc avant d'ouvrir l'bouchon de prestone, champion, sinon tu vas te faire ébouillanter la face.",
+      "La tôle d'acier de ce Ford-là est plus dure que la tête à Russell. Prenez un vrai marteau de carrossier.",
+      "Si ça fuit encore après deux jours, ramenez pas ça un dimanche: j'suis à la chasse à la perdrix dans l'Pontiac."
+    ]
+  },
+  "tradeoff": [
+    "Chez Russell, ça coûte vingt piasses en billets froissés au lieu de cent piasses de l'heure chez Norm Lafleur.",
+    "Norm a un lift hydraulique et une facture officielle; Russell a un cric à roulette qui perd son huile et une boîte de vis rouillées.",
+    "Russell peut te poser une pièce usagée ramassée dans un fossé en vingt minutes pendant que tu bois une liqueur.",
+    "Au garage de Norm, tu as une garantie écrite de trois mois; chez Russell, la garantie finit quand tu tournes le coin de la rue Arial.",
+    "Russell pose des pièces modifiées à la meuleuse d'angle qui ne passeraient jamais l'inspection de la SAAQ.",
+    "Si tu vas chez Norm, il va appeler ton père pour lui lister tous les bobos du camion; Russell garde le secret absolu pour un paquet de gomme.",
+    "Chez Norm, tu attends trois jours pour un rendez-vous; chez Russell, tu débarques sans avertir et tu klaxonnes deux coups.",
+    "Le plancher du garage de Russell est en terre battue avec une vieille carpette de salon tachée de prestone et de café froid.",
+    "Norm utilise des pièces certifiées d'origine Ford; Russell utilise ce qui traîne dans le coffre arrière d'un Cavalier 89.",
+    "Si la réparation de Russell lâche sur l'autoroute, tu as juste ton skate pour rentrer à pied, mais ton portefeuille est encore plein."
+  ]
+}
