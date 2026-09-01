@@ -18,9 +18,27 @@
 //   osc ─┬─ exhaust bandpass ─ gain ─┐
 //        └─ intake  bandpass ─ gain ─┤
 //   tick osc ─ 3.4 kHz bandpass ─────┤
-//   noise ─┬─ intake hiss ───────────┼─ bus ─ cabin peak ─┬─ dry ──┐
-//          ├─ exhaust rasp ──────────┤                    └ shaper ┴─ out
-//          └─ overrun pops ──────────┘
+//   noise ─┬─ intake hiss ───────────┼─ bus ─ tone LP ─ cabin peak ─┬─ dry ──┐
+//          ├─ exhaust rasp ──────────┤                              └ shaper ┴─ out
+//          ├─ overrun pops ──────────┤
+//          ├─ decel burble ──────────┤
+//          └─ driveline thunk ───────┘
+//
+// The `tone` lowpass is the load: an engine labouring against a hill is a
+// brighter, harder noise than the same engine coasting, and nothing else in
+// the graph can tell you which one you are listening to.
+//
+// Alongside it, and NOT part of the engine, is the road voice (RoadDriver):
+//
+//   noise ─┬─ tyre bandpass (surface) ─ gain(speed) ─┐
+//          ├─ grit highpass (surface) ─ gain(speed) ─┤
+//          └─ suspension thump lowpass ─ env ────────┼─ road out
+//   whine osc ─ narrow bandpass ─ gain(speed) ───────┘
+//
+// which is what changes when you leave the tarmac. It is separate because it is
+// a separate thing: the auditions in docs/audio/*.wav render the engine alone
+// (docs/audio/ranger-road.wav renders both), and the engine measurements in
+// tools/smoke_audio.mjs would be meaningless with a gravel roar over them.
 //
 // Everything is built once. `engine()` only writes AudioParams — no node is
 // created while you are driving.
@@ -87,6 +105,9 @@ export class Audio {
     this.ng = ctx.createGain(); this.ng.gain.value = 0;
     this.noise.connect(this.nf); this.nf.connect(this.ng); this.ng.connect(this.fx);
 
+    // The road: tyres, grit and the axle. Built once, driven from engine().
+    this.road = new RoadDriver(ctx, this.fx, this.noiseBuf);
+
     this.noise.start();
     this.ok = true;
     this.setEngineProfile(this.ep);
@@ -101,21 +122,33 @@ export class Audio {
     if (this.driver) this.driver.dispose();
     this.driver = new EngineDriver(this.ctx, this.engBus, this.ep || DEFAULT_ENGINE, this.noiseBuf);
     this.voice = this.driver.voice;
+    if (this.road) this.road.setProfile(this.ep || DEFAULT_ENGINE);
   }
 
   // Real engine rpm, engine load 0..1, road speed, pedal 0..1, clutch 0..1.
   // `rpm <= 1` means "engine off" — that is how the pause screen and the map
   // silence it (`audio.engine(0, 0)`).
+  //
+  // The road voice is stepped from here too, because this is the only call in
+  // the game that arrives every frame with the player's road speed on it. What
+  // is UNDER the wheels comes from CONTACT, matched on that same speed — see
+  // the comment there.
   engine(rpm, load, kmh = 0, throttle = -1, clutch = 1) {
     if (!this.ok || !this.driver) return;
-    this.driver.step(1 / 60, rpm, load, kmh, throttle, clutch,
-      this.enabled ? 1 : 0, this.ctx.currentTime);
+    const gate = this.enabled ? 1 : 0;
+    const at = this.ctx.currentTime;
+    this.driver.step(1 / 60, rpm, load, kmh, throttle, clutch, gate, at);
+    if (this.road) this.road.step(1 / 60, kmh, load, CONTACT.find(kmh), rpm > 1 ? gate : 0, at);
   }
+  // The scrub of a tyre that has given up, as opposed to the roll of one that
+  // has not (that is the road voice). Gravel scrubs higher and drier than
+  // tarmac, so the band follows whatever the road voice last stood on.
   skid(amount) {
     if (!this.ok) return;
     const t = this.ctx.currentTime;
-    this.ng.gain.setTargetAtTime((this.enabled ? 1 : 0) * amount * 0.14, t, 0.05);
-    this.nf.frequency.setTargetAtTime(900 + amount * 1500, t, 0.08);
+    const su = (this.road && this.road.surf) || SURFACE.asphalt;
+    this.ng.gain.setTargetAtTime((this.enabled ? 1 : 0) * amount * 0.14 * su.scrub, t, 0.05);
+    this.nf.frequency.setTargetAtTime(su.tyreF * 0.7 + amount * 1500, t, 0.08);
   }
   blip(freq = 660, dur = 0.12, type = 'square', vol = 0.18) {
     if (!this.ok || !this.enabled) return;
@@ -152,15 +185,7 @@ export class Audio {
   }
   crash(force) {
     if (!this.ok || !this.enabled) return;
-    const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
-    o.type = 'square'; o.frequency.setValueAtTime(150 + Math.random() * 80, t);
-    o.frequency.exponentialRampToValueAtTime(48, t + 0.25);
-    f.type = 'lowpass'; f.frequency.value = 1100;
-    g.gain.setValueAtTime(Math.min(0.35, 0.07 + force * 0.2), t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-    o.connect(f); f.connect(g); g.connect(this.fx);
-    o.start(); o.stop(t + 0.4);
+    fireCrash(this.ctx, this.fx, this.ctx.currentTime, force, this.noiseBuf);
   }
   // R3: somebody else's horn. Same two-saw shape as yours, pitched wherever the
   // caller likes, and it lets go on its own.
@@ -215,32 +240,8 @@ export class Audio {
   // 9 for coming off the rail berm at 70.
   land(force) {
     if (!this.ok || !this.enabled) return;
-    const f = Math.min(1, Math.max(0, force / 10));
-    const t = this.ctx.currentTime;
-    // body: a short filtered thud that drops in pitch
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain(), lp = this.ctx.createBiquadFilter();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(120 - 40 * f, t);
-    o.frequency.exponentialRampToValueAtTime(38, t + 0.16);
-    lp.type = 'lowpass'; lp.frequency.value = 420;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.03 + 0.16 * f, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.20 + 0.12 * f);
-    o.connect(lp); lp.connect(g); g.connect(this.master);
-    o.start(); o.stop(t + 0.36);
-    // grit: a puff of filtered noise for the tyres scrubbing on touchdown
-    if (this.noiseBuf) {
-      const n = this.ctx.createBufferSource();
-      n.buffer = this.noiseBuf; n.loop = true;
-      const bp = this.ctx.createBiquadFilter();
-      bp.type = 'bandpass'; bp.frequency.value = 900 + 700 * f; bp.Q.value = 0.7;
-      const ng = this.ctx.createGain();
-      ng.gain.setValueAtTime(0.0001, t);
-      ng.gain.exponentialRampToValueAtTime(0.006 + 0.05 * f, t + 0.02);
-      ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
-      n.connect(bp); bp.connect(ng); ng.connect(this.master);
-      n.start(); n.stop(t + 0.32);
-    }
+    fireLand(this.ctx, this.master, this.ctx.currentTime, force, this.noiseBuf,
+      (this.road && this.road.surf) || SURFACE.asphalt);
   }
 
   // Wind over the roof while the wheels are off the ground. Call it every frame
@@ -397,6 +398,7 @@ export class EngineDriver {
     this.voice = buildEngineVoice(ctx, dest, profile, sharedNoise);
     this.p = this.voice.p;
     this._jit = 0; this._jitT = 0; this._popT = 0;
+    this._clutch = 1;
   }
 
   step(dt, rpm, load, kmh, throttle, clutch, gate, at) {
@@ -404,7 +406,9 @@ export class EngineDriver {
     if (throttle < 0) throttle = load;
 
     // Lumpy idle: a slow random walk of ±`lumpy` on the crank speed, faded out
-    // as soon as you are on the throttle.
+    // as soon as you are on the throttle. On a four with no balance shafts this
+    // is most of what makes a standing idle sound like an engine rather than a
+    // held note, so the Ranger's `lumpy` is twice anybody else's.
     this._jitT -= dt;
     if (this._jitT <= 0) {
       this._jitT = 0.09 + Math.random() * 0.11;
@@ -413,17 +417,34 @@ export class EngineDriver {
     const idleness = clamp01(1 - (rpm - e.idle) / (e.idle * 1.6)) * (1 - clamp01(throttle) * 0.8);
     v.set(rpm * (1 + this._jit * e.lumpy * idleness), load, throttle, clutch, gate, at);
 
+    // The gearchange, as something you hear rather than a hole in the noise.
+    // The clutch dipping to zero already takes the load off the engine (set()
+    // does that); this is the OTHER half — the driveline taking up again as the
+    // pedal comes back, which on a truck with 200,000 km of slack in it is an
+    // audible thunk under the floor. Fired on the rising edge only.
+    if (gate > 0 && e.gearThunk > 0 && this._clutch < 0.35 && clutch >= 0.55) {
+      v.thunkG.gain.cancelScheduledValues(at);
+      v.thunkG.gain.setValueAtTime(e.gearThunk * (0.5 + clamp01(load) * 0.5), at);
+      v.thunkG.gain.setTargetAtTime(0, at + 0.004, 0.030);
+    }
+    this._clutch = clutch;
+
     // Overrun pops: throttle shut, still spinning. A few a second, louder the
-    // faster it is turning. The node is already there; this only fires an
-    // envelope on it, so nothing is allocated per frame.
-    if (gate > 0 && throttle < 0.06 && rpm > e.idle * 1.9 && clutch > 0.5) {
+    // faster it is turning, and they thin out as the revs fall away — which is
+    // what makes a coast down a hill sound like it is ending. The node is
+    // already there; this only fires an envelope on it, so nothing is allocated
+    // per frame.
+    if (gate > 0 && throttle < 0.06 && rpm > e.idle * 1.7 && clutch > 0.5) {
+      const heat = clamp01((rpm - e.idle * 1.7) / 2200);
       this._popT -= dt;
       if (this._popT <= 0) {
-        this._popT = 0.12 + Math.random() * 0.30;
-        const amp = 0.22 * clamp01((rpm - e.idle * 1.9) / 2200) * (e.pop || 1);
+        this._popT = 0.09 + Math.random() * (0.34 - 0.18 * heat);
+        const amp = 0.24 * heat * (e.pop || 1);
+        // Each one comes out of a slightly different part of the tailpipe.
+        v.nodes.popF.frequency.setValueAtTime(200 + Math.random() * 190, at);
         v.popG.gain.cancelScheduledValues(at);
         v.popG.gain.setValueAtTime(amp, at);
-        v.popG.gain.setTargetAtTime(0, at + 0.005, 0.022);
+        v.popG.gain.setTargetAtTime(0, at + 0.005, 0.018 + Math.random() * 0.012);
       }
     } else this._popT = 0;
 
@@ -550,7 +571,16 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
   n.boom.frequency.value = p.boomF; n.boom.Q.value = p.boomQ; n.boom.gain.value = 0;
   n.boom.connect(n.dry); n.boom.connect(n.shaper);
 
-  n.bus = ctx.createGain(); n.bus.gain.value = 1; n.bus.connect(n.boom);
+  // Load timbre. One lowpass across the whole engine, swept between `toneLo`
+  // (throttle shut — the engine is a long way away and behind a firewall) and
+  // `toneHi` (wide open, everything in the cabin with you). It is the single
+  // cheapest thing in the graph that tells you how hard the engine is working,
+  // and without it a labouring engine and a coasting one differ only in level.
+  n.tone = ctx.createBiquadFilter();
+  n.tone.type = 'lowpass'; n.tone.frequency.value = p.toneLo; n.tone.Q.value = 0.5;
+  n.tone.connect(n.boom);
+
+  n.bus = ctx.createGain(); n.bus.gain.value = 1; n.bus.connect(n.tone);
 
   // The pulse train.
   n.osc = ctx.createOscillator();
@@ -598,6 +628,22 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
   n.popG = ctx.createGain(); n.popG.gain.value = 0;
   n.noise.connect(n.popF); n.popF.connect(n.popG); n.popG.connect(n.bus);
 
+  // Decel burble: the wet, hollow gargle a shut throttle makes between the pops
+  // — lower and wider than a pop, and continuous rather than fired. Held open
+  // by `over` in set(), so it exists only while the engine is being driven by
+  // the road instead of the other way round.
+  n.burbF = ctx.createBiquadFilter();
+  n.burbF.type = 'bandpass'; n.burbF.frequency.value = 150; n.burbF.Q.value = 0.9;
+  n.burbG = ctx.createGain(); n.burbG.gain.value = 0;
+  n.noise.connect(n.burbF); n.burbF.connect(n.burbG); n.burbG.connect(n.bus);
+
+  // The driveline taking up after a change. Bypasses `tone`, because a thunk
+  // through the floor is not something the throttle position gets a say in.
+  n.thunkF = ctx.createBiquadFilter();
+  n.thunkF.type = 'lowpass'; n.thunkF.frequency.value = 260; n.thunkF.Q.value = 1.2;
+  n.thunkG = ctx.createGain(); n.thunkG.gain.value = 0;
+  n.noise.connect(n.thunkF); n.thunkF.connect(n.thunkG); n.thunkG.connect(n.boom);
+
   // The blown door speaker: narrow, low, and it bypasses the engine's own
   // level so it keeps buzzing whatever your right foot is doing.
   n.ratF = ctx.createBiquadFilter();
@@ -640,37 +686,63 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
     // Intake: hollower, higher, and only really there when you are on it.
     n.int.frequency.setTargetAtTime(p.intF0 + frac * p.intSpan + load * 500, at, T);
 
-    // Overrun: throttle shut with the engine spinning is quieter, boomier and
-    // burbly rather than hard.
-    const over = throttle < 0.08 && r > idle * 1.7 ? 1 : 0;
+    // Overrun. Graded, not a switch: it fades in as the pedal comes up and as
+    // the revs rise above idle, so a lift at 4000 in third arrives as a shift
+    // in character rather than as a click. `over` is 1 when the engine is being
+    // turned by the road with nothing being asked of it.
+    const over = clamp01((0.12 - throttle) / 0.12) * clamp01((r - idle * 1.30) / (idle * 0.85));
+    // What the engine is actually working against, as opposed to where your
+    // foot is. Mid-change the clutch is out, so it is working against nothing —
+    // which is why a gearchange sounds like the engine going free and not just
+    // like the volume being turned down.
+    const work = load * clutch;
+    // Labouring: a lot of load at not many revs. A truck pulling a hill at 2200
+    // is the boomiest, hardest noise it makes, and it is nothing like the same
+    // engine at 2200 coasting.
+    const labour = work * (1 - frac) * (p.labour || 0);
     // Idle is a long way down from wide open, but not 35 dB down: an engine you
     // cannot hear ticking over is not an engine.
-    const drive = 0.62 + load * 0.52 + frac * 0.20;
+    const drive = 0.62 + work * 0.52 + frac * 0.20;
 
-    n.exhG.gain.setTargetAtTime(cut * clutch * p.exhG * drive * (1 - over * 0.35), at, T);
-    n.intG.gain.setTargetAtTime(cut * clutch * p.intG * (0.10 + load * 0.95) * (0.35 + frac * 0.9), at, T);
+    // The tone lowpass IS the load: shut it down to `toneLo` off the throttle,
+    // open it to `toneHi` under full load. Swept a little slower than the rest
+    // so a stab of throttle opens up over ~100 ms rather than snapping.
+    n.tone.frequency.setTargetAtTime(
+      p.toneLo + (p.toneHi - p.toneLo) * clamp01(work * 0.72 + frac * 0.34) * (1 - over * 0.55),
+      at, 0.09);
+
+    n.exhG.gain.setTargetAtTime(cut * clutch * p.exhG * drive * (1 - over * 0.30), at, T);
+    // The intake is the first thing a shut throttle takes away: there is a
+    // plate across it.
+    n.intG.gain.setTargetAtTime(
+      cut * clutch * p.intG * (0.10 + work * 0.95) * (0.35 + frac * 0.9) * (1 - over * 0.85), at, T);
 
     // Intake hiss rises with throttle; exhaust rasp opens up above `raspFrom`.
     n.hiss.frequency.setTargetAtTime(700 + frac * 2400 + throttle * 700, at, T);
     n.hissG.gain.setTargetAtTime(clutch * p.hissG * (0.05 + throttle * 0.95) * (0.25 + frac), at, T);
     const rasp = clamp01((r - p.raspFrom) / 1400);
     n.rasp.frequency.setTargetAtTime(300 + firing * 1.2, at, T);
-    n.raspG.gain.setTargetAtTime(clutch * p.raspG * rasp * (0.2 + load * 0.8), at, T);
+    n.raspG.gain.setTargetAtTime(clutch * p.raspG * rasp * (0.2 + work * 0.8), at, T);
 
-    // Cabin boom follows the second order of the firing note into the body's
-    // resonance; the peak is fixed, the drive into it is not.
-    n.boom.gain.setTargetAtTime(p.boomDb * (0.45 + load * 0.55) * (1 - over * 0.2), at, 0.08);
+    // The burble under a shut throttle, tracking the firing note down.
+    n.burbF.frequency.setTargetAtTime(110 + firing * 0.55, at, T);
+    n.burbG.gain.setTargetAtTime((p.burble || 0) * over * (0.25 + frac * 0.75) * 0.70, at, 0.06);
+
+    // Cabin boom follows the firing note into the body's resonance; the peak is
+    // fixed, the drive into it is not. A labouring engine drives it hardest.
+    n.boom.gain.setTargetAtTime(
+      p.boomDb * (0.45 + work * 0.55 + labour * 0.12) * (1 - over * 0.25), at, 0.08);
 
     // Valvetrain tick: loudest at idle, buried once there is any load on it.
-    n.tickG.gain.setTargetAtTime(p.tickG * (1 - frac * 0.75) * (1 - load * 0.6) * clutch, at, T);
+    n.tickG.gain.setTargetAtTime(p.tickG * (1 - frac * 0.75) * (1 - work * 0.6) * clutch, at, T);
 
     // Rasp waveshaper: dry below half load, gently wet at full chat.
-    const wet = clamp01((load - 0.35) / 0.65) * p.rasp * (0.4 + frac * 0.6);
+    const wet = clamp01((work - 0.35) / 0.65) * p.rasp * (0.4 + frac * 0.6);
     n.wet.gain.setTargetAtTime(wet, at, 0.1);
     n.dry.gain.setTargetAtTime(1 - wet * 0.45, at, 0.1);
 
     // Master level for the voice. Sits under the toasts and the horn.
-    const vol = p.gain * (0.60 + load * 0.28 + frac * 0.20) * (0.35 + clutch * 0.65) * cut;
+    const vol = p.gain * (0.60 + work * 0.28 + frac * 0.20) * (0.35 + clutch * 0.65) * cut;
     n.out.gain.setTargetAtTime(gate * vol * 0.40, at, 0.05);
   }
 
@@ -679,7 +751,7 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
     try { n.out.disconnect(); n.ratG.disconnect(); } catch (e) { /* gone */ }
   }
 
-  return { p, nodes: n, set, popG: n.popG, out: n.out, dispose };
+  return { p, nodes: n, set, popG: n.popG, thunkG: n.thunkG, out: n.out, dispose };
 }
 
 // What the engine sounds like when nobody has said otherwise: a generic,
@@ -695,8 +767,292 @@ export const DEFAULT_ENGINE = {
   tickF: 3400, tickG: 0.030,
   lumpy: 0.012, pop: 1,
   gain: 1, rattle: 0, rattleFrom: 0,
-
+  // Load, overrun, driveline and road — see the SOUND table in game/cars.js for
+  // what each one is. The defaults are deliberately mild: a car that never
+  // declared them sounds like it always did, only less flat.
+  toneLo: 900, toneHi: 4800, labour: 3.0, burble: 0.18,
+  whineK: 3.0, whineG: 0.012, gearThunk: 0.035,
 };
+
+// ---------------------------------------------------------------- the road
+//
+// What is under the wheels, and how audio finds out.
+//
+// main.js hands `engine()` the player's rpm and road speed once a frame and
+// nothing else; it does not hand over the Vehicle, and this file has no way to
+// reach one. So game/cars.js drops each Vehicle's contact patch in here as it
+// updates, tagged with the road speed that vehicle was doing — the same float
+// main.js then forwards — and `find()` picks the row that matches. The tag is
+// exact rather than approximate because it is the identical number out of the
+// identical getter, and the ring is bigger than the number of cars that ever
+// update in one frame (you, plus a race's worth of rivals), so the player's row
+// is always still in it. Nothing here allocates.
+const CONTACT_N = 8;
+export const CONTACT = {
+  rows: Array.from({ length: CONTACT_N }, () => ({ kmh: -1, kind: 'asphalt', rough: 0, air: false, bump: 0 })),
+  w: 0,
+  put(kmh, kind, rough, air, bump) {
+    this.w = (this.w + 1) % CONTACT_N;
+    const r = this.rows[this.w];
+    r.kmh = kmh; r.kind = kind; r.rough = rough; r.air = air; r.bump = bump;
+    return r;
+  },
+  find(kmh) {
+    for (let i = 0; i < CONTACT_N; i++) {
+      const r = this.rows[(this.w - i + CONTACT_N) % CONTACT_N];
+      if (r.kmh === kmh) return r;
+    }
+    return null;
+  },
+};
+
+/**
+ * What each surface does to a rolling tyre. `tyreF`/`tyreQ` are the band the
+ * roar sits in, `roar` how loud it is, `grit` how much broadband crunch rides
+ * on top (gravel is nearly all grit; wet-smooth asphalt is nearly none),
+ * `bump` how often the springs find something, `thumpF` how deep those thumps
+ * are, and `scrub` what a sliding tyre sounds like on it. Keys are the same
+ * ones game/terrain.js SURF uses.
+ */
+export const SURFACE = {
+  asphalt:  { tyreF: 900,  tyreQ: 0.55, roar: 1.00, grit: 0.16, bump: 0.06, thumpF: 90,  scrub: 1.00 },
+  concrete: { tyreF: 1150, tyreQ: 0.50, roar: 1.06, grit: 0.26, bump: 0.14, thumpF: 100, scrub: 1.05 },
+  path:     { tyreF: 1300, tyreQ: 0.42, roar: 0.92, grit: 0.62, bump: 0.55, thumpF: 105, scrub: 0.80 },
+  gravel:   { tyreF: 1750, tyreQ: 0.32, roar: 1.18, grit: 1.00, bump: 1.00, thumpF: 118, scrub: 0.70 },
+  dirt:     { tyreF: 720,  tyreQ: 0.50, roar: 0.98, grit: 0.66, bump: 0.72, thumpF: 84,  scrub: 0.62 },
+  grass:    { tyreF: 430,  tyreQ: 0.70, roar: 0.80, grit: 0.34, bump: 0.34, thumpF: 74,  scrub: 0.48 },
+  sand:     { tyreF: 2300, tyreQ: 0.30, roar: 0.86, grit: 0.94, bump: 0.42, thumpF: 70,  scrub: 0.55 },
+  stair:    { tyreF: 1100, tyreQ: 0.45, roar: 1.05, grit: 0.70, bump: 1.60, thumpF: 130, scrub: 0.75 },
+};
+
+/**
+ * Tyres, grit, the axle and the springs. Built once on any AudioContext-like
+ * object, exactly like the engine voice, so core/audition.js can render it
+ * offline and hear the same thing the game plays.
+ */
+export function buildRoadVoice(ctx, dest, sharedNoise) {
+  const n = {};
+  n.out = ctx.createGain(); n.out.gain.value = 1; n.out.connect(dest);
+
+  n.noise = ctx.createBufferSource();
+  n.noise.buffer = sharedNoise || makeNoise(ctx, 2);
+  n.noise.loop = true;
+
+  // The roll: a band that moves up and gets louder with road speed.
+  n.tyre = ctx.createBiquadFilter();
+  n.tyre.type = 'bandpass'; n.tyre.frequency.value = 900; n.tyre.Q.value = 0.55;
+  n.tyreG = ctx.createGain(); n.tyreG.gain.value = 0;
+  n.noise.connect(n.tyre); n.tyre.connect(n.tyreG); n.tyreG.connect(n.out);
+
+  // The crunch: everything above the roar. This is nearly all of what gravel
+  // is, and nearly none of what tarmac is.
+  n.grit = ctx.createBiquadFilter();
+  n.grit.type = 'highpass'; n.grit.frequency.value = 2200; n.grit.Q.value = 0.4;
+  n.gritG = ctx.createGain(); n.gritG.gain.value = 0;
+  n.noise.connect(n.grit); n.grit.connect(n.gritG); n.gritG.connect(n.out);
+
+  // Final-drive whine. A hypoid axle hums at a multiple of road speed and at
+  // nothing else, which is why it stays there through a gearchange while the
+  // engine note falls away — one of the small things that says "drivetrain".
+  n.whine = ctx.createOscillator();
+  n.whine.type = 'sawtooth'; n.whine.frequency.value = 40;
+  n.whineF = ctx.createBiquadFilter();
+  n.whineF.type = 'bandpass'; n.whineF.frequency.value = 400; n.whineF.Q.value = 3.5;
+  n.whineG = ctx.createGain(); n.whineG.gain.value = 0;
+  n.whine.connect(n.whineF); n.whineF.connect(n.whineG); n.whineG.connect(n.out);
+
+  // The springs. One shared voice fired as an envelope, so a washboard road
+  // costs nothing per bump.
+  n.thumpF = ctx.createBiquadFilter();
+  n.thumpF.type = 'lowpass'; n.thumpF.frequency.value = 120; n.thumpF.Q.value = 3.0;
+  n.thumpG = ctx.createGain(); n.thumpG.gain.value = 0;
+  n.noise.connect(n.thumpF); n.thumpF.connect(n.thumpG); n.thumpG.connect(n.out);
+
+  n.noise.start(); n.whine.start();
+  return n;
+}
+
+/**
+ * Drives buildRoadVoice from road speed plus whatever CONTACT knows about the
+ * surface. Holds the bump timer between frames; everything else is a parameter
+ * write.
+ */
+export class RoadDriver {
+  constructor(ctx, dest, sharedNoise) {
+    this.n = buildRoadVoice(ctx, dest, sharedNoise);
+    this.surf = SURFACE.asphalt;
+    this.p = DEFAULT_ENGINE;
+    this._bumpT = 0.1;
+    this._lastBump = 0;
+  }
+  setProfile(p) { this.p = p || DEFAULT_ENGINE; }
+
+  step(dt, kmh, load, contact, gate, at) {
+    const n = this.n, p = this.p;
+    const su = (contact && SURFACE[contact.kind]) || SURFACE.asphalt;
+    this.surf = su;
+    const air = !!(contact && contact.air);
+    // Tyres do nothing in the air, and below walking pace there is nothing to
+    // hear either. Speed^1.3 rather than ^2: road noise runs out of headroom
+    // long before the car does.
+    const v = clamp01(kmh / 130);
+    const roll = air ? 0 : Math.pow(v, 1.3);
+    const g = gate > 0 ? 1 : 0;
+
+    n.tyre.frequency.setTargetAtTime(su.tyreF * (0.65 + v * 0.55), at, 0.10);
+    n.tyre.Q.setTargetAtTime(su.tyreQ, at, 0.15);
+    n.tyreG.gain.setTargetAtTime(g * roll * su.roar * 0.135, at, 0.08);
+
+    n.grit.frequency.setTargetAtTime(1500 + su.tyreF * 0.8, at, 0.15);
+    n.gritG.gain.setTargetAtTime(g * roll * su.grit * 0.085, at, 0.08);
+
+    // Whine: Hz per km/h straight off the profile, and it needs some load on it
+    // before the teeth are pressed hard enough to sing.
+    n.whine.frequency.setTargetAtTime(Math.max(20, kmh * (p.whineK || 3)), at, 0.05);
+    n.whineF.frequency.setTargetAtTime(Math.max(60, kmh * (p.whineK || 3) * 2), at, 0.08);
+    n.whineG.gain.setTargetAtTime(g * (air ? 0 : 1) * (p.whineG || 0) * roll * (0.35 + clamp01(load) * 0.65), at, 0.10);
+
+    // Suspension. Two sources: the surface's own texture, which arrives as a
+    // stochastic patter whose rate goes up with speed, and a genuine spring
+    // spike (a kerb, a driveway lip, a dock edge) big enough to feel but too
+    // small for main.js to have called land() over.
+    const rough = su.bump * (contact ? 0.4 + contact.rough * 2.0 : 1);
+    if (g && !air && kmh > 6 && rough > 0.05) {
+      this._bumpT -= dt * (0.6 + v * 3.4) * rough;
+      if (this._bumpT <= 0) {
+        this._bumpT = 0.10 + Math.random() * 0.22;
+        this._fire(at, su, (0.35 + Math.random() * 0.65) * rough * (0.3 + v * 0.7));
+      }
+    }
+    const spring = contact ? Math.abs(contact.bump) : 0;
+    if (g && !air && spring > 0.55 && spring > this._lastBump * 1.4) {
+      this._fire(at, su, Math.min(1, (spring - 0.55) * 0.9));
+    }
+    this._lastBump = spring;
+  }
+
+  _fire(at, su, amp) {
+    const n = this.n;
+    n.thumpF.frequency.setValueAtTime(su.thumpF * (0.85 + Math.random() * 0.3), at);
+    n.thumpG.gain.cancelScheduledValues(at);
+    n.thumpG.gain.setValueAtTime(Math.min(0.28, amp * 0.22), at);
+    n.thumpG.gain.setTargetAtTime(0, at + 0.006, 0.030);
+  }
+
+  dispose() {
+    try { this.n.noise.stop(); this.n.whine.stop(); } catch (e) { /* already stopped */ }
+    try { this.n.out.disconnect(); } catch (e) { /* gone */ }
+  }
+}
+
+// ---------------------------------------------------------------- impacts
+//
+// Exported and context-parameterised for the same reason the engine voice is:
+// core/audition.js schedules them on an OfflineAudioContext so the crashes in
+// docs/audio/ranger-road.wav are the crashes the game plays.
+
+/**
+ * Something heavy hitting something solid. `force` is 0..1.
+ *
+ * Three layers, because one oscillator is a beep and a car is not: the SKIN
+ * (a short bright burst of bent panel and plastic), the BODY (a low, slow
+ * sine that is the tonne and a half arriving), and the RATTLE (what falls off
+ * afterwards). Weight is the mix: a light tap is nearly all skin and gone in
+ * 120 ms, a big one is mostly body and rings for most of a second.
+ */
+export function fireCrash(ctx, dest, t, force, noiseBuf) {
+  const f = Math.min(1, Math.max(0, force));
+  const heavy = f * f;                       // the low end arrives late and fast
+
+  // Skin: panel and bumper. Bandpassed noise, high and short.
+  if (noiseBuf) {
+    const n = ctx.createBufferSource();
+    n.buffer = noiseBuf; n.loop = true;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(1500 - 700 * f, t);
+    bp.frequency.exponentialRampToValueAtTime(Math.max(140, 480 - 260 * f), t + 0.10);
+    bp.Q.value = 0.8;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05 + 0.22 * f, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.10 + 0.16 * f);
+    n.connect(bp); bp.connect(g); g.connect(dest);
+    n.start(t); n.stop(t + 0.34 + 0.3 * f);
+  }
+  // Body: the mass. Lower and longer the harder it was.
+  const o = ctx.createOscillator(), og = ctx.createGain(), lp = ctx.createBiquadFilter();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(165 - 75 * f, t);
+  o.frequency.exponentialRampToValueAtTime(38 - 12 * f, t + 0.20 + 0.25 * f);
+  lp.type = 'lowpass'; lp.frequency.value = 520;
+  og.gain.setValueAtTime(0.0001, t);
+  og.gain.exponentialRampToValueAtTime(0.03 + 0.26 * heavy + 0.06 * f, t + 0.014);
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.24 + 0.55 * f);
+  o.connect(lp); lp.connect(og); og.connect(dest);
+  o.start(t); o.stop(t + 0.85 + 0.3 * f);
+  // Rattle: trim, glass, the exhaust hanger. Only on a real one.
+  if (noiseBuf && f > 0.25) {
+    const n2 = ctx.createBufferSource();
+    n2.buffer = noiseBuf; n2.loop = true;
+    n2.playbackRate.value = 1.4 + Math.random() * 0.6;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'bandpass'; hp.frequency.value = 2600 + Math.random() * 900; hp.Q.value = 1.2;
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.0001, t + 0.03);
+    g2.gain.exponentialRampToValueAtTime(0.012 + 0.030 * f, t + 0.06);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.30 + 0.45 * f);
+    n2.connect(hp); hp.connect(g2); g2.connect(dest);
+    n2.start(t + 0.03); n2.stop(t + 0.9);
+  }
+}
+
+/**
+ * A landing. `force` is the vertical speed the springs killed, in m/s — about 2
+ * for a kerb hop and 9 for coming off the rail berm at 70. The bump stop is a
+ * second, harder knock a few milliseconds after the spring: it is what tells
+ * you the suspension ran out, and it only happens on the big ones.
+ */
+export function fireLand(ctx, dest, t, force, noiseBuf, su = SURFACE.asphalt) {
+  const f = Math.min(1, Math.max(0, force / 10));
+  const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(120 - 40 * f, t);
+  o.frequency.exponentialRampToValueAtTime(38, t + 0.16);
+  lp.type = 'lowpass'; lp.frequency.value = 420;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.03 + 0.16 * f, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.20 + 0.12 * f);
+  o.connect(lp); lp.connect(g); g.connect(dest);
+  o.start(t); o.stop(t + 0.36);
+  // Bump stop: rubber on steel, 25 ms behind the spring.
+  if (f > 0.35) {
+    const b = ctx.createOscillator(), bg = ctx.createGain(), bf = ctx.createBiquadFilter();
+    const at2 = t + 0.025;
+    b.type = 'square';
+    b.frequency.setValueAtTime(96, at2);
+    b.frequency.exponentialRampToValueAtTime(44, at2 + 0.07);
+    bf.type = 'lowpass'; bf.frequency.value = 300;
+    bg.gain.setValueAtTime(0.0001, at2);
+    bg.gain.exponentialRampToValueAtTime(0.05 + 0.11 * f, at2 + 0.006);
+    bg.gain.exponentialRampToValueAtTime(0.0001, at2 + 0.13);
+    b.connect(bf); bf.connect(bg); bg.connect(dest);
+    b.start(at2); b.stop(at2 + 0.2);
+  }
+  // Grit: the tyres scrubbing on touchdown, in whatever they touched down on.
+  if (noiseBuf) {
+    const n = ctx.createBufferSource();
+    n.buffer = noiseBuf; n.loop = true;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = su.tyreF * 0.8 + 700 * f; bp.Q.value = 0.7;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime((0.006 + 0.05 * f) * (0.6 + su.grit * 0.8), t + 0.02);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+    n.connect(bp); bp.connect(ng); ng.connect(dest);
+    n.start(t); n.stop(t + 0.32);
+  }
+}
 
 // What each material sounds like when a Ranger finds it.
 const THUD = {

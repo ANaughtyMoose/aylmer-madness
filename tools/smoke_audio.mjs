@@ -4,8 +4,8 @@
 // and checks the arithmetic that decides what rpm the synth is asked for. The
 // second reads the rendered auditions in docs/audio/ and measures them:
 //
-//   * the Ranger idles at 25 Hz (750 rpm / 30) and every car reads 100 Hz where
-//     the programme holds it at 3000 rpm,
+//   * the Ranger idles at 26.7 Hz (800 rpm / 30) and every car reads 100 Hz
+//     where the programme holds it at 3000 rpm,
 //   * nothing clips,
 //   * the gearchanges show up as ~250 ms dips in the RMS envelope, at the times
 //     the gearbox says it changed gear,
@@ -48,7 +48,11 @@ group('gearbox');
   // A standing start: idle, then the clutch is slipped, then the road catches up.
   gb.reset();
   gb.update(1 / 60, 0, 0);
-  ok(near(gb.rpm, 750, 1), `idle is ${gb.rpm.toFixed(0)} rpm at a standstill`);
+  // 800, not 750: a 2.3 Lima with no balance shafts does not tick over any
+  // lower than that, and the synth's idle has to be the same number.
+  ok(near(gb.rpm, 800, 1), `idle is ${gb.rpm.toFixed(0)} rpm at a standstill`);
+  ok(ranger.drive.idle === ranger.sound.idle,
+    `the box and the synth agree on ${ranger.drive.idle} rpm`);
   gb.update(1 / 60, 0, 1);
   ok(gb.rpm > 1800 && gb.rpm <= 2200, `launch lifts to ${gb.rpm.toFixed(0)} rpm on full throttle`, String(gb.rpm));
   ok(gb.clutch < 1, 'and the clutch is slipping');
@@ -81,6 +85,29 @@ group('gearbox');
   }
   ok(minClutch < 0.05, `the clutch goes to ${minClutch.toFixed(2)} mid-shift`);
   ok(near(dipT, ranger.drive.shiftTime, 0.03), `the dip lasts ${(dipT * 1000).toFixed(0)} ms`);
+
+  // SPEED — real top speeds put every car somewhere it can be dropped into a
+  // gear the driveshaft would spin past the limiter. Both the steady state and
+  // the mid-shift interpolation have to hold the ceiling.
+  for (const c of CARS) {
+    const g = new Gearbox(c.drive);
+    let worst = 0;
+    for (const gear of [1, 2, 3]) {
+      g.reset(); g.gear = gear; g.shiftTo(Math.min(gear + 1, g.top));
+      for (let t = 0; t < 1; t += 1 / 240) {
+        g.update(1 / 240, c.topSpeed * 3.6, 1);
+        worst = Math.max(worst, g.rpm);
+      }
+    }
+    ok(worst <= c.drive.limiter + 1,
+      `${c.id}: flat out in the wrong gear still tops out at the limiter`,
+      `${worst.toFixed(0)} vs ${c.drive.limiter}`);
+  }
+  // ...and fifth at the top speed is a sane number of revs, not a redline.
+  const gTop = new Gearbox(ranger.drive);
+  const topRpm = gTop.rpmAt(ranger.topSpeed * 3.6, ranger.drive.gears.length);
+  ok(topRpm > 3000 && topRpm < ranger.drive.redline,
+    `Ranger: ${Math.round(ranger.topSpeed * 3.6)} km/h in fifth is ${topRpm.toFixed(0)} rpm`);
 
   // Every car has a box, and the Civic revs further than the Ranger.
   // ...except the golf cart, which is a motor, one reduction and a switch.
@@ -149,7 +176,7 @@ if (!haveAudio) {
         `${name}: idles at ${idleHz.toFixed(1)} Hz (${spec.sound.idle} rpm / ${120 / spec.sound.cyl} = ${wantIdle.toFixed(1)})`,
         `${idleHz.toFixed(1)} vs ${wantIdle.toFixed(1)}`);
       if (id === 'ranger') {
-        ok(near(idleHz, 25, 3), `Ranger idle is ${idleHz.toFixed(1)} Hz (25 ± 3)`, String(idleHz));
+        ok(near(idleHz, 26.7, 3), `Ranger idle is ${idleHz.toFixed(1)} Hz (800 rpm / 30 = 26.7 ± 3)`, String(idleHz));
       }
 
       // --- the 3000 rpm plateau -------------------------------------------

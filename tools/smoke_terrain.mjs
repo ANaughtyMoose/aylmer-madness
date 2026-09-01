@@ -317,20 +317,23 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
 
 // ---------------------------------------------------------------- the flat town
 //
-// The reference numbers below were taken from the committed code BEFORE the
-// height field existed: 5 s at full throttle, on tarmac and on grass, for all
-// four cars. Nothing in a town with no features under it is allowed to move.
+// The reference numbers below are 5 s at full throttle, on tarmac and on grass,
+// for all four cars. Nothing in a town with no features under it is allowed to
+// move — which is what this guards. Rebaselined when cars.js stopped letting
+// drag eat 17 % of every car's stated top speed (`aero` / `vPow`, see
+// finalizeCar); the grass figures moved by under 2 %, the tarmac ones by the
+// mid-range thrust the old curve was throwing away.
 
 {
   const REF = {
-    'road/ranger': [0, 38.157413368, 0, 14.45539533, 0, 1, 0, -0.031039319, 0],
-    'road/civic': [0, 58.007227556, 0, 21.559588374, 0, 1, 0, -0.02836343, 0],
-    'road/saturn': [0, 46.101108107, 0, 17.374564681, 0, 1, 0, -0.0290553, 0],
-    'road/sunfire': [0, 49.535238474, 0, 18.641232004, 0, 1, 0, -0.034001649, 0],
-    'grass/ranger': [-4.150539456, 11.931264091, -0.70730181, 4.46297343, 0.169654945, 0.72, 0, -0.00955899, -0.020564083],
-    'grass/civic': [-19.449499366, 14.701006103, -1.874722428, 9.779762424, 0.73810367, 0.72, 0, -0.015304072, -0.076993656],
-    'grass/saturn': [-9.709238678, 15.085075731, -1.186038468, 6.675556802, 0.377767307, 0.72, 0, -0.011999594, -0.040956791],
-    'grass/sunfire': [-12.022408566, 16.134319718, -1.321171957, 7.604325601, 0.4670921, 0.72, 0, -0.015206784, -0.05679784],
+    'road/ranger': [0, 39.086020339, 0, 15.10366738, 0, 1, 0, -0.034946719, 0],
+    'road/civic': [0, 59.577325276, 0, 22.631436178, 0, 1, 0, -0.032448215, 0],
+    'road/saturn': [0, 47.334885078, 0, 18.234917409, 0, 1, 0, -0.033161676, 0],
+    'road/sunfire': [0, 50.755311354, 0, 19.491940415, 0, 1, 0, -0.038449011, 0],
+    'grass/ranger': [-4.224907552, 12.01679778, -0.714433843, 4.533586931, 0.175029057, 0.72, 0, -0.009970437, -0.021228891],
+    'grass/civic': [-19.773695861, 14.608609717, -1.896428223, 9.980246825, 0.766733621, 0.72, 0, -0.016176357, -0.080009221],
+    'grass/saturn': [-9.904001265, 15.157657388, -1.200500867, 6.8033022, 0.392256654, 0.72, 0, -0.012634601, -0.042551959],
+    'grass/sunfire': [-12.239969762, 16.189188425, -1.335554523, 7.743213021, 0.483661629, 0.72, 0, -0.015977017, -0.058842322],
   };
   let worst = 0, worstKey = '';
   for (const [name, world] of [['road', flat], ['grass', flatGrass]]) {

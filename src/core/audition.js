@@ -6,7 +6,7 @@
 // same EngineDriver on an OfflineAudioContext and feeds it from the same
 // Gearbox the game's tick() uses. If the WAV sounds wrong, the game sounds
 // wrong.
-import { EngineDriver, makeMasterComp, makeNoise } from './audio.js';
+import { EngineDriver, RoadDriver, SURFACE, makeMasterComp, makeNoise, fireCrash, fireLand } from './audio.js';
 import { Gearbox } from '../game/gearbox.js';
 
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -83,6 +83,7 @@ export function programme(spec, kind = 'pull') {
  * tools/smoke_audio.mjs are checked against it.
  */
 export async function renderAudition(spec, kind = 'pull', sampleRate = 22050) {
+  if (kind === 'road') return renderRoadAudition(spec, sampleRate);
   const OAC = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext;
   if (!OAC) throw new Error('no OfflineAudioContext here');
   const prog = programme(spec, kind);
@@ -121,6 +122,88 @@ export async function renderAudition(spec, kind = 'pull', sampleRate = 22050) {
     samples: buf.getChannelData(0), sampleRate, seconds: prog.seconds,
     marks, shifts: gb.shifts, kind: prog.name,
     plateau: prog.plateau || null, plateauRpm: prog.plateauRpm || null,
+    cyl: (spec.sound && spec.sound.cyl) || 4,
+  };
+}
+
+// ---------------------------------------------------------------- the road
+//
+// Everything the engine audition cannot show you: what the tyres do when the
+// surface under them changes, what the springs do about a washboard, and what
+// hitting something sounds like. Same drivers, same parameters, same graph the
+// game builds — the only thing this file adds is a script for them.
+//
+//   0.0  idle on the gravel lot at the drive-in
+//   2.0  pull away on tarmac, 0 to 70, three gearchanges
+//   5.6  70 km/h on GRAVEL — crunch, and the springs working
+//   7.8  70 km/h on GRASS — the same speed, muffled
+//   9.8  back on tarmac and up to 130
+//  13.2  lift: overrun, pops and burble, coasting to 90
+//  14.4  a landing off a kerb
+//  15.2  and then hitting something
+export const ROAD_SCRIPT = [
+  // [t, kmh, throttle, surface]
+  [0.0, 0, 0, 'gravel'], [2.0, 0, 1, 'asphalt'], [5.4, 70, 1, 'asphalt'],
+  [5.6, 70, 0.28, 'gravel'], [7.6, 70, 0.28, 'gravel'],
+  [7.8, 70, 0.28, 'grass'], [9.6, 70, 0.28, 'grass'],
+  [9.8, 70, 1, 'asphalt'], [13.2, 130, 1, 'asphalt'],
+  [13.4, 128, 0, 'asphalt'], [16.0, 60, 0, 'asphalt'],
+];
+
+export async function renderRoadAudition(spec, sampleRate = 22050) {
+  const OAC = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext;
+  if (!OAC) throw new Error('no OfflineAudioContext here');
+  const seconds = 16;
+  const ctx = new OAC(1, Math.round(seconds * sampleRate), sampleRate);
+  const master = ctx.createGain();
+  master.gain.value = 0.5;
+  const comp = makeMasterComp(ctx);
+  master.connect(comp);
+  comp.connect(ctx.destination);
+
+  const noise = makeNoise(ctx, 2);
+  const driver = new EngineDriver(ctx, master, spec.sound, noise);
+  const road = new RoadDriver(ctx, master, noise);
+  road.setProfile(spec.sound);
+  const gb = new Gearbox(spec.drive);
+
+  // Piecewise-linear on the script; the surface is a step, not a ramp.
+  const at = (t) => {
+    let i = 0;
+    while (i < ROAD_SCRIPT.length - 1 && t >= ROAD_SCRIPT[i + 1][0]) i++;
+    const a = ROAD_SCRIPT[i], b = ROAD_SCRIPT[Math.min(i + 1, ROAD_SCRIPT.length - 1)];
+    const u = b[0] > a[0] ? Math.min(1, (t - a[0]) / (b[0] - a[0])) : 0;
+    return [lerp(a[1], b[1], u), lerp(a[2], b[2], u), a[3]];
+  };
+  // A kerb thump at 14.4 and a solid hit at 15.2, on the master exactly as
+  // main.js would fire them.
+  fireLand(ctx, master, 14.4, 6.0, noise, SURFACE.asphalt);
+  fireCrash(ctx, master, 15.2, 0.85, noise);
+
+  const STEP = 1 / 120;
+  const contact = { kmh: 0, kind: 'asphalt', rough: 0, air: false, bump: 0 };
+  const marks = [];
+  let wasKind = '';
+  for (let i = 0; i * STEP < seconds; i++) {
+    const t = i * STEP;
+    const [kmh, throttle, kind] = at(t);
+    gb.update(STEP, kmh, throttle);
+    const load = Math.min(1, throttle * 0.85 + Math.min(0.2, kmh / 400));
+    driver.step(STEP, gb.rpm, load, kmh, throttle, gb.clutch, 1, t);
+    contact.kmh = kmh; contact.kind = kind;
+    contact.rough = kind === 'gravel' ? 0.35 : kind === 'grass' ? 0.08 : 0;
+    // One real spring spike a second on the rough stuff, so the thump that a
+    // kerb or a driveway lip fires is in here too and not only the patter.
+    contact.bump = contact.rough > 0.1 && (i % 120) === 60 ? -1.4 : 0;
+    road.step(STEP, kmh, load, contact, 1, t);
+    if (kind !== wasKind) { marks.push([+t.toFixed(2), kind, Math.round(kmh)]); wasKind = kind; }
+  }
+
+  const buf = await ctx.startRendering();
+  return {
+    samples: buf.getChannelData(0), sampleRate, seconds,
+    marks, shifts: gb.shifts, kind: 'road',
+    plateau: null, plateauRpm: null,
     cyl: (spec.sound && spec.sound.cyl) || 4,
   };
 }

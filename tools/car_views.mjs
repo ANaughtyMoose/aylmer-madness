@@ -95,7 +95,10 @@ const report = [];
 let y = PAD;
 for (const s of CARS) {
   const body = buildCarBody(s);
-  const bodyNoMirrors = buildCarBody(s, { noMirrors: true });
+  // Measured against the spec sheet with everything that sticks out past the
+  // body envelope left off: the mirrors, and the Ranger's whip antenna. A real
+  // 1993 brochure quotes 69.4 in wide and 64.8 in tall for the same reason.
+  const bodyNoMirrors = buildCarBody(s, { noMirrors: true, noAerial: true });
   const wheel = buildWheel(s);
   const wTris = triangles(wheel).length, bTris = body.i.length / 3;
 
