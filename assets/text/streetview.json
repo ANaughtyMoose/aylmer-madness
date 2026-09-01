@@ -1,0 +1,107 @@
+{
+  "_note": "Extracted from the OLDEST available Street View panoramas (2009 — Canada coverage starts that year, so 2004 imagery does not exist). Gemini pulled the 2009 panos programmatically via the `streetlevel` library and rendered perspective crops, then described what it saw. The `changedSince` field is the important one: it tells you what to UNDO to get back to 2004. Where 2009 and today disagree, build the 2009 version.",
+  "locations": [
+    {
+      "name": "1 rue Arial (house) — Russell's",
+      "lat": 45.38703, "lng": -75.822728, "earliestYear": 2009, "coverage": "good",
+      "storeys": 1.5,
+      "roof": "Gambrel (Dutch colonial / barn) with side dormers, asphalt shingle",
+      "roofColour": "Deep reddish-brown",
+      "walls": "Horizontal vinyl or aluminium siding", "wallColour": "White",
+      "windows": "Horizontal rectangular sliders and single-hung, wide frames, contrasting surrounds",
+      "trim": "Deep red / burgundy on every window casing, fascia and eave",
+      "entrance": "Side entrance off the driveway plus front façade openings",
+      "setback": "Deep grass front yard; a mature evergreen conifer partly hides the façade",
+      "surroundings": "Red vertical-slat wooden privacy fence on the west; long paved driveway east to the garage",
+      "recognisable": [
+        "White siding against bold deep-red trim",
+        "Gambrel barn roof, reddish-brown shingles, upper dormers",
+        "Big evergreen centred in the front lawn and the red board fence"
+      ],
+      "changedSince": "The mature front-lawn conifer has been cut down and saplings planted — in 2004 the big tree is THERE",
+      "confidence": "high"
+    },
+    {
+      "name": "1 rue Arial (detached garage) — where the work happens",
+      "lat": 45.38704, "lng": -75.822606, "earliestYear": 2009, "coverage": "good",
+      "storeys": 1,
+      "roof": "Gable, asphalt shingle, red fascia matching the house",
+      "roofColour": "Reddish-brown / grey",
+      "walls": "Horizontal siding matching the house", "wallColour": "White",
+      "windows": "None visible on the front; a pedestrian door on the left with a red surround",
+      "trim": "Deep red / burgundy fascia and door trim, matching the house",
+      "entrance": "White panel overhead vehicle door(s) plus a separate pedestrian door on the left",
+      "setback": "Set well back BEHIND the house at the far end of the long asphalt driveway",
+      "surroundings": "Driveway along the east boundary lined with stacked firewood under sheeting; a dark utility trailer parked on the approach",
+      "recognisable": [
+        "Detached two-bay white garage far behind the house at the end of a long drive",
+        "Deep red trim on the gable and pedestrian door",
+        "Heavy stacked firewood under sheeting along the driveway"
+      ],
+      "changedSince": "In 2009 the right bay was hidden behind vehicles and the woodpile; later captures show two clear white panel doors",
+      "confidence": "high"
+    },
+    {
+      "name": "129 avenue Frank-Robinson — Mike's",
+      "lat": 45.393446, "lng": -75.840726, "earliestYear": 2009, "coverage": "good",
+      "storeys": 1.5,
+      "roof": "Side-gable with a large central front shed dormer and a red brick chimney; asphalt shingle",
+      "roofColour": "Dark charcoal / grey",
+      "walls": "Red-brown brick on the ground floor and gable ends; WOOD SHAKES on the dormer face and cheeks",
+      "wallColour": "Red-brown brick with natural weathered brown shake dormer",
+      "windows": "Three-part group on the dormer (wide centre pane flanked by narrow sashes); rectangular double-hung below",
+      "trim": "Crisp white porch entablature, column capitals and bases, white fascia; dark green/black window sashes",
+      "entrance": "Full-width covered veranda on FOUR square tapered white columns standing on RED BRICK PEDESTALS, central wooden steps",
+      "setback": "Corner lot at Frank-Robinson and rue Smiley, dense shrubbery at the corner",
+      "surroundings": "Lord Aylmer Junior Campus across Frank-Robinson to the east; houses south and north across Smiley",
+      "recognisable": [
+        "Craftsman bungalow silhouette with a big shed dormer clad in wood shakes and a side brick chimney",
+        "Full-width porch, four thick white square columns on brick pedestals",
+        "Red-brown brick ground floor on a corner lot"
+      ],
+      "changedSince": "**The dormer shakes were natural weathered BROWN in 2009 and have since been painted dark charcoal.** For 2004 build brown shakes, not the dark green/grey of the modern photo.",
+      "confidence": "high"
+    },
+    {
+      "name": "75 rue Denise-Friend — Sayyad's",
+      "lat": 45.398078, "lng": -75.844739, "earliestYear": 2009, "coverage": "good",
+      "storeys": 2,
+      "roof": "Truncated hip / mansard with a shallow flat top deck, plus a separate forward-sloping pent roof over the veranda; asphalt shingle",
+      "roofColour": "Weathered dark charcoal / black",
+      "walls": "Horizontal wood clapboard", "wallColour": "MUTED OLIVE / SAGE GREEN",
+      "windows": "Two tall narrow double-hung symmetrically placed upstairs; one tall window left of the porch and a transom over the front door",
+      "trim": "DEEP BURGUNDY / MAROON porch posts, header and trim; DARK GREEN railings with diagonal X-brace balustrades and green window surrounds",
+      "entrance": "Full-width covered veranda on four square burgundy posts, dark green decking, white door with a glass insert on the right",
+      "setback": "Shallow to moderate, low wooden steps up to the porch",
+      "surroundings": "Dense mature cedar hedge along the west boundary; gravel driveway on the right running alongside the house",
+      "recognisable": [
+        "Compact two-storey with a truncated hip/mansard roof in olive-green clapboard",
+        "Two tall narrow upper windows over an asymmetric ground floor — window left, door with transom right",
+        "Burgundy square porch columns with green diagonal X-cross railings"
+      ],
+      "changedSince": "**Completely repainted since: trim burgundy/green → white, siding olive → slate blue-grey, and a metal chimney pipe added.** For 2004 build OLIVE GREEN siding with BURGUNDY posts and GREEN X-brace railings — the modern colours are wrong.",
+      "confidence": "high"
+    },
+    {
+      "name": "299 chemin Fraser — Tom's (the player's house)",
+      "lat": 45.392673, "lng": -75.823921, "earliestYear": 2009, "coverage": "good",
+      "storeys": 2,
+      "roof": "Side-gable over the two-storey block, lower side-gable over the attached single-storey garage wing on the left; asphalt shingle",
+      "roofColour": "Dark grey / charcoal",
+      "walls": "Red-brown brick veneer with light concrete foundation showing at grade",
+      "wallColour": "Red-brown brick",
+      "windows": "Upstairs three: a smaller vertical on the left, two larger horizontal centre and right. Ground floor a large multi-pane picture window right of the door, small basement hoppers below",
+      "trim": "White window frames, fascia, soffits and entry canopy",
+      "entrance": "Central white door with a vertical light pane under a shallow projecting portico on slender posts",
+      "setback": "Deep suburban front lawn; gravel/asphalt driveway on the left to the attached single-car garage",
+      "surroundings": "Tall mature cedar privacy hedge down the whole north boundary; front lawn has a tall conifer and a red Japanese maple",
+      "recognisable": [
+        "Two-storey red brick with a single-storey attached garage wing on the left",
+        "A tall pointed conifer paired with a red-leaf Japanese maple in the front lawn",
+        "Continuous tall cedar hedge down the left boundary beside the driveway"
+      ],
+      "changedSince": "Porch steps widened with a wooden landing and railings; the front-lawn trees are markedly smaller in 2009 and smaller still in 2004",
+      "confidence": "high"
+    }
+  ]
+}

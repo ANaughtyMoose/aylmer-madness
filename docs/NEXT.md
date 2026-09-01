@@ -140,3 +140,23 @@ the others from sounding like they are delivering a moral.
 **Playable characters.** The player should be able to play as **Tom, Mike,
 Sayyad, Zahra, Abraham** — each with different characteristics and each learning
 differently. See the design note below on skills.
+
+## 9. Street View reference — and two 2004 colour corrections
+
+`assets/text/streetview.json`. Gemini pulled the **2009** panoramas
+programmatically (the `streetlevel` python library, perspective crops rendered
+from the equirectangular pano) rather than describing from memory. Canada's
+Street View coverage begins in 2009, so that is the oldest that exists.
+
+The `changedSince` field is the valuable one — it says what to **undo** to reach
+2004. Two of them are corrections to what the modern photos show:
+
+- **75 Denise-Friend (Sayyad's) was OLIVE / SAGE GREEN clapboard** with
+  **burgundy porch posts** and **dark green diagonal X-brace railings**. It has
+  since been repainted white with slate blue-grey siding. Build the 2009 colours.
+- **129 Frank-Robinson (Mike's) dormer was natural weathered BROWN WOOD SHAKES**,
+  since painted dark charcoal. Build brown shakes.
+
+Also: the big evergreen in the front lawn at **1 rue Arial has since been cut
+down** — in 2004 it is there and it partly hides the house. And the front-lawn
+trees at 299 Fraser are much smaller in 2009 than today, smaller still in 2004.
