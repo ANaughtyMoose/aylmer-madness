@@ -1,11 +1,12 @@
 // The written lines for the racing side of the game.
 //
 // assets/text/racing.json carries the course names, the rival taunts, the jump
-// names and the stunt callouts; assets/text/ambient.json carries the police
-// radio. All of it is written copy, all of it has an `en` gloss beside the
-// French, and none of it is invented here — this file only loads it, keeps the
-// records whole (glosses included, because the translation hotkey is going to
-// want them), and hands out a line at a time.
+// names and the stunt callouts; rivals.json carries the twelve people you race
+// against; ambient.json carries the police radio. All of it is written copy,
+// every line has an `en` gloss beside the French, and none of it is invented
+// here — this file only loads it, keeps the records whole (glosses included,
+// because the translation hotkey is going to want them), and hands out a line
+// at a time.
 //
 // Two rules the rest of the code depends on:
 //
@@ -27,6 +28,7 @@ export const TEXT = {
   jumps: [],        // { name, where, description }
   callouts: [],     // { when: air|combo|landing|crash, line, en }
   police: [],       // { state: idle|spotted|pursuit|lost|caught|warning, line, en }
+  rivals: [],       // { name, car, year, style, whenLosing, fromWhere }
   loaded: false,
 };
 
@@ -69,17 +71,19 @@ for (const k of ['taunts', 'callouts', 'police']) TEXT[k] = FALLBACK[k].slice();
 
 // ---------------------------------------------------------------- loading
 
-function merge(racing, ambient) {
+function merge(racing, ambient, rivals) {
   if (racing) {
     for (const k of RACING_KEYS) if (Array.isArray(racing[k]) && racing[k].length) TEXT[k] = racing[k];
   }
   if (ambient && Array.isArray(ambient.police) && ambient.police.length) TEXT.police = ambient.police;
+  const roster = rivals && (Array.isArray(rivals) ? rivals : rivals.rivals);
+  if (Array.isArray(roster) && roster.length) TEXT.rivals = roster;
   TEXT.loaded = true;
   return TEXT;
 }
 
 /**
- * Read both files. `base` is the directory they live in, relative to the page.
+ * Read all three files. `base` is the directory they live in, relative to the page.
  * Resolves to TEXT whatever happens — a missing file is not an error, it is a
  * build without the copy in it.
  */
@@ -94,12 +98,14 @@ export async function loadRacingText(base = 'assets/text/') {
       return JSON.parse(await fs.readFile(base + name, 'utf8'));
     } catch { return null; }
   };
-  const [racing, ambient] = await Promise.all([one('racing.json'), one('ambient.json')]);
-  return merge(racing, ambient);
+  const [racing, ambient, rivals] = await Promise.all([
+    one('racing.json'), one('ambient.json'), one('rivals.json'),
+  ]);
+  return merge(racing, ambient, rivals);
 }
 
 /** For a test, or for anyone who already has the parsed objects. */
-export function setRacingText(racing, ambient) { return merge(racing, ambient); }
+export function setRacingText(racing, ambient, rivals) { return merge(racing, ambient, rivals); }
 
 // ---------------------------------------------------------------- picking
 //

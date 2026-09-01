@@ -37,6 +37,9 @@ import { taunt, line as textLine } from './racingtext.js';
 //   minSpeed  the floor, so a hairpin never stalls the car
 //   gain/damp steering: proportional on heading error, damped on yaw rate
 //   band      throttle multipliers when well ahead / well behind the player
+//   avoid     optional: scales how far ahead a traffic car makes him lift. Under
+//             1 is a driver who does not really brake for anybody, which is a
+//             character trait and not a bug (see game/rivals.js, Kevin Boucher)
 export const SKILL = {
   // Adam's Sunfire: quick in a straight line, lazy in the corners — which is
   // exactly what the car is.
@@ -276,11 +279,12 @@ export class Rival {
     const traffic = ctx && ctx.traffic;
     if (traffic && traffic.length) {
       const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+      const avoidD = AVOID_D * (s.avoid != null ? s.avoid : 1);
       for (let k = 0; k < traffic.length; k++) {
         const o = traffic[k];
         const rx = o.x - v.x, rz = o.z - v.z;
         const ahead = rx * fx + rz * fz;
-        if (ahead < 1 || ahead > AVOID_D) continue;
+        if (ahead < 1 || ahead > avoidD) continue;
         if (Math.abs(rx * fz - rz * fx) > AVOID_W) continue;
         this.blocked = true;
         break;

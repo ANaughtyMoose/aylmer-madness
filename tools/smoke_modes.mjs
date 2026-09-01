@@ -28,6 +28,18 @@ globalThis.document = {
   createElement() { return { width: 0, height: 0, style: {}, getContext() { return ctx2d; } }; },
   getElementById() { return null; },
 };
+// A damaged engine misfires on a Math.random() timer (cars.js), and over five
+// kilometres that is worth a minute either way on a pace lap — which makes a
+// clock calibrated against it flap. The pace car gets a seeded generator so the
+// lap it turns is the same lap every time, and the clocks below mean something.
+{
+  let seed = 0x9e3779b9;
+  Math.random = () => {
+    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+    return ((seed >>> 0) % 1e6) / 1e6;
+  };
+}
+
 const mem = new Map();
 globalThis.localStorage = {
   getItem: (k) => (mem.has(k) ? mem.get(k) : null),
@@ -67,6 +79,10 @@ const {
   installModes, startCruise,
 } = await import('../src/game/modes.js');
 const { installJumps } = await import('../src/game/jumps.js');
+const {
+  ROSTER, VOICES, rival, rivalName, rivalStyle, rivalWhenLosing, rivalCar,
+  rivalCarId, rivalTaunt, rivalSays, fieldable, grid, resetRivals,
+} = await import('../src/game/rivals.js');
 const { loadRacingText, TEXT, taunt, policeLine, line: textLine } =
   await import('../src/game/racingtext.js');
 const { courseName } = await import('../src/game/modes.js');
@@ -211,7 +227,8 @@ function paceLap(c, opts = {}) {
   const gr = c.kind === 'blitz' ? BLITZ_R : CHECK_R;
   const cps = c.cps.map((cp) => { const p = at(cp); return { x: p.x, z: p.z, r: gr }; });
   const track = new Track(cps, 1, legs, { x: s.x, z: s.z });
-  const rv = new Rival(carById(opts.carId || 'ranger'), { skill: SKILL[opts.skill || 'pace'] });
+  const rv = new Rival(carById(opts.carId || 'ranger'),
+    { skill: opts.skillObj || SKILL[opts.skill || 'pace'] });
   rv.place(s.x, s.z, s.a != null ? s.a : 0);
   rv.setPath(path);
   rv.active = true;
@@ -219,15 +236,16 @@ function paceLap(c, opts = {}) {
   const me = { done: 0 };
   const STEP = 1 / 60;
   const cap = opts.cap || 60 * 15;              // fifteen minutes is a lock-up
-  let t = 0;
+  let t = 0, top = 0;
   for (let i = 0; i < 60 * cap; i++) {
     rv.update(STEP, phys, null);
     t += STEP;
+    if (rv.speedKmh > top) top = rv.speedKmh;
     if (track.check(me, rv.x, rv.z, gr)) {
-      return { t, length, resets: rv.resets, damage: rv.veh.damage, path: path.length };
+      return { t, top, length, resets: rv.resets, damage: rv.veh.damage, path: path.length };
     }
   }
-  return { t: null, length, resets: rv.resets, damage: rv.veh.damage, done: me.done, path: path.length };
+  return { t: null, top, length, resets: rv.resets, damage: rv.veh.damage, done: me.done, path: path.length };
 }
 
 group('the pace car finishes every blitz inside its clock');
@@ -307,22 +325,25 @@ group('a blitz clock actually runs, and a checkpoint gate actually counts');
   ok(G.rivals.length === 0, 'cleanup takes the rivals off the road');
 }
 
-group('checkpoint mode borrows the friends’ cars and gives them back');
+group('checkpoint mode borrows the rivals’ cars and gives them back');
 {
   const c = CHECKPOINT[0];
   const def = missionFor(c);
-  const parked = { saturn: { x: 1, z: 2, yaw: 0 }, sunfire: { x: 3, z: 4, yaw: 0 } };
+  const parked = {};
+  for (const r of c.rivals) parked[r.carId] = { x: 1, z: 2, yaw: 0 };
+  const borrowed = c.rivals.map((r) => r.carId);
   const G = {
     veh: { x: 0, z: 0, speedKmh: 0, yaw: 0, vLong: 0 },
     hud: { toast() {}, prompt() {} }, rivals: [], parked, raceParked: {}, nav, done: new Set(),
   };
   const stages = def.build({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 0 });
   stageEnter(G, { }, stages[0]);
-  ok(G.rivals.length === 2, 'two rivals on the grid', G.rivals.map((r) => r.name).join(', '));
-  ok(!parked.saturn && !parked.sunfire, 'their cars came off the street');
+  ok(G.rivals.length === c.rivals.length, `${G.rivals.length} rivals on the grid`,
+    G.rivals.map((r) => r.name).join(', '));
+  ok(borrowed.every((id) => !parked[id]), 'their cars came off the street', borrowed.join(', '));
   ok(G.rivals.every((r) => r.veh.x !== 0), 'and are sitting on the start line');
   def.cleanup(G, { elapsed: 60 });
-  ok(!!parked.saturn && !!parked.sunfire, '...and go straight back when it ends');
+  ok(borrowed.every((id) => !!parked[id]), '...and go straight back when it ends');
   ok(G.rivals.length === 0, 'the grid is empty again');
 }
 
@@ -350,6 +371,115 @@ group('the picker will not throw a story job away by accident');
   ok(G.veh.x === -877 && G.veh.z === -102, 'and the truck is on the start line',
     `${G.veh.x}, ${G.veh.z}`);
   ok(G.modeNow === 'blitz', 'in Blitz mode', G.modeNow);
+}
+
+// ================================================================ 4b. the rivals
+
+group('the twelve rivals');
+{
+  ok(ROSTER.length === 12, 'the whole roster is here');
+  ok(ROSTER.length === TEXT.rivals.length, 'and it matches assets/text/rivals.json',
+    `${TEXT.rivals.length} written`);
+  ok(ROSTER.every((r) => rivalName(r) === TEXT.rivals[r.text].name),
+    'every one shows the written name, nickname and all',
+    rivalName(rival('boucherk')));
+  ok(ROSTER.every((r) => rivalStyle(r) && rivalWhenLosing(r) && rivalCar(r)),
+    'and carries its style, its loser behaviour and its real car');
+  // Real people never get an invented surname where a player can see one.
+  ok(rivalName(rival('sayyad')) === 'Sayyad', 'Sayyad has no surname on screen');
+  ok(!/\bSayyad\s+[A-ZÉÈÀ]/.test(JSON.stringify(TEXT.rivals.map((r) => r.name))),
+    'and nothing in the roster gives him one');
+}
+
+group('a rival only ever drives a car the game has');
+{
+  const on = fieldable();
+  ok(on.length >= 3, `${on.length} of ${ROSTER.length} can be fielded today`,
+    on.map((r) => `${rivalName(r)} (${rivalCarId(r)})`).join(', '));
+  ok(ROSTER.filter((r) => !rivalCarId(r)).length > 0,
+    'the rest are on the roster waiting for their car',
+    ROSTER.filter((r) => !rivalCarId(r)).map((r) => rivalCar(r)).join(', '));
+  ok(grid('gagnon', 'roy').length === 0, 'a course asking for one of them fields nobody');
+  ok(grid('boucherk')[0].carId === 'cavalier', 'and Kevin gets his own Z24');
+  // Nobody drives a real person's car but that person.
+  const taken = { civic: 'sayyad', saturn: null, sunfire: null };
+  for (const [carId, who] of Object.entries(taken)) {
+    const thief = ROSTER.find((r) => rivalCarId(r) === carId && r.id !== who);
+    if (thief) { ok(false, `${rivalName(thief)} is driving the ${carId}`); }
+  }
+  ok(!ROSTER.some((r) => rivalCarId(r) === 'saturn' || rivalCarId(r) === 'sunfire'),
+    'Margaret keeps her Saturn and Adam keeps his Sunfire');
+  ok(CHECKPOINT.every((c) => new Set(c.rivals.map((r) => r.carId)).size === c.rivals.length),
+    'and no two cars on a grid are the same car');
+}
+
+group('nobody borrows anybody else’s mouth');
+{
+  resetRivals();
+  const say = (id, when, n) => {
+    const r = rival(id);
+    const out = new Set();
+    for (let i = 0; i < n; i++) out.add(rivalTaunt(r, when).line);
+    return out;
+  };
+  for (const when of ['pre', 'ahead', 'beaten']) {
+    const sophie = say('tremblay', when, 60);
+    const kevin = say('boucherk', when, 60);
+    const overlap = [...sophie].filter((l) => kevin.has(l));
+    ok(overlap.length === 0, `'${when}': Sophie and Kevin share nothing`,
+      `${sophie.size} vs ${kevin.size} lines`);
+  }
+  // ...and the voices between them cover the whole pool.
+  const all = new Set();
+  for (const v of VOICES) {
+    const r = ROSTER.find((x) => x.voice === v);
+    for (let i = 0; i < 60; i++) all.add(rivalTaunt(r, 'beaten').line);
+  }
+  const pool = TEXT.taunts.filter((t) => t.when === 'beaten').length;
+  ok(all.size === pool, 'the four voices between them use every written line',
+    `${all.size} of ${pool}`);
+  ok(VOICES.every((v) => ROSTER.some((r) => r.voice === v)), 'every voice has somebody in it');
+  ok(rivalSays(rival('beaulieu'), 'pre').startsWith(rivalName(rival('beaulieu'))),
+    'and a line is attributed to whoever said it');
+}
+
+group('the style line is not decoration');
+{
+  // Marc-André carries impossible corner speed and nothing down the straight;
+  // Steve is the exact opposite. If the tunings are doing their job, the two of
+  // them finish in the OTHER order on the other kind of road.
+  const twisty = { ...BLITZ[0], kind: 'blitz' };      // 2.1 km of village corners
+  const straight = { ...BLITZ[1], kind: 'blitz' };    // 5.6 km of chemin d'Aylmer
+  const run = (course, id) => paceLap(course, { carId: 'ranger', skillObj: rival(id).skill });
+  const a = { twisty: run(twisty, 'cote'), straight: run(straight, 'cote') };
+  const b = { twisty: run(twisty, 'bouchers'), straight: run(straight, 'bouchers') };
+  ok(a.twisty.t && a.straight.t && b.twisty.t && b.straight.t, 'both got round both courses');
+  if (a.twisty.t && b.twisty.t && a.straight.t && b.straight.t) {
+    ok(a.twisty.t < b.twisty.t, 'Marc-André takes the village on corner speed',
+      `${mmss(a.twisty.t)} vs Steve ${mmss(b.twisty.t)}`);
+    // Steve does not take the strip — on this road graph corner speed decides
+    // every lap, and a man who panic-brakes at every bend never wins one. What
+    // his tuning does give him is the thing his style claims: he is the fastest
+    // car on the board in a straight line, and you see it in the mirror.
+    ok(b.straight.top > a.straight.top + 8, '...and Steve is the fastest thing on the strip',
+      `${Math.round(b.straight.top)} km/h vs Marc-André ${Math.round(a.straight.top)}`);
+  }
+  const cr = ROSTER.map((r) => r.skill.cruise);
+  const mn = ROSTER.map((r) => r.skill.minSpeed);
+  ok(Math.max(...cr) - Math.min(...cr) > 4, 'straight-line speed spans a real range',
+    `cruise ${Math.min(...cr)} to ${Math.max(...cr)} m/s`);
+  ok(Math.max(...mn) - Math.min(...mn) > 4, '...and so does corner speed',
+    `minSpeed ${Math.min(...mn)} to ${Math.max(...mn)} m/s`);
+  // The trade has to be a trade: the fast-on-the-straight half must not also be
+  // the fast-in-the-corners half, or the twelve are one driver in twelve coats.
+  const rank = (f) => [...ROSTER].sort((a, b) => f(b) - f(a)).map((r) => r.id);
+  const byCruise = rank((r) => r.skill.cruise), byCorner = rank((r) => r.skill.minSpeed);
+  const topC = new Set(byCruise.slice(0, 4));
+  ok(byCorner.slice(0, 4).every((id) => !topC.has(id)),
+    'and nobody is in the top four of both',
+    `straight: ${byCruise.slice(0, 4).join(' ')} | corners: ${byCorner.slice(0, 4).join(' ')}`);
+  ok(rival('boucherk').skill.avoid < 1, 'and Kevin does not brake for traffic',
+    `avoid ×${rival('boucherk').skill.avoid}`);
 }
 
 // ================================================================ 5. the copy
@@ -387,7 +517,8 @@ group('a checkpoint race puts a written taunt on the grid');
   ok(/CHECKPOINT/.test(grid.toast), 'the grid toast is there');
   ok(grid.toast.includes('«'), 'and somebody says something in it',
     grid.toast.split('\n').pop().slice(0, 60));
-  ok(grid.toast.includes(c.rivals[0].name), 'attributed to whoever showed up');
+  ok(grid.toast.includes(c.rivals[0].name), 'attributed to whoever showed up',
+    c.rivals[0].name);
 }
 
 // ================================================================ done

@@ -24,6 +24,9 @@ import { raceMission, raceStages, endRace } from './racejobs.js';
 // The written copy: course names by index into assets/text/racing.json, plus the
 // rivals' taunts. See racingtext.js — a name is a fallback, never a blank.
 import { writtenName, taunt, line as textLine } from './racingtext.js';
+// The twelve people you race against: who drives what, how they drive it, and
+// whose mouth each taunt comes out of.
+import { grid, rival, rivalName, rivalStyle, rivalWhenLosing, rivalSays } from './rivals.js';
 
 // Gate rings. A blitz gate is the size of an intersection because you are
 // following a line into it; a checkpoint gate is wider because you might be
@@ -50,11 +53,14 @@ const at = (c) => (typeof c === 'string' ? PLACES[c] : c);
 export const courseName = (c) => writtenName('courses', c.text, c.name);
 
 // A rival's line, in quotes, or nothing at all. `pre` on the grid, `ahead` when
-// one of them goes by, `beaten` when one of them does not.
+// one of them goes by, `beaten` when one of them does not. A rival off the
+// roster speaks in his own voice; anyone else gets the shared pool.
 function saidBy(who, when) {
-  const rec = taunt(when);
-  const l = textLine(rec);
-  return l ? `${who}: « ${l} »` : '';
+  const r = who && who.rival ? rival(who.rival) : null;
+  if (r) return rivalSays(r, when);
+  const l = textLine(taunt(when));
+  const name = typeof who === 'string' ? who : (who && who.name) || '';
+  return l && name ? `${name}: « ${l} »` : '';
 }
 
 // ---------------------------------------------------------------- the courses
@@ -64,9 +70,12 @@ function saidBy(who, when) {
 // `bonus` what each gate puts back on it — a blitz never stops the clock, it
 // only ever buys you more of it.
 //
-// Every clock below was set from a measured pace-car lap (tools/smoke_modes.mjs
-// drives all eight and fails the build if one is not finishable); the comment on
-// each says what that lap took.
+// Every clock below was set from a measured pace-car lap — tools/smoke_modes.mjs
+// drives all eight on the real road bake and fails the build if one cannot be
+// finished, if the timer has no slack in it, or if the slack is so wide the
+// clock stops meaning anything. The comment on each says what that lap took.
+// The pace car never takes a shortcut and lifts for every bend, so its margin is
+// the floor and not the ceiling.
 
 export const BLITZ = [
   {
@@ -95,7 +104,7 @@ export const BLITZ = [
     // Petro-Canada, then over to the Hôtel Deschênes. 5.6 km.
     start: { x: -877, z: -102, a: Math.PI / 2 },
     cps: ['tims', 'mall', 'mcdo', 'ctire', 'home', 'gas', 'deschenes'],
-    // Pace car: 4:57. Budget 6:24.
+    // Pace car: 4:58. Budget 6:24.
     clock: 48, bonus: 48, money: 45, timeOfDay: 'day',
   },
   {
@@ -140,9 +149,11 @@ export const CHECKPOINT = [
     start: { x: -924.1, z: -408.2, a: 0 },
     cps: ['dep', 'sayyad', 'arena', 'mike', 'principale'],
     money: 35, timeOfDay: 'day',
+    // Kevin Boucher trades paint in exactly the kind of narrow section this
+    // course is made of, and Margaret is Margaret.
     rivals: [
+      ...grid('boucherk'),
       { carId: 'saturn', name: 'Margaret', skill: 'margaret' },
-      { carId: 'sunfire', name: 'Adam', skill: 'dave' },
     ],
   },
   {
@@ -155,7 +166,7 @@ export const CHECKPOINT = [
     cps: ['marina', 'symmes', 'principale', 'arena', 'tims', 'mall', 'ctire', 'home'],
     money: 55, timeOfDay: 'day',
     rivals: [
-      { carId: 'civic', name: 'Sayyad', skill: 'sayyad' },
+      ...grid('sayyad'),
       { carId: 'sunfire', name: 'Adam', skill: 'dave' },
     ],
   },
@@ -168,9 +179,11 @@ export const CHECKPOINT = [
     start: { x: -605.6, z: 79, a: Math.PI / 2 },
     cps: ['golf', 'aigle', 'gas', 'deschenes', 'dave'],
     money: 60, timeOfDay: 'morning',
+    // Eight kilometres of open tertiary road is where Big Dan's V8 momentum
+    // finally has somewhere to go.
     rivals: [
+      ...grid('beaulieu'),
       { carId: 'sunfire', name: 'Adam', skill: 'dave' },
-      { carId: 'saturn', name: 'Margaret', skill: 'margaret' },
     ],
   },
   {
@@ -187,9 +200,7 @@ export const CHECKPOINT = [
       'hullmall',
     ],
     money: 90, timeOfDay: 'dusk',
-    rivals: [
-      { carId: 'civic', name: 'Sayyad', skill: 'sayyad' },
-    ],
+    rivals: [...grid('sayyad')],
   },
 ];
 
@@ -226,7 +237,7 @@ export function courseMission(course, kind = course.kind) {
   // COURSES adds, still builds the right stage.
   const blitz = kind ? kind === 'blitz' : course.clock != null;
   const name = courseName(course);
-  const lead = (course.rivals && course.rivals[0] && course.rivals[0].name) || '';
+  const lead = (course.rivals && course.rivals[0]) || null;
   // Rebuilt on every start, not once: the taunts inside it are drawn from the
   // shuffle bag, and a rival who says the same thing every single time you line
   // up against him is worse than a rival who says nothing.
@@ -269,8 +280,17 @@ export function courseMission(course, kind = course.kind) {
     win: blitz
       ? `${name.toUpperCase()} — FINI.\nT’as battu le chrono.\n+${course.money} $`
       // Beaten rivals make excuses, and the written ones are very good excuses.
-      : `${name.toUpperCase()} — PREMIER.\n+${course.money} $\n${saidBy(lead, 'beaten')}`.trim(),
-    lose: (rv) => `${rv.name} est arrivé avant toi.\n${saidBy(rv.name, 'ahead')}`.trim(),
+      : [`${name.toUpperCase()} — PREMIER.`, `+${course.money} $`,
+        // The roster says what each of them does when they lose. It is the best
+        // half of the writing and it belongs on the screen you see least often.
+        lead && lead.rival ? rivalWhenLosing(rival(lead.rival)) : '',
+        saidBy(lead, 'beaten')].filter(Boolean).join('\n'),
+    // `rv` is the live Rival; match it back to the grid entry so the loser gets
+    // his own voice and not a stranger's.
+    lose: (rv) => {
+      const entry = (course.rivals || []).find((e) => e.name === rv.name) || rv.name;
+      return `${rv.name} est arrivé avant toi.\n${saidBy(entry, 'ahead')}`.trim();
+    },
   });
 
   const def = raceMission(makeCfg());
@@ -370,9 +390,10 @@ function css() {
 
 function courseRow(G, c, i) {
   const best = loadModeBests()[c.id];
+  const field = (c.rivals || []).map((r) => r.name).join(', ');
   const budget = c.kind === 'blitz'
     ? `${c.clock} s + ${c.bonus}/checkpoint`
-    : `${(c.rivals || []).length} rival${(c.rivals || []).length > 1 ? 's' : ''}`;
+    : `contre ${field || 'personne'}`;
   return `<button class="c" data-id="${c.id}">` +
     `<i>${i + 1}</i>` +
     `<span><span class="t">${courseName(c)}</span><br><span class="w">${c.blurb}</span></span>` +
