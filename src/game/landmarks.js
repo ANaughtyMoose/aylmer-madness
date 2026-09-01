@@ -382,7 +382,7 @@ function curtain(K, ax, az, bx, bz, nx, nz, y0, y1, opts = {}) {
   mb.vert(...P(0, y1), nx, 0, nz, hi);
   mb.tri(g, g + 1, g + 2); mb.tri(g, g + 2, g + 3);
   const bar = flat(opts.steel || 0x8e9296);
-  const pitch = opts.pitch || 2.2, t = 0.06, d = -0.07;
+  const pitch = opts.pitch || 2.2, t = 0.06, d = 0.07;   // in FRONT of the pane
   const n = Math.max(1, Math.round(L / pitch));
   if (!K.detail) return;                       // the grid is sub-pixel far off
   for (let i = 1; i < n; i++) {
@@ -826,10 +826,16 @@ function buildHeritage(K, ring, tris) {
     Math.PI / 2, METAL);
   // the internal floor plates you can see through the glass — three lines of
   // pale concrete, which is what actually sells "multi-level atrium"
+  for (let f = 1; f <= 3; f++) {
+    mb.box(HC_ATR.cx, f * 3.9, HC_ATR.cz, HC_ATR.w + 0.34, 0.36, HC_ATR.d - 3, flat(0xc6c0b2));
+  }
+  // ... and a run of balcony rail on each one, so the levels have depth
   if (K.detail) {
     for (let f = 1; f <= 3; f++) {
-      mb.box(HC_ATR.cx + 5.0, f * 3.9, HC_ATR.cz, 5.6, 0.34, HC_ATR.d - 4, flat(0xbfb9ac));
-      mb.box(HC_ATR.cx - 5.0, f * 3.9, HC_ATR.cz, 5.6, 0.34, HC_ATR.d - 4, flat(0xbfb9ac));
+      for (const sx of [-1, 1]) {
+        mb.box(HC_ATR.cx + sx * (HC_ATR.w / 2 - 0.6), f * 3.9 + 0.62, HC_ATR.cz,
+          0.1, 0.9, HC_ATR.d - 5, flat(0x9aa3a0));
+      }
     }
   }
 
@@ -895,7 +901,7 @@ function buildSymmesJr(K) {
   mb.capPoly(offsetRing(main, 0.24), mainT, 7.6, flat(0x6f6d68));
 
   // gym on the east end: one blank volume, a clerestory, a taller parapet
-  const gym = rectRing(-286, SJ.cz, 16, 17, SJ.yaw), gymT = fanTris(4);
+  const gym = rectRing(-284, SJ.cz, 22, 17, SJ.yaw), gymT = fanTris(4);
   const clere = [{ y0: 6.3, y1: 7.5, w: 1.8, gap: 0.7, margin: 1.6, mullions: 1 }];
   walls(K, gym, 0, 8.6,
     { mat: 'brick_buff', tint: tint(K, 'brick_buff'), rows: clere, jamb: trimHex, reveal: 0.22 },
@@ -1049,7 +1055,12 @@ function buildBritish(K, ring, tris) {
     railing(K, gx - tx * 13.9 + nx * 1.72, y - 1.0, gz - tz * 13.9 + nz * 1.72,
       gx + tx * 13.9 + nx * 1.72, gz + tz * 13.9 + nz * 1.72, 1.0, TRIMC);
   }
-  mb.panel(BR.cx + nx * 19.9, 1.5, BR.cz + nz * 19.9, 2.2, 3.0, nx, nz, flat(0x25402f), null, 0.03);
+  // The front door: a dressed stone surround, a transom over it and a pair of
+  // leaves. A 2.2 x 3.0 slab of green paint is not a door.
+  mb.panel(BR.cx + nx * 19.9, 1.66, BR.cz + nz * 19.9, 2.5, 3.4, nx, nz, flat(DRESS, 1.1), null, 0.02);
+  mb.panel(BR.cx + nx * 19.9, 1.32, BR.cz + nz * 19.9, 1.9, 2.5, nx, nz, flat(0x25402f), null, 0.04);
+  mb.panel(BR.cx + nx * 19.9, 2.85, BR.cz + nz * 19.9, 1.9, 0.55, nx, nz, flat(0x3f5a68), null, 0.04);
+  mb.panel(BR.cx + nx * 19.9, 1.32, BR.cz + nz * 19.9, 0.06, 2.4, nx, nz, flat(TRIMC), null, 0.05);
   steps(K, BR.cx + nx * 23.4, BR.cz + nz * 23.4, nx, nz, 4.0, 3, 0.16, 0.42, DRESS);
   if (K.detail) {                                   // the swinging sign's bracket
     const sx = BR.cx + tx * 13.6 + nx * 23.0, sz = BR.cz + tz * 13.6 + nz * 23.0;
@@ -1069,7 +1080,12 @@ function siteBritish(K) {
 // The lighthouse at the harbour mouth and the capitainerie beside it. Not a
 // school, but it is the place in Aylmer people drive to just to look at, and it
 // was imported as nothing at all.
-const MA = { cx: -1793, cz: -30 };
+// The harbour basin is water from z = -22 northward and from x = -1755
+// westward (checked against MAP.water); the only dry ground is the breakwater
+// spit at x -1810..-1795 and the shore wedge at z -36..-24. The phare stands on
+// the spit where the real one does, everything else is on the shore.
+const MA = { cx: -1803, cz: -45 };
+const MA_CAP = { cx: -1740, cz: -32, yaw: 0.16 };
 
 function buildMarina(K) {
   const mb = K.mb;
@@ -1096,42 +1112,46 @@ function buildMarina(K) {
   mb.panel(MA.cx, 1.75, MA.cz + 2.4, 1.0, 2.1, 0, 1, flat(0x2f4436), null, 0.02);
 
   // ---- la capitainerie: clapboard, green trim, a deck on the water side
-  const CY = 0.24, cs = Math.sin(CY), cc = Math.cos(CY);
-  const cap = rectRing(-1774, -52, 13, 8, CY), ct = fanTris(4);
+  const CY = MA_CAP.yaw, cs = Math.sin(CY), cc = Math.cos(CY);
+  const cap = rectRing(MA_CAP.cx, MA_CAP.cz, 13, 8, CY), ct = fanTris(4);
   const rows = [{ y0: 1.1, y1: 2.6, w: 1.2, gap: 1.1, margin: 1.1, mullions: 1, sill: 0.12 }];
   walls(K, cap, 0.25, 3.5,
     { mat: 'clapboard_white', tint: tint(K, 'clapboard_white'), rows,
       jamb: 0x2f5540, reveal: 0.2, bar: WHITE }, (i, L) => (L > 5 ? rows : null));
   band(K, cap, ct, 0, 0.25, 0.12, 0x8f8b81);
   on(K, 'shingle_grey');
-  mb.roof(-1774, 3.5, -52, 13.6, 8.6, 2.2, tint(K, 'shingle_grey', 0.95), -CY, 0.5,
+  mb.roof(MA_CAP.cx, 3.5, MA_CAP.cz, 13.6, 8.6, 2.2, tint(K, 'shingle_grey', 0.95), -CY, 0.5,
     { onGable: () => { off(K); }, gableCol: flat(0xe8e2d4) });
   off(K);
-  const dx = -1774 - cs * 5.6, dz = -52 + cc * 5.6;
+  // the deck is on the harbour side, which is north
+  const dx = MA_CAP.cx + cs * 5.6, dz = MA_CAP.cz - cc * 5.6;
   canopy(K, dx, 2.9, dz, 13, 3.2, CY, 0x2f5540, K.detail ? 3 : 0);
   mb.flatRot(dx, dz, 13, 3.4, 0.42, -CY, flat(0x9a7c58));
   railing(K, dx - cs * 1.7 - cc * 6.4, 0.42, dz + cc * 1.7 - cs * 6.4,
     dx - cs * 1.7 + cc * 6.4, dz + cc * 1.7 + cs * 6.4, 0.95, 0x2f5540);
 
-  // ---- the piles the docks are tied to, and a picnic table on the point
+  // ---- the piles the docks are tied to, out in the basin, and a picnic table
+  // on the point. They stand in water on purpose: that is what a pile is.
   for (let i = 0; i < 10; i++) {
-    const a = -1.1 + i * 0.3;
-    mb.cyl(MA.cx + Math.cos(a) * (17 + (i % 3) * 4), 0.9, MA.cz + Math.sin(a) * (17 + (i % 3) * 4),
-      0.16, 2.4, K.detail ? 5 : 4, flat(0x6f5b45), 'y', false);
+    const a = -0.5 + i * 0.24;
+    mb.cyl(MA_CAP.cx - 22 + Math.cos(a) * 18, 1.1, MA_CAP.cz - 26 + Math.sin(a) * 18,
+      0.16, 2.8, K.detail ? 5 : 4, flat(0x6f5b45), 'y', false);
   }
-  mb.box(-1806, 0.75, -44, 2.2, 0.08, 0.9, flat(0x9a7c58));
+  mb.box(-1786, 0.75, -32, 2.2, 0.08, 0.9, flat(0x9a7c58));
   if (!K.detail) return;
   for (const s of [-1, 1]) {
-    mb.box(-1806, 0.42, -44 + s * 0.78, 2.2, 0.07, 0.34, flat(0x9a7c58));
-    mb.post(-1806.9, 0, -44 + s * 0.5, 0.09, 0.75, flat(0x6f5b45));
-    mb.post(-1805.1, 0, -44 + s * 0.5, 0.09, 0.75, flat(0x6f5b45));
+    mb.box(-1786, 0.42, -32 + s * 0.78, 2.2, 0.07, 0.34, flat(0x9a7c58));
+    mb.post(-1786.9, 0, -32 + s * 0.5, 0.09, 0.75, flat(0x6f5b45));
+    mb.post(-1785.1, 0, -32 + s * 0.5, 0.09, 0.75, flat(0x6f5b45));
   }
 }
 
 function siteMarina(K) {
-  K.mb.flatRot(MA.cx, MA.cz, 26, 22, 0.033, 0, flat(0xa8a294));   // the gravel point
-  lot(K, -1768, -76, 34, 24, 0.24, { rows: 2 });
-  walk(K, -1780, -46, MA.cx + 5, MA.cz - 2, 2.6, 0xb3ada1);
+  K.mb.flatRot(MA.cx, MA.cz, 15, 26, 0.033, 0, flat(0xa8a294));       // the breakwater
+  K.mb.flatRot(-1772, -31, 62, 9, 0.033, 0.06, flat(0xa8a294));        // the causeway out to it
+  lot(K, -1706, -32, 26, 9, 0.06, { rows: 1 });
+  walk(K, -1724, -30, -1748, -30, 2.6, 0xb3ada1);
+  lightStandard(K, -1720, -36, 7, 3.14);
 }
 
 // --- G. 129 avenue Frank-Robinson — chez Mike -----------------------------
@@ -1359,9 +1379,9 @@ export const SITES = [
     build: buildBritish, site: siteBritish,
     sign: { x: BR.cx + 13.6, z: BR.cz + 24.0, yaw: BR.yaw + Math.PI / 2, w: 1.8, h: 1.05, y: 4.3,
       text: 'HÔTEL BRITISH', sub: '1834', board: '#3a3540' } },
-  { key: 'marina', cx: -1782, cz: -44, r: 48, near: HERO_NEAR,
+  { key: 'marina', cx: -1770, cz: -36, r: 60, near: HERO_NEAR,
     build: buildMarina, site: siteMarina,
-    sign: { x: -1772, z: -66, yaw: 0.24 + Math.PI, w: 4.2, h: 1.2, y: 1.4,
+    sign: { x: -1722, z: -27, yaw: 0.16, w: 4.2, h: 1.2, y: 1.4,
       text: 'MARINA D’AYLMER', sub: 'Capitainerie · Rampe de mise à l’eau', board: '#1d3f6e' } },
   // A house gets no marquee. The street-name post at the corner is in siteMike.
   { key: 'mike', cx: MK.cx, cz: MK.cz, r: 26, near: HERO_NEAR,

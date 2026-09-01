@@ -5,38 +5,46 @@
 //
 //   node tools/shots_landmarks.mjs [url] [outdir] [--far] [--only=pwhs,heritage]
 //
-// --far forces every view past HERO_NEAR so the far bake can be compared with
-// the near one at the same camera — that is how you tell whether the LOD swap
-// reads as a pop.
+// --far pulls every camera back to 420 m, past HERO_NEAR, so the shot uses the
+// far bake. --lod does the same but forces the NEAR bake at that distance, so
+// the pair can be flicked between: if the two images differ, the swap pops.
 const url = process.argv[2] || 'http://localhost:8138/index.html';
 const outdir = process.argv[3] || 'docs/shots';
 const far = process.argv.includes('--far');
+const lod = process.argv.includes('--lod');   // near bake, shot from far-bake range
+// --farbake keeps the camera where it is and forces the FAR mesh. Comparing that
+// against the ordinary shot is a harsher test than the real 340 m swap: if the
+// two match from thirty metres they certainly match from three hundred.
+const farBake = process.argv.includes('--farbake');
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
 const sizeArg = process.argv.find((a) => /^--size=\d+x\d+$/.test(a));
-const [VW, VH] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1152, 720];
+// 1280x800 is the headless window's own size; overriding to anything else
+// leaves the compositor capturing the old extent and the shot comes out tiled.
+const [VW, VH] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1280, 800];
 
 // [key, camera x, z, target x, z, cam] — the yaw is worked out from the target
 // so a view can be re-aimed by moving the thing it looks at. `cam` indexes
 // main.js's CAMS: 0 is the chase camera (an approach), 3 is the hood camera,
 // which is as close to a driver's eye as the game has.
 const VIEWS = [
-  ['pwhs-approach',     6800, -7886,  6800, -8005, 0],
-  ['pwhs-entrance',     6800, -7962,  6800, -8002, 3],
-  ['pwhs-lot',          6760, -8102,  6800, -8024, 3],
-  ['pwhs-wing',         6664, -8060,  6706, -8060, 3],
-  ['pwhs-field',        6790, -8126,  6790, -8188, 0],
-  ['heritage-approach', 5642, -6934,  5535, -6856, 0],
-  ['heritage-atrium',   5562, -6790,  5513, -6790, 3],
-  ['heritage-rotunda',  5570, -6888,  5535, -6856, 3],
-  ['heritage-lot',      5608, -6800,  5513, -6790, 3],
-  ['mike-front',        -405,    58,   -428,    58, 3],
-  ['mike-couch',        -396,    57, -415.2,  57.4, 3],
-  ['mike-corner',       -402,    36,   -424,    56, 0],
-  ['lordaylmer',        -404,    60,   -370,    60, 3],
-  ['symmesinn',        -1518,   -30,  -1517,   -55, 3],
-  ['british',           -916,   -85,   -916,  -105, 3],
-  ['marina',           -1770,   -70,  -1790,   -32, 0],
-  ['symmesjr',          -318,   404,   -318,   382, 3],
+  // [key, camera x, z, target x, z, cam, snapToRoad]
+  ['pwhs-approach',     6752, -7930,  6800, -8000, 0, 1],
+  ['pwhs-entrance',     6800, -7952,  6800, -8002, 0, 0],
+  ['pwhs-lot',          6700, -8110,  6800, -8024, 3, 0],
+  ['pwhs-wing',         6620, -8060,  6706, -8060, 0, 0],
+  ['pwhs-field',        6790, -8120,  6790, -8188, 0, 0],
+  ['heritage-approach', 5612, -6942,  5533, -6856, 0, 1],
+  ['heritage-atrium',   5616, -6796,  5545, -6812, 0, 0],
+  ['heritage-rotunda',  5578, -6898,  5533, -6856, 0, 0],
+  ['heritage-lot',      5638, -6812,  5545, -6812, 3, 0],
+  ['mike-front',        -404,    54,   -428,    54, 3, 1],
+  ['mike-couch',        -398,    50, -414.5,  57.4, 3, 0],
+  ['mike-corner',       -404,    34,   -426,    54, 0, 1],
+  ['lordaylmer',        -406,    62,   -372,    62, 3, 1],
+  ['symmesinn',        -1518,   -22,  -1517,   -55, 0, 1],
+  ['british',           -916,   -70,   -916,  -105, 0, 1],
+  ['marina',           -1690,   -30,  -1780,   -38, 0, 0],
+  ['symmesjr',          -318,   400,   -318,   382, 3, 0],
 ];
 
 const list = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then((r) => r.json());
@@ -97,26 +105,40 @@ for (let i = 0; i < 120; i++) {
   if (i % 10 === 9) log('  waiting for the document:', ready, `(${i + 1}s)`);
 }
 
-// #start opens the start-point picker, not the game: pick the first point,
-// confirm, then wait for drive mode.
-log('boot:', await evaluate(`(async () => {
-  const b = document.getElementById('start'); if (!b) return 'no #start';
-  b.click();
-  await new Promise(r => setTimeout(r, 500));
-  const p = document.getElementById('startpoints');
-  if (p && p.children[0]) p.children[0].click();
-  await new Promise(r => setTimeout(r, 120));
-  document.getElementById('startconfirm')?.click();
-  for (let i = 0; i < 3000; i++) {
-    await new Promise(r => setTimeout(r, 200));
-    if (window.AYLMER?.G?.mode === 'drive') return 'drive after ' + (i * 0.2 | 0) + ' s';
-  }
-  return 'stuck at mode=' + window.AYLMER?.G?.mode;
-})()`, 620000));
+// #start opens the start-point picker, not the game. Every step is its own
+// evaluate: one big page-side async function looks identical whether it is
+// waiting on a timer or wedged behind a synchronous 3.6 M triangle bake, and
+// under a shared Chrome it is always the second one.
+log('menu:', await evaluate("document.getElementById('start').click(); 'clicked'", 60000));
+await sleep(1500);
+log('picker:', await evaluate("document.getElementById('startpoints').childElementCount", 60000));
+log('point:', await evaluate(
+  "document.getElementById('startpoints').children[0].click();"
+  + " document.getElementById('startpoints').children[0].dataset.key", 60000));
+await sleep(400);
+log('confirm:', await evaluate("document.getElementById('startconfirm').click(); 'go'", 60000));
+// The bake blocks the main thread in chunks, so poll from HERE, not from a
+// timer inside the page.
+let mode = '';
+for (let i = 0; i < 90; i++) {
+  await sleep(4000);
+  mode = await evaluate("window.AYLMER?.G?.mode || 'none'", 60000).catch((e) => 'err');
+  if (mode === 'drive') { log('drive after', (i + 1) * 4, 's'); break; }
+  if (i % 5 === 4) log('  still', mode, `(${(i + 1) * 4}s)`);
+}
+if (mode !== 'drive') { log('never reached drive mode; last mode', mode); }
 
 log('env:', await evaluate(`window.AYLMER.env('day')`));
+// The opening story card is up on a fresh save and it dims the whole frame.
+log('overlays:', await evaluate(`(() => {
+  for (const id of ['story', 'pause', 'bigmap', 'options', 'garage', 'radio']) {
+    document.getElementById(id)?.classList.add('hidden');
+  }
+  window.AYLMER.G.mode = 'drive';
+  return 'cleared';
+})()`));
 
-for (const [name, x, z, tx, tz, cam] of VIEWS) {
+for (const [name, x, z, tx, tz, cam, snap] of VIEWS) {
   const yaw = Math.atan2(tx - x, tz - z);
   if (only && !only.split(',').some((k) => name.startsWith(k))) continue;
   // Park the car out of shot, then drive the camera by hand. G.camOverride is
@@ -125,17 +147,34 @@ for (const [name, x, z, tx, tz, cam] of VIEWS) {
   const info = await evaluate(`(() => {
     const A = window.AYLMER, G = A.G;
     G.cam = ${cam};
-    A.teleport(${x}, ${z}, ${yaw});
+    // Put the camera on the asphalt where the view says so: teleporting to a
+    // hand-typed coordinate on a 190 m campus lands you inside a wall.
+    let px = ${x}, pz = ${z};
+    if (${snap}) {
+      const r = G.world.nearestRoad(px, pz);
+      if (r) { px = r.x; pz = r.z; }
+    }
+    if (${farBake}) for (const b of G.world.landmarks.sites) b.near2 = 0;
+    if (${far || lod}) {
+      // straight back along the view line until the site is 420 m off
+      const dx = px - ${tx}, dz = pz - ${tz};
+      const l = Math.hypot(dx, dz) || 1;
+      px = ${tx} + (dx / l) * 420; pz = ${tz} + (dz / l) * 420;
+      G.q.drawDist = 1500;
+      for (const b of G.world.landmarks.sites) b.near2 = ${lod ? '1e12' : '0'};
+    }
+    A.teleport(px, pz, Math.atan2(${tx} - px, ${tz} - pz));
     G.veh.vx = 0; G.veh.vz = 0; G.veh.speed = 0;
-    ${far ? 'G.q.drawDist = 1400;' : ''}
     A.step(1/60); A.render();
-    return JSON.stringify({ x: +G.veh.x.toFixed(1), z: +G.veh.z.toFixed(1), tris: A.stats()?.tris | 0 });
+    A.render();
+    return JSON.stringify({ x: +G.veh.x.toFixed(1), z: +G.veh.z.toFixed(1),
+      street: G.world.nearestRoad(G.veh.x, G.veh.z)?.name || '', tris: A.stats()?.tris | 0 });
   })()`);
   await sleep(220);
   await evaluate(`(() => { const A = window.AYLMER; for (let i = 0; i < 8; i++) { A.step(1/60); } A.render(); })()`);
   await sleep(180);
   const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: 86 });
-  const file = `${outdir}/${name}${far ? '-far' : ''}.jpg`;
+  const file = `${outdir}/${name}${far ? '-far' : ''}${lod ? '-lodnear' : ''}${farBake ? '-farbake' : ''}.jpg`;
   fs.writeFileSync(file, Buffer.from(shot.data, 'base64'));
   log(name.padEnd(20), info, '->', file);
 }
