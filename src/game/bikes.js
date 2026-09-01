@@ -106,7 +106,7 @@ function buildBikeWheel(s) {
 
 const CRUISER = {
   id: 'cruiser',
-  name: 'Cruiser chromé de Sayyad', who: 'Sayyad', whoDe: '',
+  name: 'Cruiser chromé', who: 'Sayyad',
   body: CHROME, seats: 1, style: 'bike', twoWheel: true,
   park: 'curb', noTraffic: true, electric: true,
   flavour: 'Chromé au complet, pneus à flanc blanc, pis à peu près six cents rayons. Sayyad l’a payé plus cher que la Civic.',
@@ -152,7 +152,7 @@ const CRUISER = {
 
 const DBIKE = {
   id: 'dbike',
-  name: 'Diamondback — ton bicycle', who: 'Yours', whoDe: '',
+  name: 'Diamondback Sorrento', who: 'Yours',
   body: 0x17181c, seats: 1, style: 'bike', twoWheel: true,
   park: 'curb', noTraffic: true, electric: true,
   flavour: 'Cadre en aluminium noir, fourche blanche, vingt-et-une vitesses dont sept marchent. Il passe où le truck passe pas.',
