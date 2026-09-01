@@ -95,6 +95,11 @@ export const SECTIONS = [
         options: [['easy', 'opt.diff.easy'], ['normal', 'opt.diff.normal'], ['hard', 'opt.diff.hard']],
       },
       { k: 'heckles', type: 'check' },
+      // The slang gloss (G). It is NOT a settings key: store.js keeps a closed
+      // list and drops anything it does not know, and this flag belongs to
+      // heckle.js, which persists it itself. `flag` rows read and write through
+      // ctx.flags instead of through the settings object.
+      { flag: 'slangGloss', type: 'check', label: 'opt.slangGloss' },
       { act: 'resetCars', type: 'action', label: 'opt.resetCars' },
       { act: 'tutorial', type: 'action', label: 'opt.tutorial' },
       { act: 'story', type: 'action', label: 'opt.story' },
@@ -107,7 +112,21 @@ const ctrlId = (k) => 'o_' + k;
 const valId = (k) => 'o_' + k + '_v';
 const rowValue = (s, r) => s[r.k];
 
+// Rows that live outside the settings object. `flags.get/set` is supplied by
+// whoever mounts the panel; with no ctx.flags at all they draw unchecked and do
+// nothing, which is what the smoke tests see.
+let FLAGS = null;
+
 function rowHTML(s, r) {
+  if (r.flag) {
+    const on = FLAGS && FLAGS.get ? !!FLAGS.get(r.flag) : false;
+    return `<label class="srow"><span>${esc(t(r.label))}</span>` +
+      `<input type="checkbox" id="${ctrlId(r.flag)}"${on ? ' checked' : ''}></label>`;
+  }
+  return rowHTML0(s, r);
+}
+
+function rowHTML0(s, r) {
   if (r.type === 'keys') {
     return `<div class="okeys"><p class="hint">${esc(t('opt.keyhint'))}</p>${keyboardHTML()}</div>`;
   }
@@ -175,7 +194,9 @@ export function mountOptions(root, ctx = {}) {
   if (!root) return { redraw() {} };
   const get = ctx.get || loadSettings;
   const draw = () => {
+    FLAGS = ctx.flags || null;
     root.innerHTML = optionsHTML(get(), { only: ctx.only });
+    FLAGS = null;
     wire();
   };
 
@@ -207,6 +228,11 @@ export function mountOptions(root, ctx = {}) {
 
     for (const sec of SECTIONS) {
       for (const r of sec.rows) {
+        if (r.flag) {
+          const fl = root.querySelector('#' + ctrlId(r.flag));
+          if (fl) fl.onchange = () => ctx.flags?.set?.(r.flag, !!fl.checked);
+          continue;
+        }
         if (!r.k) continue;
         const el = root.querySelector('#' + ctrlId(r.k));
         if (!el) continue;

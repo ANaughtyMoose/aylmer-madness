@@ -1,0 +1,126 @@
+{
+  "mechanic": {
+    "name": "Normand 'Norm' Lafleur",
+    "persona": "A 52-year-old chain-smoking Aylmer mechanic who runs Garage Lafleur on Chemin d'Aylmer. Wears grease-stained blue overalls, keeps an unlit Export 'A' behind his ear, and talks with dry, gravelly sarcasm. He thinks your Ranger is a rolling death trap, but he secretly likes you because you don't complain when he uses secondhand parts from the scrapyard.",
+    "greetings": [
+      "Qu'est-ce que t'as encore pété su' ton tas de ferraille?",
+      "Éteins ton moteur avant qui saute dans ma cour.",
+      "T'arrives pile, j'venais juste de finir mon café frette.",
+      "J'espère que t'as du cash à matin, j'prends pas les promesses.",
+      "Encore toi? Les policiers de Gatineau m'ont appelé pour te surveiller.",
+      "Ouvre le capot qu'on rigole un peu.",
+      "Sent donc ça... t'as roulé su' le frein à main tout le long du pont?",
+      "C'est quoi ce bruit de canne de bines là-dessous?",
+      "Rentres-le dans baie numéro deux, fais attention à la flaque d'huile.",
+      "Ton père sait-tu que tu chauffes ça dans cet état-là?",
+      "Bon, qu'est-ce qu'on broche avec du fil de fer aujourd'hui?",
+      "Dis-moi pas que t'as encore essayé de sauter la traverse de chemin de fer."
+    ],
+    "work": [
+      { "part": "engine", "line": "J't'ai posé des bougies neuves pis ajusté le timing; y va tirer pas mal moins la patte en montant la côte." },
+      { "part": "engine", "line": "Ton filtre à air était tellement plein d'maringouins morts qu'le moteur étouffait." },
+      { "part": "engine", "line": "J'ai patenté un bout de tuyau pour ton intake d'air; respire mieux que du neuf." },
+      { "part": "tyres", "line": "T'avais deux pneus lisses comme des fesses de bébé; j't'ai mis quatre bons pneus d'été d'occasion." },
+      { "part": "tyres", "line": "L'alignement était tellement croche que ton pneu frottait dans l'aile à chaque tournant." },
+      { "part": "suspension", "line": "J't'ai rajouté une lame de ressort en arrière; là tu vas pouvoir charger ton BBQ sans frotter l'asphalte." },
+      { "part": "suspension", "line": "Tes amortisseurs coulaient l'huile comme un panier; j't'ai vissé deux bons Monroe d'la cour à scrap." },
+      { "part": "suspension", "line": "La sway bar avant tenait par une bolt rouillée; j'ai resserré ça au gun à l'air." },
+      { "part": "brakes", "line": "T'étais su'l fer en avant, mon gars! J't'ai posé des pads neufs pis tourné les disques." },
+      { "part": "brakes", "line": "La ligne à frein était prête à fendre sur l'essieu arrière; j't'ai refait une ligne en cuivre." },
+      { "part": "brakes", "line": "Le câble de frein à main était jammé dans rouille; là au moins ton truck va rester su' place dans côte." },
+      { "part": "paint", "line": "J'ai shooté une couche d'apprêt gris su' tes bas d'ailes; ça fait moins colon devant les filles." },
+      { "part": "paint", "line": "Une belle canne de Tremclad noir su' l'frame pour cacher la misère, ni vu ni connu." },
+      { "part": "paint", "line": "J'ai sablé la rouille su' l'hood pis j't'ai remis un coup d'blanc le plus proche possible." },
+      { "part": "bodywork", "line": "J'ai redressé ton pare-chocs avec la chaîne pis le poteau d'Hydro; y'est drette au coup d'œil." },
+      { "part": "bodywork", "line": "Ton hayon fermait pu pantoute; j'ai mis deux coups d'masse su' les pentures pis y claque franc." },
+      { "part": "bodywork", "line": "J't'ai riveté une tôle en dessous du plancher côté passager pour pas que les pieds passent au travers." },
+      { "part": "bodywork", "line": "Le miroir côté chauffeur tenait avec du tape à colis; j't'ai raccordé un vieux miroir de F-150." },
+      { "part": "exhaust", "line": "J't'ai soudé un bout d'tuyau droit avec une canne de jus de tomate pour boucher le trou du muffler." },
+      { "part": "transmission", "line": "J'ai changé l'huile de transmission pis purgé la clutch; la deuxième devrait moins gricher à froid." }
+    ],
+    "broke": [
+      "T'as vingt piastres pis une cenne noire... r'viens me voir quand t'auras un vrai chèque de paye.",
+      "Le garage c'est pas l'Armée du Salut, mon grand. Pas d'argent, pas d'outils.",
+      "J'peux pas payer mes pièces chez NAPA avec des sourires d'adolescent.",
+      "Va tondre deux trois pelouses su' Principale pis r'viens avec du vrai cash.",
+      "J'te fais pas de crédit; la dernière fois que j'ai fait crédit, le gars est parti en Ontario.",
+      "Si t'as pas d'argent, prends ton bicycle ou marche à pied.",
+      "Regarde la pancarte su' l'mur : 'En Dieu nous croyons, les autres payent comptant.'",
+      "Rapporte tes canettes vides au dep, après on jasera de tes freins."
+    ],
+    "wrecked": [
+      "Qu'est-ce que t'as fait là, calvaire? T'as essayé d'abattre un chêne avec le bumper?",
+      "C'est pu un camion, c'est un accordéon à quatre roues.",
+      "J'espère que l'autre char a l'air pire que ça, sinon c'est humiliant.",
+      "La seule chose droite su' ton truck à matin, c'est l'antenne de radio.",
+      "Y'a de la boue de rivière jusque dans l'alternateur... t'as péché avec?",
+      "Ça va prendre une chaîne, un tracteur pis un miracle pour redresser ce frame-là.",
+      "Tu rentres ça dans ma cour en remorque pis tu me demandes si ça s'arrange pour midi?",
+      "Ton père a-tu vu l'état du char ou t'as caché les clés sous le paillasson?"
+    ]
+  },
+  "upgrades": [
+    { "name": "Bougies Bosch Platinum et fils à haute tension", "part": "engine", "effect": "Improves throttle response and adds slight top-end acceleration off the line." },
+    { "name": "Filtre à air performance K&N nettoyable", "part": "engine", "effect": "Increases engine air intake flow, giving a throatier roar and +5 km/h top speed." },
+    { "name": "Ligne d'échappement directe 2 pouces avec silencieux Cherry Bomb", "part": "exhaust", "effect": "Loud, aggressive rumble that boosts mid-range power and intimidates rivals." },
+    { "name": "Plaquettes de frein semi-métalliques NAPA Ultra", "part": "brakes", "effect": "Shortens stopping distance dramatically and resists brake fade on steep bridge descents." },
+    { "name": "Disques de frein avant ventilés et rainurés", "part": "brakes", "effect": "Allows late, aggressive braking into tight village corners without overheating." },
+    { "name": "Kit d'amortisseurs à gaz renforcés Monroe Gas-Magnum", "part": "suspension", "effect": "Controls body roll on gravel turns and cushions hard jump landings." },
+    { "name": "Lame de ressort additionnelle arrière pour charge lourde", "part": "suspension", "effect": "Prevents the truck from bottoming out when carrying couches or heavy cargo." },
+    { "name": "Barre stabilisatrice avant surdimensionnée", "part": "suspension", "effect": "Keeps the chassis flat during high-speed slaloms on Chemin d'Aylmer." },
+    { "name": "Pneus d'été directionnels BFGoodrich Radial T/A", "part": "tyres", "effect": "Significantly increases dry pavement grip and cornering stability." },
+    { "name": "Pneus tout-terrain à crampons Cooper Discoverer", "part": "tyres", "effect": "Maximizes traction on wet gravel roads, sandy beach paths, and ditch runs." },
+    { "name": "Kit d'embrayage renforcé à friction céramique", "part": "transmission", "effect": "Eliminates gear slip under hard launches and provides instant wheelspin off the lights." },
+    { "name": "Différentiel arrière à glissement limité (Posi-traction)", "part": "transmission", "effect": "Locks both rear wheels together for controlled gravel drifts and sand exits." },
+    { "name": "Doublure de boîte en plastique rigide Duraliner", "part": "bodywork", "effect": "Protects cargo from damage and reduces bed rattling noise at speed." },
+    { "name": "Pare-chocs avant tubulaire en acier soudé sur mesure", "part": "bodywork", "effect": "Increases crash resistance against road signs, garbage cans, and shopping carts." },
+    { "name": "Phares antibrouillard ronds Hella 500 montés su' l'bumper", "part": "electrical", "effect": "Cuts through dense Ottawa River night fog and humid heat wave haze." },
+    { "name": "Alternateur haute puissance 130 ampères", "part": "electrical", "effect": "Powers heavy stereo subwoofers and auxiliary lights without draining the battery." },
+    { "name": "Radiateur en aluminium à trois rangs haute capacité", "part": "cooling", "effect": "Prevents engine overheating in heavy rush-hour traffic on the Champlain Bridge." },
+    { "name": "Volant sport trois branches Grant avec gaine en cuir", "part": "interior", "effect": "Provides better grip and faster steering wheel hand transitions during drifts." },
+    { "name": "Attache-remorque classe III avec boule deux pouces", "part": "utility", "effect": "Enables towing of boat trailers, camp pop-ups, and broken rival cars." },
+    { "name": "Couche d'apprêt antirouille et peinture émail deux tons", "part": "paint", "effect": "Covers rust spots, increases vehicle respect score among local teens." }
+  ],
+  "legends": [
+    {
+      "car": "Honda Civic Si", "year": 1988, "owner": "Sayyad",
+      "legend": "The undisputed king of the Aylmer Friday night scene, finished in fading Rio Red with an open B16 engine swap from Montreal. It famously smoked an RCMP cruiser across the Portage Bridge in 2001 and disappeared down a gravel driveway in Deschênes before they could read the plate. Everyone in town knows the distinct high-RPM screaming whistle when its VTEC kicks in near the Galeries.",
+      "howToEarn": "Beat Sayyad in a three-leg midnight sprint across the Champlain Bridge, downtown Hull, and the back lanes of Aylmer without taking a scratch."
+    },
+    {
+      "car": "Chevrolet Monte Carlo SS", "year": 1986, "owner": "Big Dan Beaulieu",
+      "legend": "Black with faded red pinstripes and dual Flowmaster exhausts that set off car alarms outside the church on Principale. Dan supposedly bought it with tree-planting money in northern Ontario and spent four years tuning the small-block 350 in his grandfather's barn. Legend says it laid two black rubber stripes three hundred feet long outside the high school on graduation day 1999.",
+      "howToEarn": "Out-drift Big Dan on the loose gravel hairpins of Chemin Pink during an afternoon thunderstorm."
+    },
+    {
+      "car": "Volkswagen Golf GTI 16V (Mk2)", "year": 1991, "owner": "Mathieu 'Le Prof' Roy",
+      "legend": "Tornado Red with BBS basketweave rims, originally brought over by a CEGEP philosophy instructor who drove it like a rally car. It was renowned for out-cornering modern sports cars on the tight technical curves between Aylmer and the Royal Ottawa Golf Club. When Roy moved to France, he locked it in a heated storage unit behind rue Principale and left the registration unsigned.",
+      "howToEarn": "Complete the 'Tour des Maringouins' course in under three minutes without touching a single roadside curb or lawn."
+    },
+    {
+      "car": "Ford Mustang 5.0 LX Notchback", "year": 1989, "owner": "Patrice 'Pato' Gagnon",
+      "legend": "A stripped-down, plain-wrapper white Fox body that looked like an undercover cop car but had a short-throw five-speed and straight pipes. It dominated the illegal quarter-mile drag runs on the newly cleared Allumettières corridor before the road even opened to the public. Gagnon retired from street racing after getting cornered by five cruisers at the marina and parked it under a tarp.",
+      "howToEarn": "Win five consecutive Blitz challenges on Boulevard des Allumettières against the local muscle car crew."
+    },
+    {
+      "car": "Toyota 4Runner SR5", "year": 1985, "owner": "Oncle Marcel",
+      "legend": "A first-generation rust-speckled red 4Runner with the removable fiberglass rear canopy and bulletproof 22RE engine. It has successfully pulled twelve stranded cars out of the Ottawa River spring mud and survived three roll-overs in the gravel pit without bending the frame. Locals swear it can run on old heating oil and has never once been stuck in an Aylmer snowbank or swamp.",
+      "howToEarn": "Complete twenty heavy utility hauling missions and pull three broken down rivals back to Norm's garage."
+    },
+    {
+      "car": "Dodge Omni GLH Turbo", "year": 1986, "owner": "Éric 'Le Rat' Lévesque",
+      "legend": "A boxy, black pocket-rocket sleeper that Carroll Shelby designed and Lévesque modified with a manual boost controller made from a brass hardware valve. It looked like an old lady's grocery-getter until the turbo spooled with a deafening whistle, torching V8s off the red light at Chemin d'Aylmer and Wilfrid-Lavigne. Lévesque lost his license in 2002, and the car sat hidden behind a stack of firewood ever since.",
+      "howToEarn": "Beat Lévesque's legendary ghost time on the 'Sprint des Allumettières' using only a four-cylinder vehicle."
+    },
+    {
+      "car": "Pontiac Firebird Trans Am GTA", "year": 1988, "owner": "Steve 'Mullet' Boucher",
+      "legend": "Gunmetal grey with gold snowflake wheels, T-tops, and a cassette deck permanently jammed playing Rush's 'Moving Pictures'. Boucher was the terror of the Hull strip in the early nineties, known for doing neutral-drop burnouts outside the dépanneur until the tires popped. He moved to Calgary for the oil patch and left the car with his little brother, who is too terrified to drive it.",
+      "howToEarn": "Score a 50,000-point stunt and drift combo in the rear parking lot of Les Galeries d'Aylmer."
+    },
+    {
+      "car": "Subaru Leone RX Turbo 4WD", "year": 1987, "owner": "Old Man Henderson",
+      "legend": "A white, angular Japanese homologation sedan with factory mud flaps and dual-range four-wheel drive. In the great ice storm of 1998, Henderson used it to deliver bread and generator gas all across the Outaouais when police cruisers couldn't even leave the station. It has rally scars from twenty years of cottage road abuse and handles gravel better than anything built in North America.",
+      "howToEarn": "Win the treacherous dirt and mud circuit at the Deschênes shoreline during a heavy downpour."
+    }
+  ]
+}
