@@ -13,27 +13,30 @@ const outdir = process.argv[3] || 'docs/shots';
 const far = process.argv.includes('--far');
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
 const sizeArg = process.argv.find((a) => /^--size=\d+x\d+$/.test(a));
-const [VW, VH] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1280, 800];
+const [VW, VH] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1152, 720];
 
-// [key, camera x, z, yaw looking at the target, height, pitch]
-// yaw is the game's: 0 looks toward +Z, and it turns the way the car turns.
+// [key, camera x, z, target x, z, cam] — the yaw is worked out from the target
+// so a view can be re-aimed by moving the thing it looks at. `cam` indexes
+// main.js's CAMS: 0 is the chase camera (an approach), 3 is the hood camera,
+// which is as close to a driver's eye as the game has.
 const VIEWS = [
-  ['pwhs-approach', 6800, -7900, 3.14, 3.0, -0.02],
-  ['pwhs-entrance', 6800, -7952, 3.14, 2.0, 0.03],
-  ['pwhs-lot', 6752, -8092, 2.2, 2.2, 0.02],
-  ['pwhs-wing', 6660, -8060, 1.4, 2.2, 0.02],
-  ['heritage-approach', 5648, -6928, 2.35, 3.0, 0.0],
-  ['heritage-atrium', 5590, -6836, 1.9, 2.0, 0.05],
-  ['heritage-rotunda', 5572, -6892, 2.5, 1.9, 0.06],
-  ['heritage-lot', 5620, -6760, 4.1, 2.4, 0.0],
-  ['mike-front', -406, 56, 1.57, 1.8, 0.02],
-  ['mike-couch', -404, 50, 1.35, 1.8, 0.30],
-  ['mike-corner', -404, 30, 2.0, 2.0, 0.03],
-  ['lordaylmer', -408, 62, 4.71, 2.0, 0.02],
-  ['symmesinn', -1518, -22, 3.14, 1.9, 0.03],
-  ['british', -916, -150, 0.0, 1.9, 0.03],
-  ['marina', -1760, 6, 3.6, 2.0, 0.02],
-  ['symmesjr', -318, 410, 3.14, 2.0, 0.02],
+  ['pwhs-approach',     6800, -7886,  6800, -8005, 0],
+  ['pwhs-entrance',     6800, -7962,  6800, -8002, 3],
+  ['pwhs-lot',          6760, -8102,  6800, -8024, 3],
+  ['pwhs-wing',         6664, -8060,  6706, -8060, 3],
+  ['pwhs-field',        6790, -8126,  6790, -8188, 0],
+  ['heritage-approach', 5642, -6934,  5535, -6856, 0],
+  ['heritage-atrium',   5562, -6790,  5513, -6790, 3],
+  ['heritage-rotunda',  5570, -6888,  5535, -6856, 3],
+  ['heritage-lot',      5608, -6800,  5513, -6790, 3],
+  ['mike-front',        -405,    58,   -428,    58, 3],
+  ['mike-couch',        -396,    57, -415.2,  57.4, 3],
+  ['mike-corner',       -402,    36,   -424,    56, 0],
+  ['lordaylmer',        -404,    60,   -370,    60, 3],
+  ['symmesinn',        -1518,   -30,  -1517,   -55, 3],
+  ['british',           -916,   -85,   -916,  -105, 3],
+  ['marina',           -1770,   -70,  -1790,   -32, 0],
+  ['symmesjr',          -318,   404,   -318,   382, 3],
 ];
 
 const list = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then((r) => r.json());
@@ -65,22 +68,38 @@ await send('Page.enable');
 await send('Network.enable');
 await send('Network.setCacheDisabled', { cacheDisabled: true });
 await send('Emulation.setDeviceMetricsOverride', { width: VW, height: VH, deviceScaleFactor: 1, mobile: false });
-const evaluate = async (expression) => {
-  const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+// Chrome is shared with every other agent in the wave, so a renderer can sit
+// starved for minutes. Every call is bounded and every step says where it got
+// to, because a silent hang is indistinguishable from a broken script.
+const withTimeout = (p, ms, what) => Promise.race([p,
+  new Promise((_, rej) => setTimeout(() => rej(new Error('timeout: ' + what)), ms))]);
+const evaluate = async (expression, ms = 240000) => {
+  const r = await withTimeout(
+    send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }),
+    ms, expression.slice(0, 40));
   if (r.exceptionDetails) throw new Error('page: ' + (r.exceptionDetails.exception?.description || r.exceptionDetails.text));
   return r.result.value;
 };
+const log = (...a) => { console.log(...a); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const fs = await import('node:fs');
 fs.mkdirSync(outdir, { recursive: true });
 
 await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
 await send('Page.navigate', { url });
-await sleep(1500);
+log('navigated');
+// Wait for the document rather than guessing at a sleep.
+for (let i = 0; i < 120; i++) {
+  await sleep(1000);
+  const ready = await evaluate("document.readyState + '|' + !!document.getElementById('start')", 20000)
+    .catch((e) => 'err ' + e.message);
+  if (String(ready).startsWith('complete|true')) { log('document ready after', i + 1, 's'); break; }
+  if (i % 10 === 9) log('  waiting for the document:', ready, `(${i + 1}s)`);
+}
 
 // #start opens the start-point picker, not the game: pick the first point,
 // confirm, then wait for drive mode.
-console.log('boot:', await evaluate(`(async () => {
+log('boot:', await evaluate(`(async () => {
   const b = document.getElementById('start'); if (!b) return 'no #start';
   b.click();
   await new Promise(r => setTimeout(r, 500));
@@ -88,22 +107,24 @@ console.log('boot:', await evaluate(`(async () => {
   if (p && p.children[0]) p.children[0].click();
   await new Promise(r => setTimeout(r, 120));
   document.getElementById('startconfirm')?.click();
-  for (let i = 0; i < 400; i++) {
-    await new Promise(r => setTimeout(r, 100));
-    if (window.AYLMER?.G?.mode === 'drive') return 'drive after ' + (i * 100) + ' ms';
+  for (let i = 0; i < 3000; i++) {
+    await new Promise(r => setTimeout(r, 200));
+    if (window.AYLMER?.G?.mode === 'drive') return 'drive after ' + (i * 0.2 | 0) + ' s';
   }
   return 'stuck at mode=' + window.AYLMER?.G?.mode;
-})()`));
+})()`, 620000));
 
-console.log('env:', await evaluate(`window.AYLMER.env('day')`));
+log('env:', await evaluate(`window.AYLMER.env('day')`));
 
-for (const [name, x, z, yaw, h, pitch] of VIEWS) {
+for (const [name, x, z, tx, tz, cam] of VIEWS) {
+  const yaw = Math.atan2(tx - x, tz - z);
   if (only && !only.split(',').some((k) => name.startsWith(k))) continue;
   // Park the car out of shot, then drive the camera by hand. G.camOverride is
   // not a thing, so the vehicle IS the camera rig: teleport it, then push the
   // free camera onto the same spot.
   const info = await evaluate(`(() => {
     const A = window.AYLMER, G = A.G;
+    G.cam = ${cam};
     A.teleport(${x}, ${z}, ${yaw});
     G.veh.vx = 0; G.veh.vz = 0; G.veh.speed = 0;
     ${far ? 'G.q.drawDist = 1400;' : ''}
@@ -116,7 +137,7 @@ for (const [name, x, z, yaw, h, pitch] of VIEWS) {
   const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: 86 });
   const file = `${outdir}/${name}${far ? '-far' : ''}.jpg`;
   fs.writeFileSync(file, Buffer.from(shot.data, 'base64'));
-  console.log(name.padEnd(20), info, '->', file);
+  log(name.padEnd(20), info, '->', file);
 }
 
 console.log('--- console ---');

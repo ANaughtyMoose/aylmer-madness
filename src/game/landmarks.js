@@ -553,6 +553,26 @@ function lot(K, cx, cz, w, d, yaw, opts = {}) {
   if (opts.kerb) mb.prism(rectRing(cx, cz, w + 0.3, d + 0.3, yaw), 0.032, 0.12, flat(0xa9a49a));
 }
 
+// A parking-lot light standard: the thing that tells you a two-hundred-metre
+// slab of asphalt is a school lot and not a runway. 22 tris; they go in the site
+// mesh so they are there from the road.
+function lightStandard(K, x, z, h = 8.5, yaw = 0) {
+  K.mb.box(x, 0.28, z, 0.7, 0.56, 0.7, flat(CONCRETE, 0.85), { noBottom: true });
+  K.mb.cyl(x, h / 2, z, 0.13, h, 5, flat(0x6f6d68), 'y', false);
+  K.mb.box(x + Math.cos(yaw) * 0.85, h - 0.1, z + Math.sin(yaw) * 0.85,
+    1.5, 0.24, 0.6, flat(0x8e8b84), { yaw: -yaw });
+}
+
+// Painted crossing bars across a drive. Two triangles each, and they are half of
+// why a forecourt reads as a school forecourt.
+function crossing(K, cx, cz, w, d, yaw, bars = 6) {
+  const s = Math.sin(yaw), co = Math.cos(yaw), c = rgb(STRIPE);
+  for (let i = 0; i < bars; i++) {
+    const u = (i - (bars - 1) / 2) * (w / bars);
+    K.mb.flatRot(cx + co * u, cz + s * u, w / bars * 0.42, d, 0.037, -yaw, c);
+  }
+}
+
 function walk(K, x0, z0, x1, z1, w, hex) {
   const L = Math.hypot(x1 - x0, z1 - z0) || 1;
   K.mb.flatRot((x0 + x1) / 2, (z0 + z1) / 2, w, L, 0.034,
@@ -589,13 +609,13 @@ function pwWing(K, ring, storeys, opts = {}) {
       w: 2.35, gap: 0.9, margin: 2.2, mullions: 1, frost: 0.34 });
   }
   walls(K, ring, 0, eave, {
-    mat: brick, tint: tint(K, brick, opts.k || 1), rows, jamb: spandrel,
+    mat: brick, tint: tint(K, brick, opts.k || 1.34), rows, jamb: spandrel,
     reveal: 0.3, bar: 0x53575b, frostHex: 0xa8b2ab,
     glassLo: 0x232c36, glassHi: 0x46606f,
   }, (i, L) => (L > (opts.minEdge || 12) ? rows : null));
   // reddish-orange brick base course, grey concrete cap: the two accents the
   // whole school is built out of
-  band(K, ring, t, 0, 0.9, 0.14, 0x9e5b42, 'brick_red');
+  band(K, ring, t, 0, 0.9, 0.14, 0xb06a4d, 'brick_red');
   for (let f = 0; f < storeys; f++) band(K, ring, t, 0.85 + f * PW_STOREY, 0.32, 0.11, spandrel);
   band(K, ring, t, eave, 0.9, 0.24, 0xa8a298);
   mb.capPoly(offsetRing(ring, 0.24), t, eave, flat(0x6b6963));    // membrane roof
@@ -614,38 +634,47 @@ function buildPWHS(K) {
   const mb = K.mb;
   const spandrel = 0xb2aca0;
 
-  // ---- the sprawl. Six connected wings, 2 and 3 storeys, all flat-roofed.
-  const main = rectRing(PW.cx, PW.cz, 84, 24, 0);                 // 3-storey front block
+  // ---- the sprawl. Every wing is joined to the next by a glazed link; the
+  // plan is a comb, which is what a school built for 1 400 students in 1968
+  // looks like from the air and why it takes 200 m of frontage.
+  const main  = rectRing(6800, -8012, 84, 24, 0);     // 3-storey front block
+  const wingD = rectRing(6706, -8062, 22, 88, 0);     // 2-storey west wing
+  const wingE = rectRing(6790, -8146, 172, 20, 0);    // 2-storey north wing
+  const shop  = rectRing(6896, -8130, 44, 30, 0);     // shops / tech, 1 tall storey
   const eMain = pwWing(K, main, 3);
-  const wingB = rectRing(6706, -8062, 22, 84, 0);                 // 2-storey west wing
-  const eB = pwWing(K, wingB, 2);
-  const wingC = rectRing(6800, -8144, 150, 20, 0);                // 2-storey north wing
-  pwWing(K, wingC, 2);
-  const shop = rectRing(6882, -8114, 34, 28, 0);                  // shops / tech, 1 tall storey
-  pwWing(K, shop, 1, { eave: 5.6, minEdge: 10, brick: 'brick_red', k: 0.94 });
+  const eB = pwWing(K, wingD, 2);
+  pwWing(K, wingE, 2);
+  pwWing(K, shop, 1, { eave: 5.8, minEdge: 10, brick: 'brick_red', k: 1.06 });
 
   // ---- gymnasium and auditorium: blank brick volumes, clerestory near the top
   const gym = rectRing(6890, -8012, 34, 36, 0), gymT = fanTris(4);
   const clere = [{ y0: 8.4, y1: 9.9, w: 2.1, gap: 0.75, margin: 2.2, mullions: 1, frost: 0.5 }];
   walls(K, gym, 0, 11.2,
-    { mat: 'brick_brown', tint: tint(K, 'brick_brown', 0.96), rows: clere, jamb: spandrel,
+    { mat: 'brick_brown', tint: tint(K, 'brick_brown', 1.32), rows: clere, jamb: spandrel,
       reveal: 0.28, frostHex: 0xa8b2ab }, (i) => (i % 2 === 0 ? clere : null));
-  band(K, gym, gymT, 0, 0.9, 0.14, 0x9e5b42, 'brick_red');
+  band(K, gym, gymT, 0, 0.9, 0.14, 0xb06a4d, 'brick_red');
   band(K, gym, gymT, 11.2, 0.9, 0.24, 0xa8a298);
   mb.capPoly(offsetRing(gym, 0.24), gymT, 11.2, flat(0x6b6963));
 
-  const aud = rectRing(6884, -8072, 30, 26, 0), audT = fanTris(4);
+  const aud = rectRing(6884, -8074, 30, 26, 0), audT = fanTris(4);
   walls(K, aud, 0, 12.6,
-    { mat: 'brick_brown', tint: tint(K, 'brick_brown', 0.92), rows: [], jamb: spandrel }, () => null);
-  band(K, aud, audT, 0, 0.9, 0.14, 0x9e5b42, 'brick_red');
+    { mat: 'brick_brown', tint: tint(K, 'brick_brown', 1.26), rows: [], jamb: spandrel }, () => null);
+  band(K, aud, audT, 0, 0.9, 0.14, 0xb06a4d, 'brick_red');
   band(K, aud, audT, 12.6, 1.0, 0.26, 0xa8a298);
   mb.capPoly(offsetRing(aud, 0.26), audT, 12.6, flat(0x6b6963));
 
-  // ---- glazed link corridors, the connective tissue of the whole plan
-  for (const [cx, cz, w, d] of [[6855, -8012, 26, 12], [6706, -8112, 20, 44],
-    [6890, -8044, 22, 32], [6746, -8079, 12, 112]]) {
+  // ---- the links. Each one overlaps both neighbours, so the plan really is
+  // one building and not six standing near each other.
+  for (const [cx, cz, w, d] of [
+    [6857, -8012, 32, 12],     // front block  -> gym
+    [6890, -8046, 22, 34],     // gym          -> auditorium
+    [6738, -8010, 46, 12],     // front block  -> west wing
+    [6706, -8122, 20, 40],     // west wing    -> north wing
+    [6800, -8080, 12, 120],    // front block  -> north wing
+  ]) {
     const link = rectRing(cx, cz, w, d, 0), lt = fanTris(4);
-    walls(K, link, 0, 3.9, { mat: 'brick_brown', tint: tint(K, 'brick_brown'), rows: [] }, () => null);
+    walls(K, link, 0, 3.9,
+      { mat: 'brick_brown', tint: tint(K, 'brick_brown', 1.32), rows: [] }, () => null);
     const N = edgeNormals(link);
     for (let i = 0; i < 4; i++) {
       const a = link[i], b = link[(i + 1) % 4];
@@ -662,9 +691,9 @@ function buildPWHS(K) {
   penthouse(K, 6824, -8016, 11, 9, 2.4);
   K.plant = eB + 0.75;
   penthouse(K, 6706, -8038, 9, 12, 2.6);
-  penthouse(K, 6706, -8090, 9, 10, 2.2);
-  penthouse(K, 6760, -8144, 12, 10, 2.4);
-  penthouse(K, 6852, -8144, 10, 9, 2.1);
+  penthouse(K, 6706, -8092, 9, 10, 2.2);
+  penthouse(K, 6752, -8146, 12, 10, 2.4);
+  penthouse(K, 6858, -8146, 10, 9, 2.1);
   K.plant = 12.6 + 1.0;
   penthouse(K, 6884, -8072, 12, 9, 2.8);            // the fly loft over the stage
 
@@ -693,16 +722,18 @@ function buildPWHS(K) {
   bikeRack(K, ex + 30, ez + 10, 0, 6);
   dumpster(K, 6862, -8036, 0, 0x3f5a4a);
   dumpster(K, 6865.2, -8036, 0, 0x3f5a4a);
-  dumpster(K, 6924, -8100, 0, 0x53585c);
+  dumpster(K, 6928, -8112, 0, 0x53585c);
 }
 
 function sitePWHS(K) {
   // July 2004: the lots are bare, the field has not been cut since June, and
   // the whole thing is a very large flat place to drive a pickup around.
-  lot(K, 6690, -8088, 76, 24, 0, { rows: 2, kerb: true });
-  lot(K, 6826, -8088, 100, 24, 0, { rows: 2, kerb: true });
-  lot(K, 6675, -8000, 26, 54, 0.02, { rows: 4 });
-  lot(K, 6944, -8022, 22, 70, 0.03, { rows: 4 });
+  // The comb plan encloses two courtyards, so the stalls go where a car can
+  // actually reach them: outside the west wing, outside the gym, and the long
+  // strip in front that fills up at 8.15 and empties at 3.20.
+  lot(K, 6656, -8060, 24, 84, 0, { rows: 5, kerb: true });
+  lot(K, 6926, -8046, 20, 70, 0, { rows: 4, kerb: true });
+  lot(K, 6800, -7938, 150, 22, 0, { rows: 2, kerb: true });
   // bus loops: two of them, because one 1968 school moved a lot of buses
   K.mb.flatRot(6800, -7966, 130, 24, 0.033, 0, flat(ASPHALT, 1.05));
   K.mb.flatRot(6706, -7994, 20, 40, 0.033, 0, flat(ASPHALT, 1.03));
@@ -722,6 +753,11 @@ function sitePWHS(K) {
   K.mb.flatRot(fx, fz, 84, 38, 0.035, 0, flat(0x5d7c3c));       // the pitch inside it
   for (const s of [-1, 1]) K.mb.flatRot(fx + s * 40, fz, 0.16, 36, 0.038, 0, rgb(STRIPE));
   // the ball court behind the gym, paint still there, nobody on it
+  // light standards down the lots and the loops, and a crossing at the door
+  for (let i = 0; i < 5; i++) lightStandard(K, 6730 + i * 36, -7938, 8.5, 1.4);
+  for (let i = 0; i < 4; i++) lightStandard(K, 6656, -8092 + i * 22, 8.5, 0);
+  for (let i = 0; i < 3; i++) lightStandard(K, 6926, -8072 + i * 24, 8.5, 3.14);
+  crossing(K, 6800, -7978, 11, 3.6, 0, 6);
   K.mb.flatRot(6900, -8046, 26, 16, 0.033, 0, flat(0x3d4a52));
   for (const s of [-1, 1]) K.mb.flatRot(6900 + s * 11.5, -8046, 0.14, 15, 0.037, 0, rgb(STRIPE));
 }
@@ -735,11 +771,13 @@ function sitePWHS(K) {
 // drive leaves the boulevard.
 const HC = { id: 53375547, cx: 5500, cz: -6790 };
 
-// The approach is from the south-east: the boulevard's nearest point to the
-// college is (5605, -6936), so the atrium, the rotunda and the drop-off all face
-// that way and the first thing you see from the road is glass.
-const HC_ATR = { cx: 5513, cz: -6790, w: 21, d: 46 };
-const HC_ROT = { cx: 5535, cz: -6856, r: 8.6 };
+// The approach is from the north-east: the nearest point of boulevard de la
+// Cité-des-Jeunes to the college is (5605, -6936), and the footprint's long
+// east façade runs from (5543.9, -6781.3) to (5527.3, -6846.7). The atrium sits
+// on that façade and the rotunda at the top of it, so the first thing you see
+// from the road is three storeys of glass.
+const HC_ATR = { cx: 5545, cz: -6812, w: 18, d: 56 };
+const HC_ROT = { cx: 5533, cz: -6856, r: 8.6 };
 
 function buildHeritage(K, ring, tris) {
   const mb = K.mb;
@@ -784,27 +822,25 @@ function buildHeritage(K, ring, tris) {
     if (K.seg) K.seg(a[0], a[1], b[0], b[1]);
   }
   band(K, atr, atrT, 0, 0.75, 0.2, 0x9a5343, 'brick_red');
-  standingSeam(K, HC_ATR.cx, 12.6, HC_ATR.cz, HC_ATR.w + 1.4, HC_ATR.d + 1.0, 2.6,
+  standingSeam(K, HC_ATR.cx, 12.6, HC_ATR.cz, HC_ATR.d + 1.0, HC_ATR.w + 1.6, 2.6,
     Math.PI / 2, METAL);
   // the internal floor plates you can see through the glass — three lines of
   // pale concrete, which is what actually sells "multi-level atrium"
   if (K.detail) {
     for (let f = 1; f <= 3; f++) {
-      mb.box(HC_ATR.cx + 6.6, f * 3.9, HC_ATR.cz, 6.2, 0.34, HC_ATR.d - 3, flat(0xbfb9ac));
-      mb.box(HC_ATR.cx - 6.6, f * 3.9, HC_ATR.cz, 6.2, 0.34, HC_ATR.d - 3, flat(0xbfb9ac));
+      mb.box(HC_ATR.cx + 5.0, f * 3.9, HC_ATR.cz, 5.6, 0.34, HC_ATR.d - 4, flat(0xbfb9ac));
+      mb.box(HC_ATR.cx - 5.0, f * 3.9, HC_ATR.cz, 5.6, 0.34, HC_ATR.d - 4, flat(0xbfb9ac));
     }
   }
 
   // ---- the entrance rotunda, glass all round, under a covered drop-off
-  drum(K, HC_ROT.cx, HC_ROT.cz, HC_ROT.r, 0, 8.6, K.detail ? 16 : 9,
+  drum(K, HC_ROT.cx, HC_ROT.cz, HC_ROT.r, 0, 10.2, K.detail ? 16 : 9,
     { steel: STEEL, lo: 0x1f2a30, hi: 0x6d8a94 });
-  mb.cone(HC_ROT.cx, 8.96, HC_ROT.cz, HC_ROT.r + 0.5, 2.1, K.detail ? 16 : 9, flat(METAL));
-  canopy(K, HC_ROT.cx + 12, 4.6, HC_ROT.cz + 11, 30, 9, -0.60, 0xcfcabf, K.detail ? 4 : 0);
-  steps(K, HC_ROT.cx + 3, HC_ROT.cz + 7.4, 0.42, 0.91, 12, 3, 0.15, 0.55, CONCRETE);
-  railing(K, HC_ROT.cx - 3.6, 0.5, HC_ROT.cz + 8.0, HC_ROT.cx - 3.6, HC_ROT.cz + 10.0, 0.95, STEEL);
-  railing(K, HC_ROT.cx + 9.6, 0.5, HC_ROT.cz + 6.6, HC_ROT.cx + 9.6, HC_ROT.cz + 8.6, 0.95, STEEL);
-  // a covered walk linking the rotunda back to the atrium
-  canopy(K, HC_ROT.cx - 12, 4.2, HC_ROT.cz - 24, 7, 44, -0.28, 0xcfcabf, K.detail ? 3 : 0);
+  mb.cone(HC_ROT.cx, 10.56, HC_ROT.cz, HC_ROT.r + 0.5, 2.3, K.detail ? 16 : 9, flat(METAL));
+  canopy(K, HC_ROT.cx + 13, 4.6, HC_ROT.cz - 9, 22, 9, -0.95, 0xcfcabf, K.detail ? 3 : 0);
+  steps(K, HC_ROT.cx + 7.0, HC_ROT.cz - 4.6, 0.82, -0.57, 12, 3, 0.15, 0.55, CONCRETE);
+  railing(K, HC_ROT.cx + 6.0, 0.5, HC_ROT.cz - 9.8, HC_ROT.cx + 8.4, HC_ROT.cz - 8.2, 0.95, STEEL);
+  railing(K, HC_ROT.cx + 11.0, 0.5, HC_ROT.cz - 2.6, HC_ROT.cx + 13.4, HC_ROT.cz - 1.0, 0.95, STEEL);
 
   // board-formed concrete stair tower at the far end — every campus of this
   // period has one, and it gives the 190 m sprawl a full stop
@@ -812,20 +848,23 @@ function buildHeritage(K, ring, tris) {
   for (let f = 0; f < 4; f++) {
     mb.panel(5453, 2.4 + f * 3.0, -6862, 1.1, 1.8, -1, 0, rgb(GLASS_LO), null, 0.03);
   }
-  flagpole(K, HC_ROT.cx + 20, HC_ROT.cz + 20, 10, 0x1e4fa0);
-  flagpole(K, HC_ROT.cx + 24, HC_ROT.cz + 23, 10, 0xc8352c);
-  bikeRack(K, HC_ROT.cx - 4, HC_ROT.cz + 12, 0.4, 8);
+  flagpole(K, HC_ROT.cx + 26, HC_ROT.cz - 22, 10, 0x1e4fa0);
+  flagpole(K, HC_ROT.cx + 30, HC_ROT.cz - 18, 10, 0xc8352c);
+  bikeRack(K, HC_ROT.cx + 4, HC_ROT.cz - 16, 0.4, 8);
   dumpster(K, 5455, -6742, 0.5, 0x53585c);
   dumpster(K, 5458.4, -6742, 0.5, 0x53585c);
 }
 
 function siteHeritage(K) {
   // Two staff cars' worth of stalls in use and 300 empty ones: it is July.
-  lot(K, 5606, -6800, 92, 84, 0.06, { rows: 6, kerb: true });
+  lot(K, 5630, -6810, 88, 86, 0.06, { rows: 6, kerb: true });
   lot(K, 5436, -6799, 40, 26, 0.06, { rows: 2 });
-  K.mb.flatRot(5568, -6866, 56, 16, 0.033, -0.55, flat(ASPHALT, 1.04));   // drop-off
-  walk(K, HC_ROT.cx + 4, HC_ROT.cz + 9, 5586, -6880, 3.2, 0xb3ada1);
-  walk(K, 5534, -6828, 5534, -6772, 2.6, 0xb3ada1);
+  K.mb.flatRot(5566, -6880, 60, 18, 0.033, -0.95, flat(ASPHALT, 1.04));   // drop-off
+  for (let i = 0; i < 5; i++) lightStandard(K, 5596 + i * 18, -6774 - i * 8, 9, -2.1);
+  for (let i = 0; i < 4; i++) lightStandard(K, 5600 + i * 18, -6844 - i * 8, 9, -2.1);
+  crossing(K, 5562, -6894, 10, 3.4, -0.95, 6);
+  walk(K, HC_ROT.cx + 8, HC_ROT.cz - 8, 5580, -6898, 3.2, 0xb3ada1);
+  walk(K, 5556, -6812, 5556, -6772, 2.6, 0xb3ada1);
 }
 
 // --- C. Symmes Junior High, Aylmer ----------------------------------------
@@ -879,6 +918,7 @@ function siteSymmesJr(K) {
   walk(K, -318, 388, -318, 397, 3.0, 0xb3ada1);
   walk(K, -340, 391, -290, 389, 2.2, 0xb3ada1);
   K.mb.flatRot(-300, 391, 22, 8, 0.033, -SJ.yaw, flat(ASPHALT, 1.05));
+  lightStandard(K, -286, 396, 7.5, 3.14);
   K.mb.flatRot(-296, 372, 24, 16, 0.033, -SJ.yaw, flat(0x3d4a52));       // ball court
 }
 
@@ -1105,13 +1145,16 @@ function siteMarina(K) {
 // south gable, gravel drive to the north.
 //
 // And the couch. See COUCH below.
-const MK = { id: 473653319, cx: -428.3, cz: 58.3, yaw: -0.096 };
+const MK = { id: 473653319, cx: -428.3, cz: 58.3, yaw: -0.096, fz: 53.7, mz: 56.1 };
 // props.js already stands a maple on this lawn (MIKE_TREE) and the side job
 // already throws a chesterfield at it. This is the aftermath: the limbs it came
 // to rest on and the couch itself, lodged 5.5 m up where the street can see it.
 export const MIKE_MAPLE = { x: -417.5, z: 57.0, crownY: 6.4 };
+// Wedged in the fork between the two lowest limbs and pushed far enough out
+// along them that a good third of it clears the foliage — the whole point is
+// that you can see it from the road if you look up.
 export const COUCH = {
-  x: MIKE_MAPLE.x + 2.35, y: 5.52, z: MIKE_MAPLE.z + 0.35, yaw: -0.55, roll: 0.16, pitch: 0.09,
+  x: MIKE_MAPLE.x + 2.95, y: 5.62, z: MIKE_MAPLE.z + 0.44, yaw: -0.55, roll: 0.17, pitch: 0.09,
 };
 
 function buildMike(K, ring, tris) {
@@ -1130,13 +1173,13 @@ function buildMike(K, ring, tris) {
   // ---- roof: side gable, ridge north-south, steep, dark shingle
   on(K, 'shingle_dark');
   const sc = tint(K, 'shingle_dark', 0.98);
-  mb.roof(MK.cx + 0.4, EAVE, MK.cz + 0.4, 15.2, 12.6, 4.3, sc, Math.PI / 2 - MK.yaw, 0.7,
+  mb.roof(MK.cx + 0.2, EAVE, MK.mz, 15.6, 12.4, 4.4, sc, Math.PI / 2 - MK.yaw, 0.45,
     { onGable: () => { on(K, brick); }, gableCol: bt });
   off(K);
   // the shed dormer across the front slope, green siding, white triple window
   const nx = Math.cos(MK.yaw), nz = Math.sin(MK.yaw);        // outward: east, to the avenue
   const tx = -nz, tz = nx;                                   // along the façade, +t is south
-  const dx = MK.cx + nx * 2.5, dz = MK.cz + nz * 2.5;
+  const dx = MK.cx + nx * 2.5 + tx * (MK.fz - MK.cz), dz = MK.cz + nz * 2.5 + tz * (MK.fz - MK.cz);
   mb.tower(dx, EAVE + 1.25, dz, 6.4, 3.4, 2.15, flat(GREEN),
     { yaw: -MK.yaw + Math.PI / 2, noBottom: true, top: flat(GREEN, 0.8) });
   mb.box(dx, EAVE + 3.45, dz, 6.9, 0.22, 3.9, flat(TRIMC), { yaw: -MK.yaw + Math.PI / 2 });
@@ -1150,13 +1193,16 @@ function buildMike(K, ring, tris) {
     mb.panel(dx + nx * 1.75, EAVE + 2.3, dz + nz * 1.75, 3.6, 1.3, nx, nz, rgb(0x30414c), null, 0.02);
   }
   // red brick chimney on the south gable wall
-  const sx = MK.cx + tx * 6.6 + nx * 1.2, sz = MK.cz + tz * 6.6 + nz * 1.2;
-  mb.tower(sx, 0, sz, 1.25, 1.05, 9.4, tintOrFlat(K, brick, bt), { yaw: -MK.yaw, noBottom: true });
+  // The ridge runs north-south, so the gable walls face north and south. In the
+  // photograph the stack is on the right-hand one as you stand on the avenue —
+  // and since rue Smiley and the gravel drive are on that side, right is north.
+  const sx = -425.4, sz = 48.4;
+  mb.tower(sx, 0, sz, 1.3, 1.1, 9.6, tintOrFlat(K, brick, bt), { yaw: -MK.yaw, noBottom: true });
   off(K);
-  mb.tower(sx, 9.4, sz, 1.5, 1.3, 0.24, flat(0xb0a89a), { yaw: -MK.yaw, noBottom: true });
+  mb.tower(sx, 9.6, sz, 1.6, 1.4, 0.24, flat(0xb0a89a), { yaw: -MK.yaw, noBottom: true });
 
   // ---- the porch: full width, brick piers, white posts, lattice skirting
-  const px = MK.cx + nx * 6.4, pz = MK.cz + nz * 6.4;
+  const px = MK.cx + nx * 8.0 + tx * (MK.fz - MK.cz), pz = MK.cz + nz * 8.0 + tz * (MK.fz - MK.cz);
   mb.tower(px, 0, pz, 10.4, 3.2, 0.72, flat(DECK, 0.8),
     { yaw: -MK.yaw + Math.PI / 2, noBottom: true, top: flat(DECK) });
   for (const u of [-4.6, -1.6, 1.6, 4.6]) {                    // brick piers
@@ -1176,9 +1222,9 @@ function buildMike(K, ring, tris) {
   mb.box(px, 3.62, pz, 10.6, 0.34, 3.4, flat(TRIMC), { yaw: -MK.yaw + Math.PI / 2 });   // beam
   mb.capRect(px, pz, 10.4, 3.2, 3.42, -MK.yaw + Math.PI / 2, flat(TRIMC, 0.86), true);  // ceiling
   // front door, slightly right of centre, and the steps down to the lawn
-  mb.panel(MK.cx + nx * 5.1 + tx * 0.7, 1.75, MK.cz + nz * 5.1 + tz * 0.7, 1.05, 2.1, nx, nz,
-    flat(0x7a3a2c), null, 0.03);
-  steps(K, px + nx * 1.65, pz + nz * 1.65, nx, nz, 2.4, 4, 0.18, 0.34, 0x8d857a);
+  mb.panel(MK.cx + nx * 6.85 + tx * (MK.fz - MK.cz + 0.7), 1.75,
+    MK.cz + nz * 6.85 + tz * (MK.fz - MK.cz + 0.7), 1.05, 2.1, nx, nz, flat(0x7a3a2c), null, 0.03);
+  steps(K, px + nx * 1.62, pz + nz * 1.62, nx, nz, 2.4, 4, 0.18, 0.34, 0x8d857a);
 
   // ---- THE COUCH, still up there. Its own limbs so it is genuinely lodged in
   // a fork rather than levitating, and its own tiny mesh so a mission can turn
@@ -1222,6 +1268,9 @@ function buildCouchMesh() {
 // end of its own sequence: `world.landmarks.flags.couchInTree = false` before
 // the launch, `= true` once it sticks.
 export const LANDMARK_FLAGS = { couchInTree: true };
+
+/** The couch mesh, unuploaded — for tools/preview_landmarks.mjs and the tests. */
+export function buildCouchPreview() { const b = buildCouchMesh(); b.finish(); return b; }
 
 function siteMike(K) {
   // gravel drive on the Smiley side, the corner sidewalk, and the street-name
@@ -1271,6 +1320,8 @@ function buildLordAylmer(K, ring, tris) {
 }
 
 function siteLordAylmer(K) {
+  lightStandard(K, -396, 34, 7.5, 1.57);
+  crossing(K, -397, 60, 7, 3.0, 1.57, 4);
   K.mb.flatRot(-352, 118, 46, 32, 0.033, 0.1, flat(0x3d4a52));      // the yard
   for (const s of [-1, 1]) K.mb.flatRot(-352 + s * 20, 118, 0.14, 30, 0.037, 0.1, rgb(STRIPE));
   K.mb.flatRot(-352, 118, 44, 0.14, 0.037, 0.1, rgb(STRIPE));
@@ -1292,7 +1343,7 @@ export const SITES = [
   { key: 'heritage', cx: 5510, cz: -6790, r: 135, near: HERO_NEAR + 70,
     hide: [{ id: HC.id, at: [5500, -6790], keepRing: true }],
     build: buildHeritage, site: siteHeritage,
-    sign: { x: 5588, z: -6884, yaw: -0.55, w: 6.8, h: 1.7, y: 1.7,
+    sign: { x: 5578, z: -6906, yaw: -0.95, w: 6.8, h: 1.7, y: 1.7,
       text: 'HERITAGE COLLEGE', sub: 'Boul. de la Cité-des-Jeunes', board: '#7a2230' } },
   { key: 'symmesjr', cx: SJ.cx + 8, cz: SJ.cz, r: 44, near: HERO_NEAR,
     build: buildSymmesJr, site: siteSymmesJr,
