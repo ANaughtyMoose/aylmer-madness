@@ -1,0 +1,409 @@
+{
+  "spine": {
+    "goal": "Racheter le Ford Ranger 1993 blanc à son père pour 1 200 $ comptant avant le mardi du congé de la fête du Travail, tout en payant son propre gaz et les réparations de sa poche.",
+    "statedHow": "À la fin de la première matinée, ton père dépose les clés sur la table de cuisine à côté d'une vieille enveloppe brune de la Caisse populaire marquée au crayon feutre : 'Ranger — 1 200 $ avant septembre. Sinon le concessionnaire le prend en échange pis tu prends la bus.'",
+    "visibleAs": "Une enveloppe écornée épinglée au coin supérieur droit de l'écran avec le montant accumulé (ex: 340 $ / 1 200 $), qui monte avec les pourboires de livraisons et descend quand il faut acheter des pièces chez Canadian Tire ou mettre du gaz ordinaire à 85 cents le litre.",
+    "whyThisAndNotTheObvious": "Dans l'Outaouais en 2004, le Cégep coûte 150 $ par session : personne ne sue tout l'été pour payer ses frais scolaires. Ce qui te tue à 17 ans à Aylmer, c'est d'être piégé sans char. Sans char, aller à Heritage College ou traverser à Ottawa prend deux correspondances d'autobus STO et une heure et quart dans la pluie. Le Ranger n'est pas un symbole poétique abstrait : c'est l'outil physique qui décide si tu es libre ou si tu passes l'automne à attendre la ligne 41 au coin de Fraser."
+  },
+  "ending": {
+    "proposal": "Le dimanche soir de la fête du Travail, le joueur a réussi : l'enveloppe contient exactement 1 200 $ en coupures de vingt et de cinquante. Le camion tourne rond grâce aux pièces posées avec Russell. Le père rentre du chantier, prend l'enveloppe, compte l'argent sans sourire, la repousse vers son fils, et dépose le double des clés avec le certificat d'immatriculation signé à son nom. Il dit : 'Garde tes piasses pour tes plaques pis tes assurances. Tu vas en avoir besoin pour aller à tes cours.' Le joueur sort s'asseoir seul dans la cabine à minuit sur le chemin Fraser sous la pluie fine de septembre. La victoire est totale, mais le silence est lourd : l'été est fini, la bande d'amis se sépare pour de vrai demain matin, et devenir un adulte avec son propre char signifie simplement qu'on fait maintenant la route tout seul.",
+    "whyBetterThanA": "L'option A (choisir artificiellement entre 'garder l'argent pour partir' ou 'acheter le camion') est un faux dilemme de jeu vidéo qui méconnaît la réalité d'Aylmer : avoir un char n'est pas l'opposé de partir, c'est l'unique moyen pratique de se déplacer entre Gatineau, Hull et Ottawa. Forcer un choix binaire détruirait l'authenticité locale.",
+    "whyBetterThanB": "L'option B (une tuile financière imprévue qui prive le joueur de son argent au dernier moment) ressemble à une punition scénaristique injuste et mélodramatique qui annule les efforts du joueur tout l'été pour imposer une fausse leçon de morale.",
+    "finalScene": "Mardi 7 septembre 2004, 6h45 du matin. Le joueur est arrêté au feu rouge du boulevard Wilfrid-Lavigne dans le Ranger blanc. Les essuie-glaces balayent une brume d'automne froide. Le fil de la cassette adaptatrice pend sur le tableau de bord, branché à un lecteur CD où tourne 'Toune d'automne' des Cowboys Fringants. Dans le rétroviseur, les feux de circulation passent au vert. La file de camionnettes et de berlines s'engage sur le chemin d'Aylmer vers le pont Champlain. Le joueur passe la première, relâche la clutch sans caler, et s'insère dans le trafic."
+  },
+  "vehicleJobs": [
+    {
+      "vehicle": "Ford Ranger XL 1993",
+      "job": "Le transport du canot de cèdre",
+      "why": "Impossible d'embarquer un canot de 16 pieds et deux rames en bois dans une Civic ou une Saturn : la boîte de six pieds avec les ridelles ouvertes et deux sangles à cliquet est le seul moyen de franchir le chemin Fraser jusqu'à la plage.",
+      "cargo": "Canot de cèdre 16 pieds, 2 pagaies en frêne, veste de flottaison orange."
+    },
+    {
+      "vehicle": "Honda Civic 1993 (Sayyad)",
+      "job": "La course contre la montre pour les billets",
+      "why": "Le Ranger est trop lourd et lent pour traverser le boulevard des Allumettières en moins de quatre minutes avant la fermeture du guichet : la Civic abaissée de Sayyad avec son swap de moteur permet de se faufiler dans le trafic dense de Hull.",
+      "cargo": "Enveloppe scellée de laissez-passer VIP pour le festival de montgolfières."
+    },
+    {
+      "vehicle": "Saturn SL2 1998 (Margaret)",
+      "job": "La tournée des dames de la paroisse",
+      "why": "La boîte de pickup et la Civic deux portes sont inutilisables pour transporter Margaret et trois bénévoles âgées de la Société d'histoire : les quatre portes et la suspension souple de la Saturn sont indispensables.",
+      "cargo": "Margaret, deux dames de la chorale, un plateau de carrés aux dattes et trois classeurs d'archives."
+    },
+    {
+      "vehicle": "Diamondback Mountain Bike (Le joueur)",
+      "job": "Le raccourci de la baie Fraser",
+      "why": "Les sentiers pédestres boisés entre les marais de la baie Fraser et le phare sont barrés par des blocs de béton municipaux infranchissables en véhicule motorisé.",
+      "cargo": "Sac à dos contenant deux cannes à pêche télescopiques démontées et une boîte de vers de terre."
+    },
+    {
+      "vehicle": "Chrome Cruiser (Sayyad)",
+      "job": "La livraison de crèmes glacées sur la promenade",
+      "why": "La passerelle en bois de la Plage des Cèdres est strictement interdite aux voitures mais autorisée aux vélos de plage : il faut pédaler d'une main avec la glacière sur le guidon.",
+      "cargo": "Petite glacière isolée remplie de sandwichs à la crème glacée et de sucettes glacées fusée."
+    },
+    {
+      "vehicle": "Voiturette de golf électrique",
+      "job": "Le sauvetage des sacs au 18e trou",
+      "why": "Interdiction absolue de faire rouler une camionnette sur le gazon entretenu du Club de Golf Gatineau sous peine de renvoi immédiat par le surintendant.",
+      "cargo": "Trois sacs de golf en cuir lourd avec fers et bois d'allée oubliés sous l'orage."
+    },
+    {
+      "vehicle": "Autobus urbain STO",
+      "job": "Le quart de soir des fonctionnaires",
+      "why": "Seul un autobus régulier peut emprunter les voies réservées aux autobus sur le pont du Portage et embarquer quarante passagers sortant des tours de la Place du Portage.",
+      "cargo": "42 travailleurs de la fonction publique fédérale fatigués avec leurs parapluies."
+    },
+    {
+      "vehicle": "Autobus scolaire jaune Blue Bird",
+      "job": "Le déménagement des instruments de musique",
+      "why": "Les grosses caisses de fanfare, les timbales d'orchestre et les pupitres de l'école Symmes ne rentrent dans aucun véhicule particulier : l'allée centrale de l'autobus scolaire est requise.",
+      "cargo": "Deux timbales symphoniques, trois tubas en étuis rigides et vingt pupitres pliants."
+    }
+  ],
+  "campaign": [
+    {
+      "n": 1,
+      "title": "Le premier départ",
+      "setup": "Ton père te laisse les clés sur la table avec l'enveloppe vide des 1 200 $. Première mission : aller porter la cassette de Sayyad chez lui avant midi.",
+      "giver": "Ton père",
+      "from": "299 Chemin Fraser (chez nous)",
+      "to": "75 Denise-Friend (Sayyad)",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Trajet court de deux minutes pour tester l'embrayage raide et la première vitesse du Ranger sur le chemin Fraser.",
+      "complication": "Le moteur cale si tu ne donnes pas un filet de gaz précis en rétrogradant au coin de Denise-Friend.",
+      "reward": {
+        "kind": "character",
+        "what": "Sayyad devient disponible comme passager permanent avec ses anecdotes et sa cassette de Blink-182."
+      },
+      "spineProgress": "0 $ / 1 200 $ — Le compteur est lancé, le camion est entier.",
+      "connects": "Sayyad saute sur le siège passager et déclare qu'on ne peut pas commencer l'été sans café glacé."
+    },
+    {
+      "n": 2,
+      "title": "La tournée des deux-deux",
+      "setup": "Sayyad veut deux grands cafés deux-deux et une boîte de Timbits au Tim Hortons de la Principale.",
+      "giver": "Sayyad",
+      "from": "75 Denise-Friend (Sayyad)",
+      "to": "Tim Hortons Principale",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Descendre le boulevard Wilfrid-Lavigne et s'insérer dans le cœur du Vieux-Aylmer.",
+      "complication": "File monstre au service au volant qui déborde sur la rue; il faut se parker de reculons dans une ruelle serrée.",
+      "reward": {
+        "kind": "shortcut",
+        "what": "Ruelle pavée Court-Principale évitant le feu rouge du centre-ville."
+      },
+      "spineProgress": "25 $ amassés en pourboire de commande pour l'enveloppe.",
+      "connects": "En buvant son café, Sayyad entend un sifflement aigu sous le capot et propose d'aller voir Russell."
+    },
+    {
+      "n": 3,
+      "title": "Le poêle à bois de Russell",
+      "setup": "Aller faire vérifier la courroie d'alternateur lousse au garage de fond de cour de Russell sur la rue Arial.",
+      "giver": "Sayyad",
+      "from": "Tim Hortons Principale",
+      "to": "1 rue Arial (Russell)",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Trouver la maison mansardée blanche et reculer le Ranger dans l'atelier enfumé de Russell.",
+      "complication": "L'allée est bloquée par le F-250 du père de Russell et un banc de sciure; manœuvre au millimètre.",
+      "reward": {
+        "kind": "place",
+        "what": "Accès illimité à l'atelier de Russell pour les réparations gratuites contre des pointes de pizza."
+      },
+      "spineProgress": "Économie de 80 $ de main-d'œuvre de mécanicien professionnel.",
+      "connects": "Russell resserre la courroie et mentionne que Mike McDonald a besoin de bras pour du bois."
+    },
+    {
+      "n": 4,
+      "title": "La rampe de Frank-Robinson",
+      "setup": "Mike McDonald a récupéré douze madriers de pin de 10 pieds pour bâtir une rampe de skate derrière l'aréna.",
+      "giver": "Mike McDonald",
+      "from": "1 rue Arial (Russell)",
+      "to": "Aréna Frank-Robinson",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Charger les madriers qui dépassent de la ridelle et traverser Aylmer jusqu'au stationnement de l'aréna.",
+      "complication": "Les planches glissent dangereusement sur les gros dos d'âne du parc si la vitesse dépasse 30 km/h.",
+      "reward": {
+        "kind": "tool",
+        "what": "Coffre de douilles Mastercraft en pouces et millimètres laissé dans la boîte du camion."
+      },
+      "spineProgress": "60 $ de pourboire ajoutés à l'enveloppe (Total : 85 $ / 1 200 $).",
+      "connects": "À l'aréna, Mike t'apprend que le Sunfire d'Adam Actell ne démarre plus du tout à Deschênes."
+    },
+    {
+      "n": 5,
+      "title": "Le dépannage de Deschênes",
+      "setup": "Aller porter des câbles à booster et une batterie de secours à Adam sur le chemin Vanier.",
+      "giver": "Mike McDonald",
+      "from": "Aréna Frank-Robinson",
+      "to": "20 chemin Vanier, Deschênes (Adam)",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Descente rapide vers le secteur Deschênes le long des rails désaffectés.",
+      "complication": "Les crevasses de l'asphalte défoncé de Vanier font rebondir le train arrière vide du pickup.",
+      "reward": {
+        "kind": "character",
+        "what": "Adam Actell devient passager régulier avec son flegme et son sac de chips."
+      },
+      "spineProgress": "50 $ payés par Adam pour le remorquage (Total : 135 $ / 1 200 $).",
+      "connects": "Adam constate que ses bougies sont calcinées et qu'il faut courir chez Canadian Tire."
+    },
+    {
+      "n": 6,
+      "title": "L'urgence de Canadian Tire",
+      "setup": "Acheter quatre bougies Champion et de l'huile 5W30 avant la fermeture du comptoir aux Galeries.",
+      "giver": "Adam Actell",
+      "from": "20 chemin Vanier, Deschênes (Adam)",
+      "to": "Canadian Tire",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Course contre la montre à travers les boulevards commerciaux d'Aylmer sous la chaleur de 16h.",
+      "complication": "Un orage d'été soudain détrempe l'asphalte et les vieux balais d'essuie-glaces laissent des traces d'eau opaques.",
+      "reward": {
+        "kind": "tool",
+        "what": "Jauge de pression des pneus et entonnoir flexible sous le banc passager."
+      },
+      "spineProgress": "Dépense de 22 $ de pièces, mais Adam rembourse 40 $ (Total : 153 $ / 1 200 $).",
+      "connects": "Dans le stationnement, Margaret t'aperçoit et te sollicite pour une mission patrimoniale délicate."
+    },
+    {
+      "n": 7,
+      "title": "Les registres de Madame Margaret",
+      "setup": "Transporter trois lourdes boîtes de registres paroissiaux du XIXe siècle jusqu'à l'Auberge Symmes.",
+      "giver": "Margaret",
+      "from": "Canadian Tire",
+      "to": "l'Auberge Symmes",
+      "vehicle": "Saturn SL2 1998 (Margaret)",
+      "what": "Conduire la Saturn automatique de Margaret avec les dames de la Société historique à bord.",
+      "complication": "Margaret exige zéro accélération brusque et une conduite feutrée pour ne pas abîmer le papier ancien.",
+      "reward": {
+        "kind": "cash",
+        "what": "75 $ en liquide remis avec un paquet de pastilles à la menthe."
+      },
+      "spineProgress": "Total : 228 $ / 1 200 $ amassés.",
+      "connects": "Au bord de l'eau, Sayyad repère un prospect mécanique au lot d'autos usagées."
+    },
+    {
+      "n": 8,
+      "title": "La pièce rare du lot d'autos",
+      "setup": "Aller démonter un miroir passager chromé et un câble d'accélérateur sur une épave de Ranger 92.",
+      "giver": "Sayyad",
+      "from": "l'Auberge Symmes",
+      "to": "le lot d'autos usagées",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Remonter le chemin d'Aylmer en longeant les clôtures de cèdres.",
+      "complication": "Le gérant du lot ne te donne que sept minutes pour dévisser la pièce avant de lâcher son chien de garde.",
+      "reward": {
+        "kind": "place",
+        "what": "Accès autorisé à la cour à scrap pour récupérer de la quincaillerie d'époque."
+      },
+      "spineProgress": "Miroir réparé sans frais au lieu des 110 $ demandés par le concessionnaire.",
+      "connects": "Zahra envoie un télémessage : elle est coincée avec son projet de sciences à l'école."
+    },
+    {
+      "n": 9,
+      "title": "La livraison express de Zahra",
+      "setup": "Passer prendre Zahra et ses maquettes d'expo-sciences à l'école pour les déposer à la plage.",
+      "giver": "Zahra",
+      "from": "le lot d'autos usagées",
+      "to": "Plage des Cèdres",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Traverser les secteurs résidentiels vers les grands arbres du parc riverain.",
+      "complication": "Piétons distraits et enfants avec flotteurs gonflables qui traversent sans regarder le long de la plage.",
+      "reward": {
+        "kind": "shortcut",
+        "what": "Sentier secret en gravier fin longeant la rive de la baie Fraser."
+      },
+      "spineProgress": "40 $ de pourboire remis par la mère de Zahra (Total : 268 $ / 1 200 $).",
+      "connects": "Zahra pointe le cadran : le voyant de réserve d'essence clignote et ton père surveille le millage."
+    },
+    {
+      "n": 10,
+      "title": "Le reçu de Petro-Points",
+      "setup": "Mettre 20 $ de gaz ordinaire au Petro-Canada et rapporter le reçu horodaté exact à ton père.",
+      "giver": "Ton père",
+      "from": "Plage des Cèdres",
+      "to": "la station Petro-Canada",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Remonter vers le carrefour commercial de Wilfrid-Lavigne.",
+      "complication": "L'imprimante extérieure est en panne; il faut négocier avec la caissière pendant qu'un pickup de livraison bloque la sortie.",
+      "reward": {
+        "kind": "cash",
+        "what": "Ton père te rembourse le plein et ajoute 50 $ pour le bon entretien du carnet de bord."
+      },
+      "spineProgress": "Total : 318 $ / 1 200 $.",
+      "connects": "À la pompe, Mike arrive essoufflé : le spectacle rock de l'Hôtel British manque de gros amplis."
+    },
+    {
+      "n": 11,
+      "title": "Les baffles du British",
+      "setup": "Transporter deux gros amplificateurs Marshall 4x12 pesants pour le concert open-mic du British.",
+      "giver": "Mike McDonald",
+      "from": "la station Petro-Canada",
+      "to": "l'Hôtel British",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Glisser au cœur de la rue Principale bondée de terrasses animées du vendredi soir.",
+      "complication": "Terrasses bondées débordant sur la rue et camions de bière stationnés en double file devant l'auberge.",
+      "reward": {
+        "kind": "cash",
+        "what": "100 $ payés par le gérant du bar plus deux pichets de racinette artisanale."
+      },
+      "spineProgress": "Total : 418 $ / 1 200 $.",
+      "connects": "Au bar, Sayyad et Zahra te mettent au défi d'aller livrer du matériel d'inscription jusqu'au Cégep de Hull."
+    },
+    {
+      "n": 12,
+      "title": "La traversée d'Allumettières",
+      "setup": "Livrer des cartons de guides étudiants pour la rentrée d'automne au campus de Heritage College.",
+      "giver": "Zahra",
+      "from": "l'Hôtel British",
+      "to": "Heritage College",
+      "vehicle": "Honda Civic 1993 (Sayyad)",
+      "what": "Première grande virée intersectorielle à haute vitesse sur le boulevard des Allumettières.",
+      "complication": "Radars de la police de Gatineau embusqués sur les longues lignes droites; garder un œil sur le speedomètre.",
+      "reward": {
+        "kind": "place",
+        "what": "Accès débloqué aux voies rapides et au réseau routier de Hull."
+      },
+      "spineProgress": "120 $ de contrat de livraison collégiale (Total : 538 $ / 1 200 $).",
+      "connects": "À Heritage, un commis d'entrepôt demande un transport urgent de matériel vers le centre commercial."
+    },
+    {
+      "n": 13,
+      "title": "Le sprint des Galeries de Hull",
+      "setup": "Acheminer six boîtes de dépliants publicitaires aux Galeries de Hull avant la fermeture des portes de 21h.",
+      "giver": "Sayyad",
+      "from": "Heritage College",
+      "to": "Galeries de Hull",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Navigation dans le trafic dense du boulevard Saint-Joseph au milieu des autobus de la STO.",
+      "complication": "Chantier d'excavation imprévu et nids-de-poule majeurs près du viaduc.",
+      "reward": {
+        "kind": "cash",
+        "what": "150 $ en billets neufs pour une livraison express sans retard."
+      },
+      "spineProgress": "Total : 688 $ / 1 200 $ — La moitié de la somme est dépassée!",
+      "connects": "Aux Galeries, Norm Lafleur te repère et t'offre une course payante vers l'Ontario."
+    },
+    {
+      "n": 14,
+      "title": "La livraison du pont Champlain",
+      "setup": "Transporter un carburateur usiné rare pour un client du marché ByWard à Ottawa via le pont Champlain.",
+      "giver": "Norm Lafleur",
+      "from": "Galeries de Hull",
+      "to": "Marché By",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Franchir la rivière des Outaouais sur le pont Champlain et rouler dans les ruelles pavées du marché ontarien.",
+      "complication": "Fort vent de travers sur le pont faisant louvoyer la boîte haute et touristes denses marchant dans la rue au marché.",
+      "reward": {
+        "kind": "place",
+        "what": "Libre passage permanent sur tous les ponts interprovinciaux vers Ottawa (Marché By, Rideau, Parlement)."
+      },
+      "spineProgress": "180 $ payés par l'atelier d'usinage (Total : 868 $ / 1 200 $).",
+      "connects": "Au Marché By, Margaret t'attend avec un contrat pour ramener des pièces fragiles au musée."
+    },
+    {
+      "n": 15,
+      "title": "La navette de nuit du Musée",
+      "setup": "Rapatrier des maquettes historiques depuis Ottawa vers l'esplanade du Musée canadien de l'histoire.",
+      "giver": "Margaret",
+      "from": "Marché By",
+      "to": "Musée canadien de l'histoire",
+      "vehicle": "Saturn SL2 1998 (Margaret)",
+      "what": "Franchir le pont du Portage de nuit sous les illuminations du Parlement.",
+      "complication": "Contrôle routier de routine à la sortie du pont et visibilité réduite par la bruine sur le pare-brise.",
+      "reward": {
+        "kind": "shortcut",
+        "what": "Bretelle de service réservée sous le pont Portage longeant la rive de la rivière."
+      },
+      "spineProgress": "100 $ donnés par la conservation du musée (Total : 968 $ / 1 200 $).",
+      "connects": "Au Musée, Mike McDonald appelle en panique : son compresseur s'est embourbé dans les côtes de Chelsea."
+    },
+    {
+      "n": 16,
+      "title": "L'ascension de Chelsea",
+      "setup": "Monter la route 105 dans les collines boisées de Chelsea pour remorquer la remorque d'outils de Mike.",
+      "giver": "Mike McDonald",
+      "from": "Musée canadien de l'histoire",
+      "to": "Chelsea",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Ascension des pentes abruptes du parc de la Gatineau sur route sinueuse.",
+      "complication": "Le 2.3 litres chauffe dans les montées à 12%; il faut rétrograder en deuxième et surveiller la température.",
+      "reward": {
+        "kind": "tool",
+        "what": "Sangle de remorquage professionnelle en nylon renforcé 10 000 lbs avec crochets d'acier forgé."
+      },
+      "spineProgress": "120 $ de pourboire de dépannage (Total : 1 088 $ / 1 200 $).",
+      "connects": "À Chelsea, Mike te parle du contrat VIP du festival pyrotechnique au Casino du Lac-Leamy."
+    },
+    {
+      "n": 17,
+      "title": "La nuit des feux du Casino",
+      "setup": "Livrer des caisses de fournitures et des laissez-passer au Casino du Lac-Leamy avant le feu d'artifice de 22h.",
+      "giver": "Sayyad",
+      "from": "Chelsea",
+      "to": "Casino du Lac-Leamy",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Descente rapide des collines vers le complexe illuminé du lac Leamy au milieu d'une marée de spectateurs.",
+      "complication": "Accotements bloqués par des centaines de spectateurs garés et barrages de sécurité serrés.",
+      "reward": {
+        "kind": "cash",
+        "what": "250 $ de prime d'urgence des organisateurs (Objectif des 1 200 $ atteint et dépassé : 1 338 $!)."
+      },
+      "spineProgress": "OBJECTIF ATTEINT : 1 338 $ / 1 200 $ dans l'enveloppe.",
+      "connects": "Les feux éclatent dans le ciel; ton père t'attend à la maison pour le dénouement."
+    },
+    {
+      "n": 18,
+      "title": "Le retour sur Fraser",
+      "setup": "Rentrer à la maison en empruntant le boulevard Lucerne au coucher du soleil pour garer le Ranger dans l'entrée.",
+      "giver": "Ton père",
+      "from": "Casino du Lac-Leamy",
+      "to": "299 Chemin Fraser (chez nous)",
+      "vehicle": "Ford Ranger XL 1993",
+      "what": "Une longue chevauchée crépusculaire solitaire le long des rives de l'Outaouais d'est en ouest jusqu'à Fraser.",
+      "complication": "Le soleil couchant rasant éclaire les reflets du fleuve; tu connais désormais chaque vitesse et chaque craque d'asphalte.",
+      "reward": {
+        "kind": "vehicle",
+        "what": "Les clés du Ford Ranger 1993 et les enregistrements remis à ton nom pour l'automne."
+      },
+      "spineProgress": "1 200 $ remis sur la table, rendus par le père avec les clés.",
+      "connects": "Fin de la campagne : l'été 2004 s'achève, tu es prêt pour la route."
+    }
+  ],
+  "friendsOnTheSpine": [
+    {
+      "who": "Sayyad",
+      "believes": "Prend pour acquis que le joueur reste à Aylmer pour toujours. Pour lui, acheter le Ranger c'est l'assurance qu'ils vont continuer à cruiser sur la Principale et écouter de la musique ensemble tout l'automne.",
+      "saysWhen": "Pendant un arrêt au feu rouge sur le boulevard Lucerne en juillet, en ajustant le volume de la radio.",
+      "line": "Pourquoi tu voudrais sacrer ton camp à Montréal ou à Ottawa, mon chum? On a la plage, le Tim, ton truck pis ma Civic. Y a pas un meilleur spot sur la terre.",
+      "changesMind": false
+    },
+    {
+      "who": "Zahra",
+      "believes": "Prend pour acquis que le joueur va quitter la ville pour aller à l'université ou dans une grande ville. Elle voit le Ranger comme un tremplin temporaire et trouve que ceux qui restent à Aylmer manquent d'ambition.",
+      "saysWhen": "Sur le siège passager en arrivant devant l'école Symmes avec ses cahiers sous le bras.",
+      "line": "Ramasse ton douze cents piasses, mais fais pas comme mon frère : utilise ton char pour sortir d'icitte. Si j'te vois encore flâner au dépanneur dans cinq ans, j'te parle pu.",
+      "changesMind": false
+    },
+    {
+      "who": "Margaret",
+      "believes": "Refuse délibérément de se prononcer sur l'avenir du joueur. Elle comprend que les projets de 17 ans changent avec le vent et préfère lui enseigner la patience et la tenue de route.",
+      "saysWhen": "Dans la Saturn en roulant doucement le long du parc de l'Auberge Symmes.",
+      "line": "Te tracasse pas avec ce que tu feras en septembre, mon grand. Fais juste bien conduire aujourd'hui. Le chemin se trace sous les roues quand on avance doucement.",
+      "changesMind": false
+    },
+    {
+      "who": "Adam Actell",
+      "believes": "Assume avec flegme que tout le monde finit par rester parce que déménager demande beaucoup trop d'efforts.",
+      "saysWhen": "Assis dans le fossé en mangeant ses chips pendant que tu vérifies le niveau d'huile du Ranger.",
+      "line": "Partir d'Aylmer, c'est du trouble en maudit. Tu vas te louer un une-pièce à Montréal avec des coquerelles, t'auras pu de place pour parquer ton truck, pis tu vas revenir chez vous à Noël.",
+      "changesMind": false
+    },
+    {
+      "who": "Mike McDonald",
+      "believes": "Assume au début de l'été que le joueur va rester pour monter une shop de rénovation et de mécanique avec lui. Mais au fil des semaines, en voyant la débrouillardise et le sérieux du joueur, il change d'avis et l'encourage à aller voir plus grand.",
+      "saysWhen": "À la mi-août dans son allée sur Frank-Robinson en rangeant ses outils dans le coffre du Ranger.",
+      "line": "Au début d'l'été, j'me disais qu'on se partirait une business de livraison de matériaux tous les deux... Mais r'garde comment tu chauffes pis comment tu gères tes affaires. T'es fait pour aller plus loin que le bout de la 148, mon gars.",
+      "changesMind": true
+    }
+  ]
+}

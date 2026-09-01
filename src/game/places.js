@@ -45,6 +45,10 @@ export const PLACES = {
   // ---- side jobs -------------------------------------------------------
   // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.
   ctire:     { poi: 'Canadian Tire', x: 429.2, z: -242.8, label: 'Canadian Tire, chemin d’Aylmer', snap: true, lot: true },
+  // Norm's is a real destination and needs its own pin. It used to borrow
+  // PLACES.ctire, so the only garage in the game that charges money was
+  // invisible on the map — you could only find it by driving past.
+  norm:      { x: 470, z: -212, label: 'Garage Norm Lafleur & Fils', snap: true, lot: true, landmark: true },
   // The used lot: a gravel corner on chemin d'Aylmer beside the Canadian Tire.
   // Four beaters nose-to-tail and a plywood sign — see game/garage.js.
   usedlot:   { road: "Chemin d'Aylmer", x: 520, z: -246, label: 'Lot d’occasion, chemin d’Aylmer', snap: true },

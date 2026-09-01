@@ -27,7 +27,7 @@ import * as kijiji from './kijiji.js';
 // the bay on chemin d'Aylmer still says « & Fils »; the sons have not spoken to
 // him since 1996.
 const SHOPS = [
-  { place: 'ctire', name: 'Garage Norm Lafleur & Fils', line: 'chemin d’Aylmer, la baie en arrière' },
+  { place: 'norm', name: 'Garage Norm Lafleur & Fils', line: 'chemin d’Aylmer, la baie en arrière' },
   { place: 'gas', name: 'Norm, en dépannage', line: 'à la Petro-Canada' },
 ];
 const SHOP_RADIUS = 30;
