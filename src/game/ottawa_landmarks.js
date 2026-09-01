@@ -32,7 +32,7 @@ const NEAR = 480;
 const C = {
   stone: 0xd6cdb8, stoneDim: 0xc2b9a4, stoneBase: 0xa79e8c,
   trim: 0xa9a794, gothic: 0x9d9c8a,
-  copper: 0x6aa78f, copperDim: 0x548f79, copperLit: 0x7fbba3,
+  copper: 0x3f6d5b, copperDim: 0x33594b, copperLit: 0x4d8069,
   slate: 0x4a5058,
   glass: 0x35505e, glassLit: 0x54808f, glassPale: 0x7ea8b6,
   brick: 0x9c5a46, brickDim: 0x864b3a, brickLite: 0xb0705a,
@@ -152,23 +152,41 @@ function windows(mb, ring, y0, rowH, rows, pitch, w, h, col0, budget, opts = {})
   const n = ring.length;
   const fwd = ringArea2(ring) < 0;
   const arch = opts.arch ? h * 0.42 : 0;
+  const per = arch ? 3 : 2;                     // triangles per opening
+
+  // Every wall long enough to hold one. Walking the ring and stopping when a
+  // running total hits the budget puts every window on the first few edges and
+  // leaves the rest of the building blank — which is exactly what a 54-edge
+  // hotel footprint did. Collect the candidates first, then scale them all down
+  // together, so a long elevation gets proportionally more and a short one
+  // still gets its one.
+  const bays = [];
+  let want = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const a = ring[fwd ? i : j], b = ring[fwd ? j : i];
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    const L = Math.hypot(dx, dz);
+    if (L < pitch * 1.1) continue;
+    const c = Math.max(1, Math.floor((L - pitch * 0.7) / pitch));
+    bays.push({ ax: a[0], az: a[1], dx: dx / L, dz: dz / L, L, c });
+    want += c;
+  }
+  if (!bays.length) return 0;
+  const scale = Math.min(1, budget / Math.max(1, want * rows * per));
+
   let used = 0;
-  for (let r = 0; r < rows && used < budget; r++) {
+  for (let r = 0; r < rows; r++) {
     const yb = y0 + r * rowH;
-    for (let i = 0; i < n && used < budget; i++) {
-      const j = (i + 1) % n;
-      const a = ring[fwd ? i : j], b = ring[fwd ? j : i];
-      let dx = b[0] - a[0], dz = b[1] - a[1];
-      const L = Math.hypot(dx, dz);
-      if (L < pitch * 1.4) continue;
-      dx /= L; dz /= L;
+    for (const e of bays) {
+      const count = Math.max(1, Math.round(e.c * scale));
+      const step = (e.L - pitch * 0.7) / count;
       // Outward normal, so the glass sits just proud of the wall it is cut into.
-      const nx = -dz * 0.08, nz = dx * 0.08;
-      const count = Math.max(1, Math.floor((L - pitch * 0.7) / pitch));
-      for (let k = 0; k < count && used < budget; k++) {
-        const t = (L - (count - 1) * pitch) / 2 + k * pitch;
-        const cx = a[0] + dx * t + nx, cz = a[1] + dz * t + nz;
-        const tx = dx * w / 2, tz = dz * w / 2;
+      const nx = -e.dz * 0.08, nz = e.dx * 0.08;
+      for (let k = 0; k < count; k++) {
+        const t = pitch * 0.35 + (k + 0.5) * step;
+        const cx = e.ax + e.dx * t + nx, cz = e.az + e.dz * t + nz;
+        const tx = e.dx * w / 2, tz = e.dz * w / 2;
         mb.quad([cx - tx, yb, cz - tz], [cx + tx, yb, cz + tz],
           [cx + tx, yb + h, cz + tz], [cx - tx, yb + h, cz - tz], col);
         used += 2;
@@ -249,8 +267,23 @@ export const HERO = [
     build: buildStVincent, buildFar: buildStVincentFar },
 ];
 
-// Footprints, keyed by OSM way id, filled in by clearHeroFootprints().
+// Footprints, keyed by OSM way id, filled in by clearHeroFootprints() from the
+// live map. seedRings() is the other way in: it lets the landmark lab draw
+// these buildings without parsing 21 MB of map modules first, which is the
+// difference between iterating on a roofline once a second and once a minute.
 const RINGS = new Map();
+
+export function seedRings(table) {
+  for (const [id, ring] of Object.entries(table)) RINGS.set(Number(id), ring);
+  return RINGS.size;
+}
+
+// What clearHeroFootprints() captured, for tools/build_hero_rings.mjs to bake.
+export function heroRings() {
+  const out = {};
+  for (const [id, ring] of RINGS) out[id] = ring;
+  return out;
+}
 
 function ring(id, origin) {
   const r = RINGS.get(id);
@@ -267,6 +300,62 @@ function longAxis(r) {
     if (L > best) { best = L; ang = Math.atan2(b[1] - a[1], b[0] - a[0]); }
   }
   return { ang, len: best };
+}
+
+// Footprint extents in the building's OWN frame. The axis-aligned box of a
+// rotated rectangle is much bigger than the rectangle — the ByWard market
+// building is 71 x 96 m turned 30 degrees, whose AABB is 111 x 119 — and a roof
+// sized from the AABB overhangs the walls by twenty metres.
+//
+// The u axis is the longest edge, matching the yaw convention tower()/roof()
+// use when they are passed -ang.
+function oriented(ring, ang) {
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  let u0 = 1e9, u1 = -1e9, v0 = 1e9, v1 = -1e9;
+  for (const p of ring) {
+    const u = p[0] * ca + p[1] * sa, v = -p[0] * sa + p[1] * ca;
+    if (u < u0) u0 = u; if (u > u1) u1 = u;
+    if (v < v0) v0 = v; if (v > v1) v1 = v;
+  }
+  const cu = (u0 + u1) / 2, cv = (v0 + v1) / 2;
+  return {
+    w: u1 - u0, d: v1 - v0,
+    cx: cu * ca - cv * sa, cz: cu * sa + cv * ca,
+    // Unit vectors of the local axes, for placing things along the elevation.
+    ux: ca, uz: sa, vx: -sa, vz: ca,
+  };
+}
+
+// A spot on the ring's n-th longest edge: its midpoint, pushed `out` metres
+// straight out of the wall, with the yaw that lines a box up with it.
+//
+// Anything that leans against a building — an entrance canopy, a bridge over
+// the street, an ambulance porch — has to be placed against an actual wall.
+// Offsetting from the footprint's bounding box works for a rectangle and puts
+// the Rideau Centre's glass bridge 150 m out over Confederation Square for
+// anything L-shaped, which is most of these.
+function edgeSpot(ring, rank, out) {
+  const n = ring.length;
+  const es = [];
+  for (let i = 0; i < n; i++) {
+    const a = ring[i], b = ring[(i + 1) % n];
+    es.push({ a, b, L: Math.hypot(b[0] - a[0], b[1] - a[1]) });
+  }
+  es.sort((p, q) => q.L - p.L);
+  const e = es[Math.min(rank, es.length - 1)];
+  const dx = (e.b[0] - e.a[0]) / e.L, dz = (e.b[1] - e.a[1]) / e.L;
+  // Outward is whichever normal points away from the centroid.
+  const c = centroid(ring);
+  const mx = (e.a[0] + e.b[0]) / 2, mz = (e.a[1] + e.b[1]) / 2;
+  let nx = -dz, nz = dx;
+  if ((mx - c[0]) * nx + (mz - c[1]) * nz < 0) { nx = -nx; nz = -nz; }
+  return { x: mx + nx * out, z: mz + nz * out, yaw: -Math.atan2(dz, dx), len: e.L };
+}
+
+// A continuous band of glazing right round a footprint — a ribbon window. What
+// a 1983 shopping centre has instead of punched openings, and cheaper.
+function ribbon(mb, ring, y0, h, col) {
+  return walls(mb, offsetRing(ring, -0.07), y0, y0 + h, col);
 }
 
 function bbox(r) {
@@ -315,15 +404,15 @@ function buildParliament(mb, o) {
 
   const cLo = offsetRing(centre, 0.35);
   const cHi = offsetRing(centre, 10.5);
-  skirt(mb, cLo, cHi, EAVE, EAVE + 14.5, rgb(C.copper));
-  cap(mb, cHi, EAVE + 14.5, rgb(C.copperDim));
+  skirt(mb, cLo, cHi, EAVE, EAVE + 18.0, rgb(C.copper));
+  cap(mb, cHi, EAVE + 18.0, rgb(C.copperDim));
   // A ridge lantern down the middle: the deck is 137 m across and without
   // something standing on it the roof reads as a chamfered box from the street.
   // 14 m is as far in as this footprint's wings allow — past about 16 the
   // offset ring starts folding through itself and the lantern turns to spikes.
   const cRidge = offsetRing(centre, 14.0);
-  walls(mb, cRidge, EAVE + 14.5, EAVE + 17.6, C.copperDim);
-  cap(mb, cRidge, EAVE + 17.6, rgb(C.copperLit));
+  walls(mb, cRidge, EAVE + 18.0, EAVE + 21.5, C.copperDim);
+  cap(mb, cRidge, EAVE + 21.5, rgb(C.copperLit));
   dormers(mb, offsetRing(centre, 2.4), EAVE + 4.2, 18, 3.4, 3.2,
     rgb(C.copperLit), rgb(C.stone));
   // Corner pavilions: the roofline is the silhouette, and four stone turrets
@@ -456,7 +545,8 @@ function buildParliamentFar(mb, o) {
 function buildChateau(mb, o) {
   const r = ring(68588409, o);
   if (!r) return;
-  const b = bbox(r);
+  const la = longAxis(r).ang;
+  const b = oriented(r, la);
   // Indiana limestone, eight storeys to the eaves, then the roof that is most of
   // the building. Bradford Lee Gilbert's château style: the roof is not a hat,
   // it is a third of the elevation.
@@ -465,7 +555,7 @@ function buildChateau(mb, o) {
   walls(mb, r, 2.2, EAVE, C.stone);
   band(mb, r, 6.6, 7.2, 0.32, C.trim);
   band(mb, r, EAVE - 1.0, EAVE, 0.5, C.stoneDim);
-  windows(mb, r, 3.4, 3.3, 7, 3.3, 1.35, 2.15, rgb(C.glass), 620);
+  windows(mb, r, 3.2, 3.2, 8, 2.9, 1.3, 2.0, rgb(C.glass), 1600);
 
   const lo = offsetRing(r, 0.2), hi = offsetRing(r, 10.5);
   skirt(mb, lo, hi, EAVE, EAVE + ROOF, rgb(C.copper));
@@ -474,16 +564,18 @@ function buildChateau(mb, o) {
   dormers(mb, offsetRing(r, 2.0), EAVE + 3.4, 16, 3.0, 3.0, rgb(C.copperLit), rgb(C.stone));
   dormers(mb, offsetRing(r, 5.6), EAVE + 11.0, 10, 2.2, 2.2, rgb(C.copperLit), rgb(C.stone));
 
-  // Round corner turrets with tall conical caps — the Château's signature.
+  // Round corner turrets with tall conical caps — the Château's signature. They
+  // start at the eaves, not the ground: the real ones are corbelled roof
+  // features, and a full-height cylinder reads as a grain silo parked in front
+  // of the facade.
   for (const c of corners(r)) {
-    turret(mb, c[0], c[1], 4.2, 0, EAVE + 3.0, 15.0, rgb(C.stone), rgb(C.copper), 10);
+    turret(mb, c[0], c[1], 3.4, EAVE - 3.0, 8.0, 16.0, rgb(C.stone), rgb(C.copper), 10);
   }
   // The central pavilion over the Rideau Street entrance, a storey taller.
-  const pw = Math.min(b.w, b.d) * 0.44;
-  mb.tower(b.cx, EAVE - 1.0, b.cz, pw, pw, 7.0, rgb(C.stone),
-    { yaw: -longAxis(r).ang, noBottom: true });
-  mb.hip(b.cx, EAVE + 6.0, b.cz, pw, pw, 11.0, rgb(C.copper), -longAxis(r).ang, 0.9);
-  mb.cyl(b.cx, EAVE + 17.5, b.cz, 0.2, 4.0, 4, rgb(C.gold), 'y', false);
+  const pw = Math.min(b.w, b.d) * 0.42, pd = Math.min(b.w, b.d) * 0.32;
+  mb.tower(b.cx, EAVE - 1.0, b.cz, pw, pd, 8.0, rgb(C.stone), { yaw: -la, noBottom: true });
+  mb.hip(b.cx, EAVE + 7.0, b.cz, pw, pd, 13.0, rgb(C.copper), -la, 0.9);
+  mb.cyl(b.cx, EAVE + 21.0, b.cz, 0.2, 4.0, 4, rgb(C.gold), 'y', false);
   // Chimneys. A hotel this size had a lot of them and they break the ridge.
   for (let i = 0; i < 6; i++) {
     const t = (i + 0.5) / 6;
@@ -495,18 +587,19 @@ function buildChateau(mb, o) {
 function buildChateauFar(mb, o) {
   const r = ring(68588409, o);
   if (!r) return;
-  const b = bbox(r);
+  const la = longAxis(r).ang;
+  const b = oriented(r, la);
   const EAVE = 29.0, ROOF = 19.0;
   walls(mb, r, 0, EAVE, C.stone);
   const hi = offsetRing(r, 10.5);
   skirt(mb, r, hi, EAVE, EAVE + ROOF, rgb(C.copper));
   cap(mb, hi, EAVE + ROOF, rgb(C.copperDim));
   for (const c of corners(r)) {
-    mb.cyl(c[0], (EAVE + 3.0) / 2, c[1], 4.2, EAVE + 3.0, 8, rgb(C.stone), 'y', false);
-    mb.cone(c[0], EAVE + 3.0, c[1], 4.8, 15.0, 8, rgb(C.copper));
+    mb.cyl(c[0], EAVE + 1.0, c[1], 3.4, 8.0, 8, rgb(C.stone), 'y', false);
+    mb.cone(c[0], EAVE + 5.0, c[1], 3.9, 16.0, 8, rgb(C.copper));
   }
-  const pw = Math.min(b.w, b.d) * 0.44;
-  mb.hip(b.cx, EAVE + 6.0, b.cz, pw, pw, 11.0, rgb(C.copper), -longAxis(r).ang, 0.9);
+  const pw = Math.min(b.w, b.d) * 0.42, pd = Math.min(b.w, b.d) * 0.32;
+  mb.hip(b.cx, EAVE + 7.0, b.cz, pw, pd, 13.0, rgb(C.copper), -la, 0.9);
 }
 
 // ---------------------------------------------------------------- Rideau Centre
@@ -519,30 +612,37 @@ function buildChateauFar(mb, o) {
 function buildRideau(mb, o) {
   const r = ring(68588424, o);
   if (!r) return;
-  const b = bbox(r);
+  const la = longAxis(r);
+  const b = oriented(r, la.ang);
   const H = 16.5;
   walls(mb, r, 0, 2.6, C.precastDim);
   walls(mb, r, 2.6, H, C.precast);
-  // Precast panel joints: one shallow band per level reads as the real thing.
-  band(mb, r, 6.2, 6.7, 0.22, C.precastDim);
-  band(mb, r, 10.6, 11.1, 0.22, C.precastDim);
-  band(mb, r, H - 1.1, H, 0.45, C.precastDim);
-  // The 1983 mall's glazing is horizontal ribbon, not punched windows.
-  windows(mb, r, 7.4, 4.4, 2, 3.0, 2.4, 2.6, rgb(C.glass), 300);
-  windows(mb, r, 0.9, 0, 1, 5.0, 3.6, 4.2, rgb(C.glassLit), 90);
+  // The 1983 mall's glazing is continuous ribbon, not punched openings, which
+  // is both what it looked like and a great deal cheaper than 300 quads.
+  // Two narrow ribbons on a mostly blank precast elevation, which is what the
+  // 1983 mall actually was — not a glass box.
+  ribbon(mb, r, 1.2, 2.6, rgb(C.glassLit));      // the shopfront level
+  ribbon(mb, r, 9.4, 1.5, rgb(C.glass));
+  // Precast panel joints between them.
+  band(mb, r, 5.2, 5.7, 0.28, C.precastDim);
+  band(mb, r, H - 1.2, H, 0.5, C.precastDim);
   cap(mb, r, H, rgb(C.roofTile));
-  // Rooftop mechanical — a shopping centre roof is mostly plant.
-  for (let i = 0; i < 7; i++) {
-    const t = (i + 0.5) / 7;
-    const p = offsetRing(r, 10)[Math.floor(t * r.length) % r.length];
-    mb.box(p[0], H + 1.5, p[1], 6.5, 3.0, 4.5, rgb(0x8d9095));
+  // Rooftop mechanical — a shopping centre roof is mostly plant. Set well in
+  // from the parapet so the boxes sit on the deck instead of over the street.
+  const deck = offsetRing(r, 14);
+  for (let i = 0; i < 8; i++) {
+    const p = deck[Math.floor(((i + 0.5) / 8) * deck.length) % deck.length];
+    mb.box(p[0], H + 1.6, p[1], 7.0, 3.2, 5.0, rgb(0x8d9095), { yaw: -la.ang });
   }
-  // The glass bridge over Rideau Street, on the long axis.
-  const la = longAxis(r);
-  mb.tower(b.cx, 8.4, b.cz + b.d * 0.42, 26, 5.0, 5.0, rgb(C.glassLit),
-    { yaw: -la.ang, noBottom: true });
-  // The entrance canopy on the long street frontage.
-  mb.box(b.cx, 5.4, b.cz - b.d * 0.40, 22, 0.7, 5.0, rgb(C.mullion), { yaw: -la.ang });
+  // The glass bridge over Rideau Street, and the entrance canopy on the next
+  // frontage along. Both hang off real edges of the footprint.
+  const br = edgeSpot(r, 0, 5.0);
+  mb.tower(br.x, 7.4, br.z, Math.min(26, br.len * 0.4), 5.6, 5.0, rgb(C.glassLit),
+    { yaw: br.yaw, noBottom: true });
+  const en = edgeSpot(r, 1, 2.4);
+  mb.box(en.x, 5.0, en.z, Math.min(22, en.len * 0.5), 0.7, 4.4, rgb(C.mullion),
+    { yaw: en.yaw });
+  void b;
 }
 
 function buildRideauFar(mb, o) {
@@ -562,8 +662,8 @@ function buildRideauFar(mb, o) {
 function buildByward(mb, o) {
   const r = ring(128147952, o);
   if (!r) return;
-  const b = bbox(r);
   const la = longAxis(r);
+  const b = oriented(r, la.ang);
   const EAVE = 8.4;
   walls(mb, offsetRing(r, -0.35), 0, 0.9, C.brickDim);
   walls(mb, r, 0.9, EAVE, C.brick);
@@ -573,24 +673,28 @@ function buildByward(mb, o) {
   windows(mb, r, 1.2, 0, 1, 4.2, 2.4, 3.0, rgb(C.glass), 90, { arch: true });
   windows(mb, r, 5.2, 0, 1, 4.2, 1.5, 2.0, rgb(C.glass), 70);
   // Gabled roof along the long axis, with a clerestory lantern on the ridge.
-  const w = Math.max(b.w, b.d), d = Math.min(b.w, b.d);
-  mb.roof(b.cx, EAVE, b.cz, w * 0.98, d * 0.98, d * 0.30, rgb(C.roofTile), -la.ang, 0.7);
-  mb.tower(b.cx, EAVE + d * 0.20, b.cz, w * 0.72, d * 0.30, 2.2, rgb(C.glassPale),
+  const w = b.w, d = b.d;
+  mb.roof(b.cx, EAVE, b.cz, w * 0.99, d * 0.99, d * 0.34, rgb(C.roofTile), -la.ang, 0.6);
+  mb.tower(b.cx, EAVE + d * 0.22, b.cz, w * 0.70, d * 0.26, 2.0, rgb(C.glassPale),
     { yaw: -la.ang, noBottom: true });
-  mb.roof(b.cx, EAVE + d * 0.20 + 2.2, b.cz, w * 0.74, d * 0.34, 1.1,
-    rgb(C.roofTile), -la.ang, 0.25);
-  // Awnings and stall tables down both long sides — the market, not the building.
-  const co = Math.cos(-la.ang), si = Math.sin(-la.ang);
-  for (let s = -1; s <= 1; s += 2) {
-    for (let i = 0; i < 7; i++) {
-      const t = (i - 3) * (w / 8);
-      const off = s * (d / 2 + 2.2);
-      const px = b.cx + t * co + off * si, pz = b.cz - t * si + off * co;
-      mb.box(px, 3.0, pz, w / 9, 0.28, 3.6,
+  mb.roof(b.cx, EAVE + d * 0.22 + 2.0, b.cz, w * 0.72, d * 0.30, 1.0,
+    rgb(C.roofTile), -la.ang, 0.22);
+  // Awnings and stall tables down both long sides — the market, not the
+  // building. Placed on the local axes, so they line the walls instead of
+  // standing out in the street.
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < 8; i++) {
+      const t = (i - 3.5) * (w / 9);
+      const off = side * (d / 2 + 2.6);
+      const px = b.cx + b.ux * t + b.vx * off;
+      const pz = b.cz + b.uz * t + b.vz * off;
+      mb.box(px, 2.9, pz, w / 11, 0.24, 3.4,
         rgb(i % 2 ? C.awning : C.awningB), { yaw: -la.ang });
-      mb.box(px, 0.9, pz, w / 10, 0.12, 1.5, rgb(0xb9a988), { yaw: -la.ang });
-      mb.cyl(px - w / 22, 1.5, pz + 1.6, 0.05, 3.0, 4, rgb(0x54585c), 'y', false);
-      mb.cyl(px + w / 22, 1.5, pz + 1.6, 0.05, 3.0, 4, rgb(0x54585c), 'y', false);
+      mb.box(px, 0.86, pz, w / 12, 0.12, 1.4, rgb(0xb9a988), { yaw: -la.ang });
+      for (const e of [-w / 26, w / 26]) {
+        mb.cyl(px + b.ux * e + b.vx * 1.4, 1.45, pz + b.uz * e + b.vz * 1.4,
+          0.05, 2.9, 4, rgb(0x54585c), 'y', false);
+      }
     }
   }
 }
@@ -598,16 +702,15 @@ function buildByward(mb, o) {
 function buildBywardFar(mb, o) {
   const r = ring(128147952, o);
   if (!r) return;
-  const b = bbox(r), la = longAxis(r);
+  const la = longAxis(r), b = oriented(r, la.ang);
   walls(mb, r, 0, 8.4, C.brick);
-  const w = Math.max(b.w, b.d), d = Math.min(b.w, b.d);
-  mb.roof(b.cx, 8.4, b.cz, w * 0.98, d * 0.98, d * 0.30, rgb(C.roofTile), -la.ang, 0.7);
+  mb.roof(b.cx, 8.4, b.cz, b.w * 0.99, b.d * 0.99, b.d * 0.34, rgb(C.roofTile), -la.ang, 0.6);
   // The ridge lantern is what tells this brick shed from the brick sheds around
   // it, so it survives into the far LOD even though it is only ten triangles.
-  mb.tower(b.cx, 8.4 + d * 0.20, b.cz, w * 0.72, d * 0.30, 2.2, rgb(C.glassPale),
+  mb.tower(b.cx, 8.4 + b.d * 0.22, b.cz, b.w * 0.70, b.d * 0.26, 2.0, rgb(C.glassPale),
     { yaw: -la.ang, noBottom: true });
-  mb.roof(b.cx, 8.4 + d * 0.20 + 2.2, b.cz, w * 0.74, d * 0.34, 1.1,
-    rgb(C.roofTile), -la.ang, 0.25);
+  mb.roof(b.cx, 8.4 + b.d * 0.22 + 2.0, b.cz, b.w * 0.72, b.d * 0.30, 1.0,
+    rgb(C.roofTile), -la.ang, 0.22);
 }
 
 // ---------------------------------------------------------------- National Gallery
@@ -619,8 +722,8 @@ function buildBywardFar(mb, o) {
 function buildGallery(mb, o) {
   const r = ring(39036376, o);
   if (!r) return;
-  const b = bbox(r);
   const la = longAxis(r);
+  const b = oriented(r, la.ang);
   walls(mb, offsetRing(r, -0.4), 0, 1.2, C.graniteDim);
   walls(mb, r, 1.2, 13.5, C.granite);
   band(mb, r, 13.5, 14.2, 0.45, C.graniteDim);
@@ -636,44 +739,43 @@ function buildGallery(mb, o) {
     mb.tower(p[0], 14.2, p[1], 5.0, 5.0, 1.2, rgb(C.granite), { yaw: -la.ang, noBottom: true });
     mb.cone(p[0], 15.4, p[1], 3.6, 3.2, 4, rgb(C.glassPale));
   }
-  // The Great Hall. An octagonal granite drum, a tall faceted glass lantern and
-  // a pointed glass cap — Safdie's answer to the Library's roof.
-  const cn = corners(r);
-  const gx = (cn[0][0] + cn[3][0]) / 2, gz = (cn[0][1] + cn[3][1]) / 2;
-  const hx = gx + (b.cx - gx) * 0.28, hz = gz + (b.cz - gz) * 0.28;
-  mb.cyl(hx, 7.0, hz, 11.0, 14.0, 8, rgb(C.granite), 'y', false);
-  mb.cyl(hx, 14.6, hz, 11.4, 1.2, 8, rgb(C.graniteDim), 'y', false);
-  mb.cyl(hx, 22.0, hz, 10.2, 14.0, 8, rgb(C.glass), 'y', false);
-  // Mullions: eight vertical granite ribs make the drum read as glazed, not solid.
+  // The Great Hall: an octagonal granite drum, a tall faceted glass lantern and
+  // a pointed glass cap, standing at the north end of the long range — Safdie's
+  // deliberate answer to the Library of Parliament across the water, and the
+  // only part of this building anyone recognises from a car.
+  const hx = b.cx + b.ux * (b.w * 0.34), hz = b.cz + b.uz * (b.w * 0.34);
+  mb.cyl(hx, 8.0, hz, 13.0, 16.0, 8, rgb(C.granite), 'y', false);
+  mb.cyl(hx, 16.6, hz, 13.6, 1.2, 8, rgb(C.graniteDim), 'y', false);
+  mb.cyl(hx, 26.5, hz, 12.2, 18.6, 8, rgb(C.glass), 'y', false);
+  // Eight vertical granite ribs make the drum read as glazed, not solid.
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2;
-    mb.cyl(hx + Math.cos(a) * 10.3, 22.0, hz + Math.sin(a) * 10.3, 0.42, 14.0, 4,
+    mb.cyl(hx + Math.cos(a) * 12.3, 26.5, hz + Math.sin(a) * 12.3, 0.5, 18.6, 4,
       rgb(C.graniteDim), 'y', false);
   }
-  mb.cyl(hx, 29.4, hz, 10.4, 0.8, 8, rgb(C.graniteDim), 'y', false);
-  mb.cone(hx, 29.8, hz, 10.0, 13.0, 8, rgb(C.glassPale));
-  mb.cyl(hx, 43.4, hz, 0.2, 3.0, 4, rgb(C.mullion), 'y', false);
-  // The ramped glass colonnade that leads up to it from Sussex Drive.
-  const dx = Math.cos(la.ang), dz = Math.sin(la.ang);
+  mb.cyl(hx, 36.2, hz, 12.6, 1.0, 8, rgb(C.graniteDim), 'y', false);
+  mb.cone(hx, 36.7, hz, 12.2, 17.0, 8, rgb(C.glassPale));
+  mb.cyl(hx, 54.0, hz, 0.24, 4.0, 4, rgb(C.mullion), 'y', false);
+  // The ramped glass colonnade that leads up to it along the Sussex front.
   for (let i = 0; i < 10; i++) {
-    const t = (i - 4.5) * 7.0;
-    const px = hx - dx * (t + 46), pz = hz - dz * (t + 46);
+    const t = -(i * 7.5 + 26);
+    const px = hx + b.ux * t + b.vx * (b.d * 0.5 + 3.5);
+    const pz = hz + b.uz * t + b.vz * (b.d * 0.5 + 3.5);
     mb.cyl(px, 5.0, pz, 0.55, 10.0, 6, rgb(C.granite), 'y', false);
-    mb.box(px, 10.4, pz, 3.0, 0.7, 7.2, rgb(C.glassPale), { yaw: -la.ang });
+    mb.box(px, 10.4, pz, 3.4, 0.7, 7.0, rgb(C.glassPale), { yaw: -la.ang });
   }
 }
 
 function buildGalleryFar(mb, o) {
   const r = ring(39036376, o);
   if (!r) return;
-  const b = bbox(r);
+  const la = longAxis(r);
+  const b = oriented(r, la.ang);
   walls(mb, r, 0, 14.2, C.granite);
   cap(mb, r, 14.2, rgb(C.graniteDim));
-  const cn = corners(r);
-  const gx = (cn[0][0] + cn[3][0]) / 2, gz = (cn[0][1] + cn[3][1]) / 2;
-  const hx = gx + (b.cx - gx) * 0.28, hz = gz + (b.cz - gz) * 0.28;
-  mb.cyl(hx, 14.6, hz, 11.0, 29.2, 8, rgb(C.glass), 'y', false);
-  mb.cone(hx, 29.8, hz, 10.0, 13.0, 8, rgb(C.glassPale));
+  const hx = b.cx + b.ux * (b.w * 0.34), hz = b.cz + b.uz * (b.w * 0.34);
+  mb.cyl(hx, 18.3, hz, 13.0, 36.7, 8, rgb(C.glass), 'y', false);
+  mb.cone(hx, 36.7, hz, 12.2, 17.0, 8, rgb(C.glassPale));
 }
 
 // ---------------------------------------------------------------- St. Vincent
@@ -686,8 +788,8 @@ function buildGalleryFar(mb, o) {
 function buildStVincent(mb, o) {
   const r = ring(68588557, o);
   if (!r) return;
-  const b = bbox(r);
   const la = longAxis(r);
+  const b = oriented(r, la.ang);
   const H = 24.0;
   walls(mb, offsetRing(r, -0.4), 0, 1.6, C.stoneBase);
   walls(mb, r, 1.6, H, C.brickLite);
@@ -701,24 +803,23 @@ function buildStVincent(mb, o) {
   walls(mb, par, H, H + 1.1, C.brickDim);
   cap(mb, par, H + 1.1, rgb(C.stoneDim));
   mb.box(b.cx, H + 3.4, b.cz, 9.0, 5.0, 7.0, rgb(C.brickLite), { yaw: -la.ang });
-  mb.box(b.cx + 12, H + 2.2, b.cz + 6, 5.0, 2.4, 4.0, rgb(0x8d9095), { yaw: -la.ang });
-  // The chapel wing: a lower gabled range with a copper cupola over the crossing.
-  const cn = corners(r);
-  const cx = cn[1][0] * 0.72 + b.cx * 0.28, cz = cn[1][1] * 0.72 + b.cz * 0.28;
-  mb.tower(cx, 0, cz, 13.0, 9.0, 13.0, rgb(C.brick), { yaw: -la.ang, noBottom: true });
-  mb.roof(cx, 13.0, cz, 13.0, 9.0, 3.4, rgb(C.roofTile), -la.ang, 0.5);
-  mb.cyl(cx, 17.6, cz, 2.1, 3.0, 8, rgb(C.stone), 'y', false);
-  mb.cone(cx, 19.1, cz, 2.5, 4.4, 8, rgb(C.copper));
-  mb.cyl(cx, 24.6, cz, 0.14, 2.4, 4, rgb(C.gold), 'y', false);
-  // The ambulance canopy on the long frontage.
-  const co = Math.cos(-la.ang), si = Math.sin(-la.ang);
-  const off = Math.min(b.w, b.d) / 2 + 2.6;
-  mb.box(b.cx + off * si, 4.2, b.cz + off * co, 11.0, 0.6, 5.5, rgb(C.stone), { yaw: -la.ang });
-  for (const s of [-4.6, 4.6]) {
-    mb.cyl(b.cx + s * co + off * si, 2.1, b.cz - s * si + off * co, 0.24, 4.2, 6,
-      rgb(C.stoneDim), 'y', false);
+  mb.box(b.cx + b.ux * 12 + b.vx * 6, H + 2.2, b.cz + b.uz * 12 + b.vz * 6,
+    5.0, 2.4, 4.0, rgb(0x8d9095), { yaw: -la.ang });
+  // The chapel wing: a lower gabled range at one end of the block, with a copper
+  // cupola over the crossing. Placed along the local axes so it abuts the wall.
+  const cx = b.cx + b.ux * (b.w * 0.40), cz = b.cz + b.uz * (b.w * 0.40);
+  mb.tower(cx, 0, cz, 12.0, b.d * 0.55, 13.0, rgb(C.brick), { yaw: -la.ang, noBottom: true });
+  mb.roof(cx, 13.0, cz, 12.0, b.d * 0.55, 3.6, rgb(C.roofTile), -la.ang, 0.5);
+  mb.cyl(cx, 18.2, cz, 2.1, 3.0, 8, rgb(C.stone), 'y', false);
+  mb.cone(cx, 19.7, cz, 2.5, 4.6, 8, rgb(C.copper));
+  mb.cyl(cx, 25.4, cz, 0.14, 2.6, 4, rgb(C.gold), 'y', false);
+  // The ambulance canopy, hung off the longest frontage.
+  const amb = edgeSpot(r, 0, 2.8);
+  mb.box(amb.x, 4.2, amb.z, 11.0, 0.6, 5.6, rgb(C.stone), { yaw: amb.yaw });
+  const cd = Math.cos(amb.yaw), sd = Math.sin(amb.yaw);
+  for (const t of [-4.6, 4.6]) {
+    mb.cyl(amb.x + cd * t, 2.1, amb.z - sd * t, 0.24, 4.2, 6, rgb(C.stoneDim), 'y', false);
   }
-  void la;
 }
 
 function buildStVincentFar(mb, o) {

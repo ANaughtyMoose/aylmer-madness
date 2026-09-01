@@ -81,6 +81,17 @@ for (const [key, t] of Object.entries(tris)) {
   ok(t.far <= t.farBudget, `${key} far ${t.far} within budget ${t.farBudget}`);
   ok(t.far < t.near, `${key} far LOD is cheaper than near`);
 }
+// The lab page draws these buildings from a baked copy of the footprints so it
+// does not have to parse 21 MB of map modules first. That copy is generated,
+// and a regenerated sector would silently leave it behind.
+const { HERO_RINGS } = await import('../src/game/ottawa_hero_rings.js');
+for (const h of HERO) for (const id of h.ids) {
+  const live = MAP.buildings.find((b) => b.id === id);
+  const baked = HERO_RINGS[id];
+  ok(baked && baked.length === live.p.length,
+    `ottawa_hero_rings.js still has ${id} (run tools/build_hero_rings.mjs)`);
+}
+
 // The cleared footprints must still collide, and must still be short enough to
 // hide inside the hero mesh that replaced them.
 for (const h of HERO) for (const id of h.ids) {
@@ -135,6 +146,18 @@ for (const key of Object.keys(OTTAWA_PLACES)) {
   routed++;
 }
 ok(routed === Object.keys(OTTAWA_PLACES).length, 'every Ottawa destination is reachable');
+
+// Each destination must be at the building it is named after. The `poi` refine
+// in places.js matches by name, and Ottawa has two hospitals from the same
+// order 2.3 km apart — "L'hôpital Saint-Vincent" pointed at the Bruyère site in
+// Lowertown while its hero geometry stood on Cambridge Street North, which
+// every routing test above happily passed.
+for (const h of HERO) {
+  const p = PLACES[h.key];
+  if (!p) continue;
+  const d = Math.hypot(p.bx - h.at[0], p.bz - h.at[1]);
+  ok(d < 250, `${h.key}: the marker is ${d.toFixed(0)} m from its hero geometry`);
+}
 
 // The Champlain Bridge specifically: the owner's crossing, and the one a bike
 // has to be able to take. Route from the Québec end of the bridge to Parliament

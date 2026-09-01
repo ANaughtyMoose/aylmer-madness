@@ -98,8 +98,14 @@ export const OTTAWA_PLACES = {
   // arrive from the Alexandra Bridge.
   gallery:    { poi: 'National Gallery of Canada', road: 'St. Patrick Street',
                 x: 10695, z: -3928, label: 'Le Musée des beaux-arts', snap: true },
-  stvincent:  { poi: 'Élisabeth Bruyère Hospital', road: 'Bruyère Street',
-                x: 10828, z: -4227, label: 'L’hôpital Saint-Vincent', snap: true, lot: true },
+  // Two related sites, and they are 2.3 km apart. The map has an "Élisabeth
+  // Bruyère Hospital" POI in Lowertown at (10828, -4227) and a "Saint-Vincent
+  // Hospital" POI on Cambridge Street North at (9907, -2136); both belong to
+  // the Grey Nuns' order Élisabeth Bruyère founded, which is why every Bruyère
+  // name in this map is here. The hero building is the Cambridge Street one, so
+  // this marker has to be too. The Lowertown site keeps its ordinary massing.
+  stvincent:  { poi: 'Saint-Vincent Hospital', road: 'Cambridge Street North',
+                x: 9907, z: -2136, label: 'L’hôpital Saint-Vincent', snap: true, lot: true },
 };
 
 for (const [k, v] of Object.entries(OTTAWA_PLACES)) PLACES[k] = v;
