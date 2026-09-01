@@ -268,10 +268,10 @@ export const FAMOUS = [
     needEn: 'Finish everything Sayyad asks of you',
     hint: 'Poutine express · La commission à Sayyad · La course contre Sayyad',
     earned: (done) => all(done, SAYYAD_CHAIN),
-    title: 'SAYYAD T\u2019A DONNÉ LA SI',
-    card: 'Trois jobs pour lui, pis tu l\u2019as battu à sa propre course.\n'
+    title: 'SAYYAD T’A DONNÉ LA SI',
+    card: 'Trois jobs pour lui, pis tu l’as battu à sa propre course.\n'
       + 'Il a tiré la toile dans le garage du 75 Denise-Friend. La rouge.\n'
-      + 'Celle qui a semé la GRC su\u2019 l\u2019pont Portage en 2001.\n\n'
+      + 'Celle qui a semé la GRC su’ l’pont Portage en 2001.\n\n'
       + '« Tu la ramènes propre. Pis touche pas au radio. »',
   },
   {
@@ -280,21 +280,21 @@ export const FAMOUS = [
     needEn: 'Win all four races',
     hint: 'La course à Adam · La course à Sayyad · Le circuit · Le blitz',
     earned: (done) => all(done, RACES),
-    title: 'L\u2019ANCIENNE AUTO DE POLICE EST À TOI',
-    card: 'Quatre courses. Personne t\u2019a rattrapé une seule fois.\n'
-      + 'La Ville liquidait la vieille Crown Vic à l\u2019encan municipal en arrière de l\u2019aréna.\n\n'
-      + '« On peut pas te battre. Autant que tu l\u2019aies. »',
+    title: 'L’ANCIENNE AUTO DE POLICE EST À TOI',
+    card: 'Quatre courses. Personne t’a rattrapé une seule fois.\n'
+      + 'La Ville liquidait la vieille Crown Vic à l’encan municipal en arrière de l’aréna.\n\n'
+      + '« On peut pas te battre. Autant que tu l’aies. »',
   },
   {
-    id: 'firebird', who: 'Le p\u2019tit frère à Boucher', at: 'principale',
+    id: 'firebird', who: 'Le p’tit frère à Boucher', at: 'principale',
     need: 'Trouve les huit sauts de la ville',
     needEn: 'Find all eight jumps in town',
     hint: JUMP_IDS.map((id) => JUMP_LABEL[id]).join(' · '),
     earned: (done, feats) => JUMPS.every((j) => feats.has(j.feat)),
     title: 'LE GTA À MULLET BOUCHER',
     card: 'Huit sauts. Le dernier devant la Principale au complet.\n'
-      + 'Boucher est parti dans l\u2019Ouest pis son p\u2019tit frère a jamais osé tourner la clé.\n'
-      + 'Il te l\u2019a lancée à place. La cassette de Rush est encore jammée dedans.\n\n'
+      + 'Boucher est parti dans l’Ouest pis son p’tit frère a jamais osé tourner la clé.\n'
+      + 'Il te l’a lancée à place. La cassette de Rush est encore jammée dedans.\n\n'
       + '« Fais pas ça avec, par exemple. »',
   },
   {
@@ -305,7 +305,7 @@ export const FAMOUS = [
     earned: (done) => done.size >= MISSIONS.length,
     title: 'LA LEONE À HENDERSON',
     card: 'Toutes les jobs. Toute la ville te doit quelque chose.\n'
-      + 'En 1998 le vieux Henderson a livré le pain pis le gaz à génératrice dans tout l\u2019Outaouais\n'
+      + 'En 1998 le vieux Henderson a livré le pain pis le gaz à génératrice dans tout l’Outaouais\n'
       + 'avec ce char-là, pendant que les autos de police sortaient même pas du stationnement.\n\n'
       + '« Elle a jamais manqué un hiver. Elle te manquera pas non plus. »',
   },
@@ -317,14 +317,14 @@ export const FAMOUS = [
 // for a car that only exists as a story.
 export const RUMOURS = [
   'Le Monte Carlo SS à Big Dan Beaulieu — noir, filets rouges, deux Flowmaster. '
-    + 'Y\u2019a passé quatre ans dans grange de son grand-père à gosser le 350.',
-  'Le GTI 16V du prof Roy — rouge Tornado su\u2019 des BBS. Il l\u2019a barré dans un entrepôt '
-    + 'chauffé en arrière d\u2019la Principale avant de partir en France, immatriculation pas signée.',
+    + 'Y’a passé quatre ans dans grange de son grand-père à gosser le 350.',
+  'Le GTI 16V du prof Roy — rouge Tornado su’ des BBS. Il l’a barré dans un entrepôt '
+    + 'chauffé en arrière d’la Principale avant de partir en France, immatriculation pas signée.',
   'Le Mustang 5.0 notchback à Pato Gagnon — blanc, pas de décalque, straight pipes. '
-    + 'Il courait le quart de mille su\u2019 les Allumettières avant même que ça ouvre.',
-  'Le 4Runner de l\u2019oncle Marcel — douze chars sortis d\u2019la bouette du bord de l\u2019Outaouais, '
+    + 'Il courait le quart de mille su’ les Allumettières avant même que ça ouvre.',
+  'Le 4Runner de l’oncle Marcel — douze chars sortis d’la bouette du bord de l’Outaouais, '
     + 'trois tonneaux dans gravière, pis le frame est encore droit.',
-  'L\u2019Omni GLH à Éric « Le Rat » Lévesque — une boîte à pain noire avec un turbo pis '
+  'L’Omni GLH à Éric « Le Rat » Lévesque — une boîte à pain noire avec un turbo pis '
     + 'un contrôleur de boost fait avec une valve de quincaillerie. Il a perdu son permis en 2002.',
 ];
 
