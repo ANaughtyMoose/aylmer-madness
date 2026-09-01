@@ -1388,7 +1388,17 @@ export class Vehicle {
       if (ctl.handbrake && Math.abs(vLong) > 0.4) a -= Math.sign(vLong) * s.brake * 0.55;
       // Rolling resistance is a near-constant drag; aero grows with the square.
       // Top speed then falls out of where the power curve meets it.
-      if (Math.abs(vLong) > 0.2) a -= Math.sign(vLong) * (ROLL + 1.42 * offRoad * sd.drag);
+      //
+      // Off the tarmac there is a second, speed-dependent term for ground the
+      // wheels sink into rather than roll over: `SURF.plough`, which only sand
+      // declares. A constant deceleration cannot describe sand, because it is
+      // most of a Caravan's engine and a fifth of a Civic's — see the note over
+      // SURF in terrain.js for the sweep that showed no constant works. Both
+      // terms ride on `offRoad`, so a turf machine pays neither.
+      if (Math.abs(vLong) > 0.2) {
+        a -= Math.sign(vLong)
+          * (ROLL + offRoad * (1.42 * sd.drag + (sd.plough || 0) * vLong * vLong));
+      }
     }
     // Aero never stops, on the ground or off it. Nothing else acts in flight.
     // Per car, because a Caravan and a Civic Si do not push the same hole.

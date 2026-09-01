@@ -274,7 +274,27 @@ group('places a truck cannot follow');
   for (const kind of ['sand', 'grass', 'path']) {
     const b = flatOut('dbike', kind, 10), t = flatOut('ranger', kind, 10);
     ok(b > 15, `${kind}: the bike still does ${r1(b)} km/h`);
-    if (kind === 'sand') ok(t < b, `sand: the Ranger manages ${r1(t)} km/h in the same ten seconds`);
+    if (kind !== 'sand') continue;
+    // Both halves of the promise, because the two of them pull against each
+    // other and a merge once broke each in turn. The beach has to be crossable
+    // in a truck — it used to pin one at a dead stop, which read as a bug in
+    // the world and not as a choice — and it has to be the bicycle's, by
+    // enough that you would go and fetch one rather than shrug and drive.
+    ok(t > 8, `sand: the Ranger is not pinned — ${r1(t)} km/h in ten seconds`);
+    ok(t < b * 0.75, `sand: and the bike owns the beach`,
+      `${r1(b)} km/h against the Ranger's ${r1(t)}`);
+  }
+  // Nothing on four wheels beats a bicycle across the Plage des Cèdres. The
+  // golf cart is the exception that proves it: `turf` says it belongs on soft
+  // ground, so it is exempt from the off-road penalty and rides with the bikes.
+  {
+    const bikes = BIKES.map((id) => flatOut(id, 'sand', 10));
+    const cars = CARS.filter((c) => !c.turf && !BIKES.includes(c.id))
+      .map((c) => [c.id, flatOut(c.id, 'sand', 10)])
+      .sort((a, b) => b[1] - a[1]);
+    ok(Math.min(...bikes) > cars[0][1],
+      'sand: the slowest bicycle still beats the quickest car',
+      `${r1(Math.min(...bikes))} km/h against the ${cars[0][0]}'s ${r1(cars[0][1])}`);
   }
   // The kerb, which is the actual border between the road and the sidewalk.
   // cars.js kicks anything that crosses one with speed on and scrubs it; a bike
