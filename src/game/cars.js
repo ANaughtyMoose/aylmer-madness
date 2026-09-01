@@ -411,6 +411,14 @@ const ROLL = 0.28;          // rolling resistance, m/s², near enough constant
 const AERO = 0.0006;        // fallback for a spec that never declared its own
 const POW = 1.7;            // how squarely the thrust curve falls off with speed
 
+// Copy `src`'s fields onto `c` only where `c` has nothing to say. `in` rather
+// than hasOwnProperty on purpose: a tuned copy is Object.create(stock), so an
+// inherited value counts as already answered.
+function defaults(c, src) {
+  if (!src) return;
+  for (const k of Object.keys(src)) if (!(k in c)) c[k] = src[k];
+}
+
 /**
  * Everything derived from a spec sheet rather than typed into one. Exported
  * because the table is not closed: a module can push a vehicle into CARS at
@@ -422,8 +430,17 @@ export function finalizeCar(c) {
   const rearOverhang = c.len - c.wheelbase - c.overhangF;
   const hwAxle = Math.max(pl(c.plan, rearOverhang / c.len), pl(c.plan, (rearOverhang + c.wheelbase) / c.len));
   c.track = Math.round(2 * (hwAxle + WHEEL_PROUD - WHEEL_W(c) / 2) * 100) / 100;
-  Object.assign(c, HANDBRAKE[c.id] || {});
-  Object.assign(c, REVERSE[c.id] || {});      // a car with no entry takes the defaults
+  // Fill in, never overwrite. These two tables are defaults for a spec that did
+  // not state its own, and finalizeCar() is now run twice over the same car:
+  // once here at import, and again by upgrades.js's tuned(), which re-solves the
+  // thrust curve so a bigger engine is not thrown away. An Object.assign there
+  // stamped the stock table straight back over the shop's work — the $300
+  // Posi-traction multiplies hbYaw and hbGrip, and the Ranger came out of the
+  // shop with exactly the 1.06 it went in with. Anything already on the spec,
+  // including a value inherited from the stock car a tuned copy is built on,
+  // is a number somebody meant.
+  defaults(c, HANDBRAKE[c.id]);
+  defaults(c, REVERSE[c.id]);                 // a car with no entry takes the defaults
   if (c.sound === undefined) c.sound = SOUND[c.id];
   if (c.drive === undefined) c.drive = DRIVE[c.id];
   // Solve the thrust curve for the stated terminal speed. If a spec is greedy

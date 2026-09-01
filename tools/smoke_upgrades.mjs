@@ -19,7 +19,7 @@ class FakeStorage {
 }
 globalThis.localStorage = new FakeStorage();
 
-const { CARS, carById } = await import('../src/game/cars.js');
+const { CARS, carById, Vehicle } = await import('../src/game/cars.js');
 const { Garage, UNLOCKS } = await import('../src/game/garage.js');
 const { Wallet, START } = await import('../src/game/money.js');
 const { MISSIONS, missionPayout } = await import('../src/game/missions.js');
@@ -474,6 +474,45 @@ group('Normand « Norm » Lafleur');
   const rangerT = U.tuned(carById('ranger'), { transmission: 2 });
   ok(rangerT.accel > carById('ranger').accel, 'a Posi and a clutch launch harder');
   ok(rangerT.hbYaw > carById('ranger').hbYaw, 'and the back end comes round on purpose');
+
+  // ...and it has to come round in the car, not just on the work order. The
+  // spec assertion above passed for two years and then quietly stopped meaning
+  // anything the day tuned() started re-running finalizeCar(), which stamped
+  // the stock handbrake table back over the shop's multipliers. Drive the two
+  // trucks into the same corner on the lever and compare the heading each one
+  // actually ends up with.
+  const hbTurn = (spec, surf) => {
+    const G = { h: 0, nx: 0, ny: 1, nz: 0, kind: surf };
+    const world = { roadAt: () => surf === 'asphalt', waterAt: () => false,
+      groundAt: () => G, querySegments: () => [],
+      bounds: { minX: -1e6, maxX: 1e6, minZ: -1e6, maxZ: 1e6 } };
+    const dt = 1 / 120;
+    const v = new Vehicle(spec);
+    v.assist = true; v.reset(0, 0, 0);
+    for (let t = 0; t < 40 && v.speedKmh < 50; t += dt) {
+      v.update(dt, { steer: 0, throttle: 1, brake: 0, handbrake: false }, world);
+    }
+    const y0 = v.yaw;
+    let slip = 0;
+    for (let t = 0; t < 1.5; t += dt) {
+      v.update(dt, { steer: 1, throttle: 0, brake: 0, handbrake: true }, world);
+      let s = v.yaw - Math.atan2(v.vx, v.vz);
+      while (s > Math.PI) s -= 2 * Math.PI;
+      while (s < -Math.PI) s += 2 * Math.PI;
+      slip = Math.max(slip, Math.abs(s));
+    }
+    return { yaw: Math.abs(v.yaw - y0) * 180 / Math.PI, slip: slip * 180 / Math.PI };
+  };
+  // On tarmac, and on the grass the surfaces work made properly drivable: a
+  // handbrake turn that only works on one of them is not a handbrake turn.
+  for (const surf of ['asphalt', 'grass']) {
+    const stock = hbTurn(carById('ranger'), surf), posi = hbTurn(rangerT, surf);
+    ok(stock.slip > 12, `${surf}: the lever puts the stock Ranger sideways`,
+      `${stock.slip.toFixed(1)} deg of slip`);
+    ok(posi.yaw > stock.yaw + 4,
+      `${surf}: and the Posi brings it round further still`,
+      `${stock.yaw.toFixed(0)} deg -> ${posi.yaw.toFixed(0)} deg in a second and a half`);
+  }
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
