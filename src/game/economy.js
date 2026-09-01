@@ -447,9 +447,20 @@ export function installEconomy(env) {
 
   // ---- the frame ---------------------------------------------------------
 
+  // Neither screen pauses the game — that is main.js's business and this agent
+  // gets one hook. So both of them require a stopped car to open, and both shut
+  // themselves if the car starts rolling while they are up: holding W behind a
+  // modal is the one way a shop screen could put you in the river.
+  const ROLLING = 3;
+
   function pulse() {
     if (!G.veh || G.mode !== 'drive') { prompt.classList.add('hidden'); return; }
     retune();
+    if (Math.abs(G.veh.vLong) > ROLLING && (shopOpen || kijiji.isOpen())) {
+      closeShop();
+      kijiji.close();
+      hud.toast('Ton char roule.', 1400, true);
+    }
 
     // A jump you have not landed before.
     const j = watchJumps(G.veh, G.garage);
@@ -520,6 +531,12 @@ export function installEconomy(env) {
       hideMoment(); e.preventDefault(); return;
     }
     if (G.mode !== 'drive' || shopOpen || kijiji.isOpen() || momentVisible()) return;
+    if (e.code !== 'KeyK' && e.code !== 'KeyU') return;
+    if (G.veh && Math.abs(G.veh.vLong) > 1.5) {
+      hud.toast('Arrête-toi d’abord.', 1400);
+      e.preventDefault();
+      return;
+    }
     if (e.code === 'KeyK') { openKijiji(); e.preventDefault(); return; }
     if (e.code === 'KeyU') {
       const s = shopAt();
