@@ -5,18 +5,24 @@ import { Audio } from './core/audio.js';
 import { MeshBuilder, rgb } from './core/mesh.js';
 import { m4, clamp, lerp, angleDelta } from './core/math.js';
 import { buildWorld, buildHeadlights, nightAmount, HOUSE_NEAR } from './game/world.js';
+import { installLandmarks } from './game/landmarks.js';   // landmarks hook (agent/landmarks)
+import { primeSignage } from './game/signage.js';         // landmarks hook (agent/landmarks)
 import { loadMaterials } from './game/materials.js';
 import MATS_STUB from './game/materials_stub.js';
 import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow, DAMAGE } from './game/cars.js';
 import { asBody, collideCars, driftBody, contact } from './game/collide.js';
 import { DriveFx, updateRepairs, repairSpotAt, nearestRepair, repairHint, REPAIR, restoreDamage } from './game/damage.js';
 import { Traffic } from './game/traffic.js';
+// [vehicles] The two buses and the two bicycles. Importing this registers them
+// in CARS, in the garage and in the save slots; the three call sites tagged
+// [vehicles] below are everything else main.js has to know about them.
+import { VEHICLE_OWNERS, vehicleTick, drawVehicleExtras } from './game/vehicles.js';
 import { Hud } from './game/hud.js';
 import { loadCarSkin } from './game/carskin.js';
 import { Nav, routeLength } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
-import { MISSIONS, TIME_OF_DAY } from './game/missions.js';
+import { MISSIONS, TIME_OF_DAY, unlockArc } from './game/missions.js';
 // No query string on this import. A `?v=` suffix makes the browser treat the
 // file as a second, separate module: PLACES forks into two objects, only one of
 // them ever meets resolvePlaces(), and every mission target silently stops being
@@ -49,6 +55,8 @@ import { Signals } from './game/signals.js';
 import { Props, buildPropMeshes, ISLAND, MIKE_TREE } from './game/props.js';
 // The reactive world: pedestrians, knock-over street furniture, debris.
 import { Reactive } from './game/reactive.js';
+// Avatars agent: the friends who are real people. See the hook in render().
+import { Avatars } from './game/avatars.js';
 import { Wallet } from './game/money.js';
 import {
   stageTarget, stageEnter, stageExit, stageStep, stageSettle, missionCleanup,
@@ -67,12 +75,48 @@ import {
   shortCarName, carArticle,
 } from './game/story.js';
 import { heckle } from './game/heckle.js';
+// Shell agent: the sky. weather.js owns the state machine, the rain overlay,
+// the wet road and the thunder; main.js owns the four hook lines that feed it
+// (tint the env, scale the spec, step it, silence it in a menu).
+import { Weather } from './game/weather.js';
+// ...and the written flavour: loading-screen tips, the pause screen's quiet
+// line, and the achievements. All of it out of assets/text/ui.json, all of it
+// optional — see game/flavour.js.
+import { flavour } from './game/flavour.js';
+
+// hangout agent: 129 Frank-Robinson after dark (see the hook block in tick()).
+import { hangout } from './game/hangout.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
 const DAY_NIGHT_CYCLE = 10 * 60;
-const DAY_PHASE = { morning: 0, day: 0.25, dusk: 0.5, night: 0.75 };
 const DAY_KEYS = ['morning', 'day', 'dusk', 'night'];
+// Not four equal quarters. A July day in the valley is mostly day, the sun goes
+// down over the river in a hurry, and the night is long enough to be worth
+// having headlights for. These are the fraction of the loop each phase owns.
+const DAY_WEIGHT = [0.16, 0.40, 0.13, 0.31];
+// The start of each phase, as a fraction of the loop. save.js stores a phase by
+// NAME and the debug hook takes one, so this table is how a name becomes a time.
+const DAY_PHASE = (() => {
+  const out = {};
+  let acc = 0;
+  for (let i = 0; i < DAY_KEYS.length; i++) { out[DAY_KEYS[i]] = acc; acc += DAY_WEIGHT[i]; }
+  return out;
+})();
+// How much of a phase is spent AT that phase's colours before the blend into
+// the next one starts. Without this the cycle was a permanent crossfade and the
+// sky was never once actually the daylight in TIME_OF_DAY.day.
+const DAY_HOLD = 0.45;
+// Turning a phase NAME into a clock reading. It lands a quarter of the way into
+// the phase, not on its edge: DAY_HOLD means a quarter of the way in is still
+// exactly that phase's own colours, and sitting on the boundary means one
+// float's worth of rounding puts you in the phase BEFORE the one you asked for.
+// (0.16 * 600 / 600 is 0.15999999999999992, which is not 0.16. It cost an
+// afternoon.) save.js stores the phase by name, so this is the road back in.
+function phaseClock(name) {
+  const i = Math.max(0, DAY_KEYS.indexOf(name));
+  return (DAY_PHASE[DAY_KEYS[i]] + DAY_WEIGHT[i] * 0.25) * DAY_NIGHT_CYCLE;
+}
 // The QUALITY presets live in options.js now, because the options screen can
 // override the numbers they seed. Everything that used to read
 // QUALITY[G.quality].x each frame reads G.q.x, which applySettings maintains:
@@ -168,12 +212,26 @@ const OWNER = {
   // The Club's cart. It stays at the golf course whatever you do with it.
   cart: 'golf',
 };
+// [vehicles] The school bus lives in the yard at École de l'Aigle, Sayyad's
+// chrome cruiser outside 75 Denise-Friend, and your Diamondback at 299 Fraser.
+Object.assign(OWNER, VEHICLE_OWNERS);
 // Bought beaters come home with you; everything else lives with its owner.
 const homeKey = (id) => (OWNER[id] === 'usedlot' ? 'home' : OWNER[id]);
 const homeOf = (id) => PLACES[homeKey(id)] || PLACES.home;
 
 const garage = new Garage(G.done);
 G.garage = garage;
+// The sky. Seeded, so a fresh game always opens on the same clear July morning
+// and only then starts making its own weather.
+const weather = new Weather({ audio, seed: 0x0a17, state: 'clear' });
+G.weather = weather;
+G.flavour = flavour;
+// « SUCCÈS ». The name is French; the English half of it only shows when the
+// slang gloss is on, because that is the one switch for "translate things".
+flavour.onUnlock = (a) => {
+  hud.toast('SUCCÈS\n' + a.name + (heckle.showGloss && a.how ? '\n' + a.how : ''), 3600);
+  audio.chime(true);
+};
 const radio = new Radio(audio);
 G.radio = radio;
 radio.onChange = paintRadio;
@@ -198,9 +256,13 @@ function paintRadio(st) {
 
 function toggleRadio() {
   const st = radio.toggle();
+  // A tape with a label and no file behind it is a deliberate joke, but it is
+  // only funny if the player knows it is not a bug.
+  const dead = st.wantOn && st.station >= radio.dial.length && !radio.tape;
   hud.toast(st.wantOn
     ? `${st.stationName}${st.slogan ? ' \u2014 ' + st.slogan : ''}\n${st.track}`
-    : t('radio.off'), 1800);
+      + (dead ? '\n' + t('radio.none') : '')
+    : t('radio.off'), dead ? 2600 : 1800);
   paintRadio(st);
 }
 // Settings (audio / video / controls / language) are not part of a save: they
@@ -221,22 +283,42 @@ const turntable = new CarTurntable();
 // Deliberately spread-out new-game spawns. They use the same named,
 // road-snapped places as missions and the full-screen map, so the pin shown in
 // the picker is the exact place the car will appear once the world is built.
+// 'sayyad' and the legacy 'steph' are the same house (75 Denise-Friend); the
+// list carries the readable key, because it ends up in a data-key attribute.
 const START_POINTS = [
-  'home', 'mall', 'beach', 'marina', 'principale',
+  'home', 'sayyad', 'mall', 'beach', 'marina', 'principale',
   'arena', 'deschenes', 'golf', 'heritage',
   'hulldowntown', 'hullmuseum', 'hullcasino', 'hullmall',
   'ottawa', 'chelsea',
 ];
+// The default: your own driveway. It is pre-selected the moment the picker
+// opens so the confirm button is never dead on arrival.
+const DEFAULT_START = 'home';
 const START_MAP_LABELS = {
-  home: 'Chez nous', mall: 'Galeries d’Aylmer', beach: 'Plage des Cèdres',
+  home: 'Chez nous', sayyad: 'Chez Sayyad', mall: 'Galeries d’Aylmer',
+  beach: 'Plage des Cèdres',
   marina: 'Marina', principale: 'Vieux-Aylmer', arena: 'Aréna Frank-Robinson',
   deschenes: 'Deschênes', golf: 'Club de golf', heritage: 'Heritage College',
   hulldowntown: 'Vieux-Hull', hullmuseum: 'Musée de l’histoire',
   hullcasino: 'Casino du Lac-Leamy', hullmall: 'Galeries de Hull',
   ottawa: 'Colline du Parlement', chelsea: 'Chelsea',
 };
-let pickedStart = null;
+// ---- [agent/ottawa hook] the downtown Ottawa destinations, from the same
+// module that merges the sector. Same block as the addOttawaLandmarks() call
+// below; both fold into places.js and main.js's own tables later.
+import { addOttawaLandmarks, OTTAWA_STARTS, OTTAWA_START_LABELS } from './game/ottawa.js';
+START_POINTS.push(...OTTAWA_STARTS);
+Object.assign(START_MAP_LABELS, OTTAWA_START_LABELS);
+// Pre-selected, so the picker's GO button is never dead on arrival. The Ottawa
+// pushes above happen first, so the default is chosen from the full list.
+let pickedStart = DEFAULT_START;
 const availableStartPoints = () => START_POINTS.filter((key) => PLACES[key]);
+// The list is filtered by PLACES[key] existing, so a typo used to vanish
+// silently. Say it out loud instead — once, at boot.
+{
+  const missing = START_POINTS.filter((key) => !PLACES[key]);
+  if (missing.length) console.warn('start points with no place:', missing.join(', '));
+}
 
 function drawStartPicker() {
   const c = $('startmap'), g = c.getContext('2d');
@@ -297,23 +379,56 @@ function drawStartPicker() {
 function selectStart(key) {
   pickedStart = key;
   for (const el of $('startpoints').children) el.classList.toggle('sel', el.dataset.key === key);
-  $('startconfirm').disabled = !key;
+  // Never disabled: something is always picked. The button says where it is
+  // about to put you, so pressing it is not a leap of faith.
+  const btn = $('startconfirm');
+  btn.disabled = false;
+  btn.textContent = t('menu.go') + '  \u25b8  ' + (START_MAP_LABELS[key] || PLACES[key].label);
   drawStartPicker();
 }
 
 function openStartPicker(open) {
   $('startpicker').classList.toggle('hidden', !open);
   if (!open) return;
-  pickedStart = null;
-  $('startconfirm').disabled = true;
   $('startpicktitle').textContent = t('menu.pickstart');
   $('startpickhint').textContent = t('menu.pickstart.hint');
   $('startback').textContent = '\u2190 ' + t('menu.pickstart.back');
-  $('startconfirm').textContent = t('menu.drive');
   $('startpoints').innerHTML = availableStartPoints().map((key, i) =>
     `<button class="startpoint" data-key="${key}"><b>${i + 1}</b><span>${PLACES[key].label}</span></button>`).join('');
   for (const el of $('startpoints').children) el.onclick = () => selectStart(el.dataset.key);
-  drawStartPicker();
+  // The picker is one long panel and the GO button is at the bottom of it. On a
+  // 700 px window that used to be below the fold, which is how a player ends up
+  // staring at a screen that looks like it does nothing. Pin it.
+  installSkin();
+  const first = availableStartPoints();
+  selectStart(first.includes(DEFAULT_START) ? DEFAULT_START : first[0]);
+  $('startpicker').scrollTop = 0;
+}
+
+// The handful of rules style.css cannot carry, because index.html and style.css
+// belong to somebody else this wave: the GO bar sticks to the bottom of the
+// picker, the back button stays reachable at the top of it, and the radio's HUD
+// line is allowed to wrap — an ad read off assets/text/radio.json is a sentence,
+// not a song title. Injected once.
+let skinDone = false;
+function installSkin() {
+  if (skinDone || typeof document === 'undefined') return;
+  skinDone = true;
+  const el = document.createElement('style');
+  el.id = 'shellskin';
+  el.textContent = `
+#radio{max-width:min(52vw,660px);flex-wrap:wrap}
+#radiotrack{line-height:1.3}
+#startpicker{padding-bottom:0}
+.startpanel{padding-bottom:96px}
+.startpanel .topbar{position:sticky;top:0;z-index:3;padding:6px 0;
+  background:linear-gradient(180deg,#12212b 68%,rgba(18,33,43,0))}
+#startmap{max-height:52vh}
+#startconfirm{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+  z-index:4;min-width:min(520px,86vw);font-size:19px;letter-spacing:1.6px;
+  padding:16px 26px;box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 3px rgba(255,201,77,.22)}
+@media (max-height:760px){#startmap{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}`;
+  document.head.appendChild(el);
 }
 
 function buildMenu() {
@@ -390,6 +505,7 @@ function applyMenuText() {
   }
 }
 
+let tipTimer = 0;
 // `save` is a slot's contents, or null for a new game. It is held across the
 // world build so the loading screen does not have to know about it.
 function startGame(save = null, startKey = null) {
@@ -414,10 +530,19 @@ function startGame(save = null, startKey = null) {
   if (!G.world) {
     $('start').textContent = t('menu.building');
     turntable.stop();
+    // A tip under the progress bar while the world bakes. It rotates on its own
+    // timer, because loading.run() blocks the main thread in long stretches and
+    // there is nowhere else to hang it.
+    flavour.showTip(heckle.showGloss);
+    if (tipTimer) clearInterval(tipTimer);
+    tipTimer = setInterval(() => flavour.showTip(heckle.showGloss), 5500);
     // Each stage paints its own label before it runs, so the screen is telling
     // the truth about what is taking the time. The bar animates on the
     // compositor, so it keeps moving even while buildWorld blocks.
-    loading.run(worldStages()).then(() => enterDrive(save, startKey)).catch((e) => {
+    loading.run(worldStages()).then(() => {
+      if (tipTimer) { clearInterval(tipTimer); tipTimer = 0; }
+      enterDrive(save, startKey);
+    }).catch((e) => {
       $('menuinner').innerHTML = `<h1>Ouch</h1><p class="tag">${e.message}</p>`;
       $('menu').classList.remove('hidden');
     });
@@ -441,6 +566,17 @@ function worldStages() {
     })],
     [t('load.world'), () => {
       G.world = buildWorld(r, G.mats || MATS_STUB);
+      // ---- landmarks hook (agent/landmarks) -------------------------------
+      // The hero buildings — Philemon Wright, Heritage, the schools, the two
+      // stone inns, the marina, 129 Frank-Robinson — are baked and hung off the
+      // world here. installLandmarks wraps world.draw and world.querySegments,
+      // so it MUST run before G.phys captures them just below.
+      installLandmarks(G.world, r, G.mats || MATS_STUB, { say: (s) => hud.toast(s, 4200) });
+      // The 120 hand-written storefront names live in assets/text/, which is a
+      // fetch; buildWorld is synchronous, so signage bakes once with the
+      // fallback names and this swaps the real atlas in a frame or two later.
+      primeSignage(r, G.world.signage);
+      // ---- end landmarks hook ---------------------------------------------
       G.phys = {
         roadAt: (x, z) => G.world.roadAt(x, z),
         querySegments: (x, z, rad) => G.world.querySegments(x, z, rad),
@@ -551,8 +687,8 @@ function enterDrive(save = null, startKey = null) {
   G.world.setHouseNear(G.quality === 'low' ? 140 : HOUSE_NEAR);
   G.camYaw = G.veh.yaw + Math.PI;
   G.camPos = [G.veh.x, 4, G.veh.z];
-  const savedTime = save ? save.timeOfDay : 'day';
-  G.dayClock = (DAY_PHASE[savedTime] ?? DAY_PHASE.day) * DAY_NIGHT_CYCLE;
+  const savedTime = save && DAY_PHASE[save.timeOfDay] != null ? save.timeOfDay : 'day';
+  G.dayClock = phaseClock(savedTime);
   setCycleEnv(true);
   G.mission = null;
   G.boat = null; G.focus = null;
@@ -569,6 +705,11 @@ function enterDrive(save = null, startKey = null) {
     // Permanent scenery the map data has no idea about.
     G.props.add({ id: 'island', mesh: 'island', x: ISLAND.x, z: ISLAND.z, yaw: ISLAND.yaw, far: 2200 });
     G.props.add({ id: 'miketree', mesh: 'bigtree', x: MIKE_TREE.x, z: MIKE_TREE.z, far: 500 });
+    // ---- [agent/ottawa hook] downtown Ottawa. One block; fold into the owned
+    // files later. game/ottawa.js merges the sector into MAP, rolls the whole
+    // map back to 2004 and registers its PLACES at import time; this line is
+    // only the hero landmark geometry, which needs G.renderer and G.props.
+    addOttawaLandmarks(G);
   }
   G.mode = 'drive';
   $('menu').classList.add('hidden');
@@ -741,17 +882,29 @@ function cloneEnv(e) {
 function setEnv(key, instant) {
   const t = TIME_OF_DAY[key] || TIME_OF_DAY.day;
   G.envKey = TIME_OF_DAY[key] ? key : 'day';
-  G.night = G.envKey === 'night' || G.envKey === 'dusk';   // C4: headlights on
-  G.envTarget = cloneEnv(t);
-  if (instant || !G.env) { G.env = cloneEnv(t); G.env.fogDensity *= G.q.fogMul; }
+  G.envPinned = G.envKey;      // what updateDayNight re-applies under a mission
+  G.envTarget = weather.tintEnv(cloneEnv(t));
+  // C4: headlights on. A mission that says 'dusk' or 'night' always wants them,
+  // and so does a sky the storm has taken down to that brightness on its own.
+  G.night = G.envKey === 'night' || G.envKey === 'dusk' || nightAmount(G.envTarget) > 0.15;
+  if (instant || !G.env) {
+    G.env = cloneEnv(G.envTarget);
+    G.env.fogDensity *= G.q.fogMul;
+  }
 }
 function cycleEnv() {
   const p = ((G.dayClock / DAY_NIGHT_CYCLE) % 1 + 1) % 1;
-  const x = p * DAY_KEYS.length;
-  const i = Math.floor(x);
+  // Which phase the clock is in, and how far through it.
+  let i = 0, acc = 0;
+  while (i < DAY_KEYS.length - 1 && p >= acc + DAY_WEIGHT[i]) { acc += DAY_WEIGHT[i]; i++; }
+  const frac = (p - acc) / DAY_WEIGHT[i];
+  // Hold the phase's own colours for the first DAY_HOLD of it, then smoothstep
+  // into the next one. The old cycle lerped straight across, so the sky was
+  // always halfway between two times of day and never any of them.
+  const raw = clamp((frac - DAY_HOLD) / (1 - DAY_HOLD), 0, 1);
+  const k = raw * raw * (3 - 2 * raw);
   const a = TIME_OF_DAY[DAY_KEYS[i]];
   const b = TIME_OF_DAY[DAY_KEYS[(i + 1) % DAY_KEYS.length]];
-  const k = x - i;
   const out = cloneEnv(a);
   for (const f of ['sky', 'ground', 'sun', 'lightDir', 'fog']) {
     for (let n = 0; n < out[f].length; n++) out[f][n] = lerp(a[f][n], b[f][n], k);
@@ -762,6 +915,10 @@ function cycleEnv() {
 function setCycleEnv(instant = false) {
   const c = cycleEnv();
   G.envKey = c.key;
+  G.envPinned = null;               // the clock has the sky back
+  // The weather leans the sky BEFORE anything asks how dark it is, so a real
+  // thunderstorm at two in the afternoon puts the headlights on by itself.
+  weather.tintEnv(c.env);
   G.night = nightAmount(c.env) > 0.15;
   G.envTarget = c.env;
   if (instant || !G.env) {
@@ -771,7 +928,12 @@ function setCycleEnv(instant = false) {
 }
 function updateDayNight(dt) {
   G.dayClock = (G.dayClock + dt) % DAY_NIGHT_CYCLE;
+  // Under a mission the clock keeps running but the SKY is whatever the job
+  // asked for — except that the weather still has to reach it, so the pinned
+  // time of day is re-applied rather than left frozen at the value it had when
+  // the job started.
   if (!G.mission) setCycleEnv();
+  else if (G.envPinned) setEnv(G.envPinned);
 }
 function stepEnv(dt) {
   const a = G.env, b = G.envTarget, k = Math.min(1, dt * 0.9);
@@ -1016,6 +1178,7 @@ function openMap(on) {
     $('bigmap').classList.remove('hidden');
     $('pause').classList.add('hidden');
     audio.engine(0, 0); audio.skid(0); audio.horn(false);
+    weather.suspend();
     paintRadio();
   } else {
     G.mode = 'drive'; last = performance.now();
@@ -1101,6 +1264,26 @@ function handleKeys() {
   // R is the radio (it is 2004 and the deck still matters); T is the get-me-out-of-here.
   if (input.hit('KeyT')) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
   if (input.hit('KeyR')) toggleRadio();
+  // G is the slang gloss. Tapping it latches the English under every bubble;
+  // holding it also puts the last three lines back up with the joke explained.
+  // The MENUS stay in French — this translates the town, not the interface.
+  if (input.hit('KeyG')) {
+    hud.toast(heckle.toggleGloss() ? t('toast.slang.on') : t('toast.slang.off'), 1600);
+  }
+  heckle.hold(input.down('KeyG'));
+  // V pushes the sky on to the next front and says what it is now. The weather
+  // makes its own decisions the rest of the time; this is for when you want to
+  // go and stand in a thunderstorm instead of waiting ten minutes for one.
+  //
+  // This was K until the merge. Two agents working in parallel both claimed K —
+  // the sky here, and the Kijiji classifieds in economy.js — and neither could
+  // see the other, so one press did both. No suite catches it: nothing imports
+  // main.js, and the two live in different modules. Kijiji keeps K, which it
+  // documented claiming along with U for the garage.
+  if (input.hit('KeyV')) {
+    weather.advance();
+    hud.toast('MÉTÉO\n' + weather.label + (weather.wet > 0.1 ? '  ·  chaussée mouillée' : ''), 1800);
+  }
   // feel agent: while a garage is offering an E, that key is the garage's and
   // Enter still takes the job — otherwise E is what it always was.
   if (input.hit('Enter') || (input.hit('KeyE') && !G.repairOffer)) G.wantStart = true;
@@ -1211,6 +1394,15 @@ function zoomMap(dir) {
 
 function tick(dt) {
   const v = G.veh;
+  // The sky first: the environment, the wet road and the puddle the front wheel
+  // is about to find all have to be settled before the car is integrated.
+  weather.update(dt, G);
+  // cars.js reads grip and brake straight off the spec sheet and that file is
+  // not ours to edit, so a wet road is applied by handing the Vehicle a clone of
+  // its own spec with the numbers scaled. `baseSpec` is the dry sheet; it is
+  // captured here rather than at construction so a car swap heals itself.
+  if (!v.baseSpec) v.baseSpec = v.spec;
+  v.spec = weather.specFor(v.baseSpec);
   updateDayNight(dt);
   // While you are in the canoe the car sits where you parked it and the steering
   // wheel goes to the paddle.
@@ -1227,6 +1419,10 @@ function tick(dt) {
     if (ctl.throttle > 0.05 && !G.relayOn) { G.relayOn = true; audio.blip(v.spec.relay, 0.035, 'square', 0.05); }
     else if (ctl.throttle <= 0.05) G.relayOn = false;
   }
+  // [vehicles] A bicycle has legs instead of an engine and a bunny-hop instead
+  // of a handbrake, so it gets at the controls before the vehicle does. It is
+  // a no-op in anything with a motor.
+  vehicleTick(G, ctl, dt);
   const preImpact = v.impact;
   v.update(dt, ctl, G.phys);
   // Air and landings. `v.landed` is the vertical speed the springs killed, set
@@ -1234,6 +1430,13 @@ function tick(dt) {
   if (v.inAir) G.stats.airtime += dt;
   audio.whoosh(v.inAir ? clamp(v.clearance / 2.2, 0, 1) : 0);
   if (v.landed > 0) {
+    // What that landing was, for the achievement rules: how long the flight was
+    // and whether the thing you came down in was the Ottawa river.
+    landEvent = {
+      air: v.lastAir, force: v.landed,
+      landedInWater: !!(G.phys.waterAt && G.phys.waterAt(v.x, v.z)),
+      x: v.x, z: v.z,
+    };
     G.stats.landings++;
     if (v.landed > G.stats.hardest) G.stats.hardest = v.landed;
     audio.land(v.landed);
@@ -1242,6 +1445,8 @@ function tick(dt) {
       G.stats.jumps++;
       if (v.lastAir > G.stats.bigAir) G.stats.bigAir = v.lastAir;
       hud.toast(`${v.lastAir.toFixed(1)} s dans les airs!`, 1500);
+      // Somebody saw that. (assets/text/heckles.json, trigger `bigair`.)
+      if (v.lastAir > 1.1) heckle.say(null, 'bigair');
     }
   }
   G.camShake *= Math.exp(-4.5 * dt);
@@ -1279,7 +1484,25 @@ function tick(dt) {
     heckle.say('Chauffeur', 'red');
   }
   updateMission(dt);
+  heckleTriggers(dt, v);
+  // ---- hangout agent hook (the only lines this file owns for the porch) ----
+  // Mike's place is not a job, so it runs after the mission runner and takes
+  // the HUD prompt off it when you are actually in the driveway. It needs two
+  // things main.js has and hangout.js does not: a tick, and the ability to hand
+  // a job back — a friend offering you work from the porch starts an ordinary
+  // mission. Everything else (props, dialogue, the bins) lives in hangout.js.
+  if (!G.startMission) G.startMission = startMission;
+  hangout.update(dt, G);
+  // The summer's five beats arrive in order (game/arc.js): unlockArc pushes the
+  // next one onto MISSIONS when its gate opens, which is why this file needs no
+  // idea that an arc exists — the marker just turns up.
+  unlockArc(G);
+  // ---- end hangout hook ---------------------------------------------------
   heckle.update(dt, G);
+  // The achievements out of assets/text/ui.json. `landEvent` is the one-shot
+  // bag; everything else the rules need is already on G.
+  flavour.update(dt, G, landEvent);
+  landEvent = null;
 
   updateRepairSpot(dt, v);                 // feel agent: after the mission runner
   if (G.props) G.props.update(dt, G);
@@ -1308,12 +1531,117 @@ function tick(dt) {
   audio.engine(gb.rpm, load, v.speedKmh, drivePedal, gb.clutch);
   audio.skid(v.skid);
   hud.setGear(v.reversing ? 'R' : gb.gear);
+  // Where the car is, so the Ottawa signal (CHEZ 106) can fade the further west
+  // you get. The five local stations ignore it.
+  radio.setPos(v.x, v.z);
+  // ...and what the sky is doing, so the DJ has something to talk about. A
+  // storm, a hot hazy afternoon, the middle of the night: radio_extra.json has
+  // lines for all three, per station.
+  radio.setScene(weather.rain > 0.25 || weather.dark > 0.6, weather.haze > 0.5, G.envKey === 'night');
   radio.update(dt, load, input.down('KeyH') || input.padHorn);
 
   tutorial.update(dt, {
     speedKmh: v.speedKmh, steer: input.steer, brake: ctl.brake,
     handbrake: ctl.handbrake, mapOpened: G.tutoMapOpened, jobTaken: G.tutoJobTaken,
   });
+}
+
+// ---------------------------------------------------------------- heckles
+//
+// assets/text/heckles.json carries twelve triggers. Five of them arrive through
+// heckle.js's own alias table because peds.js, traffic.js, cops.js and the
+// red-light check were already firing them (nearmiss, honked, hitcar, ranred,
+// cops). The other seven are conditions nobody was watching for, so main.js
+// watches for them here — one place, one timer each, all of them deliberately
+// slow to fire so the town does not turn into a slot machine. The limiter in
+// heckle.js still has the last word: one line every four seconds, whatever.
+// The last landing, handed to flavour.update() for one tick and then dropped.
+let landEvent = null;
+const HK = {
+  speedT: 0, revT: 0, wrongT: 0, stillT: 0, walkT: 0, props: 0, saidStuck: false,
+};
+// Under this, you are stopped rather than stuck.
+const STUCK_KMH = 3, STUCK_AFTER = 14;
+// The speed at which a residential street starts shouting.
+const SPEED_KMH = 95, SPEED_AFTER = 2.5;
+
+function heckleTriggers(dt, v) {
+  const kmh = v.speedKmh;
+
+  // Doing 95 through a town where the limit is 50.
+  HK.speedT = kmh > SPEED_KMH ? HK.speedT + dt : 0;
+  if (HK.speedT > SPEED_AFTER) { HK.speedT = 0; heckle.say(null, 'speeding'); }
+
+  // A long way in reverse is a thing people comment on.
+  HK.revT = (v.reversing && Math.abs(v.vLong) > 6) ? HK.revT + dt : 0;
+  if (HK.revT > 3) { HK.revT = 0; heckle.say(null, 'reversing'); }
+
+  // Parked in the middle of nowhere, going nowhere, for a quarter of a minute.
+  HK.stillT = kmh < STUCK_KMH ? HK.stillT + dt : 0;
+  if (HK.stillT > STUCK_AFTER && !HK.saidStuck) { HK.saidStuck = true; heckle.say(null, 'stuck'); }
+  if (kmh > 12) HK.saidStuck = false;
+
+  // Something the reactive world knocked over. It keeps the count; we only have
+  // to notice that it went up.
+  const smashed = (G.stats && G.stats.propsSmashed) || 0;
+  if (smashed > HK.props) { HK.props = smashed; heckle.say(null, 'hitprop'); }
+  else HK.props = smashed;
+
+  // The road you are on, which way it runs, and which side of it you are on.
+  const rc = roadContext(v);
+  // Off the asphalt but right beside it, with your foot in it: the sidewalk.
+  HK.walkT = (rc && !rc.onRoad && rc.dist < 9 && kmh > 14) ? HK.walkT + dt : 0;
+  if (HK.walkT > 1.2) { HK.walkT = 0; heckle.say(null, 'sidewalk'); }
+
+  // Wrong side of a two-way street. Needs to be sustained: overtaking, a
+  // three-point turn and a wide corner all put you over the line for a second.
+  HK.wrongT = (rc && rc.onRoad && rc.twoWay && rc.side < -2.2 && kmh > 25) ? HK.wrongT + dt : 0;
+  if (HK.wrongT > 2.2) { HK.wrongT = 0; heckle.say(null, 'wrongway'); }
+}
+
+// Nearest drivable road edge to the car, out of the Nav graph's own spatial
+// hash — the same nine cells streetName() walks, so this costs nothing. Returns
+// how far off the centreline you are, whether the street runs both ways, and
+// which side of it you are on (negative is the wrong one, in Québec).
+const roadCtx = { onRoad: false, dist: Infinity, twoWay: false, side: 0 };
+let roadCtxT = 0;
+function roadContext(v) {
+  roadCtxT -= 1 / 60;
+  if (roadCtxT > 0) return roadCtx;
+  roadCtxT = 0.25;
+  const nav = G.nav;
+  if (!nav || !nav.grid) return null;
+  const cell = nav.cell, x = v.x, z = v.z;
+  let bd = 60 * 60, bn = null, be = null;
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+    const list = nav.grid.get(((x / cell | 0) + i) * 100000 + ((z / cell | 0) + j));
+    if (!list) continue;
+    for (const n of list) for (const e of n.edges) {
+      if (e.cls === 'service') continue;
+      const ex = e.to.x - n.x, ez = e.to.z - n.z, l2 = ex * ex + ez * ez || 1;
+      const t = clamp(((x - n.x) * ex + (z - n.z) * ez) / l2, 0, 1);
+      const d = (n.x + ex * t - x) ** 2 + (n.z + ez * t - z) ** 2;
+      if (d < bd) { bd = d; bn = n; be = e; }
+    }
+  }
+  if (!be) return null;
+  roadCtx.dist = Math.sqrt(bd);
+  roadCtx.onRoad = !!G.world.roadAt(x, z);
+  // A one-way street only got one edge built for it (see nav.js), so the way to
+  // ask is whether the far node has an edge coming back.
+  roadCtx.twoWay = be.to.edges.some((e2) => e2.to === bn);
+  // Which side. Forward is (sin yaw, cos yaw); the right of a heading (dx,dz)
+  // is (dz,-dx). Take the road's direction the way YOU are going down it, and
+  // a positive number means you are on the right-hand side, where you belong.
+  let dx = be.to.x - bn.x, dz = be.to.z - bn.z;
+  const dl = Math.hypot(dx, dz) || 1;
+  dx /= dl; dz /= dl;
+  const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+  const sgn = (fx * dx + fz * dz) >= 0 ? 1 : -1;
+  const px = bn.x + dx * clamp(((x - bn.x) * dx + (z - bn.z) * dz), 0, dl);
+  const pz = bn.z + dz * clamp(((x - bn.x) * dx + (z - bn.z) * dz), 0, dl);
+  roadCtx.side = ((x - px) * (dz * sgn) - (z - pz) * (dx * sgn));
+  return roadCtx;
 }
 
 const mm = m4.create();
@@ -1379,7 +1707,11 @@ function render(dt) {
 
   drawCar(v.spec, v.x, v.z, v.yaw, v.pitch, v.roll, v.spin, v.steer, null, v.passengers, v.bodyY, v.gh);
   const night = nightAmount(G.env);
-  if (night > 0.35 && G.meshes.cones[v.spec.id]) {
+  // The light cones are two translucent wedges hanging off the nose. From the
+  // hood camera the eye sits INSIDE them, so they wash the whole screen warm —
+  // which nobody has ever seen from the driver's seat of a real car. Storms
+  // made this obvious by turning the lights on in the middle of the afternoon.
+  if (night > 0.35 && cam.name !== 'hood' && G.meshes.cones[v.spec.id]) {
     coneOpts.alpha = 0.15 * night;
     m4.compose(mm, v.x, v.bodyY, v.z, v.yaw, 0, 0);
     r.draw(G.meshes.cones[v.spec.id], mm, coneOpts);
@@ -1401,6 +1733,15 @@ function render(dt) {
   G.cops.draw(G, drawCar);                          // ...and the police
   if (G.props) G.props.draw(r, f);
   if (G.reactive) G.reactive.draw(r, f, QUALITY[G.quality].drawDist);
+  // --- avatars agent hook ------------------------------------------------
+  // Four of the people in this town are real people. Sayyad waits on the lawn
+  // at 75 Denise-Friend with his sister Zahra, Margaret at 299 Fraser, Mike at
+  // 129 Frank-Robinson, and once they are aboard they ride as themselves
+  // instead of as the anonymous head above. Built on the first frame that has
+  // a renderer; avatars.js owns everything else.
+  if (!G.avatars) G.avatars = new Avatars(r);
+  G.avatars.draw(r, f, G, dt);
+  // -----------------------------------------------------------------------
   drawMarkers();
   if (G.fx) G.fx.render(v, G.world, G.night, G.traffic.cars);
 
@@ -1426,6 +1767,9 @@ function render(dt) {
 
 function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y = 0, gy = 0) {
   const r = G.renderer;
+  // [vehicles] Two-wheelers: the fork and bars that turn with the steering, and
+  // the rider, who pedals and leans. Nothing happens here for a car.
+  drawVehicleExtras(G, spec, x, z, yaw, roll, spin, steer, y);
   const skin = G.meshes.skins[spec.id];
   const opts = tint ? { colorMul: tint } : {};
   if (skin) opts.tex = skin.tex;
@@ -1647,6 +1991,12 @@ function optionsCtx() {
   return {
     get: () => G.settings,
     onChange: onSettings,
+    // Switches that are not settings keys, because store.js keeps a closed list
+    // and these belong to the module that persists them.
+    flags: {
+      get: (name) => (name === 'slangGloss' ? heckle.glossOn : false),
+      set: (name, on) => { if (name === 'slangGloss') heckle.setGloss(on); },
+    },
     actions: {
       fullscreen: () => toggleFullscreen(),
       tutorial: () => { tutorial.reset(); hud.toast(t('toast.tutorial'), 1400); },
@@ -1658,6 +2008,7 @@ function optionsCtx() {
       resetCars: () => { if (G.veh) resetCarLocations(); },
       wipeSaves: () => {
         deleteAllSaves();
+        flavour.reset();          // the achievements go with the saves
         G.slot = null;
         hud.toast(t('toast.wiped'), 1600);
         applyMenuText();
@@ -1710,11 +2061,13 @@ function pause(on) {
     fillJobs();
     buildTabBar();
     applyPauseText();
+    flavour.showPause();
     showTab(tab);
     $('pause').classList.remove('hidden');
     audio.horn(false);
     audio.engine(0, 0); audio.skid(0);
     radio.suspend();
+    weather.suspend();          // the rain stops at the pause screen too
   } else {
     G.mode = 'drive';
     last = performance.now();
@@ -1727,6 +2080,7 @@ function pause(on) {
 function toMenu() {
   pause(false);
   radio.suspend();
+  weather.suspend();
   audio.engine(0, 0);
   G.mode = 'menu';
   G.mission = null;
@@ -1795,8 +2149,27 @@ window.addEventListener('pointerdown', () => audio.resume(), { once: true });
 }
 buildMenu();
 applyMenuText();
+installSkin();
 turntable.start();
 hud.setVisible(false);
+// The written content, pulled in once at boot: 300 heckles with their English
+// glosses (assets/text/heckles.json) and six stations' worth of idents, DJ
+// patter, local ads, news stingers and contests (assets/text/radio.json). Both
+// loaders fail quietly and leave the built-in fallbacks in place, so the game
+// runs off a file:// URL or a checkout with assets/text/ missing.
+heckle.load().catch(() => {});
+// ...and if the loading screen is already up when ui.json lands, replace the
+// fallback tip it is showing with a real one.
+flavour.load().then(() => { if (tipTimer) flavour.showTip(heckle.showGloss); }).catch(() => {});
+radio.loadText()
+  .then(() => radio.loadExtras())
+  .then(() => {
+    // Le Droit's headlines read as loading-screen trivia as well as they read
+    // as the talk station's news, so they do both.
+    flavour.addTrivia(radio.headlines);
+    paintRadio();
+  })
+  .catch(() => {});
 requestAnimationFrame(frame);
 
 // Debug hook: lets a console (or a test) step the sim without a live rAF.
@@ -1818,12 +2191,24 @@ window.AYLMER = {
   // frame actually drew (see world.js `stats`).
   env(name = 'day') {
     const key = DAY_PHASE[name] == null ? 'day' : name;
-    G.dayClock = DAY_PHASE[key] * DAY_NIGHT_CYCLE;
+    G.dayClock = phaseClock(key);
     setCycleEnv(true);
-    return key;
+    return G.envKey;
+  },
+  // Shell agent: the sky. `weather()` reads it, `weather(name)` forces one of
+  // clear / cloudy / haze / overcast / rain / storm, so a screenshot of a
+  // thunderstorm does not depend on waiting for one.
+  weather(name) {
+    if (name) weather.set(name, true);
+    return {
+      key: weather.key, label: weather.label, rain: weather.rain,
+      wet: weather.wet, grip: weather.gripMul, brake: weather.brakeMul,
+    };
   },
   // Story agent: the opener, the guidance line and the heckles.
   story, heckle,
+  // ...and the slang gloss on G, for the tests.
+  slang: (on) => (on == null ? heckle.showGloss : heckle.setGloss(on)),
   freeRoam: () => freeRoamLines(G, garage),
   playStory,
   // Race agent: what the tests poke at.
@@ -1835,3 +2220,40 @@ window.AYLMER = {
     return w ? { ...w, drawCalls: G.renderer.stats.draws, rendererTris: G.renderer.stats.tris } : null;
   },
 };
+
+// ==================================================================== modes agent
+// The three Midtown modes (game/modes.js) and the jump set (game/jumps.js). Both
+// reach in through G and neither draws or steps anything of its own: the mode
+// picker hands its courses to startMission() above, and the per-tick half of
+// both rides in on race.js's updateRivals(), which tick() already calls.
+//
+// installJumps() must run BEFORE buildWorld(), which it does — this is module
+// scope and the world is not built until somebody presses EMBARQUE.
+import { installJumps, JUMPS, resetJumps } from './game/jumps.js';
+import { installModes, openModes, startCourse, COURSES, MODES } from './game/modes.js';
+import { loadRacingText, TEXT } from './game/racingtext.js';
+installJumps();
+installModes(G, { startMission });
+// The written copy for the races, the jumps and the police radio. Nothing waits
+// on it: every pool has a fallback, so a slow or missing fetch costs flavour and
+// never a frame.
+loadRacingText().catch((e) => console.warn('racing text:', e.message));
+Object.assign(window.AYLMER, {
+  modes: MODES, courses: COURSES, jumps: JUMPS, text: TEXT,
+  openModes: (on = true) => openModes(G, on),
+  course: (id) => { const c = COURSES.find((x) => x.id === id); return c ? startCourse(G, c) : false; },
+  air: () => G.air,
+  resetJumps,
+});
+// ================================================================ end modes agent
+
+// ---------------------------------------------------------------- economy agent
+// ONE hook, on purpose: three other agents are editing this file this wave.
+// Everything the money loop does — the mechanic's screen (U at a garage), the
+// Kijiji classifieds (K), the upgrade modifier layer that puts the parts you
+// bought onto whatever Vehicle enterDrive/swapCar most recently built, and the
+// watcher that hands over a famous car the moment you have earned it — lives in
+// game/economy.js and the three modules it pulls in. Nothing below this line
+// reads or writes anything main.js owns except the objects handed to it here.
+import { installEconomy } from './game/economy.js';
+installEconomy({ G, hud, audio, PLACES, OWNER, carById, curbSpot, api: window.AYLMER });

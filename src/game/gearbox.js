@@ -7,9 +7,10 @@
 //     wheel rev/s = v / (π · tyre diameter)
 //     engine rpm  = wheel rev/s · final · gear · 60
 //
-// The Ranger's five-speed is 3.97 / 2.14 / 1.42 / 1.00 / 0.85 on a 3.73 final
-// with 27" tyres, which is why it drones at 2000 rpm in third at fifty and why
-// fifth is useless below eighty.
+// The Ranger's five-speed (an M5OD behind the 2.3 four) is
+// 3.97 / 2.14 / 1.42 / 1.00 / 0.85 on a 3.73 final with 27" tyres, which is why
+// it drones at 2000 rpm in third at fifty, why fifth is useless below eighty,
+// and why 150 km/h is 4400 rpm in fifth with nothing left.
 //
 // Everything here is pure arithmetic — no DOM, no audio — so tools/smoke_audio
 // can run the same box in node that the game runs in the browser.
@@ -19,7 +20,7 @@ export const DEFAULT_DRIVE = {
   reverse: 3.99,
   final: 3.73,
   tyre: 0.6858,          // rolling diameter, metres (27")
-  idle: 750,
+  idle: 800,             // a 2.3 Lima loping over, not a smooth six
   redline: 5200,
   limiter: 5200,
   shiftUp: 4800,         // wide open
@@ -99,9 +100,15 @@ export class Gearbox {
     if (this.shiftT > 0) {
       this.shiftT -= dt;
       const s = clamp(1 - this.shiftT / d.shiftTime, 0, 1);
-      const target = Math.max(d.idle, this.rpmAt(kmh, this.toGear));
+      // Where the revs are falling to. Clamped at the limiter, like the
+      // steady-state case below: with real top speeds a box that finds itself
+      // in second at 150 km/h would otherwise interpolate toward the 9000 rpm
+      // the driveshaft is asking for and hand it to the synth. Nothing else on
+      // this path caps it.
+      const target = clamp(this.rpmAt(kmh, this.toGear), d.idle, d.limiter);
       // A dip in the middle: no drive, so the revs sag past where they land.
-      this.rpm = (this.fromRpm + (target - this.fromRpm) * s) * (1 - 0.14 * Math.sin(Math.PI * s));
+      this.rpm = Math.min(d.limiter,
+        (this.fromRpm + (target - this.fromRpm) * s) * (1 - 0.14 * Math.sin(Math.PI * s)));
       this.clutch = 1 - Math.sin(Math.PI * s);
       if (this.shiftT <= 0) { this.shiftT = 0; this.gear = this.toGear; this.clutch = 1; }
       this.limiting = false;

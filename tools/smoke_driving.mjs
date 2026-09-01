@@ -8,6 +8,10 @@
 // core/mesh.js and core/math.js, and the traffic car is a plain object with the
 // same fields Traffic gives its cars, so mapdata.js (3.2 MB) stays unread.
 import { CARS, carById, Vehicle, DAMAGE } from '../src/game/cars.js';
+// The ramp's destination is SURF.grass.power, so read it rather than restating
+// it: the off-road penalty is tuned in terrain.js and this file tests the SHAPE
+// of the ramp — how fast it arrives — not the number it arrives at.
+import { SURF } from '../src/game/terrain.js';
 import { collideCars, contact, driftBody } from '../src/game/collide.js';
 import { updateRepair, restoreDamage } from '../src/game/damage.js';
 
@@ -201,10 +205,11 @@ function shunt(player, car) {
   step(30, grass);                      // 1.0 s
   const at10 = v.surface;
 
-  ok('after 0.1 s the penalty is barely in', at01 > 0.93, `surface ${r2(at01)}`);
-  ok('after 0.25 s it is about half applied', near(at025, 0.86, 0.03), `surface ${r2(at025)}`);
-  ok('after 0.5 s it is fully applied', near(at05, 0.72, 0.01), `surface ${r2(at05)}`);
-  ok('and it stops there', near(at10, 0.72, 0.001), `surface ${r2(at10)}`);
+  const G = SURF.grass.power;
+  ok('after 0.1 s the penalty is barely in', at01 > 1 - 0.25 * (1 - G), `surface ${r2(at01)}`);
+  ok('after 0.25 s it is about half applied', near(at025, (1 + G) / 2, 0.03), `surface ${r2(at025)}`);
+  ok('after 0.5 s it is fully applied', near(at05, G, 0.01), `surface ${r2(at05)}`);
+  ok('and it stops there', near(at10, G, 0.001), `surface ${r2(at10)}`);
   ok('the ramp is monotone', at01 > at025 && at025 > at05 - 1e-9);
 
   // Back on the road it comes off just as smoothly, over the same half second.
@@ -304,9 +309,10 @@ function shunt(player, car) {
   ok('C5: they are all different notes',
     new Set(CARS.map((c) => `${c.sound.cyl}:${c.sound.idle}:${c.sound.redline}`)).size === CARS.length,
     ids.map((id) => `${id} ${firing(carById(id), carById(id).sound.idle).toFixed(1)}Hz idle`).join(', '));
-  ok('C5: the Ranger idles at 25 Hz',
-    Math.abs(firing(carById('ranger'), 750) - 25) < 0.01,
-    String(firing(carById('ranger'), 750)));
+  ok('C5: a four at 750 rpm fires at 25 Hz, and the Ranger idles a little above it',
+    Math.abs(firing(carById('ranger'), 750) - 25) < 0.01
+      && carById('ranger').sound.idle >= 780 && carById('ranger').sound.idle <= 850,
+    `${firing(carById('ranger'), 750)} Hz at 750; idle ${carById('ranger').sound.idle} rpm`);
   ok('C5: and every four-cylinder is 100 Hz at 3000 rpm',
     CARS.filter((c) => c.sound.cyl === 4).every((c) => Math.abs(firing(c, 3000) - 100) < 0.01));
   ok('C5: the Sunfire and the Z24 are the ones that rattle',
@@ -460,6 +466,90 @@ function shunt(player, car) {
       revAt !== null && fwdAt !== null && revAt < 1.6 && fwdAt < 1.6,
       `reverse at ${r2(revAt)} s, forward again ${r2(fwdAt)} s later`);
   }
+}
+
+// ---------------------------------------------------------------- SPEED
+//
+// `topSpeed` is the TERMINAL speed now, not an aspiration the drag then took a
+// sixth off. These run each vehicle flat out on an infinite tarmac straight and
+// check it against its own spec sheet — and then check the shape of the curve,
+// because a car that snapped to its top speed would be no better than the old
+// one that never reached it.
+
+{
+  const flatOut = (id, secs = 400) => {
+    const v = new Vehicle(carById(id));
+    v.reset(0, 0, 0);
+    const c = ctl({ throttle: 1 });
+    const marks = {};
+    for (let i = 0, n = secs * 60; i < n; i++) {
+      v.update(1 / 60, c, road);
+      const k = v.speedKmh;
+      for (const g of [50, 100, 140]) if (marks[g] === undefined && k >= g) marks[g] = (i + 1) / 60;
+    }
+    return { kmh: v.speedKmh, marks };
+  };
+
+  const got = {};
+  for (const c of CARS) {
+    const r = flatOut(c.id);
+    got[c.id] = r;
+    const want = c.topSpeed * 3.6;
+    ok(`SPEED: the ${c.id} actually reaches its stated ${want.toFixed(0)} km/h`,
+      Math.abs(r.kmh - want) < want * 0.01, `${r.kmh.toFixed(1)} km/h`);
+  }
+  ok('SPEED: nothing is stuck around 110 km/h any more',
+    ['ranger', 'saturn', 'civic', 'sunfire', 'cutlass', 'cavalier', 'caravan']
+      .every((id) => got[id].kmh > 145),
+    Object.entries(got).map(([id, r]) => `${id} ${r.kmh.toFixed(0)}`).join(' · '));
+  ok('SPEED: ...and the slow ones stay slow',
+    got.bus.kmh < 100 && got.cart.kmh < 30,
+    `bus ${got.bus.kmh.toFixed(0)} · cart ${got.cart.kmh.toFixed(0)} km/h`);
+  ok('SPEED: every road car tops out somewhere different',
+    new Set(CARS.map((c) => Math.round(c.topSpeed * 3.6))).size === CARS.length);
+  ok('SPEED: the Ranger is the slowest of the four you are lent, the Civic the fastest',
+    carById('ranger').topSpeed === Math.min(...['ranger', 'saturn', 'civic', 'sunfire'].map((id) => carById(id).topSpeed))
+      && carById('civic').topSpeed === Math.max(...['ranger', 'saturn', 'civic', 'sunfire'].map((id) => carById(id).topSpeed)));
+  // The whole point of the curve: power falls off, so the last stretch is
+  // nothing like the first. The Ranger takes longer from 100 to 140 than it
+  // took to get to 100 at all, and it is still not done.
+  const r = got.ranger.marks;
+  ok('SPEED: the top end takes forever in the slow stuff',
+    r[140] - r[100] > r[100],
+    `0-100 in ${r[100].toFixed(1)} s, 100-140 in another ${(r[140] - r[100]).toFixed(1)} s`);
+  ok('SPEED: and the first 50 km/h is the same brisk thing it always was',
+    r[50] > 4.0 && r[50] < 5.2, `0-50 in ${r[50].toFixed(1)} s`);
+
+  // The thrust curve is solved against the car's own aero, so every vehicle has
+  // head room above its terminal speed and none of it is silly.
+  ok('SPEED: every spec declares its own aero, and vPow lands above the top speed',
+    CARS.every((c) => c.aero > 0 && c.vPow > c.topSpeed && c.vPow < c.topSpeed * 1.6),
+    CARS.map((c) => `${c.id} ${c.vPow.toFixed(1)}`).join(' · '));
+}
+
+// ---------------------------------------------------------------- SPEED: walls
+//
+// The wall probes are circles of about a metre at each axle, and they are not
+// swept. At 109 km/h that never mattered; at 180 km/h on a machine dropping
+// frames the car moves further in a step than the probe is wide, and without
+// the sub-stepping in Vehicle.collide it goes straight through a fence.
+
+{
+  const wall = { ax: -60, az: 200, bx: 60, bz: 200 };
+  const walled = { ...road, querySegments: () => [wall] };
+  const through = [];
+  for (const c of CARS) {
+    for (const fps of [60, 30, 20]) {
+      const v = new Vehicle(c);
+      v.reset(0, 0, 0);
+      v.vz = c.topSpeed; v.syncFrame();
+      const cl = ctl({ throttle: 1 });
+      for (let i = 0; i < fps * 8 && v.z <= 200.5; i++) v.update(1 / fps, cl, walled);
+      if (v.z > 200.5) through.push(`${c.id}@${fps}fps`);
+    }
+  }
+  ok('SPEED: nothing drives through a wall flat out, even at 20 fps',
+    through.length === 0, through.join(', '));
 }
 
 console.log(out.join('\n'));

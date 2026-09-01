@@ -2,6 +2,7 @@
 // Local car space: +Z is forward, +X is the driver's LEFT (right-handed GL axes), y=0 ground.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { clamp } from '../core/math.js';
+import { CONTACT } from '../core/audio.js';
 import { SURF, FLAT } from './terrain.js';
 
 const TIRE = 0x17181a, GLASS = 0x26313b, CHROME = 0xd4d6d8;
@@ -22,11 +23,20 @@ const LAMP = 0xfff3c4, TAIL = 0xc0332a, AMBER = 0xf0a030, PLATE = 0xe8e6dc, TRIM
 //   track:    computed below from `plan` so the tyres stand just proud of the body
 export const CARS = [
   {
-    id: 'ranger', name: '1993 Ford Ranger XLT', who: 'Yours',
-    body: 0xf3f1ea, seats: 2, style: 'truck',
-    flavour: 'Regular cab, 2.3 four-banger, five-speed, three-across bench. Slow everywhere, stops nowhere, starts every time.',
+    // XL — the BASE trim, off the photograph and not off a brochure. One colour
+    // of white over the whole body (no two-tone band, no bodyside stripes),
+    // black bumpers, black mirrors, black door handles, argent steel wheels with
+    // small hub caps, and the badge low on the bed side. Nothing on this truck is
+    // chrome. `wear` is the nine years it has done since: see specPaint().
+    id: 'ranger', name: '1993 Ford Ranger XL', who: 'Yours',
+    body: 0xebe8dd, seats: 2, style: 'truck',
+    // Bed side / cab / front fender, each a shade off the others; the steps are
+    // 8 mm of t apart so they land in the panel gap rather than across a panel.
+    wear: { dirt: 0xbcb6a8, rise: 0.40, arch: 0.45, film: 0.32,
+            panels: [[0, 0.972], [0.404, 0.972], [0.412, 1.006], [0.731, 1.006], [0.739, 0.955], [1, 0.955]] },
+    flavour: 'Cabine simple, 2.3 L quatre cylindres, cinq vitesses, banquette trois places. XL de base — pas de chrome, pas de tapis. Lente partout, arrête nulle part, part à tout coup.',
     len: 4.78, wid: 1.77, h: 1.64, wheelbase: 2.75, overhangF: 0.80, track: 1.67, wheelR: 0.34,
-    topSpeed: 36.5, accel: 3.5, brake: 8.0, grip: 0.80, steerMax: 0.50, mass: 1420,
+    topSpeed: 41.67, accel: 3.5, brake: 8.0, grip: 0.80, steerMax: 0.50, mass: 1420, aero: 0.000456,
     seatY: 1.28, seatZ: 0.30, seatX: 0.50, clearance: 0.30,
     // long flat hood, upright cab, open short bed with tall sides level with the door sills
     top: [[0, 1.16], [0.021, 1.16], [0.031, 0.74], [0.408, 0.74], [0.418, 1.16], [0.435, 1.16],
@@ -45,7 +55,7 @@ export const CARS = [
     body: 0x2f5fa8, seats: 3, style: 'sedan',
     flavour: 'Polymer door panels, so the parking-lot dings pop back out. Gutless, but it never quits.',
     len: 4.49, wid: 1.70, h: 1.39, wheelbase: 2.60, overhangF: 0.95, track: 1.64, wheelR: 0.30,
-    topSpeed: 41.5, accel: 4.2, brake: 9.0, grip: 0.90, steerMax: 0.57, mass: 1130,
+    topSpeed: 47.78, accel: 4.2, brake: 9.0, grip: 0.90, steerMax: 0.57, mass: 1130, aero: 0.000350,
     seatY: 1.05, seatZ: 0.05, seatX: 0.40, clearance: 0.20,
     // wedge nose, long rising hood, fast windshield, short high deck
     top: [[0, 0.92], [0.02, 0.95], [0.06, 0.965], [0.17, 0.97], [0.21, 0.99], [0.25, 1.10], [0.30, 1.24],
@@ -62,7 +72,7 @@ export const CARS = [
     body: 0xa8322b, seats: 3, style: 'hatch',
     flavour: 'Two thousand pounds of nothing, a 1.6 that begs for 7000, and a hatch you could sleep in.',
     len: 3.99, wid: 1.67, h: 1.33, wheelbase: 2.50, overhangF: 0.83, track: 1.61, wheelR: 0.29,
-    topSpeed: 45.5, accel: 5.3, brake: 9.6, grip: 1.04, steerMax: 0.63, mass: 940,
+    topSpeed: 49.44, accel: 5.3, brake: 9.6, grip: 1.04, steerMax: 0.63, mass: 940, aero: 0.000402,
     seatY: 0.98, seatZ: 0.0, seatX: 0.38, clearance: 0.20,
     // very low nose, flat hood, huge greenhouse, roof peaks at the B-pillar, gentle hatch glass to a tall tail
     top: [[0, 0.90], [0.015, 0.95], [0.03, 0.98], [0.05, 1.03], [0.09, 1.15], [0.13, 1.255], [0.16, 1.29],
@@ -80,7 +90,7 @@ export const CARS = [
     body: 0x1c8f83, seats: 3, style: 'coupe',
     flavour: 'Coupe, body-coloured cladding, one working speaker, and a spoiler that does absolutely nothing.',
     len: 4.60, wid: 1.72, h: 1.35, wheelbase: 2.64, overhangF: 1.00, track: 1.66, wheelR: 0.32,
-    topSpeed: 44.0, accel: 4.5, brake: 9.0, grip: 0.92, steerMax: 0.58, mass: 1240,
+    topSpeed: 48.89, accel: 4.5, brake: 9.0, grip: 0.92, steerMax: 0.58, mass: 1240, aero: 0.000319,
     seatY: 1.0, seatZ: 0.05, seatX: 0.40, clearance: 0.20,
     // jellybean: low nose, arched roof, long doors, high rounded deck
     top: [[0, 0.88], [0.02, 0.93], [0.05, 0.97], [0.10, 0.99], [0.17, 1.00], [0.21, 1.02], [0.25, 1.12],
@@ -102,7 +112,7 @@ export const CARS = [
     body: 0x6b5334, seats: 4, style: 'sedan', lot: true,
     flavour: 'Brun. Banquette en avant, suspension en guimauve, pis un cendrier plein.',
     len: 4.78, wid: 1.76, h: 1.37, wheelbase: 2.68, overhangF: 0.94, track: 1.68, wheelR: 0.33,
-    topSpeed: 39.0, accel: 3.6, brake: 7.8, grip: 0.76, steerMax: 0.47, mass: 1310,
+    topSpeed: 46.67, accel: 3.6, brake: 7.8, grip: 0.76, steerMax: 0.47, mass: 1310, aero: 0.000348,
     seatY: 1.04, seatZ: 0.05, seatX: 0.42, clearance: 0.22,
     // GM A-body: flat hood, formal upright roof, long square deck, big glass
     top: [[0, 0.96], [0.02, 1.00], [0.05, 1.015], [0.20, 1.02], [0.235, 1.05], [0.27, 1.22],
@@ -119,7 +129,7 @@ export const CARS = [
     body: 0xb01d1d, seats: 3, style: 'coupe',
     flavour: 'Le Z24 avec le V6 pis le spoiler. Ça rattle en dessous de 60 pis ça rattle en haut de 60.',
     len: 4.50, wid: 1.72, h: 1.34, wheelbase: 2.57, overhangF: 0.94, track: 1.66, wheelR: 0.31,
-    topSpeed: 43.0, accel: 4.8, brake: 9.0, grip: 0.93, steerMax: 0.58, mass: 1185,
+    topSpeed: 50.00, accel: 4.8, brake: 9.0, grip: 0.93, steerMax: 0.58, mass: 1185, aero: 0.000354,
     seatY: 1.0, seatZ: 0.05, seatX: 0.40, clearance: 0.20,
     // J-body coupe: wedge nose, long doors, notchback deck with the lip spoiler
     top: [[0, 0.90], [0.02, 0.94], [0.06, 0.965], [0.155, 0.975], [0.20, 1.00], [0.245, 1.12],
@@ -137,7 +147,7 @@ export const CARS = [
     body: 0xc9c3b4, seats: 6, style: 'van',
     flavour: 'Sept places, deux portes coulissantes, zéro chevaux. La gang rentre au complet en un voyage.',
     len: 4.47, wid: 1.79, h: 1.72, wheelbase: 2.85, overhangF: 0.82, track: 1.70, wheelR: 0.32,
-    topSpeed: 37.0, accel: 3.2, brake: 7.6, grip: 0.74, steerMax: 0.50, mass: 1580,
+    topSpeed: 43.89, accel: 3.2, brake: 7.6, grip: 0.74, steerMax: 0.50, mass: 1580, aero: 0.000380,
     seatY: 1.30, seatZ: 0.20, seatX: 0.46, clearance: 0.26,
     // one-box: short steep nose straight into a tall flat roof, square tail
     top: [[0, 1.12], [0.02, 1.36], [0.05, 1.55], [0.09, 1.64], [0.16, 1.675], [0.62, 1.68],
@@ -154,7 +164,7 @@ export const CARS = [
     body: 0xd8d5cd, seats: 39, style: 'bus',
     flavour: 'Quarante places, un diesel qui claque, pis une pancarte HORS SERVICE en avant. Passe pas sur Bancroft.',
     len: 12.00, wid: 2.59, h: 3.10, wheelbase: 6.20, overhangF: 2.00, track: 2.44, wheelR: 0.53,
-    topSpeed: 24.0, accel: 1.55, brake: 6.0, grip: 0.62, steerMax: 0.34, mass: 12000,
+    topSpeed: 25.56, accel: 1.55, brake: 6.0, grip: 0.62, steerMax: 0.34, mass: 12000, aero: 0.000263,
     seatY: 2.40, seatZ: 0.60, seatX: 0.80, clearance: 0.42,
     // a box on wheels: flat front, flat roof, flat back, one long window band
     top: [[0, 2.86], [0.006, 3.06], [0.02, 3.10], [0.975, 3.10], [0.99, 3.06], [1, 2.80]],
@@ -183,7 +193,7 @@ export const CARS = [
     electric: true, park: 'building', noTraffic: true, relay: 1180,
     flavour: 'Électrique, 24 km/h, pas de portes. Le seul char en ville qui aime mieux le gazon que l’asphalte.',
     len: 2.40, wid: 1.20, h: 1.80, wheelbase: 1.65, overhangF: 0.35, track: 1.20, wheelR: 0.25,
-    topSpeed: 7.15, accel: 3.0, brake: 4.5, grip: 0.55, steerMax: 0.85, mass: 400,
+    topSpeed: 6.67, accel: 3.0, brake: 4.5, grip: 0.55, steerMax: 0.85, mass: 400, aero: 0.001440,
     turf: 2.0,
     seatY: 0.98, seatZ: 0.02, seatX: 0.30, clearance: 0.14,
     // rear deck (the bag rack sits on it), bench back, cushion, footwell, cowl
@@ -238,7 +248,9 @@ const REVERSE = {
 // them. The numbers that matter most:
 //
 //   cyl / idle / redline   set the firing frequency, rpm/120·cyl. A four at
-//                          750 rpm fires at 25 Hz; at 3000 rpm, 100 Hz.
+//                          750 rpm fires at 25 Hz; at 3000 rpm, 100 Hz. The
+//                          Ranger's 800 rpm idle is 26.7 Hz — two power strokes
+//                          a revolution, and you can count them.
 //   decay / uneven / tilt  the shape of one combustion pulse, how much stronger
 //                          cylinder 1 is than the rest (lumpiness), and how
 //                          fast the harmonics roll off (dull vs. brassy).
@@ -249,14 +261,30 @@ const REVERSE = {
 //   boom*                  the body/cabin resonance that drones in third.
 //   tick*                  valvetrain tick at rpm/60·8 — the tick-over.
 //   rattle                 the Sunfire's blown door speaker (and the Z24's dash).
+//   toneLo/toneHi          the load-dependent timbre: where the bus lowpass sits
+//                          off the throttle vs. wide open. A labouring engine is
+//                          a brighter, harder noise than a coasting one, and
+//                          this is the whole of that difference.
+//   labour                 how much extra body boom a big load at low revs gets.
+//   burble                 the decel burble off a shut throttle.
+//   whineK / whineG        final-drive whine: Hz per km/h, and how loud.
+//   gearThunk              the driveline taking up when the clutch comes back.
 const SOUND = {
-  // 2.3 L Lima SOHC, 100 hp, single exhaust. Agricultural idle, flat drone.
-  ranger:  { cyl: 4, idle: 750, redline: 5200, limiter: 5200,
-             decay: 6.0, uneven: 0.22, tilt: 0.24, harm: 208,
-             exhQ: 0.80, exhG: 1.15, intF0: 780, intSpan: 1500, intQ: 1.0, intG: 0.40,
-             hissG: 0.20, raspG: 0.26, raspFrom: 3500, rasp: 0.50, raspK: 2.8,
-             boomF: 128, boomQ: 5.5, boomDb: 9, tickF: 3600, tickG: 0.046,
-             lumpy: 0.015, pop: 1.15, gain: 1.10, rattle: 0, rattleFrom: 0 },
+  // 2.3 L Lima SOHC, 100 hp, single exhaust, iron head, two valves. A four with
+  // no balance shafts in a light truck: it fires twice a revolution and you can
+  // hear both of them. Idles at 800 and lopes there (`lumpy`), drones flat
+  // through the middle and thrashes rather than sings at the top — `raspFrom`
+  // is only 2900, so it is already coarse at three thousand. `toneLo/toneHi`
+  // are the load-dependent timbre: shut, it is a dull hum three rooms away;
+  // labouring up a hill it opens right out. `whineK` is the axle.
+  ranger:  { cyl: 4, idle: 800, redline: 5200, limiter: 5200,
+             decay: 5.2, uneven: 0.30, tilt: 0.20, harm: 208,
+             exhQ: 0.72, exhG: 1.24, intF0: 720, intSpan: 1400, intQ: 1.05, intG: 0.46,
+             hissG: 0.22, raspG: 0.36, raspFrom: 2900, rasp: 0.62, raspK: 3.1,
+             boomF: 124, boomQ: 5.8, boomDb: 10, tickF: 3500, tickG: 0.055,
+             lumpy: 0.030, pop: 1.35, gain: 1.10, rattle: 0, rattleFrom: 0,
+             toneLo: 640, toneHi: 5200, labour: 5.0, burble: 0.30,
+             whineK: 3.3, whineG: 0.020, gearThunk: 0.055 },
   // 1.9 SOHC. Coarse, and the polymer panels ring — a narrow plasticky boom.
   saturn:  { cyl: 4, idle: 800, redline: 6300, limiter: 6400,
              decay: 7.5, uneven: 0.18, tilt: 0.30, harm: 192,
@@ -326,9 +354,9 @@ const SOUND = {
 // does not shut up until 7200. Ratios are the real ones where I could find
 // them; `tyre` is the rolling diameter in metres.
 const DRIVE = {
-  // Mazda M5OD five-speed, 3.73 axle, P225/70R14 ≈ 27".
+  // Mazda M5OD five-speed behind the 2.3 four, 3.73 axle, P225/70R14 ≈ 27".
   ranger:  { gears: [3.97, 2.14, 1.42, 1.00, 0.85], reverse: 3.99, final: 3.73, tyre: 0.6858,
-             idle: 750, redline: 5200, limiter: 5200,
+             idle: 800, redline: 5200, limiter: 5200,
              shiftUp: 4800, shiftUpLight: 3000, shiftDown: 1600, launch: 2100, shiftTime: 0.25 },
   saturn:  { gears: [3.25, 1.96, 1.30, 0.94, 0.72], reverse: 3.14, final: 3.55, tyre: 0.601,
              idle: 800, redline: 6300, limiter: 6400,
@@ -362,17 +390,69 @@ const DRIVE = {
 const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24
   : s.style === 'cart' ? 0.14 : 0.20);
 const WHEEL_PROUD = 0.07;   // tyre outer face this far outside the body at the axle
-for (const c of CARS) {
+
+// SPEED — what stops a car, and therefore where it stops accelerating.
+//
+// `topSpeed` used to be an aspiration: the thrust curve went to zero AT it and
+// then rolling resistance and aero took another seventeen per cent off, so a
+// truck advertised at 131 km/h ran out at 111 and everything in the game topped
+// out within a few km/h of everything else. Now `topSpeed` is the TERMINAL
+// speed — the real one, off the real vehicle — and the engine is given exactly
+// enough head room to reach it and no more.
+//
+// Drag is the honest pair: a constant rolling term, and aero at ½ρ·Cd·A·v²/m,
+// which is `aero` on the spec (per (m/s)², from the vehicle's own frontal area
+// and mass). Thrust is `accel · (1 − (v/vPow)^POW)`, and `vPow` — the speed at
+// which the engine has nothing left, always above `topSpeed` — is solved from
+// the other three so the two curves cross exactly where the brochure says they
+// do. The last 20 km/h therefore takes a very long time in anything slow: at
+// 130 km/h the Ranger has about 0.35 m/s² left over, and it spends it slowly.
+const ROLL = 0.28;          // rolling resistance, m/s², near enough constant
+const AERO = 0.0006;        // fallback for a spec that never declared its own
+const POW = 1.7;            // how squarely the thrust curve falls off with speed
+
+// Copy `src`'s fields onto `c` only where `c` has nothing to say. `in` rather
+// than hasOwnProperty on purpose: a tuned copy is Object.create(stock), so an
+// inherited value counts as already answered.
+function defaults(c, src) {
+  if (!src) return;
+  for (const k of Object.keys(src)) if (!(k in c)) c[k] = src[k];
+}
+
+/**
+ * Everything derived from a spec sheet rather than typed into one. Exported
+ * because the table is not closed: a module can push a vehicle into CARS at
+ * import time, and it has to be able to finish it the same way these are.
+ */
+export function finalizeCar(c) {
   c.axleZ = c.wheelbase / 2;
   // Track from the plan: the tyre's outer face stands just proud of the widest axle station.
   const rearOverhang = c.len - c.wheelbase - c.overhangF;
   const hwAxle = Math.max(pl(c.plan, rearOverhang / c.len), pl(c.plan, (rearOverhang + c.wheelbase) / c.len));
   c.track = Math.round(2 * (hwAxle + WHEEL_PROUD - WHEEL_W(c) / 2) * 100) / 100;
-  Object.assign(c, HANDBRAKE[c.id]);
-  Object.assign(c, REVERSE[c.id] || {});      // a car with no entry takes the defaults
-  c.sound = SOUND[c.id];
-  c.drive = DRIVE[c.id];
+  // Fill in, never overwrite. These two tables are defaults for a spec that did
+  // not state its own, and finalizeCar() is now run twice over the same car:
+  // once here at import, and again by upgrades.js's tuned(), which re-solves the
+  // thrust curve so a bigger engine is not thrown away. An Object.assign there
+  // stamped the stock table straight back over the shop's work — the $300
+  // Posi-traction multiplies hbYaw and hbGrip, and the Ranger came out of the
+  // shop with exactly the 1.06 it went in with. Anything already on the spec,
+  // including a value inherited from the stock car a tuned copy is built on,
+  // is a number somebody meant.
+  defaults(c, HANDBRAKE[c.id]);
+  defaults(c, REVERSE[c.id]);                 // a car with no entry takes the defaults
+  if (c.sound === undefined) c.sound = SOUND[c.id];
+  if (c.drive === undefined) c.drive = DRIVE[c.id];
+  // Solve the thrust curve for the stated terminal speed. If a spec is greedy
+  // enough that drag alone eats the whole engine, the clamp keeps vPow finite
+  // and the car simply never quite gets there.
+  const aero = c.aero != null ? c.aero : AERO;
+  const drag = ROLL + aero * c.topSpeed * c.topSpeed;
+  const x = clamp(1 - drag / Math.max(0.01, c.accel), 0.05, 0.999);
+  c.vPow = c.topSpeed / Math.pow(x, 1 / POW);
+  return c;
 }
+for (const c of CARS) finalizeCar(c);
 
 export const carById = (id) => CARS.find((c) => c.id === id) || CARS[0];
 
@@ -476,26 +556,53 @@ function specPaint(s) {
   const bedFloor = s.bed ? s.bed[2] : -1;
   const bumperY = s.clearance + cl.bumper;
   const inBumper = (t) => t <= cl.tRear || t >= cl.tFront;
+
+  // Honest wear, and only for a spec that asks for it (`wear`), so every other
+  // car paints byte-for-byte the way it did before this existed. Two effects:
+  //
+  //   panels  a couple of per cent of shade between the bed side, the cab and
+  //           the front fender, keyed on t with the step landing IN the panel
+  //           gap. Nine years of sun does not fade three panels equally.
+  //   film    gravel dust up the lower body. Colours are per vertex and
+  //           interpolated across the loft quad, which is usually the enemy of
+  //           a band — here it is the whole point, because road film IS a
+  //           gradient: filthiest at the rocker, gone by the door handle. It
+  //           climbs higher at the arches, where the tyres throw it.
+  const w = s.wear || null;
+  const dirt = w ? rgb(w.dirt) : null;
+  const tA = w ? axleT(s, -1) : 0, tB = w ? axleT(s, 1) : 0;
+  const weather = (col, t, y) => {
+    if (!w) return col;
+    const k = pl(w.panels, t);
+    const c = [Math.min(1, col[0] * k), Math.min(1, col[1] * k), Math.min(1, col[2] * k)];
+    const near = Math.min(Math.abs(t - tA), Math.abs(t - tB));
+    const rise = w.rise * (1 + (w.arch || 0) * clamp(1 - near / 0.09, 0, 1));
+    // Only a haze: the loft's side face has two vertices, sill and belt, so the
+    // mix reaches all the way up the flank however tight `rise` is. Keeping it
+    // light is what stops a white truck coming out beige.
+    const f = clamp(1 - (y - s.clearance) / rise, 0, 1) * (w.film || 0.4);
+    return f > 0 ? [c[0] + (dirt[0] - c[0]) * f, c[1] + (dirt[1] - c[1]) * f, c[2] + (dirt[2] - c[2]) * f] : c;
+  };
+
   return (face, t, y) => {
     if (face === 'bottom') return [under, 0, 0];
     if (face === 'glassL' || face === 'glassR') {
-      return [inRange([s.glassSide], t) ? glass : body, 0, 0];
+      return [inRange([s.glassSide], t) ? glass : weather(body, t, y), 0, 0];
     }
     if (face === 'top') {
       if (s.bed && t > s.bed[0] && t < s.bed[1] && y < bedFloor + 0.02) return [shade(s.body, 0.55), 0, 0];
       if (inRange(s.glassTop, t, y)) return [glass, 0, 0];
       if (inBumper(t) && y < bumperY) return [clad, 0, 0];
-      return [body, 0, 0];
+      return [weather(body, t, y), 0, 0];
     }
     if (face === 'sideL' || face === 'sideR') {
-      // Colours are per vertex and interpolated across the quad, so a band
-      // keyed on y would smear into a gradient; the bumper corners are keyed
-      // on t only (uniform per ring) and the rocker cladding is a slab in addDetails.
-      return [inBumper(t) ? clad : body, 0, 0];
+      // The bumper corners are keyed on t only (uniform per ring) and the
+      // rocker cladding is a slab in addDetails.
+      return [inBumper(t) ? clad : weather(body, t, y), 0, 0];
     }
     // end caps: bumper cover low, painted tail/nose panel above
     if (y < bumperY) return [clad, 0, 0];
-    return [dark, 0, 0];
+    return [weather(dark, t, y), 0, 0];
   };
 }
 
@@ -549,9 +656,11 @@ export function addDetails(mb, s, opts = {}) {
   }
 
   if (s.id === 'ranger') {
-    // chrome bumpers, flush aero headlamps, chrome grille with the blue oval
-    mb.box(0, s.clearance + 0.12, zF - 0.02, s.wid * 0.96, 0.18, 0.12, chrome);
-    mb.box(0, s.clearance + 0.12, zR + 0.02, s.wid * 0.94, 0.18, 0.12, chrome);
+    // XL: BLACK bumpers front and rear (no chrome anywhere on this truck), flush
+    // aero headlamps, and the argent-and-black grille the base trim got.
+    const blk = shade(TRIM, 0.62), argent = rgb(0x8e9195);
+    mb.box(0, s.clearance + 0.12, zF - 0.02, s.wid * 0.96, 0.18, 0.12, blk);
+    mb.box(0, s.clearance + 0.12, zR + 0.02, s.wid * 0.94, 0.18, 0.12, blk);
     const yH = 0.84, zH = z(0.992);
     both((sx) => {
       mb.box(sx * 0.44, yH, zH, 0.34, 0.15, 0.06, lamp);
@@ -559,9 +668,9 @@ export function addDetails(mb, s, opts = {}) {
       mb.box(sx * (hwAt(s, 0.985) + 0.004), yH, z(0.982), 0.01, 0.12, 0.10, amber);   // wraps onto the fender
     });
     mb.box(0, yH, zH - 0.005, 0.50, 0.19, 0.05, shade(TRIM, 0.7));          // recessed grille opening
-    mb.box(0, yH, zH, 0.52, 0.03, 0.05, chrome);                            // chrome bar
-    mb.box(0, yH + 0.09, zH, 0.54, 0.02, 0.05, chrome);                     // grille frame top/bottom
-    mb.box(0, yH - 0.09, zH, 0.54, 0.02, 0.05, chrome);
+    mb.box(0, yH, zH, 0.52, 0.03, 0.05, argent);                            // argent bar, not a chrome one
+    mb.box(0, yH + 0.09, zH, 0.54, 0.02, 0.05, argent);                     // grille frame top/bottom
+    mb.box(0, yH - 0.09, zH, 0.54, 0.02, 0.05, argent);
     mb.box(0, yH, zH + 0.02, 0.12, 0.06, 0.02, rgb(0x1f3f9a));               // blue oval
     // tall vertical tail lamps flanking the tailgate, FORD as a recessed dark box
     both((sx) => mb.box(sx * (hwR - 0.10), 0.93, zR + 0.012, 0.17, 0.40, 0.04, tail));
@@ -575,25 +684,44 @@ export function addDetails(mb, s, opts = {}) {
     both((sx) => mb.box(sx * (hw - 0.13), floor + 0.10, zc, 0.03, 0.04, len - 0.30, shade(s.body, 0.6)));   // inner wheel-tub lip
     mb.box(0, floor + 0.01, zc, hw * 2 - 0.28, 0.01, len - 0.2, shade(s.body, 0.62));                    // ribbed floor
     for (let k = -3; k <= 3; k++) mb.box(0, floor + 0.02, zc + k * (len / 7), hw * 2 - 0.3, 0.008, 0.05, shade(s.body, 0.50));
-    // XLT, not XL: the two-tone lower body (Medium Silver under Oxford White) with
-    // the twin bodyside stripes on the break line, chrome mirror heads and door
-    // handles over the black ones, and the fender badge. The band is cut around
-    // the wheel arches so they still read as arches.
-    const two = rgb(0x8f969e), stripeA = rgb(0x24457f), stripeB = rgb(0xb9bec4);
-    const r = s.wheelR + 0.10, yLo = s.clearance + 0.17, yHi = 0.71;
-    const spans = [[zR + 0.22, -s.axleZ - r], [-s.axleZ + r, s.axleZ - r], [s.axleZ + r, zF - 0.34]];
+    // The XL's only badge: RANGER low on the bed side, aft of the rear arch,
+    // with a small XL under the front of it. Dark decal on white — there is no
+    // brightwork on this truck, and nothing at all on the front fender. The
+    // mirrors and door handles are the shared black ones from the prologue
+    // above; the XLT used to draw chrome ones over the top and does not now.
+    const badge = shade(TRIM, 1.05);
+    const tBadge = 0.13;
     both((sx) => {
-      for (const [za, zb] of spans) {
-        if (zb - za < 0.2) continue;
-        const zc2 = (za + zb) / 2, tc = (zc2 - zR) / (zF - zR), hwB = hwAt(s, tc);
-        mb.box(sx * (hwB + 0.006), (yLo + yHi) / 2, zc2, 0.012, yHi - yLo, zb - za, two);
-        mb.box(sx * (hwB + 0.009), yHi + 0.016, zc2, 0.012, 0.02, zb - za, stripeA);
-        mb.box(sx * (hwB + 0.009), yHi + 0.045, zc2, 0.012, 0.012, zb - za, stripeB);
-      }
-      if (!opts.noMirrors) mb.box(sx * (hwAt(s, 0.69) + 0.09), beltAt(s, 0.69) + 0.08, z(0.69), 0.17, 0.11, 0.14, chrome);   // mirror head
-      mb.box(sx * (hwAt(s, 0.49) + 0.009), beltAt(s, 0.49) - 0.13, z(0.49), 0.014, 0.032, 0.15, chrome); // handle
-      mb.box(sx * (hwAt(s, 0.80) + 0.007), 0.82, z(0.80), 0.012, 0.045, 0.15, chrome);                  // XLT badge
+      const xb = hwAt(s, tBadge) + 0.006;
+      mb.box(sx * xb, 0.92, z(tBadge), 0.012, 0.038, 0.30, badge);          // RANGER
+      mb.box(sx * xb, 0.862, z(tBadge + 0.022), 0.012, 0.026, 0.075, badge); // XL
     });
+
+    // The whip. A fixed mast on the right front fender, a metre and a quarter of
+    // it, standing two thirds of a foot clear of the cab roof — the single most
+    // recognisable thing about the truck from any distance. It is excluded from
+    // `noAerial` builds for the same reason the mirrors are: it is not part of
+    // the body envelope tools/car_views.mjs measures.
+    if (!opts.noAerial) {
+      const tAer = 0.78, xAer = -(hwAt(s, tAer) - 0.055), yAer = topAt(s, tAer);
+      mb.box(xAer, yAer + 0.02, z(tAer), 0.05, 0.06, 0.05, shade(TRIM, 0.7));     // base
+      // Dark rather than bright: a mast reads against the sky, not against the
+      // truck, and 24 mm is the thinnest thing that still survives a screenshot.
+      mb.box(xAer, (yAer + 2.34) / 2, z(tAer), 0.024, 2.34 - yAer, 0.024, rgb(0x4e5155));
+    }
+
+    // Nine years and a gravel lot. The film up the lower body is in specPaint;
+    // these are the two things a gradient cannot do: a crease in the bed side
+    // where somebody backed it into a post, and rust breaking out of the rear
+    // arch lip and the bottom of the tailgate. Driver's side only — wear is
+    // never symmetrical, and a mirrored dent reads as a styling feature.
+    const rust = rgb(0x77452a);
+    mb.box(hwAt(s, 0.20) + 0.003, 0.86, z(0.20), 0.010, 0.085, 0.26, shade(s.body, 0.62));
+    mb.box(hwAt(s, 0.20) + 0.005, 0.912, z(0.20), 0.010, 0.016, 0.26, shade(s.body, 1.10));  // the light off the top of the crease
+    // Rust out of the top of the rear arch, where the lip holds the salt, and
+    // along the bottom of the tailgate, which is where they always go first.
+    mb.box(hwAt(s, 0.30) + 0.004, s.wheelR + 0.28, -s.axleZ + 0.30, 0.010, 0.055, 0.13, rust);
+    mb.box(-(hwAt(s, 0.012) - 0.20), s.clearance + 0.20, zR + 0.016, 0.22, 0.04, 0.010, rust);
   }
 
   if (s.id === 'saturn') {
@@ -966,16 +1094,20 @@ export function buildWheel(s) {
   const rimR = s.wheelR * (s.style === 'truck' ? 0.56 : 0.62);
   const face = w / 2 + 0.012, deco = face + 0.004;
   if (s.id === 'ranger') {
-    // styled steel: light rim with five oval holes and a domed centre cap
-    const rim = 0xdcdcdc;
+    // XL: an unpainted argent STEEL wheel — no alloy, no full cover, no chrome.
+    // A plain stamped disc, the five hand holes pressed into it, and the little
+    // dog-dish cap that covers the nuts and nothing else. Dulled down because
+    // nobody has taken a brush to these since 1993.
+    const rim = 0x9ea1a4;
     mb.cyl(0, 0, 0, rimR, face * 2, 12, rgb(rim), 'x');
     for (const dir of [1, -1]) {
       for (let k = 0; k < 5; k++) {
         const a = (k / 5) * Math.PI * 2 + Math.PI / 2;
-        facePoly(mb, dir * deco, dir, ellipse(Math.cos(a) * rimR * 0.62, Math.sin(a) * rimR * 0.62, rimR * 0.16, rimR * 0.26, a), shade(rim, 0.25));
+        facePoly(mb, dir * deco, dir, ellipse(Math.cos(a) * rimR * 0.66, Math.sin(a) * rimR * 0.66, rimR * 0.13, rimR * 0.20, a), shade(rim, 0.22));
       }
     }
-    mb.cyl(0, 0, 0, rimR * 0.34, face * 2 + 0.04, 8, shade(rim, 0.92), 'x');
+    mb.cyl(0, 0, 0, rimR * 0.40, face * 2 + 0.02, 10, rgb(0xb8babc), 'x');   // dog-dish cap
+    mb.cyl(0, 0, 0, rimR * 0.13, face * 2 + 0.03, 6, shade(rim, 0.55), 'x'); // the dimple in it
   } else if (s.id === 'saturn') {
     // plastic multi-slot cover: light grey with eight dark slots around a flat hub
     const rim = 0xcfd1d3;
@@ -1045,7 +1177,7 @@ export const DAMAGE = { COSMETIC: 25, PERF: 60, DEAD: 100 };
 // `turf` factor drives exactly as it did before this line existed.
 const TURF_KIND = { grass: 1, path: 1, sand: 1 };
 
-const GRASS = 0.72;                     // surface multiplier off the asphalt
+const GRASS = 0.81;                     // surface multiplier off the asphalt (== SURF.grass.power)
 const SURF_RAMP = (1 - GRASS) / 0.5;    // D4: the full penalty takes half a second
 const CURB_Y = 0.15;                    // how tall the sidewalk actually is
 
@@ -1197,8 +1329,10 @@ export class Vehicle {
     const inWater = world.waterAt(this.x, this.z) && !inAir;
     const topSpeed = s.topSpeed * (this.hurt ? 0.85 : 1);   // R4: −15 % once it's bad
 
-    // Engine: force tapers off as you approach terminal speed, like a tired 4-banger.
-    const frac = clamp(vLong / topSpeed, -1, 1);
+    // Engine: the thrust curve runs out at `vPow`, which sits above the car's
+    // terminal speed by exactly the drag it has to push through (see
+    // finalizeCar). A bent engine loses the same 15 % of it the top speed loses.
+    const frac = clamp(vLong / ((s.vPow || s.topSpeed) * (this.hurt ? 0.85 : 1)), -1, 1);
     const revTop = s.revTop != null ? s.revTop : REV_TOP;
 
     // ---- which way the box is in (see DIR_* at the top of the file) --------
@@ -1254,10 +1388,21 @@ export class Vehicle {
       if (ctl.handbrake && Math.abs(vLong) > 0.4) a -= Math.sign(vLong) * s.brake * 0.55;
       // Rolling resistance is a near-constant drag; aero grows with the square.
       // Top speed then falls out of where the power curve meets it.
-      if (Math.abs(vLong) > 0.2) a -= Math.sign(vLong) * (0.28 + 1.42 * offRoad * sd.drag);
+      //
+      // Off the tarmac there is a second, speed-dependent term for ground the
+      // wheels sink into rather than roll over: `SURF.plough`, which only sand
+      // declares. A constant deceleration cannot describe sand, because it is
+      // most of a Caravan's engine and a fifth of a Civic's — see the note over
+      // SURF in terrain.js for the sweep that showed no constant works. Both
+      // terms ride on `offRoad`, so a turf machine pays neither.
+      if (Math.abs(vLong) > 0.2) {
+        a -= Math.sign(vLong)
+          * (ROLL + offRoad * (1.42 * sd.drag + (sd.plough || 0) * vLong * vLong));
+      }
     }
     // Aero never stops, on the ground or off it. Nothing else acts in flight.
-    a -= vLong * Math.abs(vLong) * 0.0006;
+    // Per car, because a Caravan and a Civic Si do not push the same hole.
+    a -= vLong * Math.abs(vLong) * (s.aero != null ? s.aero : AERO);
     if (inWater) a -= vLong * 4.5;
     // R4: a sick engine coughs. One skipped stroke, roughly once a second.
     this.misfire = false;
@@ -1425,7 +1570,7 @@ export class Vehicle {
 
     // Walls and poles: skip them entirely once the car is over fence height —
     // that is what makes a jump a shortcut instead of a bounce.
-    if (this.y - gh < AIR_OVER_WALLS) this.collide(world);
+    if (this.y - gh < AIR_OVER_WALLS) this.collide(world, dt);
 
     // D5 / FEEL: which way the box is in, for the speedo, the reverse lamps and
     // the hood camera. It is the GEAR, not the speed — R shows the instant the
@@ -1470,6 +1615,11 @@ export class Vehicle {
     const W = world.bounds;
     this.x = clamp(this.x, W.minX + 6, W.maxX - 6);
     this.z = clamp(this.z, W.minZ + 6, W.maxZ - 6);
+
+    // What is under the wheels, for core/audio.js's road voice. Tagged with the
+    // road speed, which is how audio picks YOUR row out of the ring rather than
+    // a rival's — see CONTACT. `suspV` is the springs, which is what a thump is.
+    CONTACT.put(this.speedKmh, kind, sd.shake, this.inAir, this.suspV);
   }
 
   /**
@@ -1520,38 +1670,59 @@ export class Vehicle {
   }
 
   // Two probe circles (front axle, rear axle) against nearby wall segments.
-  collide(world) {
+  //
+  // SPEED — the probes are not swept, so a car that travels further in one step
+  // than the probe radius (0.92 m on the Ranger) can step clean over a fence.
+  // At 109 km/h and 60 Hz that was 0.5 m and it never came up; at 180 km/h, or
+  // at 150 km/h on a machine dropping to 30 fps, it is 0.8 to 1.4 m and it
+  // does. So when the step gets that long the probes are walked back along the
+  // frame's own travel in sub-radius bites. `sub` is 1 at anything like normal
+  // speed, which is the same single pass over the same positions as before.
+  collide(world, dt = 1 / 60) {
     const s = this.spec;
     if (world.queryPoles) this.collidePoles(world);
     const r = s.wid * 0.52;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
-    const segs = world.querySegments(this.x, this.z, s.len * 0.6 + 3);
+    const moved = Math.hypot(this.vx, this.vz) * dt;
+    const sub = Math.min(5, Math.max(1, Math.ceil(moved / (r * 0.75))));
+    const segs = world.querySegments(this.x, this.z, s.len * 0.6 + 3 + moved);
     if (!segs.length) return;
-    for (const off of [s.len * 0.28, -s.len * 0.28]) {
-      const px = this.x + fx * off, pz = this.z + fz * off;
-      for (const g of segs) {
-        const ex = g.bx - g.ax, ez = g.bz - g.az;
-        const l2 = ex * ex + ez * ez || 1e-6;
-        const t = clamp(((px - g.ax) * ex + (pz - g.az) * ez) / l2, 0, 1);
-        const cx = g.ax + ex * t, cz = g.az + ez * t;
-        let dx = px - cx, dz = pz - cz;
-        let d = Math.hypot(dx, dz);
-        if (d >= r) continue;
-        if (d < 1e-4) { // sitting on the wall line: push along its normal
-          const l = Math.sqrt(l2);
-          dx = -ez / l; dz = ex / l; d = 1e-3;
-        }
-        const nx = dx / d, nz = dz / d, pen = r - d;
-        this.x += nx * pen; this.z += nz * pen;
-        const vn = this.vx * nx + this.vz * nz;
-        if (vn < 0) {
-          const force = Math.min(1, -vn / 18);
-          this.hit(-vn, nx, nz);
-          this.vx -= vn * nx * 1.25; this.vz -= vn * nz * 1.25;   // bounce, mostly absorbed
-          const fwdDot = fx * nx + fz * nz;
-          this.yaw += (nx * fz - nz * fx) * force * 0.35;          // glance off walls
-          this.vx *= 0.72; this.vz *= 0.72;
-          if (Math.abs(fwdDot) > 0.7) { this.vLong *= 0.35; }
+    // Where the car was at the top of the frame, so the bites can be laid out
+    // along the path it actually took rather than around where it ended up.
+    const x0 = this.x - this.vx * dt, z0 = this.z - this.vz * dt;
+    for (let k = 1; k <= sub; k++) {
+      const u = k / sub;
+      const ax = sub === 1 ? this.x : x0 + (this.x - x0) * u;
+      const az = sub === 1 ? this.z : z0 + (this.z - z0) * u;
+      for (const off of [s.len * 0.28, -s.len * 0.28]) {
+        const px = ax + fx * off, pz = az + fz * off;
+        for (const g of segs) {
+          const ex = g.bx - g.ax, ez = g.bz - g.az;
+          const l2 = ex * ex + ez * ez || 1e-6;
+          const t = clamp(((px - g.ax) * ex + (pz - g.az) * ez) / l2, 0, 1);
+          const cx = g.ax + ex * t, cz = g.az + ez * t;
+          let dx = px - cx, dz = pz - cz;
+          let d = Math.hypot(dx, dz);
+          if (d >= r) continue;
+          if (d < 1e-4) { // sitting on the wall line: push along its normal
+            const l = Math.sqrt(l2);
+            dx = -ez / l; dz = ex / l; d = 1e-3;
+          }
+          const nx = dx / d, nz = dz / d, pen = r - d;
+          // A hit found on an earlier bite means the car never got as far as it
+          // thinks: put it back on the wall instead of past it.
+          if (k < sub) { this.x = ax; this.z = az; }
+          this.x += nx * pen; this.z += nz * pen;
+          const vn = this.vx * nx + this.vz * nz;
+          if (vn < 0) {
+            const force = Math.min(1, -vn / 18);
+            this.hit(-vn, nx, nz);
+            this.vx -= vn * nx * 1.25; this.vz -= vn * nz * 1.25;   // bounce, mostly absorbed
+            const fwdDot = fx * nx + fz * nz;
+            this.yaw += (nx * fz - nz * fx) * force * 0.35;          // glance off walls
+            this.vx *= 0.72; this.vz *= 0.72;
+            if (Math.abs(fwdDot) > 0.7) { this.vLong *= 0.35; }
+          }
         }
       }
     }

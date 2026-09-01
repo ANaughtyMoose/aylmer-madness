@@ -13,7 +13,7 @@ import {
 } from '../src/game/cars.js';
 import { SURF } from '../src/game/terrain.js';
 import { PLACES, resolvePlaces } from '../src/game/places.js';
-import { MISSIONS } from '../src/game/missions.js';
+import { MISSIONS, ALL_MISSIONS, ARC } from '../src/game/missions.js';
 import { Garage, UNLOCKS, FOR_SALE } from '../src/game/garage.js';
 import * as save from '../src/game/save.js';
 import { Nav } from '../src/game/nav.js';
@@ -177,7 +177,13 @@ group('« Le cart du Club »');
   ok(!!def, 'the job is registered in MISSIONS');
   ok(def.giver === 'golf' && !!PLACES.golf, 'its giver is PLACES.golf');
   ok(/Club de Golf/.test(PLACES.golf.label), `which is « ${PLACES.golf.label} »`);
-  ok(MISSIONS.length === 17, `${MISSIONS.length} jobs in the pause menu`);
+  // Seventeen ordinary jobs. The summer's five beats (arc.js) are gated on
+  // progress and get pushed onto this same array as they are earned, so the
+  // pause menu grows over a save; ALL_MISSIONS is the whole set, gates ignored.
+  ok(MISSIONS.length === 17, `${MISSIONS.length} jobs in the pause menu on a brand-new save`);
+  ok(ALL_MISSIONS.length === 22, `${ALL_MISSIONS.length} jobs once the whole summer is open`);
+  ok(MISSIONS.filter((m) => ARC.includes(m)).length === 0,
+    'none of the summer\'s five beats are open before you have driven anything');
 
   const inCar = def.build({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 80 });
   const inCart = def.build({ carId: 'cart', carName: cart.name, seats: 2, money: 80 });

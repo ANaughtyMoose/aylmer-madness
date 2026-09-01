@@ -1,0 +1,652 @@
+{
+  "stations": [
+    {
+      "id": "max_energie",
+      "call": "CFOU-FM",
+      "freq": "104.7 FM",
+      "format": "Rock moderne, hits franco & alternatif",
+      "persona": "DJ Dan 'Le Pitbull' Tremblay — 24 ans, survolté, carburation au Red Bull tiède, adore pousser des effets sonores de klaxon à l'air et vanter son Cavalier Z24 avec deux 12 pouces dans la valise.",
+      "idents": [
+        "MAX 104.7! Le plus gros rock en Outaouais!",
+        "CFOU 104.7: Plus de décibels, moins de fla-fla!",
+        "T'es branché su'a tornade rock: MAX 104.7!",
+        "MAX ÉNERGIE! La seule station qui fait vibrer tes subs!",
+        "104.7 FM: De Plage des Cèdres jusqu'à Hull, on bûche!",
+        "MAX 104.7: Baisse tes vitres pis monte le son!",
+        "CFOU Aylmer-Gatineau: Le son officiel de ton char!",
+        "T'écoutes MAX 104.7! Énerve-toé pas, pèse su'l gaz!"
+      ],
+      "patter": [
+        "Yo les maniaques! 31 degrés à l'ombre à Plage des Cèdres, sortez la crème solaire pis vos lunettes fumées Oakley!",
+        "Dan 'Le Pitbull' au micro jusqu'à quatre heures! On s'écoute le nouveau Kaïn, après ça du Blink-182 pour réveiller le chemin d'Aylmer!",
+        "Si t'es pogné su'l pont Champlain à faire bouillir ton prestone, lâche pas: on t'envoie du gros rock dans les oreilles!",
+        "Check-moi ben ça, j'viens d'graver une compile de feu sur un CD-R Memorex, direct pour vos rides du vendredi soir!",
+        "Avis aux conducteurs de Civic sur la Principale: arrêtez d'faire spinner vos pneus d'en avant, vous faites juste de la boucane de clutch!",
+        "On salue la gang du Tim Hortons su'l boulevard Wilfrid-Lavigne qui commande des Ice Capps par douzaines!",
+        "Céline Dion au Colisée de Las Vegas? C'est ben beau, mais icitte en Outaouais, on préfère quand ça décape avec Éric Lapointe!",
+        "Yo! Arrêtez d'm'envoyer des wizz sur MSN Messenger pendant mon shift, mon ordi dans l'studio plante à chaque fois!",
+        "Le prix du suprême est rendu à 84.9 cents le litre au Dépanneur du Coin... Câline, va falloir que j'vende un de mes deux subs 12 pouces!",
+        "Tu te cherches une cassette adaptatrice pour brancher ton Discman dans ton radio de char? Va voir au Canadian Tire avant qu'y en manque!",
+        "On enchaîne avec Les Cowboys Fringants! Si tu chantes pas les paroles à tue-tête la tête sortie par la fenêtre, t'es pas un vrai Aylmerois!",
+        "Température idéale pour aller cruiser au parc de l'Imaginaire avec un slush puppy bleu su'l banc passager!",
+        "Alex Kovalev qui signe avec le Canadien, moi j'vous l'dis, la coupe Stanley s'en vient à Montréal l'hiver prochain, garanti!",
+        "Un gros shoutout à mon chum Dave qui vient d'installer des néons bleus sous son Sunfire 98... C'est illégal mon Dave, mais c'est malade!",
+        "On s'écoute Simple Plan! Les gars d'Montréal qui dominent MTV, ça prouve qu'on a du talent en maudit dans notre coin!",
+        "Si ton système de son griche quand tu passes sous les lignes de haute tension sur Vanier, change tes fils de bougie, champion!",
+        "Vendredi après-midi, quatre heures et quart: la fin de semaine commence LÀ! Clutchez en deuxième pis lâchez le brake à bras!",
+        "On me dit dans l'oreillette qu'y a une vente de CD chez HMV aux Galeries d'Aylmer. Garrochez-vous là, les bacs à 9.99$ débordent!",
+        "Le son de l'été 2004, c'est sur CFOU 104.7 que ça s'passe! Reste là, on s'tape trois tounes sans interruption de pub!",
+        "Gros soleil, le fleuve est calme à la marina... parfait pour aller flâner su'a jetée en mangeant une boîte de Pringles barbecue!",
+        "Qui c'est qui a encore pogné mon marqueur Sharpie noir pour identifier les disques du studio? Ramène-lé, j'ai six compilations à étiqueter!",
+        "Si t'as ton permis probatoire pis que tu chauffes le truck à ton père, fais attention aux polices de Gatineau su'l boulevard Lucerne!",
+        "C'était Sum 41! Du bonbon pour tes tympans. Reste à l'écoute, j'ai une paire de passeports pour le Festival de montgolfières dans cinq minutes!",
+        "Y fait tellement chaud dans mon studio que le ventilateur de table pousse juste de l'air de séchoir à cheveux!",
+        "104.7 MAX ÉNERGIE! Le meilleur de la musique qui rocke de Buckingham jusqu'à Quyon!"
+      ],
+      "ads": [
+        {
+          "business": "Casse-Croûte La Patate Dorée",
+          "copy": "T'as faim après avoir ridé tout l'après-midi? À La Patate Dorée sur la rue Principale à Aylmer, notre poutine extra-fromage en crottes fait croush-croush sous la dent! Frites fraîches coupées le matin même, sauce brune maison bien chaude, pis des steamés à 99 cents le mardi! Viens t'asseoir su'es tables de pique-nique jaunes. La Patate Dorée, 142 rue Principale, dans le Vieux-Aylmer!"
+        },
+        {
+          "business": "Garage Ti-Guy & Fils",
+          "copy": "Ton alternateur couine? Ton muffler traîne à terre su'l chemin d'Aylmer? Amène ton char chez Ti-Guy & Fils! Alignement au laser, changement d'huile en dix minutes avec filtre Fram inclus, pis inspection de sécurité avant d'aller en Ontario. Si Ti-Guy peut pas l'arranger, c'est parce que c'est bon pour la scrap! Garage Ti-Guy & Fils, 520 boulevard Wilfrid-Lavigne."
+        },
+        {
+          "business": "Piscines & Spas Océan Bleu",
+          "copy": "Vague de chaleur sur l'Outaouais! Pourquoi crever de chaud su'ton balcon quand tu pourrais plonger dans une belle hors-terre 21 pieds? Chez Piscines Océan Bleu, on installe en 48 heures, toile garantie dix ans, échelle en résine et chlorateur inclus! Financement disponible, zéro pour cent d'intérêt jusqu'en 2005. Piscines Océan Bleu, 895 chemin d'Aylmer."
+        },
+        {
+          "business": "Club Vidéo Super-Flash",
+          "copy": "Fin de semaine pluvieuse en vue? Passe au Club Vidéo Super-Flash! Plus de dix mille cassettes VHS et les toutes dernières nouveautés en DVD! Spécial cinq films pour cinq jours pour cinq piasses! Bonbons en vrac, sacs de popcorn chaud géants, et section jeux vidéo PlayStation 2 et GameCube! Club Vidéo Super-Flash, au coin Fraser et chemin d'Aylmer."
+        },
+        {
+          "business": "Auto Dépôt Aylmer",
+          "copy": "ATTENTION! Tu cherches un bon char propre à petit prix? Chez Auto Dépôt Aylmer, on a des Civics, des Cavaliers, des Pickups Ford et des Sunfires inspectés en 85 points! Pas de crédit? Mauvais crédit? Faillite non libérée? Ti-Marc te trouve du financement avec une poignée de main! Auto Dépôt Aylmer, 1120 chemin d'Aylmer, face au golf!"
+        },
+        {
+          "business": "École de Conduite Trajectoire",
+          "copy": "T'as seize ans et tu veux tes clés de char avant la rentrée d'automne? Inscris-toi chez Trajectoire! Nos instructeurs certifiés t'apprennent le stationnement en parallèle sans stresser pis la conduite manuelle sans caler su'es côtes de Hull. Réserve ta place pour la session de juillet! École de Conduite Trajectoire, Galeries d'Aylmer, local 108."
+        },
+        {
+          "business": "Salle de Réception Le Manoir des Érables",
+          "copy": "Mariages, baptêmes, anniversaires de 50 ans de mariage ou party de bureau de Noël réservé d'avance: Le Manoir des Érables est la référence champêtre en Outaouais! Grande salle climatisée pouvant accueillir 250 personnes, bar licencié complet et piste de danse en chêne franc. Le Manoir des Érables, 340 route 148, direction Luskville."
+        },
+        {
+          "business": "Rembourrage & Toiles Outaouais",
+          "copy": "Les sièges de ton bateau sont fendus par le soleil? La banquette de ton pickup perd sa mousse jaune? Donnez une deuxième vie à votre intérieur avec Rembourrage Outaouais! Vinyle marin ultra-résistant, velours d'époque, coutures renforcées et réparation de toits convertibles. Devis gratuit sur place. Rembourrage Outaouais, 78 rue Court, Aylmer."
+        },
+        {
+          "business": "Silencieux & Freins Roto-Max",
+          "copy": "Ça fait un son de Boeing 747 quand tu pèses su'l brake? Ton tuyau d'échappement crache de la rouille su'a rue Principale? Roto-Max installe des silencieux garantis à vie et des plaquettes semi-métalliques en une heure top chrono! Mufflers de performance disponibles pour donner du torque à ton 4-cylindres! Roto-Max, 210 boulevard Saint-Joseph, Hull."
+        },
+        {
+          "business": "Excavation & Pavage Gendron",
+          "copy": "Ton entrée de garage a l'air d'un champ de mines après le dégel? Pour un bel asphalte noir lisse comme une table de billard ou du pavé uni qui va impressionner tes voisins, fais confiance aux frères Gendron! Trente ans de métier dans le grand Aylmer, équipement lourd et estimation gratuite. Pavage Gendron, 45 chemin Pink."
+        },
+        {
+          "business": "Salon de Bronzage Soleil Tropical",
+          "copy": "Garde ton teint des Caraïbes toute l'année chez Soleil Tropical! Huit lits ultra-haute pression Turbo 3000 avec brumisateur facial et radio FM intégrée dans chaque cabine! Spécial étudiant: 100 minutes pour seulement 39 dollars plus taxes. Lunettes UV fournies. Salon Soleil Tropical, 181 rue Principale, 2e étage."
+        },
+        {
+          "business": "Matelas & Meubles Bon-Repos",
+          "copy": "Pourquoi payer le gros prix dans les grands magasins d'Ottawa quand tu peux acheter direct du fabricant québécois? Chez Bon-Repos, lits doubles queen-size à ressorts ensachés, futons en pin massif et causeuses en microsuède à prix de liquidation! Livraison gratuite partout à Aylmer et Hull. Meubles Bon-Repos, 650 boulevard Saint-Raymond."
+        }
+      ],
+      "stingers": [
+        "Flash Trafic MAX 104.7: Une Tercel en panne sur la travée centrale du pont Champlain cause un ralentissement monstre en direction d'Ottawa. Prenez le pont Portage si vous voulez pas poireauter!",
+        "Météo MAX: Humidex à 38 degrés cet après-midi sur le Grand Gatineau, risque d'orages violents en fin de journée avec possibilité de grêle sur le Pontiac. Gardez vos fenêtres de char montées!",
+        "Alerte Radar MAX: Nos auditeurs nous signalent un fantôme de la police de Gatineau stationné dans la bretelle cachée du boulevard Lucerne. Pesez su'l frein!",
+        "Flash Nouvelles MAX: La Société des alcools du Québec annonce des heures prolongées pour la longue fin de semaine. Pensez à faire vos réserves avant le rush de vendredi soir!",
+        "Trafic Outaouais: Travaux de resurfaçage sur le chemin d'Aylmer à la hauteur de Wychwood, circulation en alternance sur une voie. Patience les amis!",
+        "Météo Soirée MAX: Dégagé cette nuit avec un minimum de 17 degrés, parfait pour les feux de camp et les tours de char sans toit!"
+      ],
+      "contests": [
+        "Concours MAX 104.7: Le neuvième appelant au 819-770-CFOU gagne une paire de billets VIP pour le spectacle des Cowboys Fringants au Festival de montgolfières de Gatineau avec deux t-shirts officiels!",
+        "La boîte à lunch rock: Sois le premier à identifier le solo de guitare mystère et remporte un certificat de 50 dollars chez La Patate Dorée applicable sur tout le menu poutine!",
+        "Concours Ruée vers le Sud: Remplis ton coupon de participation chez Auto Dépôt Aylmer et cours la chance de gagner un voyage tout inclus pour deux à Cuba l'hiver prochain!",
+        "Le Défi Décibels MAX: Appelle maintenant au 770-CFOU, imite le bruit d'un dérapage de Ford Ranger en direct en ondes, et repars avec un lecteur MP3 Rio de 128 mégaoctets!"
+      ]
+    },
+    {
+      "id": "le_roc",
+      "call": "CHLL-FM",
+      "freq": "99.9 FM",
+      "format": "Classic Rock 70s-80s & Rock Québécois Vintage",
+      "persona": "Gilles 'The Bear' Larocque — 54 ans, voix de papier sablé numéro 60, ancien ouvrier de la papetière E.B. Eddy, vénère Led Zeppelin, Rush, Pagliaro, Offenbach et April Wine. Conduit un F-150 1985 à carburateur et méprise souverainement les boîtes automatiques.",
+      "idents": [
+        "LE ROC 99.9! Du vrai rock pour des vrais chars!",
+        "CHLL 99.9 FM: Pas de synthétiseur en plastique, juste du riff!",
+        "Le son solide de l'Outaouais: Le Roc 99.9!",
+        "99.9 FM: Rock classique, bière tablette, zéro bullshit.",
+        "CHLL Le Roc: Ça fesse depuis 1978!",
+        "Le Roc 99.9: La station qui sent le prestone pis le cuir.",
+        "De Masson-Angers à Pontiac: Le Roc 99.9 te rentre dedans!",
+        "CHLL: Le Classic Rock qui use pas."
+      ],
+      "patter": [
+        "Gilles 'The Bear' Larocque au micro. On vient de s'enfiler 'Tom Sawyer' de Rush. Ça mes amis, c'est de la basse avec des couilles, pas des bébelles électroniques d'aujourd'hui.",
+        "Si tu chauffes un char manuel pis que tu laisses ton pied accoté su'a pédale de clutch aux lumières, t'es en train de massacrer ta bearing de clutch. Apprends à conduire, câlisse.",
+        "Un salut aux gars de la shop chez E.B. Eddy qui finissent leur shift de douze heures. Prenez-vous une bonne grosse 50 frette en arrivant chez vous, vous l'avez méritée.",
+        "Dans mon temps, on descendait la rue Principale avec des Chevelles pis des Darts avec des 340 sous le capot. Aujourd'hui les ti-culs ont des mufflers qui sonnent comme des mouches à marde dans une canne de beans.",
+        "On s'écoute Michel Pagliaro! 'J'entends frapper'... Si t'entends frapper dans ton moteur, checke ton niveau d'huile, t'es probablement en train de couler une bielle.",
+        "Y fait chaud en tabarnak aujourd'hui. Mon vieux Ford a pas d'air climatisé, juste deux vitres à manivelle pis les trappes d'aération aux pieds. Du vrai confort d'homme.",
+        "C'est l'heure du bloc Offenbach. Gerry Boulet, ça chantait avec ses tripes. Pas besoin d'Auto-Tune pour faire frissonner les filles à l'époque.",
+        "On me demande souvent: 'Gilles, pourquoi tu joues jamais de rap?' Ben parce que pour faire de la musique, ça prend un drum pis des guitares avec des amplis Marshall à lampes, point final.",
+        "Un mot d'encouragement pour les gars qui changent un starter dans leur gravelle sous le soleil de plomb: mettez une planche de contreplaqué en dessous pour pas perdre vos bolts.",
+        "April Wine enchaîne direct avec 'Roller'! Si ta blonde aime pas ça, débarque-la au coin de Fraser pis continue ta ride tout seul.",
+        "Le gaz à 82 cents le litre... Les gouvernements nous crossent d'aplomb avec leurs taxes su'l carburant. J'me rappelle quand on mettait dix piasses d'ordinaire pis qu'on roulait toute la semaine.",
+        "Pour les puristes qui écoutent le Roc sur leur radio d'origine AM/FM à pitons chromés dans leur vieux pickup: respect. C'est de même qu'on écoute du Zeppelin.",
+        "On enchaîne avec Deep Purple, 'Highway Star'. Si tu pognes pas un ticket de vitesse en écoutant ça su'a 148 vers Shawville, c'est que ton câble de speedomètre est cassé.",
+        "La bière d'été, ça prend pas des trucs aux canneberges ou des shandys de salon de coiffure. Une Laurentide ou une Brador tablette, pis le tour est joué.",
+        "Les séries de hockey de 1993 avec Patrick Roy... Ça c'était du vrai hockey des séries. Aujourd'hui les arbitres sifflent à chaque fois qu'un gars touche le chandail de l'autre.",
+        "Si t'as un char à traction avant pis que tu penses que t'as un char de course, fais-toi soigner. Si les roues d'en arrière poussent pas, t'es juste dans une grosse brouette motorisée.",
+        "On salue la gang du club de fer à cheval du parc des Cèdres. Belle gagne de vétérans qui savent encore tenir une pinte sans chialer.",
+        "Un p'tit souvenir d'AC/DC de l'ère Bon Scott. Quand Bon chantait, on sentait l'odeur du bourbon pis des nuits blanches à trois milles à la ronde.",
+        "Checkez ben votre pression de pneus avec la chaleur. Un pneu ballonné dans une courbe sur le chemin Pink, pis tu te ramasses dans le champ de luzerne du voisin.",
+        "On écoute Pink Floyd, 'Comfortably Numb'. Ferme tes yeux... enfin non, ferme pas tes yeux si t'es en train de chauffer, imbécile!",
+        "Mon chum ti-Paul m'a montré son nouveau lecteur CD dans son salon. Trois cents dollars pour une boîte noire qui refuse de jouer si le disque a une graffigne... Vive le vinyle 33 tours.",
+        "Un appel d'un gars de Hull qui me demande si on peut jouer du U2... Écoute mon chum, U2 après 1987, c'est de la musique pour faire l'épicerie chez Métro.",
+        "Le Roc 99.9, on prend pas de vacances, parce que le rock classique ne prend jamais sa retraite.",
+        "On s'enfile du Neil Young, 'Rockin' in the Free World'. Monte le son jusqu'à ce que tes miroirs de porte vibrent!",
+        "99.9 FM CHLL. La seule station où les solos de guitare durent plus longtemps que les bulletins de nouvelles."
+      ],
+      "ads": [
+        {
+          "business": "Silencieux Aylmer Muffler",
+          "copy": "Marre des bruits de casseroles sous ton plancher? Chez Aylmer Muffler, on plie nos tuyaux sur mesure à la torche! Silencieux d'origine, lignes doubles en stainless, et 'glasspacks' Cherry Bomb pour donner de la voix à ton V8! Travail garanti, pas de crosse. Aylmer Muffler, 430 rue Principale, en arrière de la quincaillerie."
+        },
+        {
+          "business": "Pneus & Roues Rétro Outaouais",
+          "copy": "Donne de la gueule à ton muscle car ou à ton pickup avec Pneus Rétro Outaouais! Mags Cragar S/S chromés, roues en acier noirci, et pneus BFGoodrich Radial T/A avec lettrage blanc en relief! On a aussi les grandeurs rares pour les modèles 1970 à 1990. Balancement dynamique sur place. Pneus Rétro, 770 boulevard Saint-Joseph, Hull."
+        },
+        {
+          "business": "Décapage & Peinture Industrielle Bouchard",
+          "copy": "La rouille mange tes bas de caisse, ta remorque à bateau ou ton frame de truck? Bouchard Sandblast décape tout au jet de sable jusqu'au métal nu! Application d'apprêt à l'époxy marin et peinture cuite résistante au calcium et aux roches. Décapage Bouchard, 12 chemin Industriel, secteur Hull."
+        },
+        {
+          "business": "Bar Chez Ti-Mousse",
+          "copy": "Le vrai bar de quartier où tout le monde connaît ton nom! Quatre tables de billard Brunswick bien droites, tournoi de dards le jeudi soir, pichets de Labatt 50 à prix d'ouvrier et peanuts gratuites sur le comptoir. Pas de chichi, pas de code vestimentaire! Bar Chez Ti-Mousse, 88 rue Notre-Dame, Vieux-Hull."
+        },
+        {
+          "business": "Remorquage 24 Heures Gendron",
+          "copy": "Panne de transmission sur le pont des Chaudières? Tombé dans le fossé sur le chemin Eardley à deux heures du matin? La flotte de remorqueuses à plateforme de Gendron & Fils débarque en moins de vingt minutes, beau temps mauvais temps! On booste, on débarre les portes, on remorque sans rien briser. Remorquage Gendron, composez le 819-684-TOWS."
+        },
+        {
+          "business": "Toitures Gilles & Frères",
+          "copy": "Après la tempête de grêle du mois passé, ton bardeau d'asphalte est-il encore étanche? Les Frères Gilles refont ta toiture en bardeau garanti 25 ans avec membrane autocollante aux corniches. Nettoyage impeccable du terrain avec aimant pour ramasser tous les clous dans ton entrée. Estimation gratuite. Toitures Gilles & Frères, Aylmer."
+        },
+        {
+          "business": "Quincaillerie & Matériaux de la Vallée",
+          "copy": "Pourquoi te perdre dans les grandes surfaces à Ottawa? Chez Matériaux de la Vallée, on a du deux-par-quatre de pin blanc séché au four, du contreplaqué d'épinette, des clous à toiture en boîte de 50 livres et les conseils de vrais menuisiers qui ont du millage. Livraison à domicile avec notre camion grue. Matériaux de la Vallée, 1500 route 148."
+        },
+        {
+          "business": "Chaudronnerie & Soudure Mobile Marcil",
+          "copy": "Soudure d'urgence sur place! Attache-remorque, godet de pépine fendu, cadre de camion fissuré ou portail de clôture arraché: l'unité mobile de Jean-Marc Marcil se déplace avec la génératrice et la soudeuse MIG/TIG. Travail solide certifié CWB. Soudure Marcil, disponible jour et nuit au 819-779-WELD."
+        },
+        {
+          "business": "Pièces d'Auto Recyclées de l'Outaouais",
+          "copy": "Pourquoi payer une aile de char neuve au prix du concessionnaire quand on en a cinquante dans la cour? Cinq cents véhicules en inventaire: moteurs V6, transmissions 5-vitesses, alternateurs, portes et vitres d'origine testées et garanties 90 jours! Apporte tes propres outils et viens démonter. Pièces Recyclées Outaouais, 95 chemin Pink."
+        },
+        {
+          "business": "Armoires de Cuisine Bo-Bois",
+          "copy": "Du vrai bois massif qui traverse les générations! Chêne franc, érable piqué, merisier teint au choix de madame. Prise de mesure gratuite à domicile, fabrication en atelier local et pose par des ébénistes d'expérience. Fini la mélamine cheap qui gonfle à l'eau! Armoires Bo-Bois, 310 chemin Freeman, Hull."
+        },
+        {
+          "business": "Boucherie & Fumoir Chez L'Ancien",
+          "copy": "Le meilleur bœuf vieilli 28 jours en Outaouais! Steaks de faux-filet épais de deux pouces, saucisses maison fumées au bois d'érable, bacon de flanc tranché épais et tourtières du Lac-Saint-Jean toute l'année! Viens chercher ta commande de viande pour le barbecue de la fin de semaine. Boucherie Chez L'Ancien, 55 rue Principale, Aylmer."
+        },
+        {
+          "business": "Bâtisses Commerciales & Garages Préfabriqués Rodrigue",
+          "copy": "Besoin d'un gros garage double pour serrer tes bébelles, ton bateau et ton pick-up? Garages Rodrigue monte des structures d'acier ou de bois clé en main sur dalle de béton isolée. Portes de garage isolées avec ouvre-porte électrique inclus. Garages Rodrigue, route 148, secteur Deschênes."
+        }
+      ],
+      "stingers": [
+        "Info-Ponts CHLL: Ça refoule jusqu'au boulevard Taché pour traverser sur les ponts Eddy et Chaudière. Si vous avez une transmission manuelle avec une clutch raide, préparez votre mollet gauche!",
+        "Météo de Chantier: Soleil de plomb, 33 degrés, 100% d'humidité. Buvez de l'eau, les gars su'es toitures, pis lâchez pas la rampe!",
+        "Flash Nouvelles CHLL: La papetière annonce le maintien de son quart de nuit pour l'automne. Une bonne nouvelle pour les familles ouvrières du secteur Hull-Aylmer.",
+        "Radar CHLL: Camionnette blanche non identifiée de la Sûreté du Québec repérée sur la 148 près de Luskville avec le cinémomètre en marche. Levez le pied!",
+        "Rapport Voirie: Nids-de-poule majeurs signalés sur le boulevard Saint-Raymond près du Maxi. Gardez les deux mains su'l volant si vous tenez à vos 'ball joints'!",
+        "Météo Nocturne: Ciel étoilé, 16 degrés. Les fenêtres ouvertes, le vent su'l bras pis du gros Led Zeppelin dans les speakers: profitez de la nuit!"
+      ],
+      "contests": [
+        "Défi Solo CHLL: Identifie le guitariste qui joue ce solo des années 70 et gagne un coffre à outils Mastercraft 150 pièces avec douilles en pouces et millimètres!",
+        "Concours Gars de Shop: Nomme la première toune du premier album de Rush et repars avec une glacière Coleman pleine de steaks de faux-filet de la Boucherie Chez L'Ancien!",
+        "L'Appelant Rock: Neuvième auditeur en ligne au 819-775-CHLL remporte deux billets au parterre pour voir Deep Purple au Centre Bell avec le transport en autobus inclus!",
+        "Le Quiz Mécanique du Bear: Réponds correctement à la question: 'Quel est l'ordre d'allumage d'un V8 Small Block Chevy?' et gagne un changement d'huile et filtre gratuit chez Aylmer Muffler!"
+      ]
+    },
+    {
+      "id": "radio_uqo",
+      "call": "CKUQ-FM",
+      "freq": "89.1 FM",
+      "format": "Campus, alternatif underground, lo-fi & poésie engagée",
+      "persona": "Benoît-Olivier 'B-O' — 22 ans, étudiant de maîtrise en sociologie critique à l'UQO, porte un chandail rayé fripé et des lunettes rétro chinées à la Friperie, diffuse depuis un sous-sol du campus Alexandre-Taché avec un micro Shure qui capte le bourdonnement du néon.",
+      "idents": [
+        "CKUQ 89.1: La radio sans compromis corporatif.",
+        "89.1 FM: Fréquence subversive de l'Université du Québec en Outaouais.",
+        "CKUQ: L'antidote sonore à la société de consommation.",
+        "89.1: Si t'aimes pas ça, change de poste, on s'en câlisse.",
+        "Ondes Libres 89.1 FM: Le son du sous-sol aylmerois.",
+        "CKUQ Hull-Aylmer: Pas de pub de char, juste des idées.",
+        "89.1 FM: Le seul poste qui joue des tounes de quatorze minutes.",
+        "CKUQ: Émetteur basse puissance, haute turbulence intellectuelle."
+      ],
+      "patter": [
+        "Vous écoutez CKUQ 89.1, en direct du pavillon Alexandre-Taché... On vient d'écouter une pièce de post-rock instrumental enregistrée dans un silo à grain abandonné à Bristol.",
+        "Dehors, le bitume fond sur le boulevard Saint-Joseph... C'est la métaphore parfaite de l'effondrement tardif du capitalisme pétrolier de banlieue.",
+        "Si vous nous captez mal près du pont Champlain, ajustez votre antenne avec un morceau de papier d'aluminium. La culture indépendante demande un minimum d'effort physique.",
+        "On enchaîne avec un trio de musique expérimentale de Val-d'Or qui joue uniquement avec des bruits de scies à chaîne et des magnétophones à bande rouillée.",
+        "Un message pour le type qui a volé ma tasse de café équitable dans la cuisine de la radio étudiante: je sais que c'est toi, Mathieu. Ramène-la.",
+        "Pourquoi tout le monde conduit des camions géants de deux tonnes pour aller acheter un paquet de gomme au Couche-Tard? Posez-vous la question, gang.",
+        "C'était une lecture poétique spontanée enregistrée sur cassette à ruban magnétique au bar Le Troquet dans le Vieux-Hull.",
+        "On me signale que la police municipale a encore donné des contraventions à des gens qui faisaient du skate sur la place publique... Bravo la répression de l'art de rue.",
+        "Vous écoutez la seule émission de l'Outaouais où l'animateur n'est pas payé par une marque de bière commerciale fade brassée en usine.",
+        "On s'écoute un morceau de lo-fi folk enregistré sur un 4-pistes Tascam dans une chambre d'étudiant non chauffée de la rue Saint-Rédempteur.",
+        "Pour les trois auditeurs qui écoutent présentement dans leur voiture d'occasion: baissez la vitre, respirez l'air chaud et oubliez votre aliénation salariale.",
+        "Je tiens à remercier notre bénévole Étienne qui a réparé la table tournante numéro deux avec une élastique à brocoli et de la colle à bois.",
+        "La musique qu'on passe n'est pas disponible sur Kazaa ou Napster, tout simplement parce que les artistes refusent d'exister en format MP3 compressé.",
+        "On va prendre un appel... Allô? Oui? Ah, c'est encore un gars qui s'est trompé de numéro en voulant commander une pizza large pepperoni-fromage.",
+        "Le développement domiciliaire sur le plateau de la Capitale... C'est fascinant et terrifiant à la fois, cette uniformisation des bungalows beige mastic.",
+        "On écoute maintenant un groupe de noise-rock montréalais dont le batteur joue avec des gants de boxe sur des casseroles en émail.",
+        "Si mon ton de voix vous paraît léthargique, c'est que j'ai passé la nuit à corriger des examens de méthodologie quantitative sous des néons défaillants.",
+        "CKUQ 89.1: On est subventionnés par votre cotisation étudiante de trois dollars par trimestre, et on en est fiers.",
+        "Un salut aux cyclistes courageux qui affrontent les camionnettes agressives sur la piste cyclable des Voyageurs le long de la rivière.",
+        "On passe à un segment de field-recording: quarante-cinq secondes de grenouilles enregistrées dans les marais de la baie Fraser à Aylmer à minuit.",
+        "L'art ne doit pas être confortable. L'art doit être comme une écharde sous l'ongle d'un promoteur immobilier de Gatineau.",
+        "On va écouter un groupe post-punk méconnu de Leeds qui n'a sorti qu'un 45 tours en 1981 avant que le chanteur ne devienne bibliothécaire.",
+        "N'oubliez pas d'éteindre vos téléphones à clapet pendant les représentations de théâtre expérimental au Petit Théâtre de l'Outaouais.",
+        "C'est la fin de mon bloc de deux heures. Je cède le micro à Dominique pour son émission de musique drone scandinave et de chants polyphoniques.",
+        "89.1 FM CKUQ. Continuez de penser par vous-mêmes, même si ça donne mal à la tête."
+      ],
+      "ads": [
+        {
+          "business": "Coop Vélo La Chaîne Brisée",
+          "copy": "Marre de respirer les tuyaux d'échappement des VUS? Réapproprie-toi la rue à bicyclette! À la coopérative La Chaîne Brisée, atelier mécanique communautaire autogéré, tu apprends à réparer ton vieux dix-vitesses avec nos outils et nos pièces recyclées. Pièces d'occasion à prix libre. La Chaîne Brisée, sous-sol du 44 rue Montcalm, Hull."
+        },
+        {
+          "business": "Bouquinerie Le Signet Anarchiste",
+          "copy": "Plus de quinze mille livres d'occasion en sciences humaines, philosophie, poésie engagée et littérature québécoise introuvable! Romans de poche à deux dollars, revues littéraires des années soixante-dix et coin lecture avec thé à la menthe gratuit. Pas d'ordinateur, que du papier qui a une âme. Le Signet Anarchiste, 112 rue Saint-Jacques, Vieux-Hull."
+        },
+        {
+          "business": "Café Équitable Le Zapatiste",
+          "copy": "Grain bio torréfié artisanalement, importé directement de coopératives paysannes du Chiapas sans intermédiaire capitaliste! Espresso corsé, matcha latte au lait de soya, et muffins végétaliens aux carottes sans sucre raffiné. Wi-Fi non disponible pour encourager les vraies conversations. Café Le Zapatiste, 67 rue Laval."
+        },
+        {
+          "business": "Friperie Solidaire Rétro-Chic",
+          "copy": "Habille-toi avec éthique et originalité sans engraisser les multinationales du textile! Manteaux en tweed vintage, chemises en flanelle canadiennes d'origine, robes rétro des années cinquante et souliers en cuir restaurés. Tous les profits soutiennent la cuisine communautaire locale. Friperie Rétro-Chic, 205 rue Principale, Aylmer."
+        },
+        {
+          "business": "Studio d'Enregistrement DIY Le Hangar",
+          "copy": "Tu joues dans un band de garage et tu veux enregistrer ton premier démo sans vendre un rein? Le Hangar t'offre un espace insonorisé avec console analogique 16 pistes, micros à ruban et magnétophone à bobines. Forfait démo trois tounes abordable pour étudiants et artistes émergents. Le Hangar, ruelle derrière Eddy, Hull."
+        },
+        {
+          "business": "Cinéma Parallèle L'Écran Rouge",
+          "copy": "Marre des superproductions hollywoodiennes prévisibles? Venez voir du vrai cinéma! Rétrospectives de la Nouvelle Vague, documentaires engagés sur les luttes sociales et courts-métrages d'animation de l'ONF projetés en 35 millimètres! Popcorn au levain nutritionnel. Cinéma L'Écran Rouge, Pavillon des Arts de l'Outaouais."
+        },
+        {
+          "business": "Boulangerie Artisanale Le Levain Rustique",
+          "copy": "Pains au levain naturel pétris à la main et cuits sur sole de pierre chaque matin dès cinq heures! Farines biologiques moulues sur meule de pierre au Québec, croissants au vrai beurre sans additifs de synthèse. Goûtez la différence du temps bien pris. Le Levain Rustique, 82 rue Court, dans le Vieux-Aylmer."
+        },
+        {
+          "business": "Herboristerie & Plantes Médicinales Racines d'Or",
+          "copy": "Soigne tes maux du quotidien avec la sagesse des plantes! Tisanes digestives, teintures-mères artisanales, huiles essentielles pures et conseils personnalisés d'une herboriste certifiée. Produits de soin écologiques en vrac pour réduire les déchets de plastique. Herboristerie Racines d'Or, 134 rue Wellington, Hull."
+        },
+        {
+          "business": "Centre d'Art Autogéré La Meute",
+          "copy": "Expositions d'art visuel émergent, ateliers de sérigraphie artisanale, cours de reliure de livres et lancements de zines indépendants. Un espace d'expérimentation ouvert à tous les créateurs marginaux de la région de la capitale nationale. Espace La Meute, 15 rue Hanson, secteur Hull."
+        },
+        {
+          "business": "Microbrasserie Artisanale La Goutte Rebelle",
+          "copy": "Bières de fermentation spontanée brassées avec des houblons sauvages récoltés le long de la rivière des Outaouais! Stouts impériaux vieillis en fûts de chêne et ales rousses non filtrées. Venez déguster au salon de dégustation éclairé à la chandelle. La Goutte Rebelle, 28 rue Leduc, Vieux-Hull."
+        },
+        {
+          "business": "Magasin Général Écologique Vrac & Éthique",
+          "copy": "Apportez vos propres bocaux Mason et contenants réutilisables! Farines, riz brun, légumineuses, savons biodégradables et détergents vendus au poids pour éliminer l'emballage superflu et sauver la planète un gramme à la fois. Vrac & Éthique, 98 rue Principale, Aylmer."
+        },
+        {
+          "business": "Atelier de Céramique Terres Vivantes",
+          "copy": "Déconnectez de l'écran d'ordinateur et reconnectez avec la matière terreuse! Cours de tournage de poterie, modelage à la main et cuisson au feu de bois. Vaisselle artisanale unique en grès disponible à la boutique de l'atelier. Terres Vivantes, 15 chemin de la Forêt, Chelsea."
+        }
+      ],
+      "stingers": [
+        "Bulletin Éco-Météo CKUQ: Indice UV de 9 aujourd'hui et nappe de microparticules sur la vallée en raison de l'étalement urbain. Protégez votre épiderme sans crème toxique.",
+        "Alerte Manif CKUQ: Rassemblement pacifique des étudiants devant les bureaux du ministère de l'Éducation sur la rue Montcalm à 14h. Soyez solidaires, apportez vos casseroles.",
+        "Flash Mobilité Douce: La piste cyclable du ruisseau de la Brasserie est temporairement bloquée par des oies bernaches non domestiquées. Ralentissez vos vélos.",
+        "Nouvelles du Campus: La bibliothèque centrale annonce une panne de son système de fiches numériques. Retour temporaire au catalogue sur fiches cartonnées.",
+        "Alerte Sonore: Test hebdomadaire de la sirène municipale de crue des eaux de la rivière des Outaouais à midi. Pas de panique, ce n'est pas l'apocalypse.",
+        "Météo Nocturne CKUQ: 15 degrés avec brume sur la baie des Cèdres. Idéal pour contempler le reflet de la lune en écoutant du Brian Eno."
+      ],
+      "contests": [
+        "Tirage Culturel CKUQ: Déposez votre poème sur papier recyclé dans la boîte aux lettres du studio et courez la chance de remporter un abonnement annuel au Cinéma L'Écran Rouge!",
+        "Défi Critique CKUQ: Résumez la pensée de Theodor Adorno en une phrase de joual québécois et gagnez un sac de café en grains équitable du Café Le Zapatiste!",
+        "Tirage Vinyle CKUQ: Le premier auditeur qui se présente en personne à la porte du studio avec un t-shirt de Godspeed You! Black Emperor repart avec un 33-tours autographié!",
+        "Le Grand Zine-Quiz: Nommez trois maisons d'édition indépendantes d'Aylmer des années quatre-vingt et gagnez un lot de cinq affiches sérigraphiées à la main par le collectif La Meute!"
+      ]
+    },
+    {
+      "id": "riviere_country",
+      "call": "CFRL-FM",
+      "freq": "101.3 FM",
+      "format": "Country & Western Franco-Canadien, Bluegrass & Trad",
+      "persona": "Ti-Gars Pilon — 62 ans, natif de Quyon, veste de jeans sans manches avec écusson de chevreuil, tape du pied sous la console et salue ses beaux-frères et ses cousins de la Petite-Nation à chaque intervention.",
+      "idents": [
+        "Rivière Country 101.3: Le gros son du rang!",
+        "CFRL 101.3 FM: Du country pur laine pour les gars d'bois!",
+        "101.3: La voix de la Vallée et du Pontiac!",
+        "Rivière Country: Attache ta tuque pis graisse ton pick-up!",
+        "CFRL: Le cœur qui bat au rythme de nos campagnes.",
+        "101.3 FM: Du violon, d'la steel guitar pis pas d'chichi.",
+        "Rivière Country: Le poste qui te suit jusqu'au camp de chasse!",
+        "CFRL 101.3: Salut à toute la gagne su'a terre!"
+      ],
+      "patter": [
+        "Yessir les amis! Ti-Gars Pilon avec vous autres pour l'après-midi sur Rivière Country 101.3! Un gros bonjour à mon beau-frère Yvon qui étend son foin su'l chemin Eardley!",
+        "On vient d'écouter le grand Paul Daraîche! Ça, quand Paul chante 'À ma mère', j'ai la larme à l'œil comme un veau qui vient de naître.",
+        "Si vous montez vers Shawville ou Fort-Coulonge su'a 148, faites attention dans les côtes: y a des camions de billots de bois qui montent pesant!",
+        "Patrick Norman nous chante 'Quand on est en amour'... C'est beau en maudit. Ma Germaine pis moé, ça fait quarante ans qu'on s'endure su'a même ferme!",
+        "Un salut à la gang du garage municipal de Pontiac qui répare les ponceaux avec la grosse pépine. Lâchez pas les gars, la bière va être bonne à cinq heures!",
+        "Pour les gars qui vont à la pêche à l'achigan au large de l'île aux Allumettes en fin de semaine: les vers de terre canadiens mordent mieux que les leurres en plastique!",
+        "C'était Stephen Faulkner, le fameux Cassonade! De la vraie poésie de grand chemin qui sent le pin blanc pis le feu de camp!",
+        "Si ton pick-up Ford 'claque' sur les têtes de moteur, mets une pinte de Lucas Oil Stabilizer dedans, ça va étouffer le bruit jusqu'à l'automne!",
+        "Le Festival western de Saint-Tite s'en vient dans deux mois! Préparez vos chapeaux de feutre pis polissez vos boucles de ceinture en argent!",
+        "On écoute du bon vieux bluegrass avec du banjo qui fesse comme une queue de castor sur l'eau de la rivière des Outaouais!",
+        "Un appel de tante Thérèse de Luskville qui me demande de souhaiter un joyeux soixante-quinzième anniversaire à son mari Ovila! Bonne fête Ovila, lâche pas la scie ronde!",
+        "Y fait chaud su'es terres aujourd'hui! N'oubliez pas d'abreuver les génisses dans le grand pré du fond, le ruisseau commence à être à sec.",
+        "On s'écoute Georges Hamel, le gentleman du country québécois! Un homme d'honneur qui chante avec le cœur su'a main.",
+        "Si vous cherchez un bon chien de chasse au faisan ou au canard, parlez à Ti-Jean à la meunerie de Quyon, sa chienne épagneul vient d'avoir huit chiots.",
+        "Rivière Country 101.3! Le seul poste qui coupe pas quand tu passes sous le viaduc de chemin Pink avec ta boîte de pick-up pleine de bois de chauffage!",
+        "On salue les gars de la scierie Davidson. Ça sent la ripe de bois fraîche et l'huile à chaîne jusqu'icitte dans le studio!",
+        "Julie Daraîche avec 'Un verre sur la table'... Ça rappelle les belles veillées de danse carrée dans la grange chez les Pilon dans les années soixante-dix.",
+        "Avis aux amateurs de fer à cheval: grand tournoi double ce samedi au terrain des loisirs de Quyon, inscription cinq piasses, hot-dogs à volonté!",
+        "La boîte automatique de mon vieux GMC 1982 glisse un peu en deuxième vitesse... Mais comme je dis toujours: tant que ça avance, on touche pas à ça!",
+        "On écoute un p'tit clin d'œil à Johnny Cash, 'Ring of Fire', traduit en français par nos chansonniers de chez nous!",
+        "Pour ceux qui descendent leur chaloupe à la rampe de mise à l'eau de la marina d'Aylmer: reculez droit pis oubliez pas de mettre le bouchon de fond de cale!",
+        "On salue la gang du club 4x4 des Collines qui monte dans les sentiers de boue derrière le parc de la Gatineau en fin de semaine.",
+        "Une pensée pour nos bûcherons et nos cultivateurs qui travaillent de la noirceur à la noirceur pour nourrir le monde.",
+        "C'était Bobby Hachey au violon country! Les doigts bougent tellement vite su'l manche que les cordes doivent fumer!",
+        "101.3 FM CFRL Rivière Country. Restez branchés, on a deux heures de chansons à répondre qui s'en viennent pour réveiller la parenté!"
+      ],
+      "ads": [
+        {
+          "business": "Écuries & Sellerie Beaulieu",
+          "copy": "Pour le cavalier passionné ou le travailleur de ferme! Chez Sellerie Beaulieu, selles western en cuir repoussé faites à la main, mors en acier inoxydable, brides, licous et bottes de cowboy Boulet garanties à vie! Moulée pour chevaux, blocs de sel et foin de luzerne de première qualité en balles carrées. Sellerie Beaulieu, 4200 route 148, secteur Luskville."
+        },
+        {
+          "business": "Casse-Croûte Chez Ti-Mé",
+          "copy": "La meilleure halte gourmande su'a 148! Nos frites maison cuites dans le gras de bœuf traditionnel, nos burgers de bœuf haché frais avec oignons grillés et notre fameux club sandwich au poulet rôti réconfortent les routiers et les vacanciers depuis 1968! Stationnement pour remorques et camions de bois. Chez Ti-Mé, au carrefour de Quyon."
+        },
+        {
+          "business": "Remorques & Attaches de la Rivière",
+          "copy": "Besoin de tirer ton VTT, ton bateau de pêche ou trois cordes de bois franc? Remorques de la Rivière fabrique des remorques en acier galvanisé ultra-robustes avec essieux Dexter de 3500 livres! Installation d'attaches de remorque classe 3 et 4 sur tous les camions et VUS. Remorques de la Rivière, 880 chemin Eardley, Aylmer."
+        },
+        {
+          "business": "Chasse & Pêche Le Braconnier Gourmand",
+          "copy": "Prépare ta saison de pêche et ta chasse à l'orignal chez Le Braconnier Gourmand! Cannes à pêche Rapala, vers de nuit vivants, leurres pour le doré et le brochet géant de la rivière des Outaouais, appeaux à chevreuil et tentes de camouflage étanches. Permis provinciaux émis sur place. Le Braconnier Gourmand, 195 rue Principale, Aylmer."
+        },
+        {
+          "business": "Tracteurs & Machinerie Agricole Lafleur",
+          "copy": "Concessionnaire d'équipement agricole de confiance dans l'Outaouais! Tracteurs neufs et d'occasion, faucheuses à disques, presses à balles rondes et pièces de rechange d'origine pour toutes marques. Atelier de mécanique diesel lourd ouvert six jours sur sept pendant les foins. Machinerie Lafleur, 2300 route 148, Shawville."
+        },
+        {
+          "business": "Scie & Moteur Outaouais",
+          "copy": "Ta scie à chaîne part pas quand l'arbre est penché? Scie & Moteur Outaouais est le spécialiste des scies mécaniques Stihl et Husqvarna! Aiguisage de chaînes en deux minutes, pièces de carburateur, bougies Champion et huiles deux-temps synthétiques. Tondeuses et tracteurs à gazon réparés rapidement. Scie & Moteur, 510 chemin Vanier, Aylmer."
+        },
+        {
+          "business": "Meunerie & Moulée des Pionniers",
+          "copy": "Nourrissez vos animaux avec le meilleur grain de la région! Moulées équilibrées pour bovins de boucherie, vaches laitières, poules pondeuses et porcs. Semences fourragères certifiées, engrais minéraux et chaux agricole en vrac ou en sacs de 25 kilos. Meunerie des Pionniers, 110 rue de la Meunerie, Quyon."
+        },
+        {
+          "business": "Clôtures de Ferme & Poteaux de Cèdre Lavigne",
+          "copy": "Protégez vos pâturages avec des clôtures solides qui résistent aux hivers québécois! Poteaux de cèdre blanc écorcés de huit pieds, rouleaux de broche à bétail page-wire et clôtures électriques Gallagher avec isolateurs haute tension. Poteaux Lavigne, 750 chemin Klock, Aylmer."
+        },
+        {
+          "business": "Vêtements de Travail & Surplus du Bûcheron",
+          "copy": "Pantalons de travail Carhartt indéchirables, chemises en grosse flanelle doublée, salopettes isolées pour l'hiver et bottes de sécurité à embout d'acier approuvées CSA. Si ça résiste pas au chantier, on le vend pas! Rabais de dix pour cent avec preuve d'emploi forestier ou agricole. Surplus du Bûcheron, 310 boulevard Saint-Joseph, Hull."
+        },
+        {
+          "business": "Pépinière & Arbres Fruitiers de la Vallée",
+          "copy": "Plantez vos propres pommiers McIntosh, poiriers et pruniers adaptés à notre climat rigoureux! Grands arbres d'ombrage, cèdres à haie fournis et plants de légumes pour votre potager familial. Conseils d'horticulteurs passionnés de la région. Pépinière de la Vallée, 1400 chemin Pink, Aylmer."
+        },
+        {
+          "business": "Taxidermie & Naturalisation Sauvage",
+          "copy": "Immortalisez votre trophée de chasse avec un montage naturaliste d'un réalisme saisissant! Panaches d'orignaux, têtes de chevreuil, ours noirs et montages d'oiseaux migrateurs réalisés par un maître taxidermiste médaillé. Tannage de peaux de première qualité. Taxidermie Sauvage, 35 chemin Mountain, Luskville."
+        },
+        {
+          "business": "Bois de Chauffage & Ébénisterie Champêtre",
+          "copy": "L'hiver arrive plus vite qu'on pense! Commandez votre bois franc fendu et séché d'un an: érable dur, hêtre et merisier en cordes de bois de quatre pieds par huit pieds. Livraison rapide avec camion basculant dans tout le secteur Pontiac et Aylmer. Bois Franc Outaouais, composez le 819-684-BOIS."
+        }
+      ],
+      "stingers": [
+        "Météo Agricole 101.3: Trois jours de beau soleil sec sans pluie en vue sur le Pontiac et la Vallée. Sortez les faucheuses, c'est le temps de presser le foin!",
+        "Avis Routier Rivière Country: Traversée de bétail sur le chemin Eardley près de la montée Breckenridge. Ralentissez vos pickups, les vaches sont prioritaires!",
+        "Flash Chasse & Pêche: Excellente morsure de doré jaune signalée au coucher du soleil dans les fosses de la baie Fraser. Préparez vos turluttes et vos vers!",
+        "Chronique des Rangs: La récolte de maïs sucré précoce a commencé aux étals du bord de la 148. Arrêtez-vous encourager nos fermiers locaux!",
+        "Alerte Feu de Forêt: Indice d'inflammabilité élevé dans le parc de la Gatineau et les boisés environnants. Éteignez vos mégots dans le cendrier du char!",
+        "Météo Nuit des Rangs: Nuit fraîche à 12 degrés dans les creux de vallées avec rosée abondante au petit matin. Couvrez vos plants de tomates fragiles."
+      ],
+      "contests": [
+        "Concours Bottes & Chapeau: Nommez le titre de la chanson country où Paul Daraîche chante dans un train et gagnez une paire de bottes Boulet en cuir véritable de la Sellerie Beaulieu!",
+        "Le Grand Quizz du Terroir: Quel est le poids du plus gros orignal récolté dans le Pontiac en 2003? Le gagnant repart avec une canne à pêche télescopique du Braconnier Gourmand!",
+        "La Chanson Mystère du Rang: Huitième appelant au 819-684-CFRL qui fredonne le refrain de 'Mille après mille' remporte une boîte de douze steaks hachés de la Boucherie Chez L'Ancien!",
+        "Tirage Fête au Village: Envoyez votre nom par la poste à la station et courez la chance de remporter deux laissez-passer VIP pour le rodéo annuel de Quyon avec accès aux coulisses!"
+      ]
+    },
+    {
+      "id": "cjrc_talk",
+      "call": "CJRC-AM",
+      "freq": "1150 AM",
+      "format": "Tribune d'opinion, lignes ouvertes, sports & chialage municipal",
+      "persona": "Marcel 'Le Chialeur' Bouchard — 58 ans, polémiste enragé, tape du poing sur la table de studio, déteste les fusions municipales de Gatineau, le prix du gaz à 83.9 cents le litre, et s'engueule quotidiennement avec les auditeurs qui appellent de leur cellulaire sur la ligne ouverte.",
+      "idents": [
+        "CJRC 1150 AM: La voix qui dit tout haut ce que l'Outaouais pense tout bas!",
+        "1150 AM: L'information en direct, sans langue de bois.",
+        "CJRC: La ligne ouverte la plus chaude en ville!",
+        "1150 AM Nouvelles: Toujours le premier sur la nouvelle... et su'l chialage!",
+        "CJRC 1150: Le microphone du vrai monde!",
+        "1150 AM: Vos taxes, votre ville, votre coup de gueule du matin!",
+        "CJRC Gatineau-Ottawa: La station qui réveille l'Hôtel de Ville!",
+        "1150 AM: Écoutez, appelez, pis videz vot' cœur!"
+      ],
+      "patter": [
+        "Marcel Bouchard au 1150 AM! 83.9 cents le litre d'essence ordinaire ce matin au Petro-Canada! C'est du vol qualifié en plein jour! Les pétrolières s'en mettent plein les poches et le gouvernement regarde ailleurs!",
+        "On va ouvrir la ligne ouverte au 819-770-1150. On a Jean-Claude d'Aylmer en ligne... Jean-Claude, parle-moi des nouveaux ronds-points sur le boulevard des Allumettières, qu'est-ce que t'en penses?",
+        "Les fusions municipales imposées par Québec en 2002... Regardez le résultat deux ans plus tard: nos taxes ont monté de 25% à Aylmer pis les nids-de-poule sont deux fois plus profonds!",
+        "Le Canadien de Montréal qui repêche un p'tit défenseur américain... Au lieu d'aller chercher des gros Québécois de six pieds deux qui ont du cœur au ventre! Bob Gainey dort au gaz, mesdames et messieurs!",
+        "On prend Ginette de Hull... Ginette, baisse ton radio quand tu parles au téléphone, ça fait de l'écho comme si t'étais dans une fosse septique!",
+        "Avez-vous vu l'état du chemin d'Aylmer entre l'hippodrome et Wychwood? C'est pas une route provinciale, c'est une piste d'essai pour chars d'assaut de l'armée canadienne!",
+        "Les fonctionnaires fédéraux qui traversent à Ottawa tous les matins à 7h30... Si vous voulez pas être pognés dans le trafic sur le pont Champlain, partez à six heures et quart comme les vrais travailleurs de la construction!",
+        "On me dit que les Sénateurs d'Ottawa veulent encore monter le prix des billets au Corel Centre... Vingt-cinq piasses pour stationner son char dans un champ de boue à Kanata, vous vous foutez du monde!",
+        "L'histoire de la nouvelle collecte des vidanges aux deux semaines... Les bacs verts puent au soleil, les ratons laveurs font le party dans les ruelles, et la mairesse trouve que tout va pour le mieux dans le meilleur des mondes!",
+        "Un appel de Denis qui chauffe son camion sur la 148... Denis, t'es en direct, lâche ton sacre pis dis ce que t'as su'l cœur!",
+        "Pourquoi est-ce qu'on est obligés de payer des ponts à péage ou de faire la file pendant une heure et demie parce que la CCN est pas foutue de synchroniser deux feux de circulation sur l'île Victoria?",
+        "Je reçois en studio après la pause le responsable de la voirie de Gatineau. J'ai apporté deux morceaux d'asphalte cassé ramassés sur la rue Principale pour lui mettre sous le nez!",
+        "Les jeunes avec leurs téléphones cellulaires qui textent en marchant su'l bord du trottoir... Levez la tête pis regardez où vous mettez les pieds avant de vous faire ramasser par un pickup!",
+        "C'est l'été, pis comme à chaque été, la Société de transport de l'Outaouais coupe la moitié des autobus sur les circuits d'Aylmer... Comment vous voulez que les gens aillent travailler sans char?",
+        "On a Jacques de Deschênes en ligne... Jacques, tu me dis que la SQ fait du radar caché derrière les pancartes électorales sur la 148? Mais c'est une honte! C'est une taxe déguisée pour remplir les coffres!",
+        "Le lock-out qui se prépare dans la Ligue nationale de hockey pour l'automne... Des millionnaires qui se battent contre des milliardaires pendant que le gars de shop arrive pas à payer son épicerie!",
+        "La police de Gatineau qui achète des nouveaux radars photo... Quand est-ce qu'ils vont s'occuper des vrais voleurs qui dévalisent les cabanons de jardin à Aylmer la nuit plutôt que de traquer le monde à 55 dans une zone de 50?",
+        "On prend un autre auditeur, Raymond de Gatineau... Raymond, sois bref, il me reste trente secondes avant le bulletin de nouvelles régionales!",
+        "Vous écoutez CJRC 1150 AM. Si vous êtes pas d'accord avec moi, le numéro est simple: 819-770-1150, pis venez me le dire en pleine face!",
+        "Le prix de la pinte de lait à l'épicerie... Deux piasses et demie! Dans mon temps, le laitier passait avec sa bouteille en verre pour trois cennes et on disait merci!",
+        "On me dit que la ville veut installer des pistes cyclables en enlevant des places de stationnement sur la rue Principale dans le Vieux-Aylmer... Ils veulent tuer les petits commerces locaux ou quoi?!",
+        "Un message pour le ministère des Transports: vos cônes orange qui traînent sur l'autoroute 5 depuis le mois de mai sans qu'y ait un seul travailleur sur le chantier, ramassez-les donc!",
+        "Le festival de montgolfières... C'est ben beau des ballons qui flottent dans le ciel, mais pendant ce temps-là, le parc de la Baie est bloqué et les riverains peuvent plus sortir de leur cour!",
+        "Marcel Bouchard, fidèle au poste. On lâche rien, on continue de brasser la cage des politiciens qui s'endorment sur leurs gros salaires payés par vos taxes!",
+        "1150 AM CJRC. Après la pause commerciale: la crise du logement étudiant à Hull et le bordel des traversiers sur la rivière."
+      ],
+      "ads": [
+        {
+          "business": "Avocats Laliberté, Charbonneau & Associés",
+          "copy": "Accident de la route avec blessures corporelles? Conflit de succession ou divorce acrimonieux? Ne signez rien avec les assurances sans consulter Me Guy Laliberté! Vingt-cinq ans de pratique agressive devant les tribunaux de Gatineau et Hull. Première consultation confidentielle sans frais. Me Laliberté, 100 rue Wellington, Hull."
+        },
+        {
+          "business": "Clinique Dentaire Familiale Dr. Robert Fortin",
+          "copy": "Retrouvez un sourire confiant sans souffrir! Le Dr Fortin et son équipe vous accueillent avec douceur: plombages blancs en composite, couronnes sur place, ponts fixes et prothèses dentaires ajustées avec précision. Urgences dentaires traitées le jour même! Clinique Dentaire Fortin, Galeries d'Aylmer, 2e étage."
+        },
+        {
+          "business": "Cuisines & Portes Outaouais 2000",
+          "copy": "Augmentez la valeur de revente de votre maison! Cuisines Outaouais conçoit et installe des armoires thermoplastiques ultra-durables, des comptoirs en granit poli et des portes d'entrée isolées coupe-froid haute performance. Estimation gratuite à domicile par nos designers. Cuisines Outaouais, 410 boulevard Gréber, Gatineau."
+        },
+        {
+          "business": "Déneigement & Asphalte Tremblay",
+          "copy": "Ne vous laissez pas surprendre par le premier blizzard! Réservez votre contrat de déneigement résidentiel d'hiver dès maintenant et obtenez un rabais hâtif de cinquante dollars! Service rapide avant six heures du matin avec tracteurs à souffleuse à lame de téflon protectrice. Déneigement Tremblay, secteur Aylmer."
+        },
+        {
+          "business": "Pavillon Funéraire Belle-Rive",
+          "copy": "Dans les moments difficiles, faites confiance à une entreprise familiale qui comprend vos traditions avec dignité et respect. Salons de recueillement intimes, arrangements funéraires préalables garantis contre l'inflation, et columbarium paysager avec vue sur la rivière. Pavillon Belle-Rive, 58 rue Principale, Vieux-Aylmer."
+        },
+        {
+          "business": "Électroménagers Usagés & Pièces Lapointe",
+          "copy": "Pourquoi payer mille dollars pour une sécheuse neuve quand une remise à neuf fait la même job pour deux cents piasses? Réfrigérateurs Maytag, laveuses Inglis et cuisinières Whirlpool reconditionnées avec garantie écrite six mois pièces et main-d'œuvre! Pièces de rechange en inventaire. Lapointe Électro, 220 rue Montcalm, Hull."
+        },
+        {
+          "business": "Centre de Rénovation Matériaux Boni-Prix",
+          "copy": "Projet de patio en cèdre ou de rénovation de salle de bain? Chez Boni-Prix, achetez vos madriers traités sous pression, vos feuilles de gypse et votre peinture d'intérieur en gros et économisez gros! Rabais spécial du samedi pour les entrepreneurs et bricoleurs du dimanche. Matériaux Boni-Prix, 1350 boulevard Saint-Joseph."
+        },
+        {
+          "business": "Sécurité & Systèmes d'Alarme Sentinelle",
+          "copy": "Protégez votre domicile et votre commerce contre les cambriolages et les incendies! Sentinelle installe des centrales d'alarme reliées 24 heures sur 24 à notre centrale de surveillance d'urgence d'Aylmer. Détecteurs de mouvement et capteurs de bris de verre inclus. Promotion installation à un dollar. Sentinelle, 819-684-SAFE."
+        },
+        {
+          "business": "Comptables Agréés Gauthier & Frère",
+          "copy": "Impôt des particuliers, déclarations de travailleur autonome, tenue de livres corporative et planification successorale: confiez vos chiffres à des comptables agréés qui défendent votre argent face au fisc fédéral et provincial! Récupérez chaque sou qui vous revient légitimement. Gauthier & Frère, 75 rue Principale, Aylmer."
+        },
+        {
+          "business": "Centre de Vitres d'Auto & Pare-Brise Express",
+          "copy": "Une roche projetée par un fardier a craqué votre pare-brise su'l chemin d'Aylmer? Vitres d'Auto Express répare les éclats en quinze minutes sans rendez-vous ou remplace le pare-brise complet avec franchise d'assurance payée jusqu'à cent dollars! Traitement Aquapel gratuit. Vitres Express, 890 boulevard Saint-René."
+        },
+        {
+          "business": "Pépinière & Jardinerie Les Mains Vertes",
+          "copy": "Embellissez votre terrain avec nos arbres, vivaces rustiques et annuelles fleuries cultivées en serre locale! Terreau noir enrichi de compost, paillis de cèdre coloré et pierres décoratives vendus en vrac avec service de livraison par camion. Jardinerie Les Mains Vertes, 620 chemin Klock, Aylmer."
+        },
+        {
+          "business": "Entreposage Sécurisé Mini-Box Outaouais",
+          "copy": "Votre garage déborde de boîtes ou vous manquez d'espace pendant votre déménagement? Mini-Box offre des unités d'entreposage chauffées et surveillées par caméra de toutes dimensions! Accès 24h sur 24 par carte magnétique et clôture haute sécurité. Mini-Box Outaouais, 45 chemin de la Savane, Gatineau."
+        }
+      ],
+      "stingers": [
+        "Flash Info CJRC: Débat houleux prévu ce soir au conseil municipal de Gatineau sur la hausse de la taxe d'eau dans le secteur Aylmer. Notre équipe sera sur place pour vous rapporter les altercations en direct.",
+        "Circulation 1150 AM: Collision entre deux véhicules sur le pont Cartier-Macdonald en direction d'Ottawa, voie de gauche complètement bloquée. Évitez le secteur si vous le pouvez.",
+        "Alerte Consommateurs CJRC: Hausse soudaine du prix du pain et du beurre dans les épiceries à grande surface de l'Outaouais. Marcel Bouchard en fera son éditorial incendiaire dès 15 heures.",
+        "Météo d'Impact 1150: Chaleur accablante sur la région de la capitale nationale avec alerte de smog émise par Environnement Canada. Restez à l'air climatisé.",
+        "Rapport Policier CJRC: Vague de vols dans les camionnettes et les véhicules stationnés le long de la rue Principale à Aylmer. Verrouillez vos portières et ne laissez rien à vue.",
+        "Flash Dernier Droit 1150: Le pont des Chaudières sera fermé pour inspection préventive ce dimanche entre six heures et midi. Prévoyez vos déplacements."
+      ],
+      "contests": [
+        "L'Appelant Enragé CJRC: Neuvième auditeur au 819-770-1150 qui nomme le député fédéral de la circonscription d'Outaouais gagne un coupe-vent officiel CJRC 1150 AM et un an d'abonnement au quotidien régional!",
+        "Le Grand Débat du Vendredi: Donnez le meilleur argument contre les taxes municipales abusives et remportez un bon d'achat de 75 dollars chez Matériaux Boni-Prix!",
+        "Tirage des Auditeurs Fidèles: Envoyez votre carte postale avec votre opinion sur le transport en commun pour courir la chance de gagner un certificat-cadeau au Pavillon Belle-Rive!",
+        "Quiz d'Actualité Locale: Répondez correctement à la question sur les fusions municipales de 2002 et gagnez un récepteur radio portable AM/FM à manivelle d'urgence!"
+      ]
+    },
+    {
+      "id": "the_buzz_ottawa",
+      "call": "CKOT-FM",
+      "freq": "92.3 FM",
+      "format": "Weak Ottawa Alternative & Indie Rock (Fading Signal across River)",
+      "persona": "Brad 'The Axeman' Miller — 28 years old, slacker DJ broadcasting from a cramped basement studio on Bank Street in Ottawa. Completely confused by Québec geography, butchers French street names, and his transmitter fades into fuzz and crackling static whenever you drive down near Plage des Cèdres.",
+      "idents": [
+        "92.3 THE BUZZ... Ottawa's raw rock alternative... *kzzt*... if you can hear us!",
+        "THE BUZZ 92.3 — Rocking the capital... *shhhhh*... turn that antenna south!",
+        "CKOT 92.3: Broad... *static* ...casting live across the Ottawa River!",
+        "The Buzz! 92.3 FM — No boy bands, just guitar fuzz!",
+        "92.3 THE BUZZ: Strong in Nepean... barely making it to Aylmer!",
+        "CKOT Ottawa-Hull: The alternative station that cuts through the static!",
+        "92.3 THE BUZZ — Turn your radio knob two millimeters left... there we go!",
+        "THE BUZZ: 92.3 FM... keep your hand on the whip antenna, buddy!"
+      ],
+      "patter": [
+        "You're locked into The Buzz, 92.3 FM... *crackle* ...that was Queens of the Stone Age. If our signal is cutting out over in 'Ay-ell-mer', just smack your dashboard, man!",
+        "Brad 'The Axeman' here on a scorcher of an afternoon in Ottawa. The asphalt on the Queensway is basically boiling, folks.",
+        "Shoutout to the brave Ontario teenagers crossing the Champlain Bridge right now to buy six-packs at the dep-ann-eur before they turn nineteen!",
+        "We got Nirvana coming up next... *kzzzt* ...if our twenty-watt transmitter on top of the Carling tower doesn't get struck by lightning first.",
+        "Somebody called from 'Rue Prinn-si-pal' asking if we play Avril Lavigne... Look, Avril is from Napanee, which is cool, but this is The Buzz, we play dirty guitars only!",
+        "Ottawa Senators training camp rumors are already swirling. Heatley, Alfredsson, Spezza... this is the year we finally crush the Leafs, I can feel it in my bones!",
+        "If you're listening on a cassette adapter plugged into a silver Rio MP3 player, congratulations, you are living in the year 2004, my friend.",
+        "Weather report says 34 degrees with the humidex. It feels like someone wrapped a hot wet gym towel around the Peace Tower.",
+        "Coming up, The Strokes followed by The White Stripes. Two bands with 'The' in their names because apparently one word wasn't enough for garage rock.",
+        "Hey, whoever stole the auxiliary cable from the production studio: bring it back, dude. I'm literally holding two copper wires together with Scotch tape right now.",
+        "If you're cruising down 'Sham-plane' boulevard with the windows rolled down, stick your arm out the window and point it toward Parliament Hill for better reception!",
+        "Gas is eighty-one point nine cents a litre at the Esso on Merivale. My buddy filled his rusted Civic hatchback for twenty-two bucks flat.",
+        "Shoutout to the guys skateboarding behind Rideau Centre dodging the security guards. Stay punk, kids.",
+        "We're giving away tickets to a tribute band playing at Barrymore's Music Hall this Saturday night. That's on Bank Street, just look for the crowd smoking on the sidewalk.",
+        "That was Foo Fighters, 'All My Life'. Dave Grohl has more energy in his right thumb than the entire federal civil service combined.",
+        "A listener on ICQ asks why our signal gets all fuzzy when you drive under the high voltage wires near Deschenes... Science, man. Electromagnetism and cheap radio equipment.",
+        "If you're sitting in traffic on the Portage Bridge trying to get over to Hull: turn the volume knob to eleven and annoy the bureaucrat next to you in the Camry!",
+        "Next track is some brand new Modest Mouse. 'Float On'... which is what my radiator fluid is currently doing on the Queensway shoulder.",
+        "Don't forget, tomorrow is cheap wing night at the pub on Elgin. Fifty-cent honey garlic wings until supplies run out or the deep fryer catches fire.",
+        "You're listening to 92.3 The Buzz, CKOT Ottawa. The only station that refuses to play corporate elevator pop.",
+        "We got a request from 'Sigh-yad' in Aylmer for some Rage Against the Machine... Coming right up, man. Keep that Ford Ranger rolling!",
+        "If our broadcast drops out for thirty seconds, it's just the studio intern tripping over the power bar again. Don't touch that dial.",
+        "Crank it up for Billy Talent! Canadian punk rock making waves all the way from Mississauga to the capital!",
+        "Sun is setting over the Ottawa River... looks pretty sick from the bridge. Time to cue up some Smashing Pumpkins to match the mood.",
+        "92.3 THE BUZZ. Keep your radio tuned right here, or at least within half a megahertz of this frequency!"
+      ],
+      "ads": [
+        {
+          "business": "Rideau Sound & Car Audio",
+          "copy": "Tired of your factory speakers buzzing like an angry hornet? Rideau Sound hooks up your ride with Alpine CD decks, Rockford Fosgate subwoofers, and custom bass boxes that'll rattle your rearview mirror right off the windshield! Free installation on all Pioneer head units this weekend only. Rideau Sound, 450 Bank Street, Ottawa."
+        },
+        {
+          "business": "Ottawa Valley Paintball & Airsoft",
+          "copy": "Unleash your tactical skills in the woods! Ottawa Valley Paintball features ten outdoor battle zones with trenches, speedball courses, and authentic bunker compounds! Tippmann 98 custom rentals, thermal anti-fog masks, and unlimited CO2 refills. Birthday packages and group discounts available. Located off Highway 7 in Stittsville."
+        },
+        {
+          "business": "Bytown Used Guitars & Tube Amps",
+          "copy": "Don't buy a sterile digital modeling box when you can feel the warmth of genuine vacuum tubes! Bytown Guitars buys, sells, and trades vintage Fender Strats, Gibson Les Pauls, and beat-up Marshall half-stacks with character. Strings, picks, and distortion pedals in stock. Bytown Guitars, 280 Elgin Street, Ottawa."
+        },
+        {
+          "business": "Kanata Karting & Grand Prix",
+          "copy": "Feed your need for speed on Ottawa's longest outdoor asphalt go-kart track! High-output nine-horsepower Honda karts reaching speeds up to 65 kilometers per hour! Digital timing system, bridge overpass, and banked hairpins. Helmet and neck brace provided. Kanata Karting, March Road near the tech park."
+        },
+        {
+          "business": "Capital Donair & Late-Night Poutinerie",
+          "copy": "Craving real Halifax-style sweet sauce after the bars close at 2 AM? Capital Donair serves up spiced shaved beef piled high on warm pita bread with onions, tomatoes, and genuine condensed milk sweet sauce! Plus crispy poutine with double curd cheese. Capital Donair, open until 4 AM at 190 Rideau Street."
+        },
+        {
+          "business": "Dark Horizon Tattoo & Body Piercing",
+          "copy": "Custom tribal, traditional, and biomechanical tattoo artwork by award-winning artists in a 100% sterile autoclave-certified studio! Titanium body piercings, imported body jewelry, and custom flash designs. Must be eighteen or have parental consent. Dark Horizon Tattoos, 315 Dalhousie Street, ByWard Market."
+        },
+        {
+          "business": "Ottawa Surplus & Combat Gear",
+          "copy": "Authentic Canadian military surplus gear at rock-bottom prices! Camo BDU cargo pants, heavy-duty combat boots, wool blankets, tactical backpacks, and waterproof rain ponchos. Great for camping, paintball, or just looking tough at the skatepark. Ottawa Surplus, 610 Somerset Street West."
+        },
+        {
+          "business": "West-End Pool & Billiards Lounge",
+          "copy": "Twenty tournament-grade Brunswick nine-foot pool tables with fresh Simonis cloth! Cold draft pitchers, hot spicy nachos, classic arcade machines, and big-screen TV showing the Sens games. Weekly eight-ball tournaments with cash prizes every Wednesday night. West-End Billiards, 1420 Merivale Road, Nepean."
+        },
+        {
+          "business": "Extreme Wheels Skateboard & BMX Shop",
+          "copy": "Ottawa's premier core skateboarder shop since 1994! Decks from Alien Workshop, Element, and Girl, Independent trucks, Bones Swiss bearings, and shoes from DC, Vans, and Emerica. Free griptape application with every deck purchase! Extreme Wheels, 210 Richmond Road, Westboro."
+        },
+        {
+          "business": "Pre-Owned Import Car Specialist",
+          "copy": "Looking for a clean Honda, Toyota, or Subaru that won't leave you stranded on the highway? Every vehicle safety-certified and e-tested with clean Carfax report! Five-speed manual transmissions, clean four-cylinders, student budget pricing under three thousand bucks! Capital Imports, 1850 Carling Avenue, Ottawa."
+        },
+        {
+          "business": "Record Runner Vinyl & Used CDs",
+          "copy": "Thousands of rare rock, metal, punk, and grunge CDs and vinyl records! Looking for rare import singles, B-sides, or obscure band t-shirts you can't find in mall chain stores? We buy used CD collections for top dollar in cash on the spot. Record Runner, 240 Rideau Street, Ottawa."
+        },
+        {
+          "business": "The Comic Book Shoppe & Collectibles",
+          "copy": "New comic day every Wednesday! Marvel, DC, Dark Horse, plus wall-to-wall Magic: The Gathering booster packs, Warhammer 40k miniatures, and anime collectible figures! Weekly Friday Night Magic booster draft tournaments in our back gaming lounge. The Comic Book Shoppe, 228 Bank Street, Ottawa."
+        }
+      ],
+      "stingers": [
+        "Buzz Traffic Report: Major jam on the westbound Queensway between Island Park and Maitland due to an overheated minivan. If you're heading toward Kanata, grab a coffee and take Carling!",
+        "Weather on the Edge: 33 degrees with high smog warning across the National Capital Region. If your air conditioner is broken, roll down all four windows and drive faster.",
+        "Sens Hockey Update: Ottawa Senators announce single-game tickets going on sale this Saturday at 10 AM. Camp out outside the Corel Centre box office if you want seats against the Leafs!",
+        "Signal Notice: Listeners in Gatineau and Aylmer may experience momentary static fades due to solar flare activity over the Ottawa River. Don't adjust your equalizer.",
+        "ByWard Market Alert: George Street closed for street performers this evening. Park at Rideau Centre parking garage if you're coming downtown for drinks.",
+        "Late-Night Buzz Weather: Clearing up tonight with a low around 18. Perfect night for a midnight cruise along the Sir John A. Macdonald Parkway with the radio blasting."
+      ],
+      "contests": [
+        "The Buzz Ticket Giveaway: Caller nine right now at 613-562-BUZZ wins a pair of passes to see the indie showcase at Barrymore's Music Hall plus a fifty-dollar tab at Capital Donair!",
+        "Album of the Month Draw: Identify the secret backwards guitar track playing right now and win the complete Foo Fighters CD catalog on compact disc!",
+        "Road Trip Pass: Be caller twenty-three and answer our Ottawa Senators trivia question to score two upper-bowl tickets to opening night against the Montreal Canadiens!",
+        "Rage on the Radio: Call in, scream your most aggressive rock lyric into the voicemail box, and the best scream wins a hundred-dollar gift certificate to Record Runner on Rideau!"
+      ]
+    }
+  ]
+}

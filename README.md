@@ -56,7 +56,7 @@ through the keys once; the pause menu has a keyboard diagram and a Settings tab
 
 You start with one. The rest you earn or buy, and they do not drive alike.
 
-- **1993 Ford Ranger XLT** (white, 2.3 four-cylinder, three-across bench) —
+- **1993 Ford Ranger XL** (white, 2.3 four-cylinder, three-across bench) —
   yours. Slow, tall, leans in corners, and the bench means only **two
   passengers**. The "pick up the gang" job re-plans itself into two trips.
 - **1997 Saturn SL, 4-door** (blue) — Margaret's, parked next to yours at
@@ -238,6 +238,10 @@ src/game/cars.js    the four car models, the driving model, damage and lights
 src/game/collide.js car-vs-car impulse solver
 src/game/damage.js  crumples, steam, headlights, fallen poles, repairs
 src/game/traffic.js ambient traffic driving the real road graph, on the right, obeying lights
+src/game/vehiclekit.js   the primitives a bus and a bicycle need that a lofted car does not
+src/game/buses.js   the GM New Look city bus (STO livery, dot-matrix sign) and the Blue Bird school bus
+src/game/bikes.js   the two bicycles: the rider who pedals, the sprint that runs out, the bunny-hop
+src/game/vehicles.js registers the four above into CARS / the garage / the save slots
 src/game/missions.js the core jobs, and the time-of-day lighting presets
 src/game/missionkit.js the stage model (hold/cost/condition/onTick...) the runner understands
 src/game/sidejobs.js the canoe, Sayyad, and Mike's couch

@@ -62,11 +62,26 @@ try {
 if (fresh) await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
 await send('Page.navigate', { url });
 await sleep(1500);
+// Starting a new game is two clicks now: EMBARQUE opens the start-point picker,
+// and the picker's own GO button is what actually drops you into the world. A
+// start point is always pre-selected (main.js selectStart), so there is nothing
+// to choose — but the button has to exist before it can be pressed, hence the
+// wait rather than a straight-line pair of clicks.
 const boot = menuOnly ? 'menu only' : await evaluate(`(async () => {
   const b = document.getElementById('start'); if (!b) return 'no #start';
   b.click();
-  for (let i = 0; i < 200; i++) { await new Promise(r => setTimeout(r, 100)); if (window.AYLMER?.G?.mode === 'drive') return 'drive after ' + (i * 100) + ' ms'; }
-  return 'mode=' + window.AYLMER?.G?.mode;
+  let go = null;
+  for (let i = 0; i < 20 && !go; i++) {
+    await new Promise(r => setTimeout(r, 100));
+    // Measured, not offsetParent: the GO button is position:fixed, and a fixed
+    // element's offsetParent is null however plainly visible it is.
+    const c = document.getElementById('startconfirm');
+    if (c && !c.disabled && c.getBoundingClientRect().width > 0) go = c;
+  }
+  if (go) go.click();
+  const via = go ? 'two clicks' : 'one click (no start picker)';
+  for (let i = 0; i < 200; i++) { await new Promise(r => setTimeout(r, 100)); if (window.AYLMER?.G?.mode === 'drive') return 'drive after ' + (i * 100) + ' ms, ' + via; }
+  return 'mode=' + window.AYLMER?.G?.mode + ', ' + via;
 })()`);
 console.log('boot:', boot);
 // Step the sim deterministically, then let a few real frames render.

@@ -27,7 +27,7 @@ export const STORY_CARDS = [
   {
     title: 'ÉTÉ 2004',
     body: 'T’as dix-sept ans pis t’es à Aylmer, Québec. L’école est finie, il fait '
-      + '28 degrés, pis ton père a laissé les clés du Ranger XLT 1993 dans le plat '
+      + '28 degrés, pis ton père a laissé les clés du Ranger XL 1993 dans le plat '
       + 'à monnaie en partant travailler.\n\n'
       + 'Un permis. Un demi-réservoir. Rien de prévu jusqu’en septembre.',
   },
@@ -158,11 +158,16 @@ export function nearestAnyJob(G, list = MISSIONS) {
 // the year and nobody says the make: it is the Civic, and it is a "la".
 const CAR_SHORT = {
   ranger: 'Ranger', saturn: 'Saturn', civic: 'Civic', sunfire: 'Sunfire',
-  cutlass: 'Cutlass', cavalier: 'Cavalier Z24', caravan: 'Caravan', bus: 'bus scolaire',
+  cutlass: 'Cutlass', cavalier: 'Cavalier Z24', caravan: 'Caravan',
+  // The lot bus is a transit bus and always was; there is a real school bus in
+  // the game now (game/buses.js), so the two of them cannot share a name.
+  bus: 'bus de ville', schoolbus: 'bus scolaire',
+  cruiser: 'cruiser chromé', dbike: 'bicycle',
 };
 const CAR_ART = {
   ranger: 'le', saturn: 'la', civic: 'la', sunfire: 'la',
   cutlass: 'la', cavalier: 'la', caravan: 'la', bus: 'le',
+  schoolbus: 'le', cruiser: 'le', dbike: 'le',
 };
 
 /** What you would call that car out loud. Falls back to dropping the year. */
@@ -185,6 +190,9 @@ const CAR_WHY = {
   cavalier: 'quelqu’un a mis des flammes dessus. Quelqu’un.',
   caravan: 'sept places, zéro dignité',
   bus: 'personne va te demander ton permis de classe 2',
+  schoolbus: 'c’est l’été, la clé est au-dessus du pare-soleil',
+  cruiser: 'Sayyad le barre jamais, il est trop fier de lui',
+  dbike: 'il est dans l’entrée depuis que t’as douze ans',
 };
 
 /** A friend's car parked within reach, and whether it is yours to take. */
@@ -410,6 +418,153 @@ export const FRIEND_LINES = {
     end: [['Sayyad', '« Six sur six. T’as battu la ville. »']],
   },
 };
+
+// Four people stand on their own lawn now (avatars.js), so you can pull up to
+// them outside a job. These are what they say when you do: same bubbles, same
+// voice as FRIEND_LINES, keyed by person instead of by job.
+export const GREETINGS = {
+  sayyad: [
+    '« Heille. Tu passes devant chez nous pis tu klaxonnes même pas? »',
+    '« Deux minutes. Faut que je trouve mes gougounes. »',
+    '« Touche pas à la Civic. Regarde-la, c’est tout. »',
+    '« J’ai une cassette pour ça. J’ai une cassette pour tout. »',
+  ],
+  margaret: [
+    '« Ah ben, de la belle visite. Tu rentres-tu ou tu restes dans le truck? »',
+    '« Attends, je mets mon coton. Il fait frette le soir icitte. »',
+    '« Ta ceinture, mon grand. J’te regarde. »',
+    '« La Saturn part au premier tour. À chaque fois. »',
+  ],
+  mike: [
+    '« O.K. mais écoute. ÉCOUTE. Le divan, dans l’arbre, c’est de la physique. »',
+    '« J’ai trois points à te faire pis le premier en a deux. »',
+    '« Ma mère a dit non. Ma mère a pas vu le plan. »',
+    '« Non non non, attends, tu comprends pas encore. Ça va être court. »',
+  ],
+  // Sayyad's little sister, who is at Symmes and has heard all of it already.
+  zahra: [
+    '« Il est pas là. Pis non, j’sais pas où. »',
+    '« Si tu le vois, dis-y que c’est mon tour pour le Discman. »',
+    '« Vous avez quel âge, vous autres? Sérieux. »',
+    '« J’ai une pratique à Symmes à quatre heures. Tu me déposes-tu? … Non. Correct. »',
+  ],
+};
+
+/** One of a person's driveway lines, or null if we do not know them. */
+export function greeting(who, i = 0) {
+  const pool = GREETINGS[who];
+  if (!pool || !pool.length) return null;
+  return pool[((i % pool.length) + pool.length) % pool.length];
+}
+
+// ------------------------------------------------------- the dialogue file
+//
+// FRIEND_LINES above is written per JOB: the specific thing Margaret says at
+// the start of the run to the beach. What follows is the other axis — what a
+// person says when they get IN and when they get OUT, whatever the job is. It
+// is data, in assets/text/dialogue.json, so a writer can add a line without
+// opening a module.
+//
+// The pools below are the fallback and they are complete enough to play with:
+// nothing here ever waits on the fetch, and the game runs with the file
+// deleted. applyDialogue() merges the file over them when it lands.
+//
+// « MAX 104.7 » in Sayyad's first line is not a mistake for CFOU: CFOU-FM is
+// the call sign in assets/text/radio.json and MAX 104.7 is the brand the
+// station's own idents use on air. Nobody in 2004 said the call letters.
+export const DIALOGUE = {
+  Sayyad: {
+    start: [
+      '« Embarque mon gars! Baisse la vitre pis mets MAX 104.7, on a une ride légendaire à faire! »',
+      '« Check ma chemise hawaïenne. C’est du pur style Denise-Friend, mon chum. »',
+    ],
+    end: ['« Bon. Ça, c’était une ride. »'],
+  },
+  Margaret: {
+    start: ['« Bon. On y va-tu, là? »'],
+    end: ['« Merci mon grand. Rentre pas trop tard. »'],
+  },
+  Adam: {
+    start: ['« J’embarque en arrière, j’ai les jambes courtes pareil. »'],
+    end: ['« Bon. À la prochaine. »'],
+  },
+  'Ton père': {
+    start: ['« Touche pas au radio. »'],
+    end: ['« T’as ramené le truck en un morceau. C’est déjà ça. »'],
+  },
+  // Zahra has a third category of her own: what she says about her brother
+  // when the two of them are in the same place, which is most of the time.
+  Zahra: {
+    start: ['« Embarque pas trop vite, j’ai un café. »'],
+    end: ['« Sept sur dix. Pour la conduite. »'],
+    'about-sayyad': ['« Mon frère pense qu’il est un génie de la mécanique. »'],
+  },
+};
+
+// The file is written with straight apostrophes and no quotes around the line;
+// everything else the player reads uses « » and ’, so the lines are normalised
+// on the way in rather than at every call site.
+const quote = (s) => {
+  const t = String(s).trim().replace(/'/g, '’');
+  return t.startsWith('«') ? t : '« ' + t + ' »';
+};
+
+/**
+ * Merge a parsed dialogue.json into DIALOGUE. Shape: { dialogue: [{ who,
+ * when, line }] }. A `who` we have never heard of gets its own pool rather
+ * than being dropped — the file is allowed to know about people this module
+ * does not. Returns how many lines were taken.
+ */
+export function applyDialogue(json) {
+  const rows = json && Array.isArray(json.dialogue) ? json.dialogue : null;
+  if (!rows) return 0;
+  const seen = new Set();
+  let n = 0;
+  for (const r of rows) {
+    if (!r || !r.who || !r.line) continue;
+    // `when` is whatever the file says, not just start/end: zahra.json adds an
+    // « about-sayyad » set, and a category that lands tomorrow should be usable
+    // tomorrow rather than being folded into `start` and lost.
+    const when = String(r.when || 'start');
+    const p = DIALOGUE[r.who] || (DIALOGUE[r.who] = { start: [], end: [] });
+    const key = r.who + ' ' + when;
+    if (!seen.has(key)) { seen.add(key); p[when] = []; }   // the file replaces the fallback
+    p[when].push(quote(r.line));
+    n++;
+  }
+  return n;
+}
+
+/** One line from a person's pool, rotating. Null for somebody we do not know. */
+export function personLine(who, when = 'start', i = 0) {
+  const p = DIALOGUE[who];
+  const pool = p && p[when];
+  if (!pool || !pool.length) return null;
+  return pool[((i % pool.length) + pool.length) % pool.length];
+}
+
+// The files that carry it. One per writer, all the same shape, all optional.
+export const DIALOGUE_FILES = ['dialogue.json', 'zahra.json'];
+
+/** Fetch and merge one dialogue file. Resolves to 0 if it is not there. */
+export function loadDialogue(name = DIALOGUE_FILES[0]) {
+  const u = /^[a-z0-9._-]+$/i.test(name)
+    ? new URL('../../assets/text/' + name, import.meta.url).href : name;
+  return fetch(u)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((j) => applyDialogue(j))
+    .catch(() => 0);
+}
+
+// Kicked from here rather than from main.js: nothing waits on it, the fallback
+// pools are already live, and main.js owns four hook lines that are not this.
+// Skipped outside a browser so every smoke suite stays synchronous.
+if (typeof document !== 'undefined' && typeof fetch === 'function') {
+  Promise.all(DIALOGUE_FILES.map(loadDialogue)).then((counts) => {
+    const n = counts.reduce((a, b) => a + b, 0);
+    if (n) console.log(`dialogue: ${n} lines`);
+  });
+}
 
 /** [[who, text], ...] for a job's start or end; [] when nobody has anything to say. */
 export function friendLines(id, which = 'start') {

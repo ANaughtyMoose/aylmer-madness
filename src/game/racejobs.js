@@ -9,6 +9,14 @@
 //
 // The rivals drive the friends' actual cars, so during a race that car is out
 // of G.parked and back in it the moment the job ends, whichever way it ended.
+//
+// raceStages() and raceMission() are exported because game/modes.js builds the
+// Blitz and Checkpoint courses out of exactly the same two stages — there is one
+// race runner in this game and this is it. Modes added three cfg knobs and
+// nothing else: `gateR` (a checkpoint ring is wider than a blitz one), `noRoute`
+// (checkpoint mode draws no GPS line, because finding the way is the game), and
+// `showDist` (which is what you get instead of the line). The four original
+// races do not set any of them and behave exactly as they always did.
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
 import { Rival, Track, SKILL, ordinalFr, fmtGap, BAND_AHEAD, BAND_BEHIND } from './race.js';
@@ -103,7 +111,11 @@ function spawnRivals(G, cfg) {
       G.raceParked[r.carId] = G.parked[r.carId];
       delete G.parked[r.carId];
     }
-    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: SKILL[r.skill] || SKILL.dave });
+    // `skill` is a name out of race.js's table for the four original races, or a
+    // whole tuning object for a rival off the roster in game/rivals.js, whose
+    // driving style is written down per person rather than per archetype.
+    const sk = (typeof r.skill === 'string' ? SKILL[r.skill] : r.skill) || SKILL.dave;
+    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: sk });
     const spot = gridSpot(start, i + 1);
     rv.place(spot.x, spot.z, spot.yaw);
     if (path) rv.setPath(path);
@@ -128,7 +140,7 @@ export function endRace(G) {
 
 // ---------------------------------------------------------------- the stages
 
-function raceStages(cfg, ctx) {
+export function raceStages(cfg, ctx) {
   const grid = {
     kind: 'grid',
     text: cfg.gridText || 'À la ligne de départ',
@@ -151,8 +163,11 @@ function raceStages(cfg, ctx) {
     hint: cfg.hint
       || 'Le pilier jaune est toujours sur le prochain checkpoint, pis le GPS trace la ligne bleue jusqu’à lui. W à fond, Espace dans les courbes serrées.',
     at: () => at(cfg.cps[0]),
-    radius: cfg.cps.length > 1 ? GATE_R : FINISH_R,
+    radius: cfg.gateR || (cfg.cps.length > 1 ? GATE_R : FINISH_R),
     anywhere: true,
+    // Checkpoint mode turns the GPS line off: the whole point of scattered
+    // gates is that the route between them is yours to find.
+    noRoute: !!cfg.noRoute,
     condition: () => false,
     time: cfg.clock != null ? cfg.clock : undefined,
     failWhy: cfg.clockFail || 'Le chrono t’a battu.',
@@ -161,9 +176,10 @@ function raceStages(cfg, ctx) {
 
     onEnter(G, m) {
       const laps = cfg.laps || 1;
+      const gr = cfg.gateR || (cfg.cps.length > 1 ? GATE_R : FINISH_R);
       const cps = cfg.cps.map((c) => {
         const p = at(c);
-        return { x: p.x, z: p.z, r: cfg.cps.length > 1 ? GATE_R : FINISH_R, label: p.label || '' };
+        return { x: p.x, z: p.z, r: gr, label: p.label || '' };
       });
       const line = at(cfg.start);
       const track = new Track(cps, laps, m.legs, { x: line.x, z: line.z });
@@ -204,6 +220,14 @@ function raceStages(cfg, ctx) {
       if (cfg.bonus) {
         const left = R.track.n * R.laps - R.me.done;
         bits.push(`${left} checkpoint${left > 1 ? 's' : ''}   ·   +${cfg.bonus} s chacun`);
+      }
+      // With no blue line to follow, the one number you cannot do without is
+      // how far the next gate still is. Everything else is up to you.
+      if (cfg.showDist && G.veh && !R.track.isFinished(R.me.done)) {
+        const g = R.track.gate(R.me.done);
+        bits.push(`prochain ${fmtGap(Math.hypot(g.x - G.veh.x, g.z - G.veh.z))}`);
+        const left = R.track.n * R.laps - R.me.done;
+        bits.push(`${left} à faire`);
       }
       return bits.join('   ·   ');
     },
@@ -299,7 +323,7 @@ function raceStages(cfg, ctx) {
   return [grid, run];
 }
 
-function raceMission(cfg) {
+export function raceMission(cfg) {
   return {
     id: cfg.id,
     title: cfg.title,

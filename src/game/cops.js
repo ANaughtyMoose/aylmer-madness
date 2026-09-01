@@ -29,6 +29,10 @@ import { asBody, collideCars, driftBody, contact } from './collide.js';
 import { Rival, SKILL, collideRivals } from './race.js';
 // Story agent: the megaphone.
 import { heckle } from './heckle.js';
+// The radio. Sixty written dispatch and cruiser lines (assets/text/ambient.json,
+// `police`), tagged by the state they belong to, with a hardcoded handful behind
+// them so a build without the copy still gets chased properly.
+import { policeLine, line as textLine } from './racingtext.js';
 
 // ---------------------------------------------------------------- the car
 
@@ -146,6 +150,9 @@ export const SPAWN_BACK = 150;  // where a cruiser joins in, metres behind you
 export const RETARGET = 1.5;    // seconds between re-plans, per cruiser
 export const MAX_UNITS = 2;     // driving cruisers; the third star is the roadblock
 export const BLOCK_MIN = 70, BLOCK_MAX = 420;   // roadblock hunt range
+// Heat at which somebody says something before anybody has been dispatched, and
+// how long before they will say it again.
+export const WARN_AT = 0.45, WARN_AGAIN = 22;
 
 // ---------------------------------------------------------------- the force
 
@@ -161,6 +168,7 @@ export class Cops {
     this.blocks = [];
     this.unseen = 0;
     this.stopT = 0;
+    this.warnT = 0;             // seconds before the next "smarten up" line
     this.sirenOn = false;
     this.honkT = 0;
     this.blink = 0;
@@ -224,6 +232,18 @@ export class Cops {
         }
       }
     }
+
+    // The word before the star. Between WARN_AT and one full star nobody has
+    // been dispatched yet, and that is exactly the window where a constable
+    // leans out and tells you to smarten up — once every WARN_AGAIN seconds, so
+    // it stays a warning and does not become a nag.
+    this.warnT = Math.max(0, this.warnT - dt);
+    if (this.heat > WARN_AT && this.heat < 1 && !this.warnT && G.hud) {
+      this.warnT = WARN_AGAIN;
+      const said = textLine(policeLine('warning'));
+      if (said) G.hud.toast('« ' + said + ' »', 2800);
+    }
+    if (this.heat <= 0.02) this.warnT = 0;
   }
 
   // ---- units -----------------------------------------------------------
@@ -298,10 +318,15 @@ export class Cops {
     const stars = clamp(Math.floor(this.heat), 0, 3);
     if (stars > this._lastStars) heckle.say('Police', 'cop');
     if (stars > this._lastStars && G.hud) {
-      G.hud.toast(stars === 1
+      // The star toast says what is happening; the radio underneath it says it
+      // the way a bored constable on the 42 would. `spotted` at one star, and
+      // `pursuit` once they have decided you are not stopping.
+      const radio = textLine(policeLine(stars === 1 ? 'spotted' : 'pursuit'));
+      G.hud.toast((stars === 1
         ? 'UNE AUTO-PATROUILLE\nÇa commence, ' + (this.why || 'ça') + '.'
         : stars === 2 ? 'DEUX AUTOS-PATROUILLES\nIls se parlent à radio, là.'
-          : 'TROIS ÉTOILES\nY ont bloqué la rue en avant.', 2600);
+          : 'TROIS ÉTOILES\nY ont bloqué la rue en avant.')
+        + (radio ? '\n« ' + radio + ' »' : ''), 2600);
     }
     this._lastStars = stars;
     this.stars = stars;
@@ -379,7 +404,11 @@ export class Cops {
         this.heat = 0;
         // The units thin out as the stars drop, so "did anybody ever turn up"
         // is its own flag rather than "is anybody still here".
-        if (this.chasing && G.hud) G.hud.toast('Tu les as semés.\nRoule normal deux minutes.', 2400);
+        if (this.chasing && G.hud) {
+          const radio = textLine(policeLine('lost'));
+          G.hud.toast('Tu les as semés.\nRoule normal deux minutes.'
+            + (radio ? '\n« ' + radio + ' »' : ''), 2400);
+        }
         this.chasing = false;
         this.units.length = 0;
         this.blocks.length = 0;
@@ -397,9 +426,12 @@ export class Cops {
       const paid = Math.min(TICKET, G.wallet.value);
       G.wallet.spend(paid);
       if (G.hud) {
+        // A ticket is the only time the constable is standing at your window, so
+        // it is the only time a `caught` line gets said instead of broadcast.
+        const said = textLine(policeLine('caught'));
         G.hud.toast(paid < TICKET
           ? `Ticket: ${TICKET} $\nT’avais ${Math.round(paid)} $. Le reste, tes parents vont l’apprendre.`
-          : `Ticket: ${TICKET} $\n« Tu diras à ton père de m’appeler. »`, 3400);
+          : `Ticket: ${TICKET} $\n« ${said || 'Tu diras à ton père de m’appeler.'} »`, 3400);
       }
     } else if (G.hud) {
       G.hud.toast(`Ticket: ${TICKET} $`, 3200);

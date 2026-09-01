@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Aylmer Madness — vehicle views</title>
+<style>html,body{margin:0;height:100%;background:#20262e;overflow:hidden}canvas{display:block;width:100%;height:100%}
+#l{position:fixed;left:14px;top:12px;color:#e8eaee;font:13px/1.5 Helvetica,Arial,sans-serif;opacity:.9}</style>
+</head><body>
+<canvas id="gl"></canvas><div id="l"></div>
+<script type="module">
+// A scriptable turntable for the vehicles this agent owns, so a headless Chrome
+// can be told "the school bus, three-quarter front, ten metres out" and hand
+// back a picture. ?id=bus&yaw=0.9&pitch=-0.22&dist=18&steer=0.3&crank=1.2&rider=1
+import { Renderer } from '../src/core/gl.js';
+import { MeshBuilder, rgb } from '../src/core/mesh.js';
+import { m4 } from '../src/core/math.js';
+import { CARS, carById, buildCarBody, buildWheel } from '../src/game/cars.js';
+import '../src/game/buses.js';
+import { drawTwoWheeler } from '../src/game/bikes.js';
+const q = new URLSearchParams(location.search);
+const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d);
+const spec = carById(q.get('id') || 'bus');
+const r = new Renderer(document.getElementById('gl'));
+r.setEnvironment({ sky:[0.66,0.74,0.86], ground:[0.30,0.32,0.32], sun:[0.98,0.94,0.86],
+  lightDir:[0.42,0.80,0.43], fog:[0.12,0.15,0.18], fogDensity:0.0016 });
+const G = { renderer: r, veh: null, meshes: { cars:{}, wheels:{}, cones:{} } };
+const body = r.upload((spec.buildBody || buildCarBody)(spec));
+const wheel = r.upload((spec.buildWheel || buildWheel)(spec));
+const fl = new MeshBuilder(); fl.flat(-40,-40,40,40,0,rgb(0x33393f));
+const floor = r.upload(fl);
+const mm = m4.create();
+const yaw = num('yaw', 0.8), pitch = num('pitch', -0.24);
+const dist = num('dist', spec.len * 1.9 + 2), steer = num('steer', 0);
+const crank = num('crank', 0), rider = num('rider', 1);
+document.getElementById('l').textContent = `${spec.name}  ·  ${spec.len} × ${spec.wid} × ${spec.h} m`;
+function frame() {
+  const cy = Math.cos(pitch), h = spec.h * 0.55;
+  r.begin([Math.sin(yaw)*dist*cy, h - Math.sin(pitch)*dist, Math.cos(yaw)*dist*cy], yaw, pitch, 0.80);
+  m4.identity(mm); r.draw(floor, mm);
+  m4.compose(mm, 0, 0, 0, 0, 0, 0); r.draw(body, mm);
+  if (spec.twoWheel) drawTwoWheeler(G, spec, 0, 0, 0, 0, crank * 2.75, steer, 0, !!rider);
+  for (const sz of [1,-1]) for (const sx of [-1,1]) {
+    m4.compose(mm, sx*spec.track/2, spec.wheelR, sz*spec.axleZ, sz>0 ? -steer : 0, crank, 0);
+    r.draw(wheel, mm);
+  }
+  r.end();
+  window.READY = true;
+}
+frame();
+requestAnimationFrame(frame);
+</script></body></html>

@@ -19,14 +19,20 @@ const FR = {
   'menu.building': 'ON BÂTIT AYLMER…',
   'menu.seats': 'places',
   'menu.continue': 'Continuer',
-  'menu.new': 'EMBARQUE ▸ nouvelle partie',
+  // The one button that starts the game. It says GO because that is the word
+  // the owner reaches for, and because « EMBARQUE ▸ nouvelle partie » read as a
+  // heading rather than as a button.
+  'menu.new': 'GO  ▸  NOUVELLE PARTIE',
+  'menu.go': 'GO',
   'menu.load': 'Charger',
   'menu.options': 'Options',
   'menu.garageview': 'Le garage',
   'menu.back': 'Retour',
   'menu.pick': 'Choisis ton char',
-  'menu.pickstart': 'Choisis ton point de départ',
-  'menu.pickstart.hint': 'Ton char est choisi. Maintenant, choisis où commencer.',
+  'menu.pickstart': 'Où tu pars?',
+  // The picker arrives with your own driveway already picked, so the GO button
+  // is live the second the screen opens. Say so, or nobody presses it.
+  'menu.pickstart.hint': 'Ta cour est déjà choisie — clique GO pis t’es parti. Ou pitche-toi ailleurs: clique un point sur la carte.',
   'menu.pickstart.back': 'Retour aux chars',
 
   // saves
@@ -158,7 +164,9 @@ const FR = {
   'k.abandon': 'Abandonner la job',
   'k.recover': 'Remettre sur la route',
   'k.horn': 'Klaxon',
-  'k.radio': 'Radio (CKOI / cassette / off)',
+  'k.radio': 'Radio (stations / cassette / off)',
+  'k.slang': 'Traduction du slang (tiens: les 3 dernières)',
+  'k.weather': 'La météo — pousse au prochain front',
   'k.mute': 'Son on/off',
   'k.save': 'Sauvegarde rapide',
   'k.pause': 'Pause',
@@ -184,8 +192,15 @@ const FR = {
   // misc
   'toast.mute.on': 'Son ON',
   'toast.mute.off': 'Son OFF',
+  // The slang gloss (G). The menus stay en français — this translates what the
+  // town yells at you, pas l'interface.
+  'toast.slang.on': 'Traductions ON\nCe qu’y crient, en anglais',
+  'toast.slang.off': 'Traductions OFF\nTiens G pour les 3 dernières',
+  'opt.slangGloss': 'Traduire le slang (touche G)',
   'radio.off': 'Radio OFF',
-  'radio.none': 'pas de cassette dans assets/radio/',
+  // The deck has a tape in it with something written on the label; what it does
+  // not have is a file to play. Say where the files go.
+  'radio.none': '(y a rien dans assets/radio/ — dépose tes MP3 là)',
   'toast.mapsize': 'Minimap',
   'toast.cars.home': 'Les chars sont chez eux',
   'toast.tutorial': 'Tutoriel remis à zéro',
@@ -401,6 +416,8 @@ export const KEYMAP = [
   { caps: ['T'], label: 'k.recover' },
   { caps: ['H'], label: 'k.horn' },
   { caps: ['R'], label: 'k.radio' },
+  { caps: ['G'], label: 'k.slang' },
+  { caps: ['V'], label: 'k.weather' },
   { caps: ['0'], label: 'k.mute' },
   { caps: ['F5'], label: 'k.save' },
   { caps: ['Esc'], label: 'k.pause' },

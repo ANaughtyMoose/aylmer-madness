@@ -23,6 +23,13 @@ import { collideCars, contact } from './collide.js';
 import { clamp, angleDelta } from '../core/math.js';
 // Story agent: a friend going by you has something to say about it.
 import { heckle } from './heckle.js';
+// Modes agent: updateRivals() is already the one line main.js calls every tick
+// for anything race-shaped, so the mode picker and the jump scorer ride in on
+// it rather than asking main.js for two more hook lines of their own.
+import { updateModes } from './modes.js';
+import { updateJumps } from './jumps.js';
+// Written rival lines (assets/text/racing.json, `taunts`).
+import { taunt, line as textLine } from './racingtext.js';
 
 // Per-driver tuning.
 //   cruise    speed on a straight, m/s
@@ -30,6 +37,9 @@ import { heckle } from './heckle.js';
 //   minSpeed  the floor, so a hairpin never stalls the car
 //   gain/damp steering: proportional on heading error, damped on yaw rate
 //   band      throttle multipliers when well ahead / well behind the player
+//   avoid     optional: scales how far ahead a traffic car makes him lift. Under
+//             1 is a driver who does not really brake for anybody, which is a
+//             character trait and not a bug (see game/rivals.js, Kevin Boucher)
 export const SKILL = {
   // Adam's Sunfire: quick in a straight line, lazy in the corners — which is
   // exactly what the car is.
@@ -44,6 +54,12 @@ export const SKILL = {
   // The cruiser. No rubber band: it is either on you or it is not.
   cop:      { cruise: 26.0, cornerK: 0.56, minSpeed: 7.0, gain: 1.70, damp: 0.24,
               band: { ahead: 1, behind: 1 } },
+  // The pace car: fast enough that the CAR is the limit and not the controller.
+  // It is what tools/smoke_modes.mjs drives to prove a course is finishable, and
+  // it is the skill the cross-map races give their one rival — over eleven
+  // kilometres of the 148, a driver who lifts for every bend is not a race.
+  pace:     { cruise: 33.0, cornerK: 0.44, minSpeed: 9.0, gain: 1.60, damp: 0.26,
+              band: { ahead: 0.92, behind: 1.06 } },
 };
 
 export const BAND_AHEAD = 150;    // m up the road before a rival eases off
@@ -54,9 +70,45 @@ export const LOOK_MIN = 12, LOOK_MAX = 20;
 export const AVOID_D = 10;        // brake for a traffic car this close ahead
 export const AVOID_W = 2.6;       // ...and this far off the centre of the lane
 export const RESET_AHEAD = 8;     // how far up the road a stuck rival is put back
+export const ADVANCE_R = 10;      // "close enough to that hairpin, take the next leg"
+export const HAIRPIN = -0.6;      // ...and a hairpin is a node sharper than ~127 deg
+export const PROG_T = 2.5;        // seconds of no progress along the route...
+export const PROG_M = 2;          // ...meaning fewer than this many metres of it
 
 // Scratch. Module-level so the hot loop allocates nothing.
 const PA = [0, 0], PB = [0, 0];
+
+// A route with two identical points in it is a trap, not a route. _advance()
+// gets past a segment on the projection test, and on a zero-length segment the
+// numerator is exactly 0 over the 1e-6 fudge in the denominator, so it can
+// never reach 1; the hairpin escape hatch reads the direction of the *next*
+// leg against a zero vector and gets a cosine of 0, which is never below
+// HAIRPIN either. `i` sticks on the duplicate node for the rest of the race,
+// along() freezes at that node's distance, and the no-progress watchdog fires
+// every PROG_T seconds forever.
+//
+// A course built leg by leg grows one wherever a gate is the last node of the
+// leg into it and the first node of the leg back out — which is every gate on
+// a dead-end spur: the marina on bz_ouest and cp_traverse, the golf clubhouse
+// loop on cp_deschenes. Nothing downstream wants the duplicate, so drop it
+// here, once, at the one place the cum table is built. Only exact repeats and
+// millimetre noise: a genuine short segment is a corner and has to stay.
+const DEGENERATE = 0.01;                        // metres
+function dedupe(pts) {
+  let bad = false;
+  for (let k = 1; k < pts.length; k++) {
+    if (Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]) < DEGENERATE) {
+      bad = true; break;
+    }
+  }
+  if (!bad) return pts;                         // the common case allocates nothing
+  const out = [pts[0]];
+  for (let k = 1; k < pts.length; k++) {
+    const p = out[out.length - 1];
+    if (Math.hypot(pts[k][0] - p[0], pts[k][1] - p[1]) >= DEGENERATE) out.push(pts[k]);
+  }
+  return out;
+}
 
 export class Rival {
   constructor(spec, opts = {}) {
@@ -77,6 +129,10 @@ export class Rival {
     this.resets = 0;
     this.band = 1;
     this.blocked = false;
+    this.progT = 0;             // seconds since the last progress check...
+    this.progAt = 0;            // ...and how far along the route it found him
+    this.stuckRun = 0;          // unsticks in a row that did not achieve anything
+    this.lastReset = null;      // where along the route the last one put him
     this.done = 0;              // checkpoints passed (the race code owns this)
     this.progress = 0;
     this.tint = opts.tint || null;
@@ -94,8 +150,11 @@ export class Rival {
     this.stuckT = 0;
     // Moving the car invalidates the segment index, and _advance() only ever
     // walks forward, so re-find it here rather than leave the car chasing the
-    // far end of its own route.
+    // far end of its own route. The progress watchdog is re-baselined with it,
+    // or the first check after a move reads the move itself as a stall.
     if (this.n > 1) this._reindex();
+    this.progT = 0;
+    this.progAt = this.n > 1 ? this.along() : 0;
     return this;
   }
 
@@ -107,6 +166,8 @@ export class Rival {
    */
   setPath(pts) {
     if (!pts || pts.length < 2) return false;
+    pts = dedupe(pts);
+    if (pts.length < 2) return false;
     this.path = pts;
     this.n = pts.length;
     if (this.cum.length < this.n) this.cum = new Float64Array(this.n + 64);
@@ -118,6 +179,8 @@ export class Rival {
     this.i = 0;
     this.finished = false;
     this._reindex();
+    this.progT = 0;
+    this.progAt = this.along();
     return true;
   }
 
@@ -134,6 +197,15 @@ export class Rival {
     this.i = best;
   }
 
+  // The segment that contains route distance `d`. Used where the car has been
+  // *placed* at a known distance along the route rather than found somewhere
+  // and matched to it — see unstick().
+  _segAt(d) {
+    let k = 0;
+    while (k + 2 < this.n && this.cum[k + 1] <= d) k++;
+    return k;
+  }
+
   _segDist(k) {
     const p = this.path, v = this.veh;
     const ax = p[k][0], az = p[k][1];
@@ -144,15 +216,33 @@ export class Rival {
     return Math.hypot(dx, dz);
   }
 
-  // Walk `i` forward while the car has driven past the end of its segment.
+  // Walk `i` forward while the car has driven past the end of its segment — or
+  // while it is simply standing on the node at the end of it.
+  //
+  // The projection test alone is not enough where a route doubles back on
+  // itself, which a course made of gate-to-gate legs does at every hairpin and
+  // every dead end: the car reaches the node, the next leg points back past its
+  // own shoulder, the projection never exceeds 1, and the driver circles the
+  // node until the sun goes down. ADVANCE_R says: you are within ten metres of
+  // that node, it is behind you now, take the next leg.
   _advance() {
     const p = this.path, v = this.veh;
     while (this.i + 2 < this.n) {
       const ax = p[this.i][0], az = p[this.i][1];
-      const ex = p[this.i + 1][0] - ax, ez = p[this.i + 1][1] - az;
+      const bx = p[this.i + 1][0], bz = p[this.i + 1][1];
+      const ex = bx - ax, ez = bz - az;
       const l2 = ex * ex + ez * ez || 1e-6;
-      if (((v.x - ax) * ex + (v.z - az) * ez) / l2 > 1) this.i++;
-      else break;
+      if (((v.x - ax) * ex + (v.z - az) * ez) / l2 > 1) { this.i++; continue; }
+      // Only at a genuine reversal: an ordinary 90 deg corner still gets driven
+      // round properly, because letting the car cut every junction ten metres
+      // early is how a rival ends up on the sidewalk.
+      const cx2 = p[this.i + 2][0] - bx, cz2 = p[this.i + 2][1] - bz;
+      const la = Math.sqrt(l2), lc = Math.hypot(cx2, cz2) || 1e-6;
+      if ((ex * cx2 + ez * cz2) / (la * lc) < HAIRPIN) {
+        const dx = bx - v.x, dz = bz - v.z;
+        if (dx * dx + dz * dz < ADVANCE_R * ADVANCE_R) { this.i++; continue; }
+      }
+      break;
     }
   }
 
@@ -215,12 +305,27 @@ export class Rival {
     // ---- 2. how fast do we want to be going ------------------------------
     // Two probes: where the road is in a moment, and where it is after that.
     // The angle between them is the bend, and the bend is what you lift for.
-    const d1 = clamp(6 + Math.abs(sp) * 0.9, 8, 26);
-    this.lookAhead(d1, PA);
-    this.lookAhead(d1 + clamp(8 + Math.abs(sp) * 1.0, 10, 30), PB);
-    const bend = Math.abs(angleDelta(
-      Math.atan2(PB[0] - PA[0], PB[1] - PA[1]),
-      Math.atan2(PA[0] - v.x, PA[1] - v.z)));
+    // Two pairs of probes, and the tighter bend of the two wins.
+    //
+    // There used to be one pair, ceilinged at 26 and 30 m. That was fine while
+    // nothing could pass ~110 km/h — 56 m is a comfortable two seconds at 30
+    // m/s — but once cars.js started solving real terminal speeds (150 for the
+    // Ranger, 180 for the Z24) it was well under the distance a car needs just
+    // to shed speed, and a rival on a fast road met every bend already
+    // committed. Simply lengthening the probe traded that fault for its mirror
+    // image: on a tight descent the long probe reads the road *past* the
+    // corner and sails into it. So keep the near pair for the corner you are
+    // about to be in, add a far pair for the one you are about to be committed
+    // to, and lift for whichever is worse.
+    const bendAt = (near, far) => {
+      const d1 = clamp(6 + Math.abs(sp) * 0.9, 8, near);
+      this.lookAhead(d1, PA);
+      this.lookAhead(d1 + clamp(8 + Math.abs(sp) * 1.0, 10, far), PB);
+      return Math.abs(angleDelta(
+        Math.atan2(PB[0] - PA[0], PB[1] - PA[1]),
+        Math.atan2(PA[0] - v.x, PA[1] - v.z)));
+    };
+    const bend = Math.max(bendAt(26, 30), bendAt(44, 52));
     let want = s.cruise * (1 - Math.min(0.74, bend * s.cornerK));
     want = Math.max(s.minSpeed, want) * (ctx && ctx.band ? ctx.band : this.band);
     // Fighting the wheel is its own reason to slow down.
@@ -232,11 +337,12 @@ export class Rival {
     const traffic = ctx && ctx.traffic;
     if (traffic && traffic.length) {
       const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+      const avoidD = AVOID_D * (s.avoid != null ? s.avoid : 1);
       for (let k = 0; k < traffic.length; k++) {
         const o = traffic[k];
         const rx = o.x - v.x, rz = o.z - v.z;
         const ahead = rx * fx + rz * fz;
-        if (ahead < 1 || ahead > AVOID_D) continue;
+        if (ahead < 1 || ahead > avoidD) continue;
         if (Math.abs(rx * fz - rz * fx) > AVOID_W) continue;
         this.blocked = true;
         break;
@@ -261,7 +367,20 @@ export class Rival {
     // ---- 5. stuck ---------------------------------------------------------
     // Wedged on a pole, spun into a fence, nose-first in somebody's hedge: give
     // it three seconds of dignity and then put it back on the road ahead.
+    //
+    // The third test is the one that catches a driver who is doing 25 km/h and
+    // still going nowhere — round and round a node it cannot get past. Speed
+    // says he is fine; the route says he has not moved.
+    this.progT += dt;
+    let noProgress = false;
+    if (this.progT >= PROG_T) {
+      const now = this.along();
+      noProgress = now - this.progAt < PROG_M;
+      this.progAt = now;
+      this.progT = 0;
+    }
     if (Math.abs(v.vLong) < STUCK_MS || this.offLine() > 28) this.stuckT += dt;
+    else if (noProgress) this.stuckT = STUCK_T + 1;
     else this.stuckT = 0;
     if (this.stuckT > STUCK_T) this.unstick();
 
@@ -272,18 +391,42 @@ export class Rival {
   // a bounded hop (RESET_AHEAD metres, never "jump to the next node", which on
   // a two-point route would be the finish line) so a wedged rival loses time
   // rather than gaining it.
+  //
+  // The hop grows if it did not work. Some spots — a parking aisle that ends in
+  // a clubhouse wall, a service road with a fence across it — will wedge a car
+  // again the instant you put it back eight metres up the same route, and a
+  // driver that resets into the same wall forever never finishes. Each failed
+  // attempt in a row reaches further, up to five times as far, and one honest
+  // metre of progress puts it back to a short hop.
   unstick() {
     if (this.n < 2) return;
     this.stuckT = 0;
+    this.progT = 0;
     this.resets++;
-    this.lookAhead(RESET_AHEAD, PA);
-    this.lookAhead(RESET_AHEAD + 14, PB);
+    const before = this.along();
+    if (this.lastReset != null && before - this.lastReset < RESET_AHEAD * 0.5) {
+      this.stuckRun = Math.min(this.stuckRun + 1, 5);
+    } else this.stuckRun = 0;
+    const hop = RESET_AHEAD * (1 + this.stuckRun);
+    this.lookAhead(hop, PA);
+    this.lookAhead(hop + 14, PB);
     const dx = PB[0] - PA[0], dz = PB[1] - PA[1];
     const yaw = (dx || dz) ? Math.atan2(dx, dz) : this.veh.yaw;
     this.veh.reset(PA[0], PA[1], yaw);
     this.veh.vLong = 4;
     this.veh.vx = Math.sin(yaw) * 4;
     this.veh.vz = Math.cos(yaw) * 4;
+    // The hop moved the car to a KNOWN distance along the route, so index it by
+    // that distance rather than by asking which segment it is nearest.
+    // _reindex() takes the nearest and, on ties, the earliest — and an
+    // out-and-back spur is two legs of route lying on the same tarmac, so
+    // "nearest" to a car standing on the marina jetty is the leg it drove in
+    // on. The hop then puts it eight metres further *in*, it turns round in the
+    // car park, makes no progress, and unsticks again: a rival that reaches the
+    // marina never leaves it. Distance cannot tie with itself.
+    this.i = this._segAt(Math.min(before + hop, this.pathLength));
+    this.progAt = this.along();
+    this.lastReset = this.progAt;
   }
 }
 
@@ -305,8 +448,15 @@ export function collideRivals(A, B) {
 /**
  * main.js hook: step every live rival, then let them hit the player, each other
  * and the traffic. Cheap no-op when nobody is racing, which is most of the time.
+ *
+ * It is also where the modes agent's two per-tick jobs run — the mode picker's
+ * key and the jump scorer — because this is already the call main.js makes on
+ * every tick for the racing side of the game, and one hook is cheaper to keep
+ * merged than three.
  */
 export function updateRivals(G, dt) {
+  updateModes(G, dt);
+  updateJumps(G, dt);
   const list = G.rivals;
   if (!list || !list.length) return;
   const traffic = G.traffic ? G.traffic.cars : null;
@@ -342,7 +492,15 @@ function sassOnPass(G, rv) {
   if (rv.wasAhead === undefined) { rv.wasAhead = ahead > 0; return; }
   if (!rv.wasAhead && ahead > PASS_BAND) {
     rv.wasAhead = true;
-    if (near && v.speedKmh > 25) heckle.say(rv.name, 'rival');
+    if (near && v.speedKmh > 25) {
+      // In a race there are forty written lines for exactly this moment, and
+      // they are better than the generic heckle. Off the clock, heckle.js still
+      // owns it — a friend going by you on a Tuesday is not taunting you.
+      const said = G.mission && G.mission.def && G.mission.def.race
+        ? textLine(taunt('ahead')) : '';
+      if (said && G.hud) G.hud.toast(`${rv.name}: « ${said} »`, 2400);
+      else heckle.say(rv.name, 'rival');
+    }
   } else if (rv.wasAhead && ahead < -PASS_BAND) {
     rv.wasAhead = false;
   }
