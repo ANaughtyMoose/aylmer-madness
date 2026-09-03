@@ -360,3 +360,12 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
   background:rgba(0,0,0,.55);padding:7px 15px;border-radius:20px;font-size:14px;
   color:#9ee6a1;white-space:nowrap;z-index:5;pointer-events:none}
 #prompt2.hidden{display:none}
+
+/* The sector card: up for a couple of seconds while the next slice of the map
+   bakes (main.js showSeamCard). Same ground as #loading so the two read as
+   one family; the name is the event. */
+#seam{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#12212b,#0a0e12 60%);color:#f2e9d8;text-align:center}
+#seam .sbox{padding:24px 32px}
+#seam .skicker{font-size:16px;letter-spacing:.32em;text-transform:uppercase;opacity:.65}
+#seam .sname{font-size:76px;font-weight:800;letter-spacing:.1em;line-height:1.1;margin:10px 0 16px;color:#e8b84a;text-shadow:0 4px 24px rgba(0,0,0,.5)}
+#seam .scap{font-size:20px;opacity:.85;max-width:640px;margin:0 auto}

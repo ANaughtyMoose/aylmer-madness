@@ -4,7 +4,8 @@ import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
 import { MeshBuilder, rgb } from './core/mesh.js';
 import { m4, clamp, lerp, angleDelta } from './core/math.js';
-import { buildWorld, buildHeadlights, nightAmount, HOUSE_NEAR } from './game/world.js';
+import { buildHeadlights, nightAmount, HOUSE_NEAR } from './game/world.js';
+import { buildSectors } from './game/sectors.js';
 import { installLandmarks } from './game/landmarks.js';   // landmarks hook (agent/landmarks)
 import { primeSignage } from './game/signage.js';         // landmarks hook (agent/landmarks)
 import { loadMaterials } from './game/materials.js';
@@ -509,6 +510,13 @@ let tipTimer = 0;
 // `save` is a slot's contents, or null for a new game. It is held across the
 // world build so the loading screen does not have to know about it.
 function startGame(save = null, startKey = null) {
+  // Where the world has to exist first. Raw PLACES coordinates are fine for
+  // picking a sector; the snapping happens after the bake.
+  {
+    const p = (save && save.parked && save.carId && save.parked[save.carId])
+      || (!save && startKey && PLACES[startKey]) || PLACES.home;
+    G.homeXZ = { x: p.x, z: p.z };
+  }
   if (save && save.carId) G.carId = save.carId;
   if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = 'ranger';
   $('menu').classList.add('hidden');
@@ -565,7 +573,9 @@ function worldStages() {
       G.mats = MATS_STUB;
     })],
     [t('load.world'), () => {
-      G.world = buildWorld(r, G.mats || MATS_STUB);
+      // One sector — the one the start point is in — is baked here; the
+      // others arrive as you drive (sectorTick below).
+      G.world = buildSectors(r, G.mats || MATS_STUB, G.homeXZ);
       // ---- landmarks hook (agent/landmarks) -------------------------------
       // The hero buildings — Philemon Wright, Heritage, the schools, the two
       // stone inns, the marina, 129 Frank-Robinson — are baked and hung off the
@@ -1224,6 +1234,8 @@ function frame(now) {
     return;
   }
   if (G.mode !== 'drive') { input.endFrame(); return; }
+  // A sector card is up: nothing moves, nothing ages, until it lifts.
+  if (G.seamHold) { input.endFrame(); return; }
 
   input.update(dt);
   handleKeys();
@@ -1392,8 +1404,66 @@ function zoomMap(dir) {
   mapSaveT = setTimeout(() => { mapSaveT = 0; saveMapPrefs(G.mapPrefs); }, 400);
 }
 
+// ---- [wave/1-memory] sector gating ------------------------------------------
+// Which slices of the map are resident is decided here, twice a second, from
+// where the truck is (game/sectors.js). A bake is synchronous and takes a
+// second or two, so the sector card goes up first, two frames pass so it
+// actually paints, the bake runs under it, and the card stays up for a beat.
+// The sim is HELD while the card is up (frame() returns early) — held, not
+// reset: the clock, the weather and the radio carry straight on when it lifts.
+// Unloading is silent; nobody misses a sector they are 2.6 km away from.
+const SEAM_MIN_MS = 1800;
+let sectorT = 0;
+function sectorTick(dt, v) {
+  if (G.seamHold) return;
+  sectorT += dt;
+  if (sectorT < 0.5) return;
+  sectorT = 0;
+  const S = G.world.sectors;
+  const want = S.plan(v.x, v.z);
+  if (!want.load.length && !want.unload.length) return;
+  for (const id of want.unload) S.unload(id);
+  if (!want.load.length) { refreshReactive(); return; }
+  const id = want.load[0];          // one per tick; a second one waits half a second
+  G.seamHold = true;
+  showSeamCard(id);
+  const t0 = performance.now();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    try { S.load(id); refreshReactive(); }
+    catch (e) { console.error('sector', id, e); }
+    const spent = performance.now() - t0;
+    setTimeout(() => { hideSeamCard(); G.seamHold = false; }, Math.max(0, SEAM_MIN_MS - spent));
+  }));
+}
+// The reactive world bakes its props from world.propSpots and its peds walk
+// world.walks by index, and both lists just changed under it. Rebuild it,
+// carrying the streak across so a seam does not zero the scoreboard, and give
+// the old bake's buffers back.
+function refreshReactive() {
+  if (!G.reactive) return;
+  const old = G.reactive, r = G.renderer;
+  const nu = new Reactive(r, G.world);
+  for (const k of ['streak', 'streakT', 'streakKind', 'streakStep', 'prevDamage']) nu[k] = old[k];
+  nu.bind(G);
+  G.reactive = nu;
+  if (!r.free) return;
+  for (const c of (old.props && old.props.chunks) || []) if (c.mesh) r.free(c.mesh);
+  for (const arr of Object.values((old.peds && old.peds.mesh) || {})) for (const m of arr) r.free(m);
+}
+function showSeamCard(id) {
+  const el = $('seam');
+  if (!el) return;
+  el.querySelector('.skicker').textContent = t(`seam.${id}.kicker`);
+  el.querySelector('.sname').textContent = t(`seam.${id}.name`);
+  el.querySelector('.scap').textContent = t(`seam.${id}.cap`);
+  el.classList.remove('hidden');
+}
+function hideSeamCard() { const el = $('seam'); if (el) el.classList.add('hidden'); }
+// ---- end sector gating -------------------------------------------------------
+
 function tick(dt) {
   const v = G.veh;
+  if (G.world.sectors) sectorTick(dt, v);
   // The sky first: the environment, the wet road and the puddle the front wheel
   // is about to find all have to be settled before the car is integrated.
   weather.update(dt, G);
@@ -1434,7 +1504,8 @@ function tick(dt) {
     // and whether the thing you came down in was the Ottawa river.
     landEvent = {
       air: v.lastAir, force: v.landed,
-      landedInWater: !!(G.phys.waterAt && G.phys.waterAt(v.x, v.z)),
+      // A bridge deck is not the river, whatever the water polygon says.
+      landedInWater: !!(G.phys.waterAt && G.phys.waterAt(v.x, v.z) && !G.phys.roadAt(v.x, v.z)),
       x: v.x, z: v.z,
     };
     G.stats.landings++;
@@ -2187,6 +2258,14 @@ radio.loadText()
   })
   .catch(() => {});
 requestAnimationFrame(frame);
+
+// ---- [wave/1-memory] dev chauffeur: index.html?drive=ottawa ------------------
+// Twenty minutes of real driving for the Safari memory test, with no way to
+// script Safari from outside. Inert without the query string.
+{
+  const q = new URLSearchParams(location.search).get('drive');
+  if (q) import('./game/autopilot.js').then((m) => m.start(window.AYLMER, PLACES, q)).catch((e) => console.warn('autopilot', e));
+}
 
 // Debug hook: lets a console (or a test) step the sim without a live rAF.
 window.AYLMER = {

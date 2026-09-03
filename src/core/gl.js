@@ -106,6 +106,10 @@ export class Renderer {
     this.gl = gl;
     this.scale = 1;
     this.maxDpr = 1.5;
+    // Bytes handed to the GPU by upload() and not yet given back by free().
+    // The JS heap is visible in DevTools; this is the half of the memory bill
+    // that is not, and Safari counts both when it decides to kill the tab.
+    this.gpuBytes = 0;
 
     const vs = this._shader(gl.VERTEX_SHADER, VS);
     const fs = this._shader(gl.FRAGMENT_SHADER, FS);
@@ -172,7 +176,8 @@ export class Renderer {
     if (builder.finish) builder.finish();
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
-    const vb = gl.createBuffer();
+    const bufs = [];
+    const vb = gl.createBuffer(); bufs.push(vb);
     gl.bindBuffer(gl.ARRAY_BUFFER, vb);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(builder.v), gl.STATIC_DRAW);
     const bs = STRIDE * 4;
@@ -180,7 +185,7 @@ export class Renderer {
     gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, bs, 12);
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, bs, 24);
     if (builder.uv.length) {
-      const ub = gl.createBuffer();
+      const ub = gl.createBuffer(); bufs.push(ub);
       gl.bindBuffer(gl.ARRAY_BUFFER, ub);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(builder.uv), gl.STATIC_DRAW);
       gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 0, 0);
@@ -191,21 +196,37 @@ export class Renderer {
     // meshes that actually tile a material — everything else leaves attribute 4
     // disabled and reads the constant (0,0,0,0) set in the constructor.
     if (builder.rect && builder.rect.length) {
-      const rb = gl.createBuffer();
+      const rb = gl.createBuffer(); bufs.push(rb);
       gl.bindBuffer(gl.ARRAY_BUFFER, rb);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(builder.rect), gl.STATIC_DRAW);
       gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.FLOAT, false, 0, 0);
     } else {
       gl.disableVertexAttribArray(4);
     }
-    const ib = gl.createBuffer();
+    const ib = gl.createBuffer(); bufs.push(ib);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(builder.i), gl.STATIC_DRAW);
     gl.bindVertexArray(null);
+    const bytes = (builder.v.length + builder.uv.length + (builder.rect ? builder.rect.length : 0)
+      + builder.i.length) * 4;
+    this.gpuBytes += bytes;
     return {
-      vao, ibo: ib, count: builder.i.length,
+      vao, ibo: ib, count: builder.i.length, bytes, bufs,
       min: builder.min.slice(), max: builder.max.slice(),
     };
+  }
+
+  // Give a mesh's buffers back. Deleting the VAO alone frees nothing — the
+  // buffers outlive it — so upload() keeps every handle it made in `bufs`.
+  // A freed mesh draws nothing (count 0) rather than crashing if a stale
+  // reference to it survives somewhere.
+  free(mesh) {
+    if (!mesh || !mesh.vao) return;
+    const gl = this.gl;
+    for (const b of mesh.bufs || []) gl.deleteBuffer(b);
+    gl.deleteVertexArray(mesh.vao);
+    this.gpuBytes -= mesh.bytes || 0;
+    mesh.vao = null; mesh.ibo = null; mesh.bufs = null; mesh.count = 0;
   }
 
   // Collapse `count` indices starting at `start` to degenerate triangles, so a
