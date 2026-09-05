@@ -265,6 +265,9 @@ pointless if the opening is broken:
    serialise `G.mission`; radio station and time of day are not saved either).
    Serialise the mission, or at minimum keep the warning toast.
 6. **Buses bog to 1.3 km/h on grass** (`cars.js`): a torque floor off-road.
+7. **UI layering** — one modal at a time with the HUD hidden behind it, one
+   prompt slot while driving, and the second start click removed (BACKLOG
+   U7–U9). Small, and every screenshot in `gemini-inbox/shots/` shows why.
 
 Done means: `smoke_traffic.mjs` exists and passes, and a fresh-storage boot
 video shows the first job ending somewhere real.
@@ -279,7 +282,9 @@ jobs, not 18, and seven of its keys do not exist (`russell`, `adam`, `petro`,
 missing places (Russell's at 1 Arial, Adam's in Deschênes, the Petro-Canada,
 the British Hotel, the Galeries de Hull, the Byward Market, the Museum of
 Civilization), then map all 18 jobs to keys, then validate with the snippet in
-`docs/VERIFY.md`. Everything else in Wave 2 stands.
+`docs/VERIFY.md`. Everything else in Wave 2 stands. The two meters (envelope, calendar)
+live top right, always, and the HUD chrome flips to English with the seam card
+(BACKLOG U11–U12).
 
 ### Step 3 — Feel (one agent; Gemini's `look/FEEL.md` numbers arrive first)
 
