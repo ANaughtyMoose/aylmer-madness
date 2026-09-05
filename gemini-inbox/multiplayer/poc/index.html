@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aylmer Madness — Multiplayer Overlay PoC</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+    /* The pristine unmodified game iframe */
+    #game-frame {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+      z-index: 1;
+    }
+
+    /* Transparent canvas overlay for peer cars, nametags, and HUD */
+    #overlay-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Glassmorphism Multiplayer HUD */
+    #mp-hud {
+      position: absolute;
+      top: 16px; left: 16px;
+      z-index: 10;
+      background: rgba(18, 22, 28, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 12px 18px;
+      color: #f0f4f8;
+      font-size: 13px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      min-width: 260px;
+    }
+
+    #mp-hud h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      background: #10b981;
+      color: #fff;
+    }
+
+    .peer-list {
+      margin-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 8px;
+    }
+
+    .peer-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .peer-item.self { color: #fbbf24; }
+
+    #telemetry-bar {
+      margin-top: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Game frame loading pristine root index.html -->
+  <iframe id="game-frame" src="../../../index.html"></iframe>
+
+  <!-- Overlay canvas for peer nametags and friend blips -->
+  <canvas id="overlay-canvas"></canvas>
+
+  <!-- Non-invasive multiplayer HUD -->
+  <div id="mp-hud">
+    <h2>
+      Aylmer Madness Online
+      <span id="status-badge" class="badge">CONNECTÉ</span>
+    </h2>
+    <div id="status-text">Synchronisation télémétrique active</div>
+    <div class="peer-list">
+      <div class="peer-item self">
+        <span>⭐ Tom (Toi)</span>
+        <span id="self-car">Ranger XL</span>
+      </div>
+      <div class="peer-item">
+        <span>🚗 Sayyad</span>
+        <span>1988 Civic Si (84 m)</span>
+      </div>
+      <div class="peer-item">
+        <span>🚗 Mike McD</span>
+        <span>1998 Forester (310 m)</span>
+      </div>
+    </div>
+    <div id="telemetry-bar">Pos: X: 0.0, Z: 0.0 · 0 km/h</div>
+  </div>
+
+  <script src="overlay.js"></script>
+</body>
+</html>

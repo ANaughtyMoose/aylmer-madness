@@ -7,3 +7,6 @@ assets/radio/*
 !assets/radio/README.md
 !assets/radio/playlist.example.json
 !assets/radio/playlist.json
+
+# Raw Street View crops pulled by the look pass are Google's pixels: reference only, never shipped.
+gemini-inbox/look/streetview/

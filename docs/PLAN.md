@@ -223,19 +223,108 @@ The ceiling is not the renderer: **every surface is one flat colour.** In order:
 
 ---
 
-## Known bugs, ranked
+## Priorities after Gemini's review (2026-09-04) — the order for the big run
 
-1. **Memory** (Wave 1).
-2. **Traffic drives on the wrong side of the road.** `traffic.js` `laneAt` /
-   `wantOn`; suspect the lane-offset sign for one direction, or a one-way being
-   read as two-way.
-3. **Camera still jitters over bumps** and slightly under acceleration. Already
-   softened once (two slow sines instead of one at 9.7 Hz, plus a shake slider).
-   Remaining source is the suspension feeding `camPitch` and the chase camera's
-   `dt * 9` position lerp ringing at the new higher top speeds.
-4. Both buses bog to 1.3 km/h on grass and cannot leave tarmac.
-5. `SURF.path` gives a footpath no penalty — the Ranger does 149 km/h down one.
-6. The « Poutine express » destination does not visibly exist at the Galeries.
+Gemini 3.8 Flash reviewed `wave/1-memory` at `4835c66` read-only; its package
+is in `gemini-inbox/` (`INDEX.md`, `REVIEW.md`, `PLAYTEST-GEMINI.md`,
+`CONTENT-AUDIT.md`, `TESTS-AUDIT.md`, `STATUS.md`). It reproduced eight of the
+fourteen known bugs with screenshots, found the first-job problem is worse than
+we thought, and got a few things wrong (listed below so nobody chases them).
+This section supersedes the old "Known bugs, ranked".
+
+### Step 0 — Ship Wave 1 (an hour, do it first)
+
+`wave/1-memory` is done and **not on `main`**: heap 1057 → 148 MB, sector
+gating, the bridge "wall" fixed. The live site still has the 1 GB build. Open
+the PR, run the boot check from `docs/VERIFY.md`, merge, confirm the live URL
+loads in Safari. Everything below branches from the merged `main`.
+
+### Step 1 — The first two minutes (one agent, one branch, small diffs)
+
+Gemini's "ten things a new player notices first" puts four defects in the
+first two minutes of play. Fix these before the spine, because the spine is
+pointless if the opening is broken:
+
+1. **Traffic on the wrong side.** Gemini's proposed fix: the lane offset in
+   `laneAt()` (`src/game/traffic.js` ~line 223, `rx = -e.dz*off, rz = e.dx*off`)
+   has the wrong handedness. **Verify against the player car's own right-hand
+   convention in `cars.js` before flipping it** — if the sign is right and the
+   one-way flag is wrong, flipping it breaks every road. Add
+   `tools/smoke_traffic.mjs` (every spawned car right of its edge's centreline)
+   — the suite that would have caught this does not exist.
+2. **The first job goes nowhere.** « Poutine express » ends in an empty
+   parking lot at the Galeries with a ring floating over asphalt. Either build
+   the casse-croûte / food-court entrance or move the job to one of the 120 real
+   storefronts. **This is the first thing a player is asked to do.**
+3. **Footpaths are free speed.** `SURF.path` in `terrain.js` ~line 69 has no
+   penalty; the Ranger does 149 km/h through Parc des Cèdres. Gemini suggests
+   `power 0.75, drag 1.35`; keep the bike and the golf cart fast on it.
+4. **HUD overlap on boot.** The tutorial's « W — pour avancer » prompt draws on
+   top of the « K — Kijiji » hint in the driveway.
+5. **Save mid-job loses the job silently** (`save.js` ~line 58 does not
+   serialise `G.mission`; radio station and time of day are not saved either).
+   Serialise the mission, or at minimum keep the warning toast.
+6. **Buses bog to 1.3 km/h on grass** (`cars.js`): a torque floor off-road.
+
+Done means: `smoke_traffic.mjs` exists and passes, and a fresh-storage boot
+video shows the first job ending somewhere real.
+
+### Step 2 — Wave 2, the spine (unchanged, one correction)
+
+`assets/text/campaign.json` uses **descriptive French strings** for `to`, not
+`places.js` keys, so nothing can resolve them yet. Gemini's
+`gemini-inbox/story/campaign.v2.json` is **not** a drop-in either: it has 15
+jobs, not 18, and seven of its keys do not exist (`russell`, `adam`, `petro`,
+`british`, `galeries_hull`, `bymarket`, `civilisation`). The real work: add the
+missing places (Russell's at 1 Arial, Adam's in Deschênes, the Petro-Canada,
+the British Hotel, the Galeries de Hull, the Byward Market, the Museum of
+Civilization), then map all 18 jobs to keys, then validate with the snippet in
+`docs/VERIFY.md`. Everything else in Wave 2 stands.
+
+### Step 3 — Feel (one agent; Gemini's `look/FEEL.md` numbers arrive first)
+
+Camera jitter (`main.js` ~1748: decouple the chase camera from instantaneous
+suspension jounce, critically damp the position spring), along-slope gravity
+(no `g·sin(pitch)` term anywhere in `cars.js` ~1395, so nothing coasts down the
+Principale hill), the sense of speed. The look pass asks Gemini to tune these
+live through `window.AYLMER.G` and write down the constants; take its numbers
+as a starting point, not as truth.
+
+### Step 4 — Wave 3 (verbs, races, characters) as written.
+
+### Step 5 — Wave 4 + Wave 5 together: places, faces, and the look
+
+The look pass (`docs/GEMINI_LOOK_PROMPT.md`) has Gemini pulling the 2009 Street
+View panoramas as pixels this time, producing 2004-corrected orthographic
+facades for every cast house and landmark, real tiles for the 26 atlas cells,
+tree sprites, a sky palette, Québec road furniture, 13 car sheets, seam cards
+and UI mocks, all under `gemini-inbox/look/` with an `INTEGRATION.md`. Wave 5
+becomes wiring: facade quads on hero buildings via the signage texture path
+(`renderer.texture` + `mb.textured`), the atlas swap, the sky table. Russell's
+garage, the clubhouse roof (Gemini: three roofless slabs, `houses.js`), and the
+avatar corrections go in the same wave because they are the same kind of work.
+
+### What Gemini got wrong — do not act on these
+
+- **"Keybinding collisions on R, T, M."** False. `KeyM` is only in `modes.js`
+  (open/close/consume of the same screen), `KeyR` is in `main.js` and in the
+  houses *lab*, `KeyT` is bound once. The duplicate check in `docs/VERIFY.md`
+  is still the truth.
+- **"No hysteresis on the sector seam at X = 5400."** `sectors.js` builds at
+  `APPROACH = 1200` m and frees at 2600 m; there is hysteresis. Whether a
+  build stalls the frame (Gemini measured 1.9 s under load) is worth a look,
+  the claimed cause is not.
+- **"`campaign.v2.json` resolves all destinations."** See Step 2.
+- **Golf-cart job, asset 404s, Ranger mirrors, bridge wall:** correctly
+  reported as already fixed on this branch.
+- Its A6 list (`REVIEW.md`) has real keepers — the Tim Hortons drive-thru, the
+  Principale hill coast, potholes with a dashboard rattle, cyclists on the
+  Voyageurs pathway, the pull-over at a school zone — and generic filler. Read
+  it, do not import it wholesale.
+- The Champlain Bridge cycling-path conflict is resolved in Thomas's favour
+  with 2002 Ottawa Citizen citations (`CONTENT-AUDIT.md` §7): the separated
+  path opened October 2002. Strike the `changedSince` note in
+  `streetview_pack.json`.
 
 ---
 
