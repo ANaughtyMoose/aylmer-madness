@@ -1,0 +1,260 @@
+{
+  "version": 2,
+  "campaign": [
+    {
+      "n": 1,
+      "id": "cassette_sayyad",
+      "title": "La cassette de Sayyad",
+      "setup": "Ton père te prête les clés du Ranger pour aller porter un boîtier de CD chez Sayyad avant midi.",
+      "giver": "steph",
+      "from": "steph",
+      "to": "sayyad",
+      "timeOfDay": "morning",
+      "what": "Une première course tranquille de 90 secondes le long du chemin Fraser pour prendre le truck en main.",
+      "complication": "La clutch est raide et le 2.3 litres cale si tu donnes pas un filet de gaz au coin de Fraser.",
+      "unlocks": {
+        "kind": "character",
+        "what": "Sayyad devient disponible comme copilote avec ses cassettes et sa chemise hawaïenne."
+      },
+      "connects": "Lance l'été et établit la dynamique avec Sayyad, qui propose aussitôt d'aller chercher de la bouffe au Tim."
+    },
+    {
+      "n": 2,
+      "id": "deux_deux_tim",
+      "title": "Deux-deux pis des beignes",
+      "setup": "Sayyad a soif d'un Ice Capp géant et veut deux cafés deux-deux au Tim de la Principale.",
+      "giver": "sayyad",
+      "from": "sayyad",
+      "to": "tims",
+      "timeOfDay": "morning",
+      "what": "Descendre le boulevard Wilfrid-Lavigne pour rejoindre le cœur historique du Vieux-Aylmer.",
+      "complication": "Bouchon de camionnettes de construction devant les Galeries forçant à trouver une ruelle de déviation.",
+      "unlocks": {
+        "kind": "shortcut",
+        "what": "Ruelle arrière pavée entre la rue Court et la rue Principale pour éviter le feu de circulation."
+      },
+      "connects": "En buvant son café, Sayyad remarque que la courroie du Ranger sille et propose d'aller voir Russell."
+    },
+    {
+      "n": 3,
+      "id": "cour_a_russell",
+      "title": "Le fond d'la cour à Russell",
+      "setup": "Aller porter une vieille courroie d'alternateur dans l'atelier de fond de cour de Russell pour un ajustement.",
+      "giver": "sayyad",
+      "from": "tims",
+      "to": "russell",
+      "timeOfDay": "afternoon",
+      "what": "Naviguer dans les ruelles résidentielles jusqu'à la maison mansardée blanche de la rue Arial.",
+      "complication": "L'entrée de cour est bloquée par un vieux F-250; il faut reculer au millimètre près le long de la corde de bois.",
+      "unlocks": {
+        "kind": "mechanic",
+        "what": "Russell accepte de réparer ton truck dans son allée pour une pizza toute garnie et une cannette de bière frette; tu paies juste le prix coûtant des pièces usagées."
+      },
+      "connects": "Russell mentionne que Mike McDonald cherche un pickup pour transporter des madriers de bois d'œuvre."
+    },
+    {
+      "n": 4,
+      "id": "madriers_arena",
+      "title": "Les madriers de l'Aréna",
+      "setup": "Mike McDonald a besoin de la boîte longue du Ranger pour charger des 2x4 destinés à une rampe de skate.",
+      "giver": "mike",
+      "from": "russell",
+      "to": "arena",
+      "timeOfDay": "afternoon",
+      "what": "Charger les planches de pin et traverser la ville jusqu'au stationnement arrière de l'aréna municipal.",
+      "complication": "Les madriers dépassent de trois pieds de la ridelle et glissent sur les dos d'âne si tu roules trop vite.",
+      "unlocks": {
+        "kind": "tool",
+        "what": "Coffre de douilles Mastercraft en pouces et millimètres déposé dans la boîte du camion."
+      },
+      "connects": "Mike s'installe sur son divan dans la cour et parle d'Adam qui bricole une Sunfire à Deschênes."
+    },
+    {
+      "n": 5,
+      "id": "sunfire_adam",
+      "title": "La Sunfire de Deschênes",
+      "setup": "Aller porter un câble d'embrayage neuf chez Adam Actell au 20 chemin Vanier dans l'secteur Deschênes.",
+      "giver": "mike",
+      "from": "arena",
+      "to": "adam",
+      "timeOfDay": "afternoon",
+      "what": "Emprunter le chemin Lucerne vers l'est en longeant les rapides de la rivière des Outaouais.",
+      "complication": "Nids-de-poule profonds près du club de golf forçant à rouler sur le bas-côté de gravier.",
+      "unlocks": {
+        "kind": "car",
+        "what": "Accès au Pontiac Sunfire 1997 d'Adam pour les courses d'accélération sur le boulevard."
+      },
+      "connects": "Adam a besoin de boulons de grade 8 vendus seulement au Canadian Tire des Allumettières."
+    },
+    {
+      "n": 6,
+      "id": "boulons_ctire",
+      "title": "Course au Canadian Tire",
+      "setup": "Acheter un paquet de boulons et deux bidons d'huile 10W-30 au Canadian Tire avant la fermeture.",
+      "giver": "adam",
+      "from": "adam",
+      "to": "ctire",
+      "timeOfDay": "evening",
+      "what": "Remonter vers le nord par le chemin Vanier et piquer à l'ouest sur le nouveau boulevard des Allumettières.",
+      "complication": "Zone de construction de la nouvelle autoroute avec cônes orange et feux de chantier temporaires.",
+      "unlocks": {
+        "kind": "upgrade",
+        "what": "Huile moteur neuve pour le Ranger réduisant la friction et augmentant la vitesse de pointe de 5 km/h."
+      },
+      "connects": "En sortant du magasin, Margaret appelle pour demander d'aller chercher des tartes à l'Auberge Symmes."
+    },
+    {
+      "n": 7,
+      "id": "tartes_symmes",
+      "title": "Les tartes de l'Auberge",
+      "setup": "Récupérer une commande de pâtisseries fraîches à l'Auberge Symmes pour la fête de famille du week-end.",
+      "giver": "steph",
+      "from": "ctire",
+      "to": "symmes",
+      "timeOfDay": "evening",
+      "what": "Descendre la côte de la rue Principale jusqu'au bord de l'eau devant le bâtiment de pierre de 1831.",
+      "complication": "Les boîtes de carton sont empilées sur le banc passager; un virage brusque écrase le glaçage.",
+      "unlocks": {
+        "kind": "clothing",
+        "what": "Chandail en coton ouaté de la marina d'Aylmer trouvé sur le siège arrière."
+      },
+      "connects": "Sayyad attend sur le quai et annonce qu'une vieille Oldsmobile pas chère est à vendre au lot d'autos."
+    },
+    {
+      "n": 8,
+      "id": "ciera_trois_cents",
+      "title": "L'Oldsmobile à trois cents piasses",
+      "setup": "Rejoindre le lot d'autos usagées de la Principale pour examiner une Cutlass Ciera 1991 à vendre.",
+      "giver": "sayyad",
+      "from": "symmes",
+      "to": "usedlot",
+      "timeOfDay": "evening",
+      "what": "Remonter la rue Principale en écoutant le grondement du V6 sous le capot de la berline beige.",
+      "complication": "Le vendeur demande 300 $ comptant; il faut vérifier si le compte en banque a le montant exact.",
+      "unlocks": {
+        "kind": "purchase",
+        "what": "Débloque la possibilité d'acheter la Cutlass Ciera avec son intérieur en velours usé."
+      },
+      "connects": "La gang décide de descendre fêter ça avec un feu de camp improvisé à la plage des Cèdres."
+    },
+    {
+      "n": 9,
+      "id": "feu_plage",
+      "title": "Le feu des Cèdres",
+      "setup": "Transporter une glacière de boissons gazeuses et des bûches de bois sec jusqu'à la plage des Cèdres.",
+      "giver": "sayyad",
+      "from": "usedlot",
+      "to": "beach",
+      "timeOfDay": "dusk",
+      "what": "Traverser le parc municipal en longeant la piste cyclable jusqu'au bout de la pointe de sable.",
+      "complication": "Les roues du Ranger s'enfoncent dans le sable mou; il faut garder de l'élan pour ne pas s'enliser.",
+      "unlocks": {
+        "kind": "music",
+        "what": "Nouvelle cassette audio de rock classique québécois trouvée dans la glacière de Sayyad."
+      },
+      "connects": "Vers 23 heures, le réservoir indique presque vide; il faut trouver une station encore ouverte."
+    },
+    {
+      "n": 10,
+      "id": "gaz_petro",
+      "title": "Vapeurs d'essence au Petro",
+      "setup": "Rouler sur les vapeurs d'essence jusqu'à la station Petro-Canada de la Principale avant la panne sèche.",
+      "giver": "sayyad",
+      "from": "beach",
+      "to": "petro",
+      "timeOfDay": "night",
+      "what": "Sortir du parc à la noirceur complète et grimper la côte avec l'aiguille accotée en bas du E.",
+      "complication": "Le moteur broute dans les virages prononcés quand la pompe à gaz aspire de l'air.",
+      "unlocks": {
+        "kind": "service",
+        "what": "Réservoir plein et pare-brise nettoyé à la raclette en caoutchouc de la station."
+      },
+      "connects": "Le commis mentionne qu'un spectacle de blues acoustique commence à l'Hôtel British."
+    },
+    {
+      "n": 11,
+      "id": "british_blues",
+      "title": "Soirée au British",
+      "setup": "Aller chercher Abraham et sa guitare acoustique pour le déposer devant la terrasse de l'Hôtel British.",
+      "giver": "sayyad",
+      "from": "petro",
+      "to": "british",
+      "timeOfDay": "night",
+      "what": "Naviguer au milieu des piétons et des terrasses bondées du Vieux-Aylmer un vendredi soir d'été.",
+      "complication": "Stationnement presque impossible sur la Principale; il faut se faufiler dans une ruelle de terre.",
+      "unlocks": {
+        "kind": "hangout",
+        "what": "Accès à la terrasse arrière du British et aux anecdotes d'Abraham sur les musiciens locaux."
+      },
+      "connects": "Le lendemain matin, un cousin de Hull propose de tester la grande route vers le cégep Heritage."
+    },
+    {
+      "n": 12,
+      "id": "corridor_heritage",
+      "title": "Le corridor d'Heritage",
+      "setup": "Emprunter pour la première fois le boulevard des Allumettières jusqu'au campus d'Heritage College à Hull.",
+      "giver": "sayyad",
+      "from": "british",
+      "to": "heritage",
+      "timeOfDay": "morning",
+      "what": "Une traversée d'est en ouest à haute vitesse sur la chaussée à quatre voies récemment asphaltée.",
+      "complication": "Patrouilles de la police de Gatineau guettant les excès de vitesse près de l'échangeur Saint-Raymond.",
+      "unlocks": {
+        "kind": "sector",
+        "what": "Ouverture complète du secteur Hull avec ses boulevards larges et ses tours gouvernementales."
+      },
+      "connects": "La sœur de Sayyad, Zahra, a besoin d'un transport pour aller magasiner aux Galeries de Hull."
+    },
+    {
+      "n": 13,
+      "id": "magasinage_hull",
+      "title": "Course aux Galeries de Hull",
+      "setup": "Déposer Zahra et ses amies à l'entrée principale des Galeries de Hull sur le boulevard Saint-Joseph.",
+      "giver": "zahra",
+      "from": "heritage",
+      "to": "galeries_hull",
+      "timeOfDay": "afternoon",
+      "what": "Descendre le boulevard Saint-Joseph au milieu de la circulation dense et des feux synchronisés.",
+      "complication": "Chaleur accablante de l'après-midi faisant grimper l'aiguille de température du Ranger près du rouge.",
+      "unlocks": {
+        "kind": "accessory",
+        "what": "Dés en peluche noire suspendus au rétroviseur intérieur achetés dans une boutique du centre d'achats."
+      },
+      "connects": "Mike McDonald appelle pour proposer une mission audacieuse: traverser le pont vers Ottawa."
+    },
+    {
+      "n": 14,
+      "id": "traversee_pont",
+      "title": "Traverser le pont Champlain",
+      "setup": "Prendre le pont Champlain au-dessus de la rivière des Outaouais pour rejoindre le marché By à Ottawa.",
+      "giver": "mike",
+      "from": "galeries_hull",
+      "to": "bymarket",
+      "timeOfDay": "afternoon",
+      "what": "Traverser la frontière provinciale; la radio bascule en anglais et le paysage devient la capitale fédérale.",
+      "complication": "Sens uniques étroits et piétons nombreux autour des étals de fleurs et de fruits du marché By.",
+      "unlocks": {
+        "kind": "sector",
+        "what": "Accès libre au réseau routier d'Ottawa, à la promenade Island Park et à la colline du Parlement."
+      },
+      "connects": "Le soleil descend sur la rivière; l'été tire à sa fin et tout le monde se donne rendez-vous pour la finale."
+    },
+    {
+      "n": 15,
+      "id": "fin_ete_civilisation",
+      "title": "Le coucher d'soleil sur la rivière",
+      "setup": "Retourner vers le belvédère du Musée canadien de l'histoire pour regarder le coucher de soleil sur le Parlement.",
+      "giver": "mike",
+      "from": "bymarket",
+      "to": "civilisation",
+      "timeOfDay": "dusk",
+      "what": "Traverser le pont Alexandra en bois et acier pour revenir sur la rive québécoise au crépuscule.",
+      "complication": "Le pont Alexandra vibre sous les pneus et la circulation de fin de journée est au ralenti.",
+      "unlocks": {
+        "kind": "ending",
+        "what": "Cinématique de fin de l'été 2004: les crédits défilent sur la silhouette du Ranger garé devant la rivière."
+      },
+      "connects": "Clôture de la campagne principale; la carte entière reste accessible en mode conduite libre perpétuel."
+    }
+  ]
+}

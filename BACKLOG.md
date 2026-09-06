@@ -1,7 +1,7 @@
 # Aylmer Madness — backlog
 
 Priority: **P1** next session · **P2** soon · **P3** when it matters. Effort: S (< 1 h), M (half day), L (day+).
-Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) Phases 1–3 are in (docs/HOUSES.md). Second pass (2026-08-26): pedestrians + props, races + cops, unlocks + radio + real engine synth, terrain/jumps, save slots + options. Third pass (2026-08-27): reverse/forward as one press, discoverable repairs, story opener + per-stage guidance, Québécois heckles, the golf cart, a 38-step playtest (docs/PLAYTEST.md — open items: mid-job saves don't carry the job, clubhouse has no roof, tutorial timer margin).
+Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (houses) Phases 1–3 are in (docs/HOUSES.md). Second pass (2026-08-26): pedestrians + props, races + cops, unlocks + radio + real engine synth, terrain/jumps, save slots + options. Third pass (2026-08-27): reverse/forward as one press, discoverable repairs, story opener + per-stage guidance, Québécois heckles, the golf cart, a 38-step playtest (docs/PLAYTEST.md — open items: mid-job saves don't carry the job, clubhouse has no roof, tutorial timer margin). Fourth pass (2026-09-04): Gemini 3.8 Flash's read-only review (`gemini-inbox/`) and a UI assessment from its screenshots — U7–U13 below; the run order is in docs/PLAN.md, "Priorities after Gemini's review".
 
 ## Requested
 
@@ -61,6 +61,14 @@ Updated 2026-08-25 after the first agent pass: ✅ = merged on master. W1 (house
 | ~~U4~~ | ✅ Menu: car cards should show the actual 3D model (turntable) | P2 | M | Reuse `garage.html` logic inside the menu. |
 | ~~U5~~ | ✅ Settings: invert look-back, steering sensitivity, FOV, French/English toggle | P3 | M | Copy is currently mixed FR/EN. |
 | ~~U6~~ | ✅ Loading screen with the map building progress | P3 | S | Build takes 250 ms; only matters on old Intel Airs. |
+
+| U7 | **One modal at a time; the HUD hides behind it** | P1 | S | The pause menu, the story card, Options and the seam card are drawn over a HUD that never stops rendering: dialogue, the weather toast, the key legend, the objective line and the mode hint all bleed through the job list (`gemini-inbox/shots/playtest-gemini-09-pause.jpg`). One rule in `hud.js`/`ui.js`: a modal open ⇒ HUD hidden, backdrop dimmed, toasts queued behind it, not over it. Also fixes "E does nothing when broke" — the refusal is the third toast in a queue nobody can read (PLAYTEST #18). Step 1 in PLAN.md. |
+| U8 | **One prompt slot while driving** | P1 | S | At boot nine text elements are on screen. Tutorial « W — pour avancer » draws on top of « K — Kijiji » (Gemini's ten-things #3, `scratchpad/boot.jpg`). Keep: objective, speedo, minimap, one prompt. Drop the centre mode hint. The legend collapsed by default, shown on `?`. Step 1. |
+| U9 | **Remove the second click to start** | P1 | S | Both playtests hit it: click « GO » and nothing happens until a second « Prêt? » click. Recommend: one click starts, the chosen start point is named on the button. If the confirm stays, the button must visibly change. Thomas to decide. Step 1. |
+| U10 | **Pause › Jobs scales to 18 campaign jobs** | P2 | M | Today it is a wall of text and it will get three times longer. Pin the current job with its unlock at the top; then done; then locked with a one-line reason. Car cards row two is cut off at 1280×800 — same grouping treatment. |
+| U11 | **The envelope and the calendar, top right, always** | P1 | M | Wave 2. `340 $ / 1 200 $` and the days to Labour Day replace the bare `$80`. Every job card says what it pays toward that number. This is the whole game in two numbers. |
+| U12 | **Chrome flips to English with the seam card** | P2 | S | Wave 2. Crossing to Ottawa switches dialogue but not the HUD labels, the legend or the pause tabs. The seam card is the moment; do both there. |
+| U13 | **Restyle from the 2004 style guide, last** | P3 | M | The look pass (`docs/GEMINI_LOOK_PROMPT.md` Part 6) is producing a palette, type and screen mocks. Until it lands, no restyling: U7–U10 are layout and state, not colour. |
 
 ## Cars
 
