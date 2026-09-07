@@ -38,8 +38,18 @@ export const STORY_CARDS = [
     title: 'LA GANG',
     body: 'Margaret reste juste à côté, au 299 Fraser — c’est sa Saturn dans l’entrée.\n'
       + 'Sayyad est sur Denise-Friend, avec la Civic pis ses jantes neuves.\n'
-      + 'Adam reste loin en s’il-vous-plaît, à Deschênes, avec le Sunfire.\n'
+      + 'Adam reste à Mayo, à une heure de char, pis il descend avec le Sunfire.\n'
       + 'Pis Mike, sur Frank-Robinson, a un divan pis une idée.',
+  },
+  {
+    // The spine, stated in the first five minutes: the deal is on the table
+    // before the first job, and the envelope on the HUD is that envelope.
+    title: 'L’ENVELOPPE',
+    body: 'À la fin de la première matinée, les clés étaient sur la table de cuisine, '
+      + 'à côté d’une vieille enveloppe brune de la Caisse pop, marquée au feutre:\n\n'
+      + '« Ranger — 1 200 $ avant septembre. Sinon le concessionnaire le prend en '
+      + 'échange pis tu prends la bus. »\n\n'
+      + 'Ton gaz pis tes réparations, c’est de ta poche. La fête du Travail, c’est le 6.',
   },
   {
     title: 'LES PILIERS JAUNES',
@@ -55,6 +65,65 @@ export const STORY_CARDS = [
       + 'jusqu’à minuit.',
   },
 ];
+
+// ---------------------------------------------------------------- the endings
+//
+// Labour Day. Two of them, from assets/text/story.json's `ending` (the father
+// counts the money and pushes it back) and the one the file only names — the
+// dealer, and the bus. Both are three cards through the same StoryOpener, and
+// both end with the calendar stopped; you keep driving either way, because
+// the town is still there.
+export function endingCards(amount, target, madeIt) {
+  const a = Math.round(amount);
+  if (madeIt) {
+    return [
+      {
+        title: 'LA FÊTE DU TRAVAIL',
+        body: 'Dimanche soir. Ton père rentre du chantier pis l’enveloppe est sur la table: '
+          + `${a} $, en vingt pis en cinquante, comptés deux fois.\n\n`
+          + 'Il la prend. Il compte sans sourire. Il compte encore.',
+      },
+      {
+        title: 'LES CLÉS',
+        body: 'Il repousse l’enveloppe vers toi. Il pose le double des clés dessus, pis '
+          + 'l’immatriculation, signée à ton nom.\n\n'
+          + '« Garde tes piasses pour tes plaques pis tes assurances. Tu vas en avoir '
+          + 'besoin pour aller à tes cours. »\n\n'
+          + 'Tu vas t’asseoir tout seul dans la cabine à minuit, sur Fraser, sous la '
+          + 'petite pluie de septembre. C’est à toi. La gang part demain matin.',
+      },
+      {
+        title: 'MARDI 7 SEPTEMBRE, 6 H 45',
+        body: 'Le feu rouge de Wilfrid-Lavigne. Les essuie-glaces dans la brume. Le fil de '
+          + 'la cassette adaptatrice pend du tableau de bord, pis le Discman joue '
+          + '« Toune d’automne ».\n\n'
+          + 'Vert. Première. Tu relâches la clutch sans caler, pis tu rentres dans le trafic.',
+      },
+    ];
+  }
+  return [
+    {
+      title: 'LA FÊTE DU TRAVAIL',
+      body: 'Dimanche soir. Ton père rentre du chantier pis l’enveloppe est sur la table: '
+        + `${a} $ sur ${target}.\n\n`
+        + 'Il compte. Il compte encore. « C’est correct. C’est pas rien. » Il la remet '
+        + 'dans le tiroir, avec les clés.',
+    },
+    {
+      title: 'LE CONCESSIONNAIRE',
+      body: 'Mardi matin, le Ranger part en échange sur un Escape neuf que ton père va '
+        + 'payer pendant cinq ans.\n\n'
+        + 'Toi, t’as une passe de bus de la STO pis le Diamondback. La 40 passe au coin '
+        + 'à 7 h 12. Sayyad klaxonne en passant. Il arrête pas.',
+    },
+    {
+      title: 'SEPTEMBRE',
+      body: 'L’argent est encore dans le tiroir. Ton père a rien dit, mais il a pas '
+        + 'dépensé une cenne dessus non plus.\n\n'
+        + 'L’été prochain, tu commences en juin. Pis tu roules plus sur les pistes cyclables.',
+    },
+  ];
+}
 
 /**
  * The new-game opener. A sibling of ui.js's IntroCard: same idea, its own
