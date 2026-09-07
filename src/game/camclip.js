@@ -26,7 +26,7 @@
 //    Going back out has to be slow, or a boom flicking between two segment
 //    crossings at the corner of a house pumps the camera in and out at frame
 //    rate. Snap in, ease out.
-import { clamp } from '../core/math.js';
+import { clamp, segCross } from '../core/math.js';
 
 export const MARGIN = 0.6;     // stop this far in front of the wall, metres
 export const LIFT = 0.9;       // extra height at full pull-in, metres
@@ -44,23 +44,10 @@ export const SNAP = 0.004;     // close enough to the target to stop easing
 // fraction of the full boom length the camera is currently allowed to use.
 export function makeClip() { return { frac: 1 }; }
 
-/**
- * Fraction along p→q at which it crosses the segment a→b, or -1 if it does not.
- * Both are treated as finite segments, so a wall the boom stops short of is not
- * a crossing and neither is one it starts past.
- */
-export function segCross(px, pz, qx, qz, ax, az, bx, bz) {
-  const rx = qx - px, rz = qz - pz;
-  const sx = bx - ax, sz = bz - az;
-  const den = rx * sz - rz * sx;
-  if (den > -1e-9 && den < 1e-9) return -1;      // parallel or degenerate
-  const dx = ax - px, dz = az - pz;
-  const t = (dx * sz - dz * sx) / den;
-  if (t < 0 || t > 1) return -1;
-  const u = (dx * rz - dz * rx) / den;
-  if (u < 0 || u > 1) return -1;
-  return t;
-}
+// segCross lives in core/math.js: the swept guard in Vehicle.collide asks the
+// same question of a car's path that this asks of the camera boom. Re-exported
+// so tools/smoke_camclip.mjs can pin it where it is used.
+export { segCross };
 
 // Returned scratch — this runs once a frame and allocates nothing.
 const out = { x: 0, y: 0, z: 0, frac: 1, hit: false };

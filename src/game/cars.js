@@ -1,7 +1,7 @@
 // The four cars, and the arcade driving model.
 // Local car space: +Z is forward, +X is the driver's LEFT (right-handed GL axes), y=0 ground.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
-import { clamp } from '../core/math.js';
+import { clamp, segCross } from '../core/math.js';
 import { CONTACT } from '../core/audio.js';
 import { SURF, FLAT } from './terrain.js';
 
@@ -1362,6 +1362,30 @@ const CURB_KICK0 = 0.56, CURB_KICK1 = 0.169, CURB_KICK_MAX = 4.2;
 // over them. This is what lets the Galeries dock jump clear the service fence.
 const AIR_OVER_WALLS = 1.6;
 
+// The most collision bites one frame is allowed. It exists only so a pathological
+// dt or a teleport cannot spin here forever — 24 bites of 0.69 m is sixteen
+// metres of travel in one step, which is 1000 km/h at 60 Hz. Anything past it is
+// covered by the swept test in collide(), not by the sampling.
+const MAX_BITES = 24;
+
+// Where the probe circles sit along the car's centreline, in metres, nose to
+// tail. Two of them — one per axle — is a dumbbell, not a car: on the Ranger it
+// leaves 84 cm of the middle of the truck with no collider in it at all, and on
+// the bus it leaves four metres, which is a hole you can drive a Civic into. The
+// two end probes stay exactly where they were (len * 0.28, which is what every
+// tuned wall bounce in the game was measured against); the middle is filled with
+// as many more as it takes for consecutive circles to overlap by a quarter of a
+// radius. Nothing gets wider — the radius is untouched — so a gap you could
+// squeeze through before is still exactly as wide.
+const probes = [];
+function probeOffsets(s, r) {
+  const end = s.len * 0.28;
+  const n = Math.max(2, Math.ceil((end * 2) / (r * 1.5)) + 1);
+  probes.length = n;
+  for (let i = 0; i < n; i++) probes[i] = -end + (end * 2 * i) / (n - 1);
+  return probes;
+}
+
 // FEEL — the arcade shift, Midtown Madness style. There is no hysteresis and no
 // "come to a full stop first": every tick the sign of vLong and the pedal you
 // are holding pick the mode outright.
@@ -1833,32 +1857,64 @@ export class Vehicle {
     this.steamT = 0; this.misfire = false;
   }
 
-  // Two probe circles (front axle, rear axle) against nearby wall segments.
+  // Probe circles along the car's centreline against nearby wall segments.
   //
   // SPEED — the probes are not swept, so a car that travels further in one step
   // than the probe radius (0.92 m on the Ranger) can step clean over a fence.
   // At 109 km/h and 60 Hz that was 0.5 m and it never came up; at 180 km/h, or
   // at 150 km/h on a machine dropping to 30 fps, it is 0.8 to 1.4 m and it
-  // does. So when the step gets that long the probes are walked back along the
-  // frame's own travel in sub-radius bites. `sub` is 1 at anything like normal
-  // speed, which is the same single pass over the same positions as before.
+  // does. So the probes are walked back along the frame's own travel in
+  // sub-radius bites. `sub` is 1 at anything like normal speed, which is the
+  // same single pass over the same positions as before.
+  //
+  // That used to be capped at five bites, which meant anything moving more than
+  // 3.45 m in a step laid its bites further apart than the probe is wide and
+  // dropped a fence between two of them — measured: 180 km/h at 20 fps, and
+  // 300 km/h at 32 fps, both went straight through a 1.6 m fence. The cap is
+  // gone, and above the (much higher) bound a swept segment test of the path
+  // itself catches what the sampling cannot. A ray-vs-segment test cannot miss,
+  // whatever the step.
   collide(world, dt = 1 / 60) {
     const s = this.spec;
     if (world.queryPoles) this.collidePoles(world);
     const r = s.wid * 0.52;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
-    const moved = Math.hypot(this.vx, this.vz) * dt;
-    const sub = Math.min(5, Math.max(1, Math.ceil(moved / (r * 0.75))));
+    let moved = Math.hypot(this.vx, this.vz) * dt;
     const segs = world.querySegments(this.x, this.z, s.len * 0.6 + 3 + moved);
     if (!segs.length) return;
+    const offs = probeOffsets(s, r);
     // Where the car was at the top of the frame, so the bites can be laid out
     // along the path it actually took rather than around where it ended up.
     const x0 = this.x - this.vx * dt, z0 = this.z - this.vz * dt;
+    // The swept guard, before any of the sampling. If a probe's centre crossed a
+    // wall during this frame then the car never got where it thinks it did:
+    // rewind it to a hair before the crossing and let the bites below resolve
+    // the penetration from there, exactly as they would at a sane speed.
+    const dxf = this.x - x0, dzf = this.z - z0;
+    if (dxf || dzf) {
+      let uHit = 1;
+      for (let i = 0; i < offs.length; i++) {
+        const o = offs[i];
+        const pax = x0 + fx * o, paz = z0 + fz * o;
+        const pbx = this.x + fx * o, pbz = this.z + fz * o;
+        for (const g of segs) {
+          const u = segCross(pax, paz, pbx, pbz, g.ax, g.az, g.bx, g.bz);
+          if (u >= 0 && u < uHit) uHit = u;
+        }
+      }
+      if (uHit < 1) {
+        const u = Math.max(0, uHit - 1e-3);
+        this.x = x0 + dxf * u; this.z = z0 + dzf * u;
+        moved *= u;
+      }
+    }
+    const sub = Math.min(MAX_BITES, Math.max(1, Math.ceil(moved / (r * 0.75))));
     for (let k = 1; k <= sub; k++) {
       const u = k / sub;
       const ax = sub === 1 ? this.x : x0 + (this.x - x0) * u;
       const az = sub === 1 ? this.z : z0 + (this.z - z0) * u;
-      for (const off of [s.len * 0.28, -s.len * 0.28]) {
+      for (let oi = 0; oi < offs.length; oi++) {
+        const off = offs[oi];
         const px = ax + fx * off, pz = az + fz * off;
         for (const g of segs) {
           const ex = g.bx - g.ax, ez = g.bz - g.az;
