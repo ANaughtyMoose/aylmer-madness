@@ -10,7 +10,7 @@ import { installLandmarks } from './game/landmarks.js';   // landmarks hook (age
 import { primeSignage } from './game/signage.js';         // landmarks hook (agent/landmarks)
 import { loadMaterials } from './game/materials.js';
 import MATS_STUB from './game/materials_stub.js';
-import { CARS, carById, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow, DAMAGE } from './game/cars.js';
+import { CARS, carById, carPlaces, Vehicle, buildCarBody, buildWheel, buildHead, buildShadow, DAMAGE } from './game/cars.js';
 import { asBody, collideCars, driftBody, contact } from './game/collide.js';
 import { DriveFx, updateRepairs, repairSpotAt, nearestRepair, repairHint, REPAIR, restoreDamage } from './game/damage.js';
 import { Traffic } from './game/traffic.js';
@@ -455,7 +455,8 @@ function buildMenu() {
     const lock = owned ? '' :
       `<div class="lock"><span>\u{1F512}</span>${garage.reason(c.id, G.done, G.settings.lang)}</div>`;
     el.innerHTML = art + lock +
-      `<h3>${c.name}</h3><div class="who">${c.who} &middot; ${c.seats + 1} ${t('menu.seats')}</div>` +
+      `<h3>${c.name}</h3><div class="who">${c.who} &middot; ${carPlaces(c)} `
+      + `${t(carPlaces(c) === 1 ? 'menu.seat' : 'menu.seats')}</div>` +
       bar('Speed', (c.topSpeed - 24) / 24) +
       bar('Accel', (c.accel - 1.4) / 4.2) +
       bar('Grip', (c.grip - 0.60) / 0.52) +

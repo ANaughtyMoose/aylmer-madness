@@ -459,6 +459,19 @@ for (const c of CARS) finalizeCar(c);
 
 export const carById = (id) => CARS.find((c) => c.id === id) || CARS[0];
 
+/**
+ * How many people the thing holds, for a card that says so out loud.
+ *
+ * `spec.seats` is how many people ride with you — it is what « Ramasser la
+ * gang » re-plans against, which is why the Ranger's bench is 2 and not 3 —
+ * so the number on a card is one more than that. That is right for every car
+ * and both buses (the Orion's own flavour line says « Quarante places » and
+ * 39 + 1 is 40). It is wrong for a bicycle: `seats: 1` there is not a pillion,
+ * it is the rider, drawn by carSeats(), and a Diamondback advertised as a
+ * two-seater is nonsense. A spec that knows better says so with `places`.
+ */
+export const carPlaces = (s) => (s.places != null ? s.places : s.seats + 1);
+
 // ---------------------------------------------------------------- loft
 
 // Piecewise-linear lookup on [[t, v], ...].

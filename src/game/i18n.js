@@ -17,6 +17,7 @@ const FR = {
   'menu.lang': 'Langue',
   'menu.drive': 'EMBARQUE',
   'menu.building': 'ON BÂTIT AYLMER…',
+  'menu.seat': 'place',
   'menu.seats': 'places',
   'menu.continue': 'Continuer',
   // The one button that starts the game. It says GO because that is the word
@@ -233,6 +234,7 @@ const EN = {
   'menu.lang': 'Language',
   'menu.drive': 'DRIVE',
   'menu.building': 'BUILDING AYLMER…',
+  'menu.seat': 'seat',
   'menu.seats': 'seats',
   'menu.continue': 'Continue',
   'menu.new': 'DRIVE ▸ new game',
