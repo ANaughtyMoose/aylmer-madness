@@ -104,6 +104,77 @@ export const CARS = [
     spoiler: true,
   },
 
+  // ------------------------------------------------- the other four summers
+  // PLAN « Who drives what »: Tom's truck is the only cargo bed in the cast,
+  // and each of the other four playable characters drives the thing that suits
+  // them. Sayyad's Civic and Zahra's Diamondback (game/bikes.js) already
+  // existed; these two did not.
+  //
+  // Both are LOFTED, not borrowed. docs/MODELS.md has `wagon-forester` and
+  // `van-sienna` converted and sitting in assets/models/, and cars.js is
+  // written down there as the wiring point — but nothing loads a model for a
+  // player car yet (src/game/models.js is imported by models_lab.js and by
+  // nothing else), and half-wiring the loader for two cars would leave the
+  // other ten lofted and a loader nobody owns. Profiles by hand, then; the
+  // models stay one small job for whoever wires the loader properly.
+  {
+    id: 'forester', name: '1998 Subaru Forester L', who: "Mike's",
+    body: 0x2f4a35, seats: 4, style: 'wagon',
+    flavour: 'Quatre roues motrices à temps plein, un boxer 2.5 qui fait floc-floc au ralenti, pis assez de garde au sol pour les chemins de bois de Chelsea. Là où les autres restent pris.',
+    // 4450 × 1735 × 1580 mm, 2525 mm wheelbase, 205/70R15. `track` is NOT
+    // declared: finalizeCar() recomputes it from `plan` at import (see
+    // docs/MODELS.md), so a number typed here would be dead the moment it is
+    // read. The wagon is short for its wheelbase, which is the whole shape.
+    len: 4.45, wid: 1.74, h: 1.58, wheelbase: 2.52, overhangF: 0.93, wheelR: 0.33,
+    topSpeed: 48.61, accel: 4.6, brake: 9.2, grip: 0.95, steerMax: 0.55, mass: 1385, aero: 0.000389,
+    // The whole point of the car. `awd` multiplies the per-kind grip on loose
+    // ground the tyres still ROLL over — gravel, grass, a park path, a beaten
+    // track — and on nothing else, because four driven wheels are traction and
+    // not flotation: the Forester ploughs the Plage des Cèdres exactly like
+    // every other car. See AWD_KIND in Vehicle.update.
+    awd: 1.22,
+    seatY: 1.22, seatZ: 0.10, seatX: 0.42, clearance: 0.20,
+    // Tall wagon: short sloping hood, upright screen, a long flat roof and a
+    // nearly vertical tailgate. The roof is the highest thing on it.
+    top: [[0, 0.86], [0.02, 0.95], [0.04, 1.10], [0.06, 1.42], [0.09, 1.52], [0.12, 1.555],
+          [0.16, 1.565], [0.60, 1.58], [0.63, 1.575], [0.66, 1.50], [0.71, 1.32], [0.755, 1.14],
+          [0.79, 1.02], [0.84, 0.99], [0.92, 0.95], [0.965, 0.88], [0.985, 0.78], [1, 0.56]],
+    belt: [[0, 0.88], [0.03, 0.98], [0.06, 1.02], [0.78, 1.02], [0.86, 0.99], [1, 0.99]],
+    plan: [[0, 0.76], [0.03, 0.84], [0.09, 0.87], [0.85, 0.87], [0.93, 0.85], [0.97, 0.80], [1, 0.72]],
+    roofK: 0.88, tuck: 0.02,
+    glassTop: [[0.045, 0.115, 1.05], [0.63, 0.755]], glassSide: [0.10, 0.66],
+    // Unpainted grey lower cladding, all the way round. It is a Forester.
+    cladding: { rocker: 0.16, bumper: 0.34, tRear: 0.03, tFront: 0.968, color: 0x4a4d50 },
+  },
+  {
+    id: 'sienna', name: '1999 Toyota Sienna CE', who: "Abraham's",
+    body: 0xb0b2ad, seats: 6, style: 'van',
+    // Faded, five years of Aylmer sun: the roof and the sliding-door skin have
+    // gone a shade lighter than the flanks, and there is road film up the
+    // rockers. The mismatched hubcap the cast note asks for is not here —
+    // buildWheel() makes ONE wheel mesh and drawCar hangs it at four corners,
+    // so a single odd cap is not expressible without a second mesh. Written
+    // down rather than faked.
+    wear: { dirt: 0x9a9c97, rise: 0.34, arch: 0.40, film: 0.28,
+            panels: [[0, 0.985], [0.30, 0.985], [0.31, 1.012], [0.66, 1.012], [0.67, 0.968], [1, 0.968]] },
+    flavour: 'Sept places, deux portes coulissantes, un V6 qu’on entend pas. Toute la gang rentre en un voyage — pis c’est Abraham qui conduit, parce que c’est lui que le monde veut dans l’char.',
+    // 4849 × 1826 × 1676 mm, 2900 mm wheelbase, 205/70R15. No `track` here
+    // either, for the same reason as the Forester above.
+    len: 4.85, wid: 1.83, h: 1.68, wheelbase: 2.90, overhangF: 0.93, wheelR: 0.33,
+    topSpeed: 47.22, accel: 3.9, brake: 8.2, grip: 0.80, steerMax: 0.46, mass: 1740, aero: 0.000323,
+    seatY: 1.28, seatZ: 0.25, seatX: 0.46, clearance: 0.16,
+    // One box, but a softer one than the Caravan: a real hood, a raked screen,
+    // and a tailgate that leans.
+    top: [[0, 1.02], [0.02, 1.18], [0.05, 1.42], [0.08, 1.60], [0.11, 1.655], [0.16, 1.672],
+          [0.62, 1.676], [0.67, 1.66], [0.71, 1.60], [0.765, 1.40], [0.815, 1.18], [0.855, 1.05],
+          [0.90, 1.02], [0.945, 0.98], [0.975, 0.88], [0.99, 0.74], [1, 0.58]],
+    belt: [[0, 1.02], [0.04, 1.06], [0.08, 1.10], [0.80, 1.10], [0.88, 1.03], [1, 1.03]],
+    plan: [[0, 0.80], [0.03, 0.87], [0.08, 0.915], [0.86, 0.915], [0.94, 0.885], [0.975, 0.84], [1, 0.76]],
+    roofK: 0.90, tuck: 0.02,
+    glassTop: [[0.03, 0.10, 1.15], [0.71, 0.855]], glassSide: [0.10, 0.72],
+    cladding: { rocker: 0.08, bumper: 0.30, tRear: 0.025, tFront: 0.974, color: 0x74777b },
+  },
+
   // ---------------------------------------------------------------- the lot
   // Four beaters on the gravel next to the Canadian Tire on chemin d'Aylmer.
   // Nobody lends you these; you buy them. See game/garage.js for the prices.
@@ -125,9 +196,13 @@ export const CARS = [
     cladding: { rocker: 0.06, bumper: 0.34, tRear: 0.025, tFront: 0.972, color: 0x4a4136 },
   },
   {
-    id: 'cavalier', name: '1991 Chevrolet Cavalier Z24', who: 'Le lot', lot: true,
+    // PLAN's cast table: the Z24 is Tyler Yank's, and it sits outside her
+    // aunt's at ~312 rue Samuel-Edey. It used to be the fourth beater on
+    // Ti-Guy's gravel; nothing about how it DRIVES changed, only whose it is
+    // and where it is parked. See garage.js UNLOCKS and places.js `tyler`.
+    id: 'cavalier', name: '1991 Chevrolet Cavalier Z24', who: 'Tyler',
     body: 0xb01d1d, seats: 3, style: 'coupe',
-    flavour: 'Le Z24 avec le V6 pis le spoiler. Ça rattle en dessous de 60 pis ça rattle en haut de 60.',
+    flavour: 'Le Z24 avec le V6 pis le spoiler. Ça rattle en dessous de 60 pis ça rattle en haut de 60. Tyler le lave le samedi.',
     len: 4.50, wid: 1.72, h: 1.34, wheelbase: 2.57, overhangF: 0.94, track: 1.66, wheelR: 0.31,
     topSpeed: 50.00, accel: 4.8, brake: 9.0, grip: 0.93, steerMax: 0.58, mass: 1185, aero: 0.000354,
     seatY: 1.0, seatZ: 0.05, seatX: 0.40, clearance: 0.20,
@@ -223,6 +298,13 @@ const HANDBRAKE = {
   saturn:  { hbGrip: 0.42, hbYaw: 1.42 },
   civic:   { hbGrip: 0.24, hbYaw: 1.82 },
   sunfire: { hbGrip: 0.36, hbYaw: 1.52 },
+  // Four driven wheels and a viscous centre: the lever locks the rears and the
+  // front axle just keeps dragging it straight. It is the hardest car in the
+  // game to make swap ends on purpose, which is the flip side of the traction.
+  forester:{ hbGrip: 0.58, hbYaw: 1.14 },
+  // Two tonnes on soft springs, most of it over the front wheels. It leans,
+  // then it ploughs, then it comes back. Nothing quick happens in a Sienna.
+  sienna:  { hbGrip: 0.62, hbYaw: 1.10 },
   cutlass: { hbGrip: 0.55, hbYaw: 1.20 },
   cavalier:{ hbGrip: 0.34, hbYaw: 1.58 },
   caravan: { hbGrip: 0.66, hbYaw: 1.08 },
@@ -240,6 +322,8 @@ const REVERSE = {
   saturn:  { revTop: 6.94, revEngage: 0.20 },
   civic:   { revTop: 6.94, revEngage: 0.20 },
   sunfire: { revTop: 6.94, revEngage: 0.21 },
+  forester:{ revTop: 6.94, revEngage: 0.22 },   // five-speed manual, straight in
+  sienna:  { revTop: 6.94, revEngage: 0.27 },   // four-speed auto: it thinks about it
   cart:    { revTop: 3.0, revEngage: 0.20 },   // 11 km/h backwards; a contactor, not a clutch
   cutlass: { revTop: 6.94, revEngage: 0.24 },
   cavalier:{ revTop: 6.94, revEngage: 0.21 },
@@ -309,6 +393,34 @@ const SOUND = {
              hissG: 0.15, raspG: 0.18, raspFrom: 4200, rasp: 0.35, raspK: 2.6,
              boomF: 145, boomQ: 4.5, boomDb: 6, tickF: 3300, tickG: 0.026,
              lumpy: 0.010, pop: 1.0, gain: 1.02, rattle: 0.55, rattleFrom: 40 },
+  // EJ25, 2.5 L flat four. The burble is the whole signature and it comes from
+  // ONE thing: unequal-length headers, so the four pulses do not arrive evenly
+  // spaced. That is `uneven` at 0.34 — higher than any other four here — with a
+  // slow `decay` so each pulse is fat rather than sharp, and a low `tilt` so it
+  // stays woolly instead of getting brassy at the top. Boxers are quiet at
+  // idle, which is why `gain` is under 1 and `hissG` is small. No rattle:
+  // nothing in a 1998 Subaru is loose yet.
+  forester:{ cyl: 4, idle: 700, redline: 6000, limiter: 6100,
+             decay: 4.6, uneven: 0.34, tilt: 0.18, harm: 200,
+             exhQ: 0.62, exhG: 1.18, intF0: 700, intSpan: 1800, intQ: 0.95, intG: 0.42,
+             hissG: 0.14, raspG: 0.22, raspFrom: 4300, rasp: 0.40, raspK: 2.6,
+             boomF: 108, boomQ: 5.2, boomDb: 9, tickF: 3200, tickG: 0.030,
+             lumpy: 0.022, pop: 0.9, gain: 0.94, rattle: 0, rattleFrom: 0,
+             toneLo: 620, toneHi: 4800, labour: 4.0, burble: 0.42,
+             whineK: 3.0, whineG: 0.016, gearThunk: 0.048 },
+  // 1MZ-FE, 3.0 V6, four-speed auto, and a van built to be quiet. Six pulses a
+  // cycle at a high `decay` is a hush, not a beat: the exhaust is nearly gone
+  // (`exhG` 0.72) and what you hear instead is the induction through a long
+  // plenum, so `intG` carries the voice. No rasp worth the name, no pops, and
+  // `boomDb` is the empty box behind you rather than an exhaust note.
+  sienna:  { cyl: 6, idle: 680, redline: 5600, limiter: 5700,
+             decay: 8.4, uneven: 0.06, tilt: 0.62, harm: 208,
+             exhQ: 0.62, exhG: 0.72, intF0: 660, intSpan: 1700, intQ: 0.85, intG: 0.52,
+             hissG: 0.09, raspG: 0.08, raspFrom: 5000, rasp: 0.18, raspK: 2.0,
+             boomF: 104, boomQ: 4.6, boomDb: 8, tickF: 3000, tickG: 0.012,
+             lumpy: 0.004, pop: 0.4, gain: 0.88, rattle: 0, rattleFrom: 0,
+             toneLo: 560, toneHi: 4200, labour: 5.5, burble: 0.10,
+             whineK: 2.6, whineG: 0.012, gearThunk: 0.030 },
   // 2.8 V6 — six pulses a cycle, so it fires at rpm/20. Soft and far away.
   cutlass: { cyl: 6, idle: 700, redline: 4800, limiter: 4900,
              decay: 5.5, uneven: 0.10, tilt: 0.55, harm: 216,
@@ -370,6 +482,15 @@ const DRIVE = {
   sunfire: { gears: [3.50, 2.05, 1.38, 1.03, 0.72], reverse: 3.42, final: 3.63, tyre: 0.629,
              idle: 720, redline: 5800, limiter: 5900,
              shiftUp: 5200, shiftUpLight: 2900, shiftDown: 1700, launch: 2200, shiftTime: 0.24 },
+  // EJ25 five-speed, 4.111 axle, 205/70R15 (0.668 m rolling).
+  forester:{ gears: [3.454, 2.062, 1.448, 1.088, 0.780], reverse: 3.333, final: 4.111, tyre: 0.668,
+             idle: 700, redline: 6000, limiter: 6100,
+             shiftUp: 5300, shiftUpLight: 2900, shiftDown: 1700, launch: 2200, shiftTime: 0.24 },
+  // A540E four-speed auto, 3.855 axle, same tyre. It upshifts early and it is
+  // in no hurry about any of it.
+  sienna:  { gears: [2.807, 1.531, 1.000, 0.705], reverse: 2.393, final: 3.855, tyre: 0.668,
+             idle: 680, redline: 5600, limiter: 5700,
+             shiftUp: 4700, shiftUpLight: 2300, shiftDown: 1400, launch: 1800, shiftTime: 0.38 },
   // Three-speed automatics: long, lazy, and they take an age to swap.
   cutlass: { gears: [2.84, 1.60, 1.00], reverse: 2.07, final: 2.84, tyre: 0.660,
              idle: 700, redline: 4800, limiter: 4900,
@@ -1193,6 +1314,15 @@ export const DAMAGE = { COSMETIC: 25, PERF: 60, DEAD: 100 };
 // `turf` factor drives exactly as it did before this line existed.
 const TURF_KIND = { grass: 1, path: 1, sand: 1, track: 1 };
 
+// Surfaces where four DRIVEN wheels are worth something. `spec.awd` multiplies
+// the per-kind grip on loose ground the tyres still roll over and on nothing
+// else — traction, not flotation. Sand is deliberately absent: a Forester sinks
+// into the Plage des Cèdres exactly like a Sunfire, and the beach stays the
+// bicycle's (tools/smoke_vehicles.mjs asserts that). `power` and the off-road
+// drag terms are untouched, so this changes how hard it can turn and stop on
+// gravel and wet grass, not how fast it goes across them.
+const AWD_KIND = { gravel: 1, grass: 1, path: 1, dirt: 1, track: 1 };
+
 const GRASS = 0.81;                     // surface multiplier off the asphalt (== SURF.grass.power)
 const SURF_RAMP = (1 - GRASS) / 0.5;    // D4: the full penalty takes half a second
 const CURB_Y = 0.15;                    // how tall the sidewalk actually is
@@ -1340,7 +1470,8 @@ export class Vehicle {
     const wantSurf = turf > 1 ? Math.min(1, sd.power * turf) : sd.power;
     this.surface += clamp(wantSurf - this.surface, -SURF_RAMP * dt, SURF_RAMP * dt);
     const surface = this.surface;
-    const gripSurf = inAir ? 0 : sd.grip * turf;
+    const awd = s.awd && AWD_KIND[kind] ? s.awd : 1;
+    const gripSurf = inAir ? 0 : sd.grip * turf * awd;
     const offRoad = (1 - surface) / (1 - GRASS);      // 0 on tarmac, 1 fully off it
     // `accel` is one number doing two jobs: how hard a vehicle pulls away, and
     // how long it takes to reach the speed on the brochure. For a car those are

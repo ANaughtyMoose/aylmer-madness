@@ -231,9 +231,17 @@ hud.setRange(G.mapPrefs.range);
 // Margaret's Saturn lives in the same driveway as your Ranger at 299 Fraser.
 const OWNER = {
   ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'marina',
-  // The four beaters live on the lot until somebody buys them, and after that
+  // The other playable characters' vehicles, each outside its own house:
+  // Mike's Forester at 129 Frank-Robinson, Abraham's Sienna at 841
+  // Wilfrid-Lavigne. Zahra's Diamondback is in VEHICLE_OWNERS below, at the
+  // Denise-Friend house she shares with Sayyad.
+  forester: 'mike', sienna: 'abraham',
+  // Tyler Yank's Z24, at her aunt's on Samuel-Edey. It used to be the fourth
+  // beater on the lot; it is hers now, so it never moves to your driveway.
+  cavalier: 'tyler',
+  // The three beaters live on the lot until somebody buys them, and after that
   // they live in your driveway with everything else.
-  cutlass: 'usedlot', cavalier: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
+  cutlass: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
   // The Club's cart. It stays at the golf course whatever you do with it.
   cart: 'golf',
 };
@@ -244,7 +252,7 @@ Object.assign(OWNER, VEHICLE_OWNERS);
 const homeKey = (id) => (OWNER[id] === 'usedlot' ? 'home' : OWNER[id]);
 const homeOf = (id) => PLACES[homeKey(id)] || PLACES.home;
 
-const garage = new Garage(G.done);
+const garage = new Garage(G.done, G.character);
 G.garage = garage;
 // The sky. Seeded, so a fresh game always opens on the same clear July morning
 // and only then starts making its own weather.
@@ -310,8 +318,14 @@ const turntable = new CarTurntable();
 // the picker is the exact place the car will appear once the world is built.
 // 'sayyad' and the legacy 'steph' are the same house (75 Denise-Friend); the
 // list carries the readable key, because it ends up in a data-key attribute.
+// The five playable characters' front doors come first: picking a character
+// moves the pin to their own house (selectCharacter below), so every one of
+// them has to be a start point or the GO button would name a place the map
+// cannot show. Zahra shares Sayyad's, so there are four pins for five people.
+// (tools/smoke_shell.mjs reads this array out of the source text, so keep the
+// commentary outside the brackets.)
 const START_POINTS = [
-  'home', 'sayyad', 'mall', 'beach', 'marina', 'principale',
+  'home', 'sayyad', 'mike', 'abraham', 'mall', 'beach', 'marina', 'principale',
   'arena', 'deschenes', 'golf', 'heritage',
   'hulldowntown', 'hullmuseum', 'hullcasino', 'hullmall',
   'ottawa', 'chelsea',
@@ -320,7 +334,8 @@ const START_POINTS = [
 // opens so the confirm button is never dead on arrival.
 const DEFAULT_START = 'home';
 const START_MAP_LABELS = {
-  home: 'Chez nous', sayyad: 'Chez Sayyad', mall: 'Galeries d’Aylmer',
+  home: 'Chez nous', sayyad: 'Chez Sayyad', mike: 'Chez Mike',
+  abraham: 'Chez Abraham', mall: 'Galeries d’Aylmer',
   beach: 'Plage des Cèdres',
   marina: 'Marina', principale: 'Vieux-Aylmer', arena: 'Aréna Frank-Robinson',
   deschenes: 'Deschênes', golf: 'Club de golf', heritage: 'Heritage College',
@@ -328,6 +343,99 @@ const START_MAP_LABELS = {
   hullcasino: 'Casino du Lac-Leamy', hullmall: 'Galeries de Hull',
   ottawa: 'Colline du Parlement', chelsea: 'Chelsea',
 };
+// Where you are allowed to START, and what opens the rest.
+//
+// Thomas, 2026-09-07: « limit where you can start until you unlock the rest
+// (you can still drive there) by winning missions. » Two things that sentence
+// says out loud and this table must not break:
+//
+//   * it is about the PICKER only. Nothing here stops you driving to Chelsea
+//     on day one; it stops you BEGINNING there. The GPS, the map, the missions
+//     and the sector loader are all untouched.
+//   * nothing new is persisted. The set is derived from the progress the save
+//     slots already carry (startDone() below), so a fresh character sees the
+//     open ones and a finished summer sees all of them, with no extra key.
+//
+// A value is a list of mission ids and ANY ONE of them opens the point. That is
+// not over-engineering: Thomas asked for the beach behind « Suis Sayyad »
+// (`suis`), which is Wave 3's missions agent's job and does not exist yet, and
+// for Ottawa behind « the first Ottawa job, or if none exists yet, after
+// highwayhull too ». Naming both means the row is already right the day the
+// new job lands and is not wrong today. `null` means always open.
+const START_UNLOCKS = {
+  // Your own driveway, and — added at pick time, not here — whichever house the
+  // character you chose actually lives in.
+  home: null,
+  // 75 Denise-Friend is where the poutine goes.
+  sayyad: ['poutine'],
+  // ...which starts at the food court.
+  mall: ['poutine'],
+  // « Ramasser la gang » ends at the beach by way of the marina, and the Vieux
+  // is the road you take to get there.
+  marina: ['gang'],
+  principale: ['gang'],
+  // Abraham's, until Abraham has a job of his own to earn it with. Placeholder,
+  // and the day Wave 3 writes him one this row takes its id.
+  abraham: ['gang'],
+  // « Suis Sayyad » does not exist yet; « Le canot à 45 piasses » ends on the
+  // sand at des Cèdres, so today that is what opens it.
+  beach: ['suis', 'canot'],
+  // You have been to 129 Frank-Robinson if you have put his couch in a tree.
+  mike: ['divan'],
+  arena: ['divan'],
+  deschenes: ['curfew'],
+  golf: ['golfcart'],
+  // Everything across the river opens on the one job that crosses it.
+  heritage: ['highwayhull'],
+  hulldowntown: ['highwayhull'],
+  hullmuseum: ['highwayhull'],
+  hullcasino: ['highwayhull'],
+  hullmall: ['highwayhull'],
+  chelsea: ['chelsea'],
+  // Ottawa: `ottawajob` is the id Wave 3 may give the first errand on the far
+  // side; until then the 148 to Hull is what gets you there.
+  ottawa: ['ottawajob', 'highwayhull'],
+  parlement: ['ottawajob', 'highwayhull'],
+  chateau: ['ottawajob', 'highwayhull'],
+  rideau: ['ottawajob', 'highwayhull'],
+  byward: ['ottawajob', 'highwayhull'],
+  gallery: ['ottawajob', 'highwayhull'],
+};
+
+// The jobs this character has finished, for the picker. The picker only ever
+// opens on a NEW game, so G.done is empty there — what it has to read is the
+// progress that character's own slots already carry. The union across their
+// four slots, because « a save with everything done shows all » should not
+// depend on which of your own saves you happened to write last.
+function startDone(character = pickedCharacter) {
+  const done = new Set(G.done || []);
+  try {
+    for (const row of listSlots(character)) {
+      for (const id of (row.save && row.save.progress) || []) done.add(id);
+    }
+  } catch { /* no localStorage, no history: everything stays locked but home */ }
+  return done;
+}
+
+/** Is this start point pickable right now? */
+function startOpen(key, done = startDone(), character = pickedCharacter) {
+  const rule = START_UNLOCKS[key];
+  if (rule === null || rule === undefined) return rule === null;   // no rule: locked, and say so
+  if (key === (characterById(character).home || '')) return true;  // your own front door
+  return rule.some((id) => done.has(id));
+}
+
+/** Why not, in one line, or null. Named after the job so it reads as earned. */
+function startLockReason(key, done = startDone(), lang = 'fr') {
+  if (startOpen(key, done)) return null;
+  const rule = START_UNLOCKS[key] || [];
+  // The first rule id that is a job this build actually has. A row naming only
+  // jobs that do not exist yet would otherwise print an empty « Finis «  » ».
+  const def = rule.map((id) => ALL_MISSIONS.find((m) => m.id === id)).find(Boolean);
+  if (!def) return lang === 'en' ? 'Not yet' : 'Pas encore';
+  return lang === 'en' ? `Finish “${def.title}”` : `Finis « ${def.title} »`;
+}
+
 // ---- [agent/ottawa hook] the downtown Ottawa destinations, from the same
 // module that merges the sector. Same block as the addOttawaLandmarks() call
 // below; both fold into places.js and main.js's own tables later.
@@ -351,7 +459,8 @@ const availableStartPoints = () => START_POINTS.filter((key) => PLACES[key]);
 
 function drawStartPicker() {
   const c = $('startmap'), g = c.getContext('2d');
-  const pts = availableStartPoints().map((key) => ({ key, ...PLACES[key] }));
+  const done = startDone();
+  const pts = availableStartPoints().map((key) => ({ key, ...PLACES[key], locked: !startOpen(key, done) }));
   const pad = 260;
   const minX = Math.min(...pts.map((p) => p.x)) - pad, maxX = Math.max(...pts.map((p) => p.x)) + pad;
   const minZ = Math.min(...pts.map((p) => p.z)) - pad, maxZ = Math.max(...pts.map((p) => p.z)) + pad;
@@ -371,9 +480,10 @@ function drawStartPicker() {
   pts.forEach((p, i) => {
     const selected = p.key === pickedStart;
     g.beginPath(); g.arc(sx(p.x), sz(p.z), selected ? 11 : 8, 0, Math.PI * 2);
-    g.fillStyle = selected ? '#ffc94d' : '#e9edf2'; g.fill();
+    g.fillStyle = selected ? '#ffc94d' : p.locked ? '#5b6570' : '#e9edf2'; g.fill();
     g.lineWidth = 2; g.strokeStyle = '#10171c'; g.stroke();
-    g.fillStyle = '#10171c'; g.fillText(String(i + 1), sx(p.x), sz(p.z) + .5);
+    g.fillStyle = p.locked && !selected ? '#2a3138' : '#10171c';
+    g.fillText(p.locked ? '\u{1F512}' : String(i + 1), sx(p.x), sz(p.z) + .5);
   });
 
   // Compact labels turn the overview into a readable map instead of making
@@ -397,15 +507,20 @@ function drawStartPicker() {
     used.push({ x: bx, y: by, w, h });
     g.strokeStyle = 'rgba(233,237,242,.7)'; g.lineWidth = 1;
     g.beginPath(); g.moveTo(px + (right ? 7 : -7), py); g.lineTo(right ? bx : bx + w, by + h / 2); g.stroke();
-    g.fillStyle = p.key === pickedStart ? 'rgba(255,201,77,.96)' : 'rgba(10,15,18,.84)';
+    g.fillStyle = p.key === pickedStart ? 'rgba(255,201,77,.96)'
+      : p.locked ? 'rgba(10,15,18,.50)' : 'rgba(10,15,18,.84)';
     g.fillRect(bx, by, w, h);
-    g.fillStyle = p.key === pickedStart ? '#10171c' : '#f3f5f6';
+    g.fillStyle = p.key === pickedStart ? '#10171c' : p.locked ? '#8b949d' : '#f3f5f6';
     g.fillText(label, bx + 5, by + h / 2 + .5);
   }
   c._pickerTransform = { pts, sx, sz };
 }
 
 function selectStart(key) {
+  // A locked point is not pickable by any route — the list button, the map
+  // click and selectCharacter's own default all come through here, so this is
+  // the one place that has to hold.
+  if (!startOpen(key)) return;
   pickedStart = key;
   for (const el of $('startpoints').children) el.classList.toggle('sel', el.dataset.key === key);
   // Never disabled: something is always picked. The button says where it is
@@ -434,22 +549,50 @@ function selectCharacter(id) {
   pickedCharacter = CHARACTER_IDS.includes(id) ? id : DEFAULT_CHARACTER;
   const row = $('startchars');
   if (row) for (const el of row.children) el.classList.toggle('sel', el.dataset.character === pickedCharacter);
-  // Their own car, when the garage will hand it over — otherwise the menu's
-  // pick stands and enterDrive falls back the same way it always did.
+  // Whose summer this is decides which cards the menu shows as owned: Sayyad's
+  // Civic is a mission reward for Tom and simply his own car for him.
+  garage.setCharacter(pickedCharacter);
+  // Their own vehicle, and their own front door. Both are only defaults — the
+  // player can still pick any pin on the map afterwards — but opening the
+  // picker as Mike and being offered 299 Chemin Fraser in a Ranger was the
+  // whole of what « chaque personnage a son propre été » did NOT do.
   const who = characterById(pickedCharacter);
-  if (who.car !== G.carId && garage.has(who.car, G.done)) { G.carId = who.car; buildMenu(); }
-  selectStart(pickedStart);
+  if (who.car !== G.carId && garage.has(who.car, G.done)) G.carId = who.car;
+  buildMenu();
+  const door = PLACES[who.home] && availableStartPoints().includes(who.home) ? who.home : pickedStart;
+  selectStart(door);
+  // Their own front door is unconditionally open, so the list and the map have
+  // to be repainted against the new character before anything else is read.
+  if (!$('startpicker').classList.contains('hidden')) paintStartPoints();
+}
+
+// The list of pins, repainted whenever the answer could have changed — opening
+// the picker, and picking a different character (their own front door is open
+// and somebody else's is not). Returns the progress set it drew against so the
+// caller does not have to compute it twice.
+function paintStartPoints() {
+  const done = startDone();
+  $('startpoints').innerHTML = availableStartPoints().map((key, i) => {
+    const why = startLockReason(key, done);
+    return `<button class="startpoint${why ? ' locked' : ''}" data-key="${key}"`
+      + `${why ? ' disabled aria-disabled="true"' : ''}>`
+      + `<b>${why ? '\u{1F512}' : i + 1}</b><span>${PLACES[key].label}`
+      + `${why ? `<i class="lockwhy">${why}</i>` : ''}</span></button>`;
+  }).join('');
+  for (const el of $('startpoints').children) el.onclick = () => selectStart(el.dataset.key);
+  return done;
 }
 
 function openStartPicker(open) {
   $('startpicker').classList.toggle('hidden', !open);
   if (!open) return;
   $('startpicktitle').textContent = t('menu.pickstart');
-  $('startpickhint').textContent = t('menu.pickstart.hint');
+  // The rule, said once, where the list is. « tu peux toujours y rouler » is
+  // the important half: this locks where you BEGIN, not where you may drive.
+  $('startpickhint').textContent = t('menu.pickstart.hint')
+    + '\nLes autres points s\u2019ouvrent quand tu finis des jobs \u2014 tu peux toujours y rouler.';
   $('startback').textContent = '\u2190 ' + t('menu.pickstart.back');
-  $('startpoints').innerHTML = availableStartPoints().map((key, i) =>
-    `<button class="startpoint" data-key="${key}"><b>${i + 1}</b><span>${PLACES[key].label}</span></button>`).join('');
-  for (const el of $('startpoints').children) el.onclick = () => selectStart(el.dataset.key);
+  const done = paintStartPoints();
   const chars = ensureCharRow();
   if (chars) {
     chars.innerHTML = CHARACTERS.map((c) =>
@@ -461,8 +604,10 @@ function openStartPicker(open) {
   // 700 px window that used to be below the fold, which is how a player ends up
   // staring at a screen that looks like it does nothing. Pin it.
   installSkin();
-  const first = availableStartPoints();
-  selectStart(first.includes(DEFAULT_START) ? DEFAULT_START : first[0]);
+  // Whatever is picked has to be a point you are allowed to start from, or the
+  // GO button would name somewhere the click handler refuses.
+  const openKeys = availableStartPoints().filter((key) => startOpen(key, done));
+  selectStart(openKeys.includes(DEFAULT_START) ? DEFAULT_START : (openKeys[0] || DEFAULT_START));
   // ...and whoever you were last, which repaints the GO label a second time.
   selectCharacter(pickedCharacter);
   $('startpicker').scrollTop = 0;
@@ -496,6 +641,13 @@ function installSkin() {
 @media (max-height:760px){#startmap{max-height:44vh}#startpoints{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}
 #startwho{margin:6px 0 10px}
 #startwho .tag{margin:0 0 6px}
+#startpickhint{white-space:pre-line}
+/* A locked start point: a padlock, the job that opens it in grey, and nothing
+   that reads as clickable. pointer-events:none is belt and braces — the
+   button is disabled and selectStart() refuses the key as well. */
+.startpoint.locked{opacity:.45;cursor:default;pointer-events:none}
+.startpoint.locked .lockwhy{display:block;font-style:normal;font-size:11px;
+  opacity:.75;letter-spacing:.2px;margin-top:1px}
 #startchars{display:flex;gap:8px;flex-wrap:wrap}
 .startchar{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
   padding:8px 14px;border-radius:8px;border:2px solid rgba(233,237,242,.22);
@@ -606,7 +758,8 @@ function startGame(save = null, startKey = null, character = null) {
     G.homeXZ = { x: p.x, z: p.z };
   }
   if (save && save.carId) G.carId = save.carId;
-  if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = 'ranger';
+  garage.setCharacter(G.character);
+  if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = characterById(G.character).car;
   $('menu').classList.add('hidden');
   setModal('options', false);
   setModal('load', false);
@@ -742,7 +895,12 @@ function worldStages() {
 function enterDrive(save = null, startKey = null) {
   if (save && save.character) G.character = save.character;
   if (!CHARACTER_IDS.includes(G.character)) G.character = DEFAULT_CHARACTER;
+  const who = characterById(G.character);
+  // A new game starts in the character's own vehicle. A slot knows better —
+  // it remembers what they were driving when they saved.
   if (save && save.carId) G.carId = save.carId;
+  else G.carId = who.car;
+  garage.setCharacter(G.character);
   const spec = carById(G.carId);
   G.veh = new Vehicle(spec);
   G.veh.assist = G.assist;
@@ -752,7 +910,11 @@ function enterDrive(save = null, startKey = null) {
   if (!save) garage.reset();
   try { if (save && save.unlocks) garage.restore(save.unlocks); } catch (e) { console.warn('unlocks', e); }
   garage.setProgress(G.done);
-  if (!garage.has(spec.id, G.done)) { G.carId = 'ranger'; }
+  // The garage is per-character now, so this is the net that catches a
+  // hand-edited save or a character whose car got renamed — never the normal
+  // path. Falling back to THEIR car rather than to the Ranger matters: Zahra
+  // has no licence and must not be dropped into a pickup truck.
+  if (!garage.has(spec.id, G.done)) { G.carId = garage.has(who.car, G.done) ? who.car : 'ranger'; }
   const home = homeParked(G.carId);
   G.parked = {};
   for (const c of CARS) {
@@ -761,9 +923,15 @@ function enterDrive(save = null, startKey = null) {
     if (p) G.parked[c.id] = { x: p.x, z: p.z, yaw: p.yaw };
   }
   G.gearbox = new Gearbox(spec.drive);
+  // Where the summer starts. The picker's pin wins if there is one (it is
+  // pre-set to this character's own house); without one — the debug API, a
+  // test, anything that calls enterDrive directly — it is their front door,
+  // and only then the car's own parking table.
   const chosenPlace = !save && startKey && PLACES[startKey];
   const chosen = chosenPlace && { x: chosenPlace.x, z: chosenPlace.z, yaw: chosenPlace.a || 0 };
-  const start = chosen || (save && save.parked && save.parked[spec.id]) || home[spec.id] || homeSpot(spec.id);
+  const doorstep = !save && PLACES[who.home] && curbSpot(PLACES[who.home], 0);
+  const start = chosen || (save && save.parked && save.parked[spec.id]) || doorstep
+    || home[spec.id] || homeSpot(spec.id);
   G.veh.reset(start.x, start.z, start.yaw);
   G.health = save ? { ...save.health } : {};
   restoreDamage(G.veh, G.health[spec.id] || 0);
@@ -810,7 +978,10 @@ function enterDrive(save = null, startKey = null) {
   G.wallet.render();
   // The spine: 73 days, a target, a tank. save.js carries day/fuel/target
   // (Wave 2b); a save without them starts the summer fresh at the first day.
-  G.character = (save && save.character) || 'tom';
+  // NOT `G.character = save.character || 'tom'`: that line stamped every new
+  // game back to Tom fifty lines after the picker had said otherwise, so
+  // choosing Zahra started Tom's summer with Zahra's name on the menu. The
+  // character was settled at the top of this function; leave it alone.
   calendar.restoreSummer(G, save);
   fuel.initFuel(G, save);
   if (G.props) {
@@ -1064,7 +1235,7 @@ function stepEnv(dt) {
 function startMission(def) {
   const spec = G.veh.spec;
   const stages = def.build({
-    carId: spec.id, carName: spec.name, seats: spec.seats,
+    carId: spec.id, carName: spec.name, seats: spec.seats, places: carPlaces(spec),
     money: G.wallet ? G.wallet.value : 0,
   });
   G.mission = {
@@ -1107,7 +1278,7 @@ function resumeMission(saved) {
   }
   const spec = G.veh.spec;
   const stages = def.build({
-    carId: spec.id, carName: spec.name, seats: spec.seats,
+    carId: spec.id, carName: spec.name, seats: spec.seats, places: carPlaces(spec),
     money: G.wallet ? G.wallet.value : 0,
   });
   if (!stages || !stages.length) return false;
@@ -2472,7 +2643,7 @@ $('startmap').addEventListener('click', (e) => {
     const d = Math.hypot(x - tr.sx(p.x), y - tr.sz(p.z));
     if (d < distance) { best = p.key; distance = d; }
   }
-  if (best) selectStart(best);
+  if (best) selectStart(best);        // selectStart itself refuses a locked one
 });
 $('btnContinue').onclick = () => {
   const slot = mostRecentSlot();

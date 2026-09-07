@@ -51,6 +51,9 @@ const save = await import('../src/game/save.js');
 const { VEHICLE_OWNERS, bikeState } = await import('../src/game/vehicles.js');
 const { bikeControl } = await import('../src/game/bikes.js');
 const { Traffic } = await import('../src/game/traffic.js');
+const fuel = await import('../src/game/fuel.js');
+const { PLACES, resolvePlaces } = await import('../src/game/places.js');
+const { CHARACTERS, curbSpot, homeParked } = save;
 
 const IDS = ['bus', 'schoolbus', 'cruiser', 'dbike'];
 const BIKES = ['cruiser', 'dbike'];
@@ -429,6 +432,137 @@ group('the ambient population');
     'ten seconds of it and everybody is still on the map');
   ok(T.cars.some((c) => c.kind === 'city' && c.dwellT >= 0), 'the bus is keeping its own clock');
   void by;
+}
+
+// ------------------------------------------- 8. Wave 3: the characters' cars
+//
+// Mike's Forester, Abraham's Sienna and Tyler's Z24. Everything here is a
+// promise made in docs/PLAN.md « Who drives what » or in the spec sheet, and
+// every one of them was checked by nothing until now.
+
+group('the three Wave 3 cars');
+{
+  // Nowhere near a road, so the drag term is the honest one. Fifteen minutes of
+  // simulated flat-out: the last twenty km/h takes a very long time in anything
+  // slow (see the SPEED note in cars.js).
+  const terminal = (id) => {
+    const v = new Vehicle(carById(id));
+    v.reset(0, 0, 0);
+    const w = world('asphalt');
+    const c = { steer: 0, throttle: 1, brake: 0, handbrake: false };
+    for (let i = 0; i < 60 * 900; i++) v.update(1 / 60, c, w);
+    return v.speedKmh;
+  };
+  // The real thing the game does at boot: every place gets snapped onto the
+  // nearest road, which is what turns an authored house coordinate into a kerb
+  // a car can stand on. Passing `() => null` here (as smoke_garage does, where
+  // it does not matter) would leave every address 20 m inside a front lawn and
+  // make the pavement check below meaningless.
+  const nearestRoad = (x, z) => {
+    let best = null, bd = Infinity;
+    for (const r of MAP.roads) {
+      for (let i = 0; i + 1 < r.pts.length; i++) {
+        const [ax, az] = r.pts[i], [bx, bz] = r.pts[i + 1];
+        const ex = bx - ax, ez = bz - az, l2 = ex * ex + ez * ez || 1e-6;
+        const t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / l2));
+        const px = ax + ex * t, pz = az + ez * t;
+        const d = Math.hypot(px - x, pz - z);
+        if (d < bd) { bd = d; best = { x: px, z: pz, yaw: Math.atan2(ex, ez), name: r.name }; }
+      }
+    }
+    return best;
+  };
+  resolvePlaces({ nearestRoad });
+  const parked = homeParked();
+
+  for (const [id, want, low, high] of [
+    ['forester', 175, 1300, 1500], ['sienna', 170, 1600, 1850], ['cavalier', 180, 1100, 1300],
+  ]) {
+    const s = carById(id);
+    ok(!!s, `${id} is in CARS`);
+    // Within a per cent, the same bar tools/smoke_driving.mjs holds every car to.
+    const top = terminal(id);
+    ok(Math.abs(top - want) < want * 0.01, `${id}: ${r1(top)} km/h against a stated ${want}`);
+    ok(s.mass >= low && s.mass <= high, `${id}: ${s.mass} kg is the real curb weight`);
+    ok(s.wheelbase > 2.4 && s.wheelbase < 3.0 && s.len > s.wheelbase + 1.3,
+      `${id}: ${s.wheelbase} m wheelbase inside a ${s.len} m car`);
+    ok(s.overhangF > 0.5 && s.len - s.wheelbase - s.overhangF > 0.5,
+      `${id}: both overhangs are real (front ${s.overhangF}, rear ${r1(s.len - s.wheelbase - s.overhangF)})`);
+    // finalizeCar derives it from `plan`; a declared one would be dead (docs/MODELS.md).
+    ok(s.track > 1.5 && s.track < 1.9, `${id}: derived track ${s.track} m`);
+    ok(s.drive && s.drive.gears.length >= 4 && s.sound && s.sound.cyl >= 4,
+      `${id}: a real gearbox (${s.drive.gears.length} speeds) and a ${s.sound.cyl}`);
+    // The tank, by id. A typo here is how a car ends up with the 55 L guess.
+    ok(fuel.TANK[id] > 0 && fuel.BURN[id] > 0,
+      `${id}: ${fuel.TANK[id]} L and ${fuel.BURN[id]} L/100 km, both found by id`);
+    ok(fuel.tankOf(s) === fuel.TANK[id], `${id}: tankOf() finds it rather than guessing from mass`);
+    // Whose it is, and where it sits when nobody has moved it.
+    const key = save.OWNER[id];
+    ok(!!key && !!PLACES[key], `${id} belongs at PLACES.${key} — ${PLACES[key] && PLACES[key].label}`);
+    ok(!!s.who && s.who !== 'Le lot', `${id} says whose it is: « ${s.who} »`);
+    const spot = parked[id];
+    ok(!!spot && isFinite(spot.x) && isFinite(spot.z), `${id} has a parking spot`);
+    // On pavement: within half a road width of a real road centreline. No world
+    // is built here, so the map data is the only thing that can answer.
+    let best = Infinity, w = 0;
+    for (const r of MAP.roads) {
+      for (let i = 0; i + 1 < r.pts.length; i++) {
+        const [ax, az] = r.pts[i], [bx, bz] = r.pts[i + 1];
+        const ex = bx - ax, ez = bz - az, l2 = ex * ex + ez * ez || 1e-6;
+        const t = Math.max(0, Math.min(1, ((spot.x - ax) * ex + (spot.z - az) * ez) / l2));
+        const d = Math.hypot(ax + ex * t - spot.x, az + ez * t - spot.z);
+        if (d < best) { best = d; w = r.w; }
+      }
+    }
+    ok(best <= w / 2 + 3.2, `${id} is parked on ${r1(best)} m from the middle of a ${r1(w)} m road`);
+  }
+
+  // The Forester's one trick, and its one limit.
+  const f = carById('forester');
+  ok(f.awd > 1, `the Forester carries an AWD factor of ${f.awd}`);
+  ok(CARS.filter((c) => c.awd).length === 1, 'and it is the only vehicle that does');
+  for (const kind of ['gravel', 'grass', 'path', 'dirt']) {
+    const best = CARS.filter((c) => c.id !== 'forester' && !c.turf)
+      .map((c) => c.grip * SURF[kind].grip)
+      .reduce((a, b) => Math.max(a, b), 0);
+    ok(f.grip * SURF[kind].grip * f.awd > best,
+      `${kind}: it grips ${(f.grip * SURF[kind].grip * f.awd).toFixed(2)} against the best other car's ${best.toFixed(2)}`);
+  }
+  // Sand is deliberately not on the list: AWD is traction, not flotation, and
+  // the beach has to stay the bicycle's (group 5 above asserts that too).
+  ok(!('sand' in { gravel: 1, grass: 1, path: 1, dirt: 1, track: 1 })
+    && f.grip * SURF.sand.grip * 1 < f.grip * SURF.asphalt.grip,
+    'and the beach still costs it everything it costs everybody else');
+
+  // The Sienna is the people-mover: the gang goes in one trip.
+  const van = carById('sienna');
+  ok(van.seats + 1 === 7, `the Sienna is a seven-seater (seats ${van.seats} + the driver)`);
+  ok(van.steerMax < carById('civic').steerMax && van.grip < carById('civic').grip,
+    'and it is lazy in the corners next to a Civic Si');
+  ok(van.topSpeed < carById('forester').topSpeed, 'and slower than the Forester');
+
+  // The Z24 rattles above 55, which is what its own flavour line has always said.
+  const z = carById('cavalier');
+  ok(z.sound.rattle > 0 && z.sound.rattleFrom === 55, `the Z24 rattles from ${z.sound.rattleFrom} km/h up`);
+  ok(/rattle/.test(z.flavour), 'and its flavour line says so');
+  ok(save.OWNER.cavalier === 'tyler' && z.who === 'Tyler', "it is Tyler's, at 312 Samuel-Edey");
+}
+
+group('every character can start their summer');
+{
+  for (const who of CHARACTERS) {
+    const s = carById(who.car);
+    ok(s.id === who.car, `${who.id}: ${who.car} builds`);
+    const p = PLACES[who.home];
+    ok(!!p, `${who.id} starts at ${p && p.label}`);
+    const spot = curbSpot(p, 0);
+    ok(isFinite(spot.x) && isFinite(spot.z), `${who.id}: and the kerb in front of it is a real place`);
+  }
+  // Zahra is the one that is genuinely a different game.
+  const bike = carById('dbike');
+  ok(bike.twoWheel && bike.places === 1, 'Zahra rides a one-place two-wheeler');
+  ok(!fuel.hasTank(bike), 'with no tank, so the HUD gauge stays hidden');
+  ok(bike.turf > 1, 'and it belongs on grass, path and sand');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

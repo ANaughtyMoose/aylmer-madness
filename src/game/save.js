@@ -33,16 +33,27 @@ import { loadGarage } from './store.js';
 
 export const SAVE_VERSION = 2;
 
-// The five playable summers. `car` is what that character starts in; Wave 3 is
-// what gives Zahra the Diamondback and Mike his own, so until those vehicles
-// exist everyone starts in something CARS actually has — a save pointing at a
-// car the garage cannot build would load you into the Ranger anyway, silently.
+// The five playable summers. `car` is what that character starts in and `home`
+// is the PLACES key they start it AT — the hook Wave 2b left, filled in by
+// Wave 3 now that the vehicles exist. Every one of these five ids must be a car
+// garage.js unlocks for that character from the first frame (UNLOCKS carries a
+// matching `character` field); tools/smoke_garage.mjs checks the two tables
+// agree, because a save pointing at a car the garage refuses would silently
+// drop you into the Ranger instead.
+//
+// Zahra is fifteen and has no licence, so hers is a bicycle. That is not a
+// downgrade: game/bikes.js's Diamondback goes down the paths, over the kerbs,
+// across the beach and between the buildings on Principale, and cops.js now
+// ignores a two-wheeler outright.
 export const CHARACTERS = [
-  { id: 'tom', name: 'Tom', car: 'ranger' },
-  { id: 'sayyad', name: 'Sayyad', car: 'civic' },
-  { id: 'zahra', name: 'Zahra', car: 'ranger' },
-  { id: 'mike', name: 'Mike', car: 'ranger' },
-  { id: 'abraham', name: 'Abraham', car: 'sunfire' },
+  { id: 'tom', name: 'Tom', car: 'ranger', home: 'home' },
+  { id: 'sayyad', name: 'Sayyad', car: 'civic', home: 'sayyad' },
+  // Sayyad's sister, so `home` is his key and not one of her own: it is
+  // literally the same house on Denise-Friend, and two pins on one address
+  // would be two pins on one address.
+  { id: 'zahra', name: 'Zahra', car: 'dbike', home: 'sayyad' },
+  { id: 'mike', name: 'Mike', car: 'forester', home: 'mike' },
+  { id: 'abraham', name: 'Abraham', car: 'sienna', home: 'abraham' },
 ];
 export const CHARACTER_IDS = CHARACTERS.map((c) => c.id);
 export const DEFAULT_CHARACTER = 'tom';
@@ -79,7 +90,11 @@ export const DEFAULT_CAR = 'ranger';
 // Whose driveway each car lives in. Margaret's Saturn shares the driveway at
 // 299 Fraser with your Ranger, so the two of them get slots 0 and 1 there.
 export const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'marina',
-  cutlass: 'home', cavalier: 'home', caravan: 'home', bus: 'home',
+  // The other three playable characters' cars, at their own addresses. The Z24
+  // is Tyler's and sits at her aunt's on Samuel-Edey — it is not on the lot any
+  // more, so unlike the beaters it never comes home with you.
+  forester: 'mike', sienna: 'abraham', cavalier: 'tyler',
+  cutlass: 'home', caravan: 'home', bus: 'home',
   // The cart never leaves the golf course; it lives on the clubhouse apron.
   cart: 'golf' };
 
