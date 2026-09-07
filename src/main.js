@@ -88,6 +88,11 @@ import { flavour } from './game/flavour.js';
 
 // hangout agent: 129 Frank-Robinson after dark (see the hook block in tick()).
 import { hangout } from './game/hangout.js';
+// The spine (Wave 2a): the calendar, the envelope, gas, and the endings.
+import * as calendar from './game/calendar.js';
+import * as fuel from './game/fuel.js';
+import { refundJob } from './game/missionkit.js';
+import { StoryOpener as EndingCards, endingCards } from './game/story.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -716,6 +721,11 @@ function enterDrive(save = null, startKey = null) {
   // localStorage key is legacy scratch now, the save slot is the truth.
   G.wallet.value = save ? save.money : START_MONEY;
   G.wallet.render();
+  // The spine: 73 days, a target, a tank. save.js carries day/fuel/target
+  // (Wave 2b); a save without them starts the summer fresh at the first day.
+  G.character = (save && save.character) || 'tom';
+  calendar.restoreSummer(G, save);
+  fuel.initFuel(G, save);
   if (G.props) {
     G.props.clear();
     // Permanent scenery the map data has no idea about.
@@ -864,6 +874,7 @@ function resetCarLocations(quiet = false) {
 }
 
 function swapCar(id) {
+  if (G.veh && G.veh.spec && carById(id)) fuel.onSwap(G, G.veh.baseSpec || G.veh.spec, carById(id));
   const v = G.veh, spot = G.parked[id];
   if (!spot) return;
   G.health[v.spec.id] = v.damage;
@@ -993,15 +1004,46 @@ function applyStage() {
   const m = G.mission;
   const st = m.stages[m.idx];
   hud.setObjective(st.text, st.sub || '');
-  m.timeLeft = st.time != null ? st.time : null;
+  m.timeLeft = st.time != null ? Math.max(60, Math.round(st.time * (G.timerScale || 1))) : null;
   m.target = stageTarget(G, m, st);
   G.routeKey = '';
   stageEnter(G, m, st);
 }
 
+// Every job and every race costs a day (calendar.js). When the day that
+// arrives is Labour Day, the summer is over and the father counts the envelope.
+function endOfJob() {
+  calendar.spendDay(G, hud);
+  if (calendar.isOver(G.day) && !G.summerOver) runEnding();
+}
+let endingCard = null;
+function runEnding() {
+  G.summerOver = true;
+  const target = G.target || calendar.TARGET;
+  const madeIt = G.wallet.value >= target;
+  G.stats.ending = madeIt ? 'keys' : 'bus';
+  if (!endingCard) endingCard = new EndingCards();
+  endingCard.cards = endingCards(G.wallet.value, target, madeIt);
+  endingCard.show(() => {
+    if (madeIt) {
+      hud.toast('Le Ranger est à toi.\nLa ville aussi, tant qu’à ça.', 4200);
+    } else {
+      hud.toast('Le Ranger est parti. La 40 passe au coin à 7 h 12.', 4200);
+      // The dealer took the truck; the Diamondback is what is left in the garage.
+      if (carById('dbike') && G.carId === 'ranger') swapCar('dbike');
+    }
+    autosave('job');
+  });
+}
 function failMission(why) {
-  hud.toast('RATÉ\n' + why, 3000);
+  const m = G.mission;
+  // The money press, closed: a job that ends badly hands back what it paid.
+  // And a job you actually started costs the day whether or not it worked —
+  // Backspace inside the first minute is reading the brief, not a wasted day.
+  const back = refundJob(G, m);
+  hud.toast('RATÉ\n' + why + (back > 0 ? `\n(− ${Math.round(back)} $ — la paye s’en va avec)` : ''), 3000);
   audio.chime(false);
+  if (m && (m.idx > 0 || m.elapsed > 45)) endOfJob();
   missionCleanup(G, G.mission, true);
   hud.prompt(null);
   G.mission = null;
@@ -1133,6 +1175,7 @@ function updateMission(dt) {
     const record = prev == null || m.elapsed < prev;
     if (record) G.best[def.id] = m.elapsed;
     const style = missionStyleBonus(m.styleStart, G.stats, v.damage);
+    if (style.money) style.money = Math.min(15, style.money);   // the budget table caps it
     if (style.money && G.wallet) G.wallet.add(style.money);
     hud.toast('FINI — ' + def.title + '\n' + fmtTime(m.elapsed) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')')
       + (style.money ? `\nSTYLE +${style.money} $  ·  ${style.text}` : '')
@@ -1146,6 +1189,7 @@ function updateMission(dt) {
     G.stuck = null;
     sayFriend(def, 'end');
     refreshFreeRoam();
+    endOfJob();        // the day is spent; Labour Day may have arrived
     autosave('job');   // one of exactly two events that write without being asked
     return;
   }
@@ -1272,9 +1316,10 @@ function frame(now) {
 function handleKeys() {
   // The story opener owns the keyboard while it is up: E / Enter / Espace turn
   // the page, Escape skips the rest of it.
-  if (story.active) {
-    if (input.hit('Escape')) story.finish();
-    else if (input.hit('Enter', 'KeyE', 'Space')) story.advance();
+  const card = story.active ? story : (endingCard && endingCard.active ? endingCard : null);
+  if (card) {
+    if (input.hit('Escape')) card.finish();
+    else if (input.hit('Enter', 'KeyE', 'Space')) card.advance();
     G.wantStart = false;
     return;
   }
@@ -1289,7 +1334,9 @@ function handleKeys() {
     G.lookBack = input.down('ShiftLeft', 'ShiftRight');
   }
   // R is the radio (it is 2004 and the deck still matters); T is the get-me-out-of-here.
-  if (input.hit('KeyT')) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
+  if (input.hit('KeyT')) {
+    if (!fuel.jerrycan(G, G.veh.baseSpec || G.veh.spec)) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
+  }
   if (input.hit('KeyR')) toggleRadio();
   // G is the slang gloss. Tapping it latches the English under every bubble;
   // holding it also puts the last three lines back up with the joke explained.
@@ -1488,6 +1535,22 @@ function tick(dt) {
   // captured here rather than at construction so a car swap heals itself.
   if (!v.baseSpec) v.baseSpec = v.spec;
   v.spec = weather.specFor(v.baseSpec);
+  {
+    // Gas: burned off the metres just driven, filled when you sit on the
+    // Petro-Canada forecourt (the same spot the repairs use). A dry tank hands
+    // the Vehicle a sheet with no engine on it, and it coasts.
+    // On the forecourt: 24 m of the Petro-Canada pillar, like the repairs
+    // (repairSpotAt only answers when there is damage to fix, so it cannot be
+    // the test here).
+    const gp = PLACES.gas;
+    const atPump = !!gp && Math.hypot(v.x - gp.x, v.z - gp.z) < 24;
+    const dry = fuel.tickFuel(G, dt, v, input.throttle, atPump);
+    if (dry) v.spec = dry;
+    hud.setFuel(G.fuel, fuel.tankOf(v.baseSpec));
+    const env = calendar.envelopeText(G);
+    hud.setEnvelope(env.amount, env.day, G.reached);
+    calendar.checkReached(G, hud);
+  }
   updateDayNight(dt);
   // While you are in the canoe the car sits where you parked it and the steering
   // wheel goes to the paddle.

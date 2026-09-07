@@ -422,6 +422,9 @@ export class Cops {
   // 150 $ and, if you were working, the job.
   bust(G) {
     this.busted = true;
+    // Easy 40, normal 75, hard 120 (calendar.js DIFF); the constant is the
+    // pre-calendar value and what the node suites still see.
+    const TICKET = G.ticket || 150;
     if (G.wallet) {
       const paid = Math.min(TICKET, G.wallet.value);
       G.wallet.spend(paid);

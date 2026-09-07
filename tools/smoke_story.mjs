@@ -9,7 +9,7 @@
 //   * the free-roam lines are never « Free roam »: they name the nearest job you
 //     have not done, how far it is, and the key
 //   * the stuck detector fires at 20 s / 20 m and not before
-//   * the opener is 3-4 cards and E walks through them
+//   * the opener is 3-5 cards and E walks through them
 //   * the heckle pool is big and the limiter is mean
 //
 // No browser, no DOM: story.js and heckle.js both work without one.
@@ -242,7 +242,9 @@ group('stuck: 20 m in 20 s, or the hint comes back');
 
 group('the new-game opener');
 {
-  ok(STORY_CARDS.length >= 3 && STORY_CARDS.length <= 4, `${STORY_CARDS.length} cards`);
+  // Five since Wave 2a: « L’ENVELOPPE » states the deal before the first job
+  // (the plan's "a new game states the goal in the first five minutes").
+  ok(STORY_CARDS.length >= 3 && STORY_CARDS.length <= 5, `${STORY_CARDS.length} cards`);
   for (const c of STORY_CARDS) {
     ok(!!c.title && c.title === c.title.toUpperCase(), `card « ${c.title} »`);
     ok(typeof c.body === 'string' && c.body.length > 60, `card « ${c.title} » says something`);
