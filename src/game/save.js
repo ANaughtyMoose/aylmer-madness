@@ -303,6 +303,8 @@ export function normalizeSave(raw, slot = '') {
   return {
     version: Number.isInteger(raw.version) ? raw.version : SAVE_VERSION,
     name: typeof raw.name === 'string' ? raw.name.slice(0, 40) : '',
+    near: typeof raw.near === 'string' ? raw.near.slice(0, 60) : '',
+    doing: typeof raw.doing === 'string' ? raw.doing.slice(0, 60) : '',
     savedAt: typeof raw.savedAt === 'string' ? raw.savedAt : new Date(0).toISOString(),
     playtime: Math.max(0, num(raw.playtime, 0)),
     character,
@@ -398,6 +400,7 @@ export function listSlots(character = DEFAULT_CHARACTER) {
       slot, character: who, empty: false, name: s.name, savedAt: s.savedAt, playtime: s.playtime,
       carId: s.carId, money: s.money, jobs: s.progress.length, best: s.best,
       day: s.day, target: s.target, job: s.mission ? s.mission.id : null, save: s,
+      near: s.near || '', doing: s.doing || '',
     };
   });
 }
@@ -450,6 +453,13 @@ export function snapshot(G, opts = {}) {
   return normalizeSave({
     version: SAVE_VERSION,
     name: opts.name || '',
+    // « Where were you, and what were you doing » — Thomas, 2026-09-07, after
+    // a Continue that said « Tom · Chemin Fraser · il y a 2 h » and nothing
+    // else. The street is `name`; this is the place it was next to and the
+    // title of the job in progress, both plain strings so the menu can print
+    // them without loading the world.
+    near: typeof opts.near === 'string' ? opts.near.slice(0, 60) : '',
+    doing: typeof opts.doing === 'string' ? opts.doing.slice(0, 60) : '',
     savedAt: new Date().toISOString(),
     playtime: num(G.playtime, 0),
     character: G.character,
