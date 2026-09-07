@@ -23,6 +23,9 @@ const DRIVABLE = new Set(['trunk', 'primary', 'secondary', 'tertiary', 'resident
 const WANT = { trunk: 16, primary: 13, secondary: 13, tertiary: 11, residential: 9 };
 
 const ARRIVE = 4;        // metres from the lane end point before we pick the next edge
+const LOOK_MIN = 5;      // pure-pursuit look-ahead along the lane line, metres …
+const LOOK_MAX = 14;     // … clamped, and
+const LOOK_PER_MPS = 0.6; // … growing with speed (12 m/s → 12.2 m)
 const CULL = 420;        // beyond this from the player, teleport back into view
 const NEAR_MIN = 120;    // respawn ring around the player
 const NEAR_MAX = 300;
@@ -227,6 +230,24 @@ export class Traffic {
     return out;
   }
 
+  // The pure-pursuit target: `LOOK` metres ahead of the car's own projection
+  // onto the lane line, rolling into the next edge's lane past the end. The
+  // look-ahead grows with speed so the turn-in starts earlier at 50 km/h than
+  // at a crawl, and never shrinks below a car length so a stopped car still
+  // knows which way the road goes.
+  aimAt(c, e, out) {
+    const A = this.nodes[e.a];
+    const lane = c.lane || 0;
+    const s = clamp((c.x - A.x) * e.dx + (c.z - A.z) * e.dz, 0, e.len);
+    const look = clamp(LOOK_MIN + c.speed * LOOK_PER_MPS, LOOK_MIN, LOOK_MAX);
+    let s2 = s + look;
+    if (s2 <= e.len) return this.laneAt(e, s2 / e.len, out, lane);
+    const nx = c.next >= 0 ? this.edges[c.next] : null;
+    if (!nx) return this.laneAt(e, 1, out, lane);
+    s2 -= e.len;
+    return this.laneAt(nx, Math.min(1, s2 / nx.len), out, lane);
+  }
+
   // What this driver wants to be doing on this edge. Nobody pedals at 47.
   wantOn(car, e) {
     const w = e.want * car.pace;
@@ -236,7 +257,7 @@ export class Traffic {
   place(car, ei, t) {
     const e = this.edges[ei];
     const p = this.laneAt(e, t, [0, 0], car.lane || 0);
-    car.edge = ei;
+    car.edge = ei; car.next = -1;
     car.x = p[0]; car.z = p[1];
     car.yaw = Math.atan2(e.dx, e.dz);
     car.want = this.wantOn(car, e);
@@ -275,7 +296,7 @@ export class Traffic {
       }
     }
     if (best < 0) return false;
-    car.edge = best;
+    car.edge = best; car.next = -1;
     car.want = this.wantOn(car, this.edges[best]);
     car.stopT = 0;
     return true;
@@ -341,7 +362,7 @@ export class Traffic {
     // hit me" — only the first one is worth yelling about.
     this.player = player;
     this.time += dt;
-    const tgt = [0, 0];
+    const tgt = [0, 0], aim = [0, 0];
     this.crash = 0;
     for (const c of this.cars) {
       if (c.respawnT > 0) c.respawnT -= dt;
@@ -380,7 +401,10 @@ export class Traffic {
         if (this.nodes[e.b].stop && (e.cls === 'residential' || e.cls === 'tertiary')) {
           c.stopT = STOP_HOLD;
         }
-        const nx = this.nextEdge(c);
+        // The edge after this one was chosen when we entered it (see below), so
+        // the look-ahead has been steering toward it for the last few metres.
+        const nx = c.next >= 0 ? c.next : this.nextEdge(c);
+        c.next = -1;
         if (nx < 0) {
           if (c.respawnT <= 0 && this.respawn(c, player)) { /* rescued */ }
           else { c.speed = 0; }
@@ -392,8 +416,19 @@ export class Traffic {
         this.laneAt(e, 1, tgt, c.lane || 0);
         dx = tgt[0] - c.x; dz = tgt[1] - c.z;
       }
+      if (c.next === undefined || c.next < 0) c.next = this.nextEdge(c);
 
-      const want = Math.atan2(dx, dz);
+      // Where to point the nose. `tgt` is the end of the lane (the stop bar,
+      // for the signals below); steering at it directly was the wrong-side
+      // traffic: a car at the start of a bend drove the chord to the far end of
+      // the segment, and on a left-hand bend the chord runs through the
+      // oncoming lane — measured at 7 % of samples left of the centreline, up
+      // to 3.4 m out on rue Principale. Pure pursuit wants a point a short,
+      // speed-scaled distance ahead *along the lane line*, carried over into
+      // the next edge's lane when this one runs out, so the car follows the
+      // curve instead of cutting it.
+      this.aimAt(c, e, aim);
+      const want = Math.atan2(aim[0] - c.x, aim[1] - c.z);
       const err = angleDelta(want, c.yaw);
       // Turn rate falls off with speed so corners look like corners, not pivots.
       c.yaw += clamp(err, -1.6, 1.6) * Math.min(1, dt * (1.4 + 6 / (1 + c.speed)));
