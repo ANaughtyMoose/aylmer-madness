@@ -72,7 +72,7 @@
     { "who": "margaret", "need": "money<25", "line": "Tiens. Prends dix piasses. Non. Prends-les. Tu me les redonneras en septembre.", "gift": 10 },
 
     { "who": "adam", "need": "", "line": "...ouais." },
-    { "who": "adam", "need": "", "line": "J'ai marché depuis Deschênes. ...non. J'ai le Sunfire. J'voulais juste voir si t'écoutais." },
+    { "who": "adam", "need": "", "line": "J'ai marché depuis Mayo. ...non. J'ai le Sunfire. J'voulais juste voir si t'écoutais." },
     { "who": "adam", "need": "!done:racedave", "line": "Mon Sunfire est plus vite que ton char. C'est mathématique." },
     { "who": "adam", "need": "done:racedave", "line": "Tu m'as battu. Une fois. Sur une rue. Un mardi. En juillet." },
     { "who": "adam", "need": "car:sunfire", "line": "C'est mon char, ça." },

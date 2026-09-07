@@ -153,10 +153,12 @@ group('GOAL A — free roam names the nearest job, its distance and the key');
   ok(next && next.def.id !== closest.id, 'a job you have done stops being the target', next && next.def.id);
   ok(freeRoamLines(G2).text.includes(next.def.title), 'and the line follows it', freeRoamLines(G2).text);
 
-  // Standing beside Deschênes, it points at Adam's, not at home.
-  const dave = PLACES.dave;
-  const G3 = fakeG(dave.x + 15, dave.z);
-  ok(nearestJob(G3).place === dave, 'out in Deschênes it points at the Deschênes job');
+  // Standing at the far end of town, it points at the job there, not at home.
+  // (Adam's used to be the far-flung one; he lives in Mayo, off-map, and the
+  // Sunfire waits in the marina lot instead.)
+  const marina = PLACES.marina;
+  const G3 = fakeG(marina.x + 15, marina.z);
+  ok(nearestJob(G3).place === marina, 'out at the marina it points at the marina job');
 }
 
 group('GOAL A — every job done, and the line says so');

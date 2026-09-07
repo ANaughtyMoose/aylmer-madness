@@ -411,7 +411,7 @@ function makeG(carId = 'ranger') {
   const traffic = new Traffic(4);
   return {
     veh, wallet, nav, phys, traffic, rivals: [], raceParked: {},
-    parked: { sunfire: { x: PLACES.dave.x + 3, z: PLACES.dave.z, yaw: 0 },
+    parked: { sunfire: { x: PLACES.marina.x + 3, z: PLACES.marina.z, yaw: 0 },
               civic: { x: PLACES.steph.x + 3, z: PLACES.steph.z, yaw: 0 },
               saturn: { x: PLACES.home.x + 3, z: PLACES.home.z, yaw: 0 } },
     mission: null, boat: null, focus: null, wantStart: false, routeKey: '',
@@ -462,16 +462,16 @@ group('playthrough: Adam, and you never leave the driveway');
 {
   const G = makeG('ranger');
   const def = RACE_MISSIONS.find((d) => d.id === 'racedave');
-  G.veh.reset(PLACES.dave.x, PLACES.dave.z, PLACES.dave.a || 0);
-  ok(!!G.parked.sunfire, 'Adam’s Sunfire starts parked at his house');
+  G.veh.reset(PLACES.marina.x, PLACES.marina.z, PLACES.marina.a || 0);
+  ok(!!G.parked.sunfire, 'Adam’s Sunfire starts parked in the marina lot');
   const res = play(G, def, (g, m, st) => {
-    if (st.kind === 'grid') { g.veh.reset(PLACES.dave.x, PLACES.dave.z, PLACES.dave.a || 0); g.wantStart = true; }
+    if (st.kind === 'grid') { g.veh.reset(PLACES.marina.x, PLACES.marina.z, PLACES.marina.a || 0); g.wantStart = true; }
     // ...and then you just sit there.
   }, 60 * 500);
   ok(!res.done, 'sitting on the line does not win a race');
   ok(/Adam/.test(res.failed || ''), 'and Adam has something to say about it', res.failed);
   ok(res.t > 60, 'it took him a while to get there', `${Math.round(res.t)} s`);
-  ok(!!G.parked.sunfire, 'his car is back in his driveway afterwards');
+  ok(!!G.parked.sunfire, 'his car is back in the marina lot afterwards');
   ok(G.rivals.length === 0, 'and the rival is off the road');
 }
 
@@ -479,15 +479,15 @@ group('playthrough: Adam, driven properly');
 {
   const G = makeG('civic');
   const def = RACE_MISSIONS.find((d) => d.id === 'racedave');
-  G.veh.reset(PLACES.dave.x, PLACES.dave.z, PLACES.dave.a || 0);
+  G.veh.reset(PLACES.marina.x, PLACES.marina.z, PLACES.marina.a || 0);
   // The bot cheats: it teleports along the same route the rival drives, a
   // little quicker. What is under test is the position logic and the finish,
   // not whether a robot can drive a Civic.
-  const route = nav.route(PLACES.dave.x, PLACES.dave.z, PLACES.mall.x, PLACES.mall.z);
+  const route = nav.route(PLACES.marina.x, PLACES.marina.z, PLACES.mall.x, PLACES.mall.z);
   let s = 0;
   const seen = { first: 0, second: 0 };
   const res = play(G, def, (g, m, st, t) => {
-    if (st.kind === 'grid') { g.veh.reset(PLACES.dave.x, PLACES.dave.z, PLACES.dave.a || 0); g.wantStart = true; return; }
+    if (st.kind === 'grid') { g.veh.reset(PLACES.marina.x, PLACES.marina.z, PLACES.marina.a || 0); g.wantStart = true; return; }
     if (!m.race || !m.race.going) return;
     s += 21 / 60;                                  // 75 km/h along the line
     let acc = 0, k = 0;

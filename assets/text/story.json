@@ -128,18 +128,18 @@
         "what": "Coffre de douilles Mastercraft en pouces et millimètres laissé dans la boîte du camion."
       },
       "spineProgress": "60 $ de pourboire ajoutés à l'enveloppe (Total : 85 $ / 1 200 $).",
-      "connects": "À l'aréna, Mike t'apprend que le Sunfire d'Adam Actell ne démarre plus du tout à Deschênes."
+      "connects": "À l'aréna, Mike t'apprend que le Sunfire d'Adam Actell ne démarre plus du tout dans le stationnement de la marina."
     },
     {
       "n": 5,
-      "title": "Le dépannage de Deschênes",
-      "setup": "Aller porter des câbles à booster et une batterie de secours à Adam sur le chemin Vanier.",
+      "title": "Le dépannage de la marina",
+      "setup": "Aller porter des câbles à booster et une batterie de secours à Adam au stationnement de la marina.",
       "giver": "Mike McDonald",
       "from": "Aréna Frank-Robinson",
-      "to": "20 chemin Vanier, Deschênes (Adam)",
+      "to": "Marina d'Aylmer — le Sunfire d'Adam",
       "vehicle": "Ford Ranger XL 1993",
-      "what": "Descente rapide vers le secteur Deschênes le long des rails désaffectés.",
-      "complication": "Les crevasses de l'asphalte défoncé de Vanier font rebondir le train arrière vide du pickup.",
+      "what": "Traversée du Vieux-Aylmer jusqu'au bout du quai, avec la boîte pleine de câbles.",
+      "complication": "Le gravier du stationnement de la marina fait patiner le train arrière vide du pickup.",
       "reward": {
         "kind": "character",
         "what": "Adam Actell devient passager régulier avec son flegme et son sac de chips."
@@ -152,7 +152,7 @@
       "title": "L'urgence de Canadian Tire",
       "setup": "Acheter quatre bougies Champion et de l'huile 5W30 avant la fermeture du comptoir aux Galeries.",
       "giver": "Adam Actell",
-      "from": "20 chemin Vanier, Deschênes (Adam)",
+      "from": "Marina d'Aylmer — le Sunfire d'Adam",
       "to": "Canadian Tire",
       "vehicle": "Ford Ranger XL 1993",
       "what": "Course contre la montre à travers les boulevards commerciaux d'Aylmer sous la chaleur de 16h.",

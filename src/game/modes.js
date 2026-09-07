@@ -177,7 +177,7 @@ export const CHECKPOINT = [
     // The fast open one: out to the Club de Golf and back up chemin Vanier. 8 km
     // of tertiary road where the Sunfire's straight-line speed actually tells.
     start: { x: -605.6, z: 79, a: Math.PI / 2 },
-    cps: ['golf', 'aigle', 'gas', 'deschenes', 'dave'],
+    cps: ['golf', 'aigle', 'gas', 'deschenes', 'vanier'],
     money: 60, timeOfDay: 'morning',
     // Eight kilometres of open tertiary road is where Big Dan's V8 momentum
     // finally has somewhere to go.

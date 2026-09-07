@@ -58,7 +58,7 @@
         "kind": "tool",
         "what": "Coffre de douilles Mastercraft en pouces et millimètres déposé dans la boîte du camion."
       },
-      "connects": "À l'aréna, Mike t'apprend que le Sunfire d'Adam Actell a rendu l'âme dans son allée à Deschênes."
+      "connects": "À l'aréna, Mike t'apprend que le Sunfire d'Adam Actell a rendu l'âme dans le stationnement de la marina, quarante minutes après être parti de Mayo."
     },
     {
       "n": 5,
@@ -66,9 +66,9 @@
       "setup": "Aller booster la batterie du Pontiac Sunfire d'Adam avec les câbles de démarrage du Ranger.",
       "giver": "Mike McDonald",
       "from": "Aréna Frank-Robinson",
-      "to": "20 chemin Vanier, Deschênes (Adam)",
-      "what": "Descente rapide vers le secteur Deschênes le long des vieilles voies ferrées désaffectées.",
-      "complication": "L'asphalte bosselé du chemin Vanier fait rebondir le train arrière vide du pickup à chaque crevasse.",
+      "to": "Marina d'Aylmer — le Sunfire d'Adam",
+      "what": "Traversée du Vieux-Aylmer jusqu'au quai, la boîte pleine de câbles à booster.",
+      "complication": "Le gravier lousse du stationnement de la marina fait patiner le train arrière vide du pickup.",
       "unlocks": {
         "kind": "character",
         "what": "Adam Actell devient disponible comme passager avec ses remarques flegmatiques et son sac de chips."
@@ -80,7 +80,7 @@
       "title": "La course au Canadian Tire",
       "setup": "Acheter quatre bougies Champion et une pinte d'huile 5W30 avant la fermeture du comptoir des pièces.",
       "giver": "Adam Actell",
-      "from": "20 chemin Vanier, Deschênes (Adam)",
+      "from": "Marina d'Aylmer — le Sunfire d'Adam",
       "to": "Canadian Tire",
       "what": "Remontée rapide vers le pôle commercial des Galeries d'Aylmer.",
       "complication": "Un orage d'été soudain éclate et les essuie-glaces d'origine étalent l'eau au lieu de l'essuyer.",

@@ -147,11 +147,13 @@ const CORE_MISSIONS = [
         // ...and the first thing he does is turn the radio on.
         onExit: (G) => { if (G && G.radio) G.radio.power(true); },
       };
+      // Adam vient de Mayo, quarante minutes à l'est: il ne se ramasse pas chez
+      // eux, il arrive. Le Sunfire est stationné à la marina depuis à matin.
       const dave = {
-        text: 'Ramasse Adam — 20 chemin Vanier, Deschênes',
-        sub: 'GPS jusqu’au pilier jaune — il habite loin, on le sait, il le sait',
-        hint: 'Deschênes, tout au sud-est. C’est long. W pis patience.',
-        at: 'dave', radius: 13, toast: 'Adam embarque', passengers: +1,
+        text: 'Ramasse Adam — le stationnement de la marina',
+        sub: 'GPS jusqu’au pilier jaune — il a fait la route de Mayo à matin, il attend à côté du Sunfire',
+        hint: 'La marina, à l’ouest du Vieux-Aylmer, au bord de la rivière.',
+        at: 'marina', radius: 16, toast: 'Adam embarque', passengers: +1,
       };
       const beach = (sub, passengers, money) => ({
         text: 'Dépose la gang au Parc des Cèdres',

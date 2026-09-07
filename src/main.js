@@ -206,7 +206,7 @@ hud.setRange(G.mapPrefs.range);
 // Whose driveway each car lives in.
 // Margaret's Saturn lives in the same driveway as your Ranger at 299 Fraser.
 const OWNER = {
-  ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'dave',
+  ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'marina',
   // The four beaters live on the lot until somebody buys them, and after that
   // they live in your driveway with everything else.
   cutlass: 'usedlot', cavalier: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
