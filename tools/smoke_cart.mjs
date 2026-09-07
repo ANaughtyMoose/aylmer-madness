@@ -180,8 +180,8 @@ group('« Le cart du Club »');
   // Seventeen ordinary jobs. The summer's five beats (arc.js) are gated on
   // progress and get pushed onto this same array as they are earned, so the
   // pause menu grows over a save; ALL_MISSIONS is the whole set, gates ignored.
-  ok(MISSIONS.length === 17, `${MISSIONS.length} jobs in the pause menu on a brand-new save`);
-  ok(ALL_MISSIONS.length === 22, `${ALL_MISSIONS.length} jobs once the whole summer is open`);
+  ok(MISSIONS.length === 23, `${MISSIONS.length} jobs in the pause menu on a brand-new save`);   // 17 + the six Wave 3 verbs
+  ok(ALL_MISSIONS.length === 28, `${ALL_MISSIONS.length} jobs once the whole summer is open`);
   ok(MISSIONS.filter((m) => ARC.includes(m)).length === 0,
     'none of the summer\'s five beats are open before you have driven anything');
 
