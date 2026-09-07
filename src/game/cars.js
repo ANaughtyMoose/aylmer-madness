@@ -165,6 +165,9 @@ export const CARS = [
     flavour: 'Quarante places, un diesel qui claque, pis une pancarte HORS SERVICE en avant. Passe pas sur Bancroft.',
     len: 12.00, wid: 2.59, h: 3.10, wheelbase: 6.20, overhangF: 2.00, track: 2.44, wheelR: 0.53,
     topSpeed: 25.56, accel: 1.55, brake: 6.0, grip: 0.62, steerMax: 0.34, mass: 12000, aero: 0.000263,
+    // Off the tarmac it is not the 92 km/h gearing that matters, it is the
+    // torque under it: see `grunt` in Vehicle.update. Asphalt is untouched.
+    grunt: 1.3,
     seatY: 2.40, seatZ: 0.60, seatX: 0.80, clearance: 0.42,
     // a box on wheels: flat front, flat roof, flat back, one long window band
     top: [[0, 2.86], [0.006, 3.06], [0.02, 3.10], [0.975, 3.10], [0.99, 3.06], [1, 2.80]],
@@ -1326,6 +1329,17 @@ export class Vehicle {
     const surface = this.surface;
     const gripSurf = inAir ? 0 : sd.grip * turf;
     const offRoad = (1 - surface) / (1 - GRASS);      // 0 on tarmac, 1 fully off it
+    // `accel` is one number doing two jobs: how hard a vehicle pulls away, and
+    // how long it takes to reach the speed on the brochure. For a car those are
+    // the same engine. For a 12-tonne diesel bus geared for 92 km/h they are
+    // not — the New Look's whole character is that it has torque it will never
+    // use up. With `accel` alone, engine thrust on grass (1.55 × 0.81 = 1.26
+    // m/s²) came out BELOW the off-road drag term (0.28 + 1.42 × 0.78 = 1.39),
+    // so both buses settled at an asymptotic 0.8 km/h and could not physically
+    // leave the tarmac. `grunt` is the low-speed torque that `accel` hides, and
+    // it is faded in with `offRoad`, so on asphalt it is exactly 1 and nothing
+    // that has ever been measured on a road moves by a single bit.
+    const grunt = 1 + offRoad * ((s.grunt || 1) - 1);
     // Water under the car is only water if there is no road under it: a road
     // over the river polygon is a bridge. Without this the Champlain Bridge
     // deck — every metre of it over the OSM water polygon — dragged the car
@@ -1384,7 +1398,7 @@ export class Vehicle {
         if (ctl.throttle > 0 && vLong > -0.02) a += ctl.throttle * s.accel * surface;
       } else {
         if (ctl.throttle > 0) {
-          a += ctl.throttle * s.accel * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+          a += ctl.throttle * s.accel * grunt * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
         }
         // The brakes bring you to rest; they never push you out the other side.
         if (ctl.brake > 0 && vLong > 0.02) a -= Math.min(ctl.brake * s.brake * surface, vLong / dt);
