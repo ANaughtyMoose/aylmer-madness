@@ -5,6 +5,8 @@ through a **build-time** converter, so the runtime stays plain ES modules with
 no dependencies and no parser. By the time a model reaches the browser it is
 already positions / normals / colours / indices in the engine's own layout.
 
+Twenty models: five trees, six pieces of street furniture, and nine vehicles.
+
 Nothing here is wired into the game yet. `world.js`, `props.js`,
 `streetprops.js` and `cars.js` are untouched on purpose — that integration is
 Wave 2's, and the wiring points are written down below so it is a small job.
@@ -144,11 +146,18 @@ the number `tools/measure_memory.mjs` reports.
 | `garbage-can` | 68 | 232 | 9.0 kB | 14 kB |
 | `dumpster` | 234 | 392 | 16.5 kB | 25 kB |
 | `park-bench` | 84 | 320 | 12.2 kB | 18 kB |
-| `pickup-ranger` | 754 | 1152 | 49.3 kB | 71 kB |
+| `pickup-ranger` | 754 | 1152 | 49.3 kB | 72 kB |
+| `sedan-saturn` | 704 | 1072 | 45.9 kB | 67 kB |
+| `hatch-civic` | 760 | 1597 | 65.1 kB | 96 kB |
+| `coupe-sunfire` | 760 | 1156 | 49.5 kB | 70 kB |
+| `wagon-forester` | 1146 | 1724 | 74.0 kB | 111 kB |
+| `van-sienna` | 754 | 1138 | 48.8 kB | 70 kB |
+| `police-cruiser` | 976 | 1494 | 64.0 kB | 90 kB |
+| `school-bus` | 1782 | 2983 | 125.8 kB | 192 kB |
 | `city-bus` | 1526 | 2613 | 109.7 kB | 169 kB |
-| **all thirteen** | **4274** | **8610** | **353 kB** | **544 kB** |
+| **all 20** | **11156** | **19774** | **826 kB** | **1242 kB** |
 
-353 kB against the 183 MB of GPU memory the sector-gated build holds at the
+826 kB against the 183 MB of GPU memory the sector-gated build holds at the
 driveway (`docs/VERIFY.md`). **Loading every model is free. Baking them is not**
 — see the warning under "Trees" below.
 
@@ -262,19 +271,43 @@ hangs its wheels. `docs/shots/models-pickup-ranger.jpg` has the game's own
 wheels bolted on. The scale is per-axis (`1.18, 1.262, 1.6975`) and the origin
 is offset onto the axle midpoint; both are in the recipe with the arithmetic.
 
-**The city bus needs a spec change.** The bus is scaled to the game's own
-`len: 12.00, wid: 2.59, h: 3.10`, and its axles then land at:
+**Every other vehicle is scaled by its WHEELBASE, not its length.** The game
+hangs its own wheels at `±wheelbase/2` about the mesh origin, so the wheelbase
+is the one dimension that must agree or the tyres sit outside the arches.
+Kenney's proportions are not any real car's, so the overall length then falls
+where the kit puts it:
 
-| | spec today | this model |
-|---|---:|---:|
-| wheelbase | 6.20 m | **8.35 m** |
-| front overhang | 2.00 m | 1.82 m |
+| model | spec | wheelbase | body length | spec length |
+|---|---|---:|---:|---:|
+| `pickup-ranger` | `ranger` | 2.75 | 5.01 | 4.78 |
+| `sedan-saturn` | `saturn` | 2.60 | 5.02 | 4.49 |
+| `hatch-civic` | `civic` | 2.50 | 4.40 | 3.99 |
+| `coupe-sunfire` | `sunfire` (and `cavalier`) | 2.64 | 5.10 | 4.60 |
+| `wagon-forester` | *none yet* | 2.52 | 3.76 | 4.46 (real) |
+| `van-sienna` | *none yet* | 2.90 | 5.25 | 4.85 (real) |
+| `police-cruiser` | *none yet* | 2.92 | 5.59 | 5.40 (real) |
 
-The model's geometry is the more realistic of the two — a 12 m two-axle transit
+`len` drives collision and physics, so a body 10% longer than its spec overhangs
+its own collision box a little. That is cosmetic; wheels in the wrong place are
+not. **`wagon-forester` is the one to watch**: Kenney's SUV is unusually
+long-wheelbase for its length, so scaling to a Forester's 2.52 m wheelbase
+leaves a 3.76 m body. Wave 3 should give the Forester a shorter `len` rather
+than stretch the model.
+
+**The two buses are the exception, and they need a spec change.** A bus that is
+three metres short reads as a toy, so both are scaled to their real overall
+length and their axles land wide:
+
+| model | spec | wheelbase today | this model | overhangF today | this model |
+|---|---|---:|---:|---:|---:|
+| `city-bus` | `bus` | 6.20 | **8.35** | 2.00 | 1.82 |
+| `school-bus` | `schoolbus` | 6.93 | **8.96** | 1.22 | — |
+
+The models' geometry is the more realistic of the two — a 12 m two-axle transit
 bus has a wheelbase near 8 m, and 6.20 m is short for that length. **Change the
-spec, not the model**, and re-run `tools/smoke_vehicles.mjs`: `wheelbase` and
-`overhangF` are what `finalizeCar()` derives `axleZ` and `track` from, so the
-turning circle and the wheel positions both move with them.
+spec, not the model**, and re-run `tools/smoke_vehicles.mjs`: `finalizeCar()`
+derives `axleZ` and `track` from `wheelbase` and `overhangF`, so the turning
+circle and the wheel positions both move with them.
 
 While there: `cars.js` declares `track: 1.67` on the Ranger and
 `finalizeCar()` recomputes `track` from the `plan` profile on import, so the

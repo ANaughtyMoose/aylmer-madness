@@ -27,6 +27,13 @@ borrowed is the geometry.
 | `dumpster` | 234 | kenney/city-kit-roads/dumpster.glb | City Kit (Roads) | Kenney | [CC0-1.0](https://kenney.nl/assets/city-kit-roads) |
 | `park-bench` | 84 | kenney/retro-urban-kit/detail-bench.glb | Retro Urban Kit (2.0) | Kenney | [CC0-1.0](https://kenney.nl/assets/retro-urban-kit) |
 | `pickup-ranger` | 754 | kenney/car-kit/truck.glb | Car Kit (3.1) | Kenney | [CC0-1.0](https://kenney.nl/assets/car-kit) |
+| `sedan-saturn` | 704 | kenney/car-kit/sedan.glb | Car Kit (3.1) | Kenney | [CC0-1.0](https://kenney.nl/assets/car-kit) |
+| `hatch-civic` | 760 | kenney/car-kit/hatchback-sports.glb | Car Kit (3.1) | Kenney | [CC0-1.0](https://kenney.nl/assets/car-kit) |
+| `coupe-sunfire` | 760 | kenney/car-kit/sedan-sports.glb | Car Kit (3.1) | Kenney | [CC0-1.0](https://kenney.nl/assets/car-kit) |
+| `wagon-forester` | 1146 | kenney/car-kit/suv.glb | Car Kit (3.1) | Kenney | [CC0-1.0](https://kenney.nl/assets/car-kit) |
+| `van-sienna` | 754 | kenney/car-kit/van.glb | Car Kit (3.1) | Kenney | [CC0-1.0](https://kenney.nl/assets/car-kit) |
+| `police-cruiser` | 976 | kenney/car-kit/police.glb | Car Kit (3.1) | Kenney | [CC0-1.0](https://kenney.nl/assets/car-kit) |
+| `school-bus` | 1782 | quaternius/public-transport/schoolbus.glb | Public Transport Pack | Quaternius | [CC0-1.0](https://quaternius.com/packs/publictransport.html) |
 | `city-bus` | 1526 | quaternius/public-transport/citybus.glb | Public Transport Pack | Quaternius | [CC0-1.0](https://quaternius.com/packs/publictransport.html) |
 
 ## Packs

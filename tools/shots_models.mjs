@@ -26,6 +26,13 @@ const VIEW = {
   default: [0.7, -0.22, 1.0],
   'pickup-ranger': [0.62, -0.20, 0.92],
   'city-bus': [0.62, -0.17, 0.95],
+  'school-bus': [0.62, -0.17, 0.95],
+  'sedan-saturn': [0.62, -0.20, 0.92],
+  'hatch-civic': [0.62, -0.20, 0.92],
+  'coupe-sunfire': [0.62, -0.20, 0.92],
+  'wagon-forester': [0.62, -0.20, 0.92],
+  'van-sienna': [0.62, -0.20, 0.92],
+  'police-cruiser': [0.62, -0.20, 0.92],
   'stop-sign': [0.5, -0.12, 0.85],
   'park-bench': [0.75, -0.28, 0.85],
   'lamp-post': [0.9, -0.10, 0.85],
@@ -35,7 +42,9 @@ const VIEW = {
 // The stats panel overlaps a tall model, and the numbers it shows are printed to
 // the console beside every path anyway.
 const HIDE_UI = true;
-const ROAD = new Set(['pickup-ranger', 'city-bus', 'stop-sign', 'lamp-post', 'dumpster']);
+const ROAD = new Set(['pickup-ranger', 'city-bus', 'school-bus', 'sedan-saturn', 'hatch-civic',
+  'coupe-sunfire', 'wagon-forester', 'van-sienna', 'police-cruiser',
+  'stop-sign', 'lamp-post', 'dumpster']);
 
 let ws = null, seq = 0;
 const pending = new Map();

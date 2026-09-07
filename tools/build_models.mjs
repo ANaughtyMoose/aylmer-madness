@@ -45,6 +45,11 @@ const P = {
   signRed: '#c4211c', signWhite: '#e6e4de', signPost: '#8a8f94',
   bodyWhite: '#ebe8dd', bodyFloor: '#d7d4c8', lamp: '#fff3c4', tail: '#c0332a',
   wood: '#7a5a38', binDark: '#3b4046', cladding: '#3a3c40',
+  // The four cast bodies, straight out of cars.js's own specs, and two Wave 3
+  // vehicles that have no spec yet (docs/PLAN.md, "Who drives what").
+  saturnBlue: '#2f5fa8', civicRed: '#a8322b', sunfireTeal: '#1c8f83',
+  foresterGreen: '#2f5b3a', siennaBeige: '#b9b2a4', policeWhite: '#e8e8e6',
+  sbYellow: '#f2bf0d', sbBlack: '#16171a', sbRoof: '#e6e6e2',
 };
 
 // ------------------------------------------------------------- the licences
@@ -95,6 +100,39 @@ const LIC = {
     license: 'CC0-1.0', licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
   },
 };
+
+
+// Every Kenney Car Kit vehicle is painted from the SAME `colormap` swatches —
+// one green body, one cream, one grey-purple, the same two blues — so one
+// palette does for all of them and only the body colour differs. The keys came
+// from `--node body --listColors`; nearest wins, which is what absorbs the
+// couple of units of drift inside each swatch.
+const carKitPaint = (body) => [
+  // Three body families — Kenney paints a vehicle in a green, a grey-purple and
+  // an orange-brown — all of which are BODY and all of which go to one colour,
+  // because a 1993 Ranger XL and a 1997 Saturn are each one colour of paint.
+  '--recolor', `#4db681=${body}`, '--recolor', `#20896b=${body}`,
+  '--recolor', `#74778c=${body}`, '--recolor', `#d27d58=${body}`,
+  '--recolor', `#fadbb8=${P.cladding}`,
+  '--recolor', `#c5dffb=${P.glass}`, '--recolor', `#759fde=${P.glass}`,
+  '--recolor', `#ad77e8=${P.lamp}`,
+  // No tail-lamp key. The one that was here (#e86147) is a couple of pixels
+  // apart from the orange-brown BODY family, and nearest-wins handed it 692 of
+  // the police car's vertices: a cruiser painted fire-engine red down one whole
+  // flank. cars.js draws its own lamp meshes proud of the body anyway.
+];
+
+// A Kenney car body scaled to a real car. The three multipliers are width,
+// height and WHEELBASE — never overall length. The game hangs its own wheels at
+// +-wheelbase/2 about the mesh origin, so the wheelbase is the one dimension
+// that MUST agree or the tyres sit outside the arches; the length then falls
+// where the kit's proportions put it, and docs/MODELS.md records the delta.
+const carKit = (slug, name, src, body, sx, sy, sz, offsetZ, note) => ({
+  slug, kind: 'vehicle', name, src: `kenney/car-kit/${src}.glb`, lic: LIC.kenneyCar,
+  note,
+  args: ['--node', 'body', '--forward', '+z',
+    '--scale', `${sx},${sy},${sz}`, '--offset', `0,0,${offsetZ}`, ...carKitPaint(body)],
+});
 
 // ---------------------------------------------------------------- the models
 // `kind` decides the triangle budget the suite enforces: 600 for a prop (there
@@ -229,7 +267,47 @@ const RECIPES = [
       '--recolor', `#fadbb8=${P.cladding}`,
       '--recolor', `#c5dffb=${P.glass}`, '--recolor', `#759fde=${P.glass}`,
       '--recolor', `#eb78ef=${P.lamp}`, '--recolor', `#ad77e8=${P.lamp}`,
-      '--recolor', `#e86147=${P.tail}`],
+      '--recolor', `#d27d58=${P.bodyWhite}`],
+  },
+  carKit('sedan-saturn', 'Berline (Saturn SL)', 'sedan', P.saturnBlue,
+    1.1333, 1.0692, 1.9697, 0,
+    '1997 Saturn SL, Margaret’s. Wheelbase 2.60 m; the body then comes out '
+    + '5.02 m against the spec’s 4.49 — see docs/MODELS.md.'),
+  carKit('hatch-civic', 'Hatchback (Civic Si)', 'hatchback-sports', P.civicRed,
+    1.2846, 1.2091, 1.5432, 0,
+    '1988 Honda Civic Si, Sayyad’s. Wheelbase 2.50 m, body 4.40 m against 3.99.'),
+  carKit('coupe-sunfire', 'Coupé (Sunfire)', 'sedan-sports', P.sunfireTeal,
+    1.3231, 1.2273, 2.0000, 0,
+    '1997 Pontiac Sunfire, Adam’s — and the same shell serves the Cavalier. '
+    + 'Wheelbase 2.64 m, body 5.10 m against 4.60.'),
+  carKit('wagon-forester', 'Familiale (Forester)', 'suv', P.foresterGreen,
+    1.1567, 1.2154, 1.3923, 0.2019,
+    'Mike’s green 1998 Subaru Forester (Wave 3, no spec yet). Wheelbase 2.52 m, '
+    + 'and the body then comes out only 3.76 m: Kenney’s SUV is unusually '
+    + 'long-wheelbase for its length, so this one wants its spec length cut '
+    + 'rather than the model stretched.'),
+  carKit('van-sienna', 'Minifourgonnette (Sienna)', 'van', P.siennaBeige,
+    1.2200, 1.2741, 1.9079, 0,
+    'Abraham’s beaten-up ~1999 Toyota Sienna (Wave 3, no spec yet). '
+    + 'Wheelbase 2.90 m, body 5.25 m against a real 4.85.'),
+  carKit('police-cruiser', 'Auto-patrouille', 'police', P.policeWhite,
+    1.3200, 1.1154, 1.8025, 0,
+    'A Crown Victoria stand-in for the SPVG. Wheelbase 2.92 m, body 5.59 m '
+    + 'against a real 5.40. No spec in cars.js yet.'),
+  {
+    // Quaternius's school bus is the same shape of problem as its city bus, and
+    // takes the same answer: scale to the real overall LENGTH, because a bus
+    // that is 3 m short reads as a toy, and record the wheelbase delta instead.
+    slug: 'school-bus', kind: 'vehicle', name: 'Autobus scolaire',
+    src: 'quaternius/public-transport/schoolbus.glb', lic: LIC.quatTransport,
+    note: '11.6 x 2.44 x 3.08 m, the game’s own schoolbus spec. Wheelbase comes '
+      + 'out 8.96 m against the spec’s 6.93 — see docs/MODELS.md.',
+    args: ['--forward', '-x',
+      // 11.60 / 4.61 long, 3.08 / 2.19 tall, 2.44 / 1.88 wide.
+      '--scale', '1.298,1.406,2.516', '--center',
+      '--material', `Yellow=${P.sbYellow}`, '--material', `Windows=${P.glass}`,
+      '--material', `Details=${P.sbBlack}`, '--material', `Bumper=${P.sbBlack}`,
+      '--material', `Lights=${P.amber}`, '--material', `Wheel=${P.tire}`],
   },
   {
     // Quaternius's bus is stubby (4.09 : 1.74 long : wide, where a real transit

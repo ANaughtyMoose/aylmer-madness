@@ -53,7 +53,12 @@ function proceduralPole(b, h) { b.post(0, 0, 0, 0.22, h, rgb(C.pole)); }
 // A car the way main.js draws one: the lofted body, plus the four wheels the
 // game hangs at +-wheelbase/2. This is the whole point of the pickup comparison
 // — the converted body has to accept these wheels.
-function gameWheels(b, s) {
+function gameWheels(b, spec) {
+  // A string names a car in CARS; an object is a vehicle cars.js has no spec
+  // for yet (Wave 3's Forester and Sienna, the cruiser), described by the three
+  // numbers that decide where a wheel goes.
+  const s = typeof spec === 'string' ? carById(spec)
+    : { id: '_generic', axleZ: spec.wheelbase / 2, ...spec };
   const wheel = s.buildWheel ? s.buildWheel(s) : buildWheel(s);
   const hw = (s.track || 1.6) / 2;
   for (const sz of [1, -1]) {
@@ -82,7 +87,17 @@ function proceduralCar(b, id) {
 // the body's own arches is the whole question. So the lab bolts the GAME'S
 // wheels onto the borrowed body — if they stick out through the flanks, that is
 // visible here and nowhere else.
-const WHEELS_FOR = { 'pickup-ranger': 'ranger' };
+const WHEELS_FOR = {
+  'pickup-ranger': 'ranger',
+  'sedan-saturn': 'saturn',
+  'hatch-civic': 'civic',
+  'coupe-sunfire': 'sunfire',
+  // No spec in cars.js yet: the real car's own track, wheelbase and tyre, which
+  // are also the numbers tools/build_models.mjs scaled the body to.
+  'wagon-forester': { track: 1.47, wheelbase: 2.52, wheelR: 0.32, style: 'suv' },
+  'van-sienna': { track: 1.57, wheelbase: 2.90, wheelR: 0.33, style: 'van' },
+  'police-cruiser': { track: 1.62, wheelbase: 2.92, wheelR: 0.35, style: 'sedan' },
+};
 
 const COMPARE = {
   'tree-sugar-maple': (b) => proceduralTree(b, false, 1.15),
@@ -97,6 +112,10 @@ const COMPARE = {
   'park-bench': (b) => KINDS.cafetable.emit(b, 0, 0, 0, 0),
   'stop-sign': (b) => proceduralPole(b, 2.4),
   'pickup-ranger': (b) => proceduralCar(b, 'ranger'),
+  'sedan-saturn': (b) => proceduralCar(b, 'saturn'),
+  'hatch-civic': (b) => proceduralCar(b, 'civic'),
+  'coupe-sunfire': (b) => proceduralCar(b, 'sunfire'),
+  'school-bus': (b) => proceduralCar(b, 'schoolbus'),
   'city-bus': (b) => proceduralCar(b, 'bus'),
 };
 
@@ -143,7 +162,7 @@ function rebuild() {
 
   const mb = new MeshBuilder();
   const converted = modelBuilder(m);
-  if (WHEELS_FOR[slug]) gameWheels(converted, carById(WHEELS_FOR[slug]));
+  if (WHEELS_FOR[slug]) gameWheels(converted, WHEELS_FOR[slug]);
   mb.append(shift(converted, wantCmp ? -gap : 0, 0, 0));
   let cmpTris = 0;
   if (wantCmp) {
