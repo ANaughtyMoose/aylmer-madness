@@ -245,7 +245,16 @@ export class Renderer {
 
   setEnvironment(env) { this.env = env; }
 
-  begin(camPos, camYaw, camPitch, fov) {
+  // opts.near: the near plane, default 0.4 m. Every camera in the game looks at
+  //   the world from outside the car, where 0.4 is free; the driver's seat has
+  //   a door card at 45 cm and a wheel rim at 50, so it asks for less.
+  // opts.world: the camera's world matrix, already built. The driver's view
+  //   composes its eye onto the car's own model matrix rather than describing it
+  //   with Euler angles, because that is the only way it inherits the body's
+  //   pitch and roll exactly — including their signs — instead of approximately.
+  //   `camPos` is still the eye position (the shader needs it) and camYaw /
+  //   camPitch are ignored.
+  begin(camPos, camYaw, camPitch, fov, opts) {
     const gl = this.gl;
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -253,8 +262,9 @@ export class Renderer {
     gl.clearColor(e.fog[0], e.fog[1], e.fog[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    m4.perspective(this.proj, fov, this.aspect, 0.4, 9000);
-    m4.compose(this.camWorld, camPos[0], camPos[1], camPos[2], camYaw, camPitch, 0);
+    m4.perspective(this.proj, fov, this.aspect, (opts && opts.near) || 0.4, 9000);
+    if (opts && opts.world) this.camWorld.set(opts.world);
+    else m4.compose(this.camWorld, camPos[0], camPos[1], camPos[2], camYaw, camPitch, 0);
     m4.invertRigid(this.view, this.camWorld);
     m4.mul(this.vp, this.proj, this.view);
     extractFrustum(this.planes, this.vp);

@@ -68,7 +68,8 @@ export const SECTIONS = [
       { k: 'fov', type: 'range', min: -0.15, max: 0.2, step: 0.01, fmt: 'signed' },
       {
         k: 'cam', type: 'select', int: true,
-        options: [['0', 'opt.cam.chase'], ['1', 'opt.cam.close'], ['2', 'opt.cam.far'], ['3', 'opt.cam.hood']],
+        options: [['0', 'opt.cam.chase'], ['1', 'opt.cam.close'], ['2', 'opt.cam.far'],
+          ['3', 'opt.cam.hood'], ['4', 'opt.cam.driver']],
       },
       { k: 'mapSize', type: 'select', int: true, options: [['0', 'opt.small'], ['1', 'opt.large']] },
       { k: 'showHud', type: 'check' },

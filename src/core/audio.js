@@ -42,14 +42,39 @@
 //
 // Everything is built once. `engine()` only writes AudioParams — no node is
 // created while you are driving.
+
+// The two ends of the cabin filter's sweep, in Hz. OPEN is above the top of
+// hearing, which is the same as no filter at all; SEAT is what a 6x9 in a door
+// card actually gives you with a cassette adapter in the deck.
+const CABIN_OPEN = 20000;
+const CABIN_SEAT = 2400;
+
 export class Audio {
   constructor() {
     this.ok = false;
     this.enabled = true;
     this.ep = null;
     this.voice = null;
+    this.inCab = false;
     // 0..1 each. The options screen owns the persistence; this owns the graph.
     this.vol = { master: 1, engine: 1, effects: 1, radio: 1 };
+  }
+
+  /**
+   * The driver's view puts your ears inside the cab (BACKLOG C6). Called every
+   * frame with the camera's answer; only a change moves anything, and the sweep
+   * takes about a fifth of a second so pressing C is a filter opening rather
+   * than a click. Safe before the context exists — the graph reads `inCab` when
+   * it is built.
+   */
+  setCabin(on) {
+    on = !!on;
+    if (on === this.inCab) return on;
+    this.inCab = on;
+    if (this.ok && this.cabin) {
+      this.cabin.frequency.setTargetAtTime(on ? CABIN_SEAT : CABIN_OPEN, this.ctx.currentTime, 0.06);
+    }
+    return on;
   }
 
   /**
@@ -92,7 +117,18 @@ export class Audio {
     this.engBus = ctx.createGain(); this.engBus.gain.value = this.vol.engine;
     this.fx = ctx.createGain(); this.fx.gain.value = this.vol.effects;
     this.radioBus = ctx.createGain(); this.radioBus.gain.value = this.vol.radio;
-    for (const b of [this.engBus, this.fx, this.radioBus]) b.connect(this.master);
+    // The cabin filter sits between the radio and the master and is a flat wire
+    // (20 kHz) in every camera but the driver's. From the seat you are not
+    // listening to a station, you are listening to two paper door speakers in a
+    // 1993 truck fed off a cassette adapter, and the top end is simply not
+    // there. See setCabin(): one node, one swept frequency, no second graph.
+    this.cabin = ctx.createBiquadFilter();
+    this.cabin.type = 'lowpass';
+    this.cabin.frequency.value = this.inCab ? CABIN_SEAT : CABIN_OPEN;
+    this.cabin.Q.value = 0.4;
+    this.radioBus.connect(this.cabin);
+    this.cabin.connect(this.master);
+    for (const b of [this.engBus, this.fx]) b.connect(this.master);
 
     // One noise buffer, shared by the engine voice, the tyres and the rattle.
     this.noiseBuf = makeNoise(ctx, 2);

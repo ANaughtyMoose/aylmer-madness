@@ -98,6 +98,10 @@ import { StoryOpener as EndingCards, endingCards } from './game/story.js';
 // Wave 3: races that interrupt, and skills that improve with use.
 import * as ambush from './game/ambush.js';
 import * as skills from './game/skills.js';
+// The driver's seat (BACKLOG C6). CAMS lives in there so a node suite can
+// assert on the camera list without importing this file, which touches
+// `document` on line one.
+import { CAMS, DRIVER_CAM, DRIVER_NEAR, Cockpit, hasCockpit } from './game/cockpit.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -134,12 +138,7 @@ function phaseClock(name) {
 // QUALITY[G.quality].x each frame reads G.q.x, which applySettings maintains:
 // drawDist is the chunk cutoff, fogMul thickens the fog so the cutoff hides in
 // it, traffic is the car count (it takes at the next enterDrive).
-const CAMS = [
-  { name: 'chase', dist: 9.2, height: 3.7, pitch: -0.17, fovAdd: 0 },
-  { name: 'close', dist: 6.4, height: 2.9, pitch: -0.15, fovAdd: 0.03 },
-  { name: 'far',   dist: 14.5, height: 6.4, pitch: -0.26, fovAdd: -0.03 },
-  { name: 'hood',  dist: -0.2, height: 1.55, pitch: -0.04, fovAdd: 0.06 },
-];
+// CAMS is imported from game/cockpit.js — the fifth stop is the driver's seat.
 // feel agent: how long the hood cam takes to swing round when you drop it into
 // reverse. Anything under about a fifth of a second reads as a glitch.
 const REV_CAM_BLEND = 0.3;
@@ -1854,7 +1853,10 @@ function tick(dt) {
     const atPump = !!gp && Math.hypot(v.x - gp.x, v.z - gp.z) < 24;
     const dry = fuel.tickFuel(G, dt, v, input.throttle, atPump);
     if (dry) v.spec = dry;
-    hud.setFuel(G.fuel, fuel.tankOf(v.baseSpec));
+    // The HUD gauge and the needle on the dash read the same two numbers, so
+    // the tank size is parked on G rather than recomputed in the renderer.
+    G.fuelTank = fuel.tankOf(v.baseSpec);
+    hud.setFuel(G.fuel, G.fuelTank);
     const env = calendar.envelopeText(G);
     hud.setEnvelope(env.amount, env.day, G.reached);
     calendar.checkReached(G, hud);
@@ -1989,6 +1991,12 @@ function tick(dt) {
   const load = clamp(drivePedal * 0.85 + Math.min(0.2, v.speedKmh / 400), 0, 1);
   audio.engine(gb.rpm, load, v.speedKmh, drivePedal, gb.clutch);
   audio.skid(v.skid);
+  // The driver's head. It reads measured acceleration and the gearbox's rpm, so
+  // it belongs on the fixed step with them and not in render(): off the frame
+  // clock the dip would be a different size at 60 Hz and at 144, and a headless
+  // run that steps the sim five hundred times and draws once would never see a
+  // dive at all. (It did not. That is how this was found.)
+  if (G.cockpit) G.cockpit.update(dt, G);
   hud.setGear(v.reversing ? 'R' : gb.gear);
   // Where the car is, so the Ottawa signal (CHEZ 106) can fade the further west
   // you get. The five local stations ignore it.
@@ -2104,6 +2112,12 @@ function roadContext(v) {
 }
 
 const mm = m4.create();
+// The player car's model matrix, built once a frame before anything is drawn:
+// the driver's camera is composed onto it (it is a point INSIDE the car, not an
+// offset from it), and the cab and the mirrors are drawn with it. Sharing one
+// matrix is what stops the dash and the body disagreeing by a frame.
+const carModel = m4.create();
+const camWorld = m4.create();
 let fpsAt = 0;
 const black = new Float32Array([0, 0, 0]);
 const yellow = new Float32Array([1, 0.79, 0.3]);
@@ -2114,6 +2128,18 @@ function render(dt) {
   // The camera follows whatever the current stage put in focus — the car, or the
   // canoe. Anything with x/z/yaw/vLong/vLat/spec works.
   const f = G.focus || v;
+
+  // The driver's seat (BACKLOG C6). It is only a camera when the thing in focus
+  // is the car you are sitting in and that car HAS a cab: a bicycle, the golf
+  // cart and the canoe fall back to the hood cam's framing rather than putting
+  // the eye inside a bicycle.
+  if (!G.cockpit) G.cockpit = new Cockpit(r);
+  const inCab = cam.name === 'driver' && f === v && hasCockpit(v.spec);
+  // (The head itself is stepped in tick(), on the fixed clock, with the physics
+  // it reads.)
+  // From the seat the radio is two paper door speakers and a cassette adapter,
+  // not a station. audio.setCabin only does work on a change.
+  audio.setCabin(inCab);
 
   // Chase camera: yaw eases toward the car, and a slide swings it wide.
   // D5: look where you're going. The flip is blended over REV_CAM_BLEND seconds
@@ -2157,6 +2183,7 @@ function render(dt) {
   // In the air the chase cam leans with the nose, and every landing rattles the
   // hood cam for a moment. Both are small on purpose — they read, they don't spin.
   let camPitch = cam.pitch;
+  let shakePitch = 0;
   if (f.inAir) camPitch += clamp(-f.pitch * 0.45, -0.22, 0.22);
   if (G.camShake > 0.002) {
     // This was one sine at 61 rad/s — about 9.7 Hz — straight onto pitch. That
@@ -2169,11 +2196,25 @@ function render(dt) {
     // yaw so the world sways instead of nodding. Half the amplitude, a fifth of
     // the frequency; the speed cue lives in the FOV above, where it belongs.
     const k = G.camShake * (cam.name === 'hood' ? 0.055 : 0.024) * G.settings.shake;
-    camPitch += (Math.sin(G.time * 11.7) * 0.65 + Math.sin(G.time * 7.3) * 0.35) * k;
+    shakePitch = (Math.sin(G.time * 11.7) * 0.65 + Math.sin(G.time * 7.3) * 0.35) * k;
+    camPitch += shakePitch;
     G.camYaw += Math.sin(G.time * 9.1) * k * 0.5;
   }
   r.setEnvironment(G.env);
-  r.begin(G.camPos, G.camYaw, camPitch, fov);
+  // The player's car, one matrix, before anything is drawn: the driver's camera
+  // hangs off it and so do the cab and the mirrors.
+  m4.compose(carModel, v.x, v.bodyY, v.z, v.yaw, v.pitch, v.roll);
+  if (inCab) {
+    // Not the chase path's smoothed position and not its Euler angles: the eye
+    // is composed onto the car's own frame, so it inherits the body's pitch and
+    // roll exactly (a lag of even one frame and the dash swims), and the head's
+    // dip and turn are the only motion added. `cam.pitch` rather than `camPitch`
+    // because the in-air lean is already in the body this camera is riding in.
+    G.cockpit.view(camWorld, G.camPos, carModel, v.spec, cam.pitch + shakePitch);
+    r.begin(G.camPos, G.camYaw, camPitch, fov, { near: DRIVER_NEAR, world: camWorld });
+  } else {
+    r.begin(G.camPos, G.camYaw, camPitch, fov);
+  }
 
   m4.compose(mm, G.camPos[0], 0, G.camPos[2], 0, 0, 0);
   r.draw(G.sky.mesh, mm, skyOpts(G.env));
@@ -2184,12 +2225,20 @@ function render(dt) {
   G.signals.draw(r, f.x, f.z);
 
   drawCar(v.spec, v.x, v.z, v.yaw, v.pitch, v.roll, v.spin, v.steer, null, v.passengers, v.bodyY, v.gh);
+  // The mirrors, the wipers, the proud hood hinge and the rust on the cowl seam
+  // belong to the truck in EVERY camera — otherwise the thing you look at out
+  // of the side window from the seat is not the thing the chase cam draws.
+  G.cockpit.drawExtras(carModel, v.spec, null);
+  // ...and the cab itself, only from inside it: the body loft is one-sided, so
+  // without this the seat is in a convertible made of sky.
+  if (inCab) G.cockpit.draw(G, carModel, v.spec, null);
   const night = nightAmount(G.env);
   // The light cones are two translucent wedges hanging off the nose. From the
   // hood camera the eye sits INSIDE them, so they wash the whole screen warm —
   // which nobody has ever seen from the driver's seat of a real car. Storms
   // made this obvious by turning the lights on in the middle of the afternoon.
-  if (night > 0.35 && cam.name !== 'hood' && G.meshes.cones[v.spec.id]) {
+  // The driver's seat is inside them too, and more so.
+  if (night > 0.35 && cam.name !== 'hood' && !inCab && G.meshes.cones[v.spec.id]) {
     coneOpts.alpha = 0.15 * night;
     m4.compose(mm, v.x, v.bodyY, v.z, v.yaw, 0, 0);
     r.draw(G.meshes.cones[v.spec.id], mm, coneOpts);

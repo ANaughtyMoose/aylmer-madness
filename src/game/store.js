@@ -71,7 +71,7 @@ export const DEFAULT_SETTINGS = {
   drawDist: 720,           // metres, 400 .. 1200
   fogMul: 1.45,            // 0.5 .. 2 x the time-of-day fog density
   fov: 0,                  // -0.15 .. 0.20 radians added to the camera FOV
-  cam: 0,                  // default camera index (chase / close / far / hood)
+  cam: 0,                  // default camera index (chase / close / far / hood / driver)
   mapSize: 0,              // index into MAP_SIZES
   showLegend: true,
   showHud: true,
@@ -128,7 +128,7 @@ export function normalizeSettings(raw) {
     drawDist: Math.round(lim('drawDist', s.drawDist)),
     fogMul: lim('fogMul', s.fogMul),
     fov: lim('fov', s.fov),
-    cam: Number.isInteger(s.cam) ? Math.min(3, Math.max(0, s.cam)) : D.cam,
+    cam: Number.isInteger(s.cam) ? Math.min(4, Math.max(0, s.cam)) : D.cam,
     mapSize: Number.isInteger(s.mapSize) ? Math.min(MAP_SIZES.length - 1, Math.max(0, s.mapSize)) : D.mapSize,
     showLegend: bool(s.showLegend, D.showLegend),
     showHud: bool(s.showHud, D.showHud),
