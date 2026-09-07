@@ -488,10 +488,13 @@ function installSkin() {
 .startpanel .topbar{position:sticky;top:0;z-index:3;padding:6px 0;
   background:linear-gradient(180deg,#12212b 68%,rgba(18,33,43,0))}
 #startmap{max-height:52vh}
+/* The list scrolls inside its own column, as tall as the map, so the pinned GO
+   bar never sits on top of the last start points (it did, on a 1440×900). */
+#startpoints{max-height:52vh;overflow:auto;padding-right:4px;padding-bottom:6px;align-content:start}
 #startconfirm{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
   z-index:4;min-width:min(520px,86vw);font-size:19px;letter-spacing:1.6px;
   padding:16px 26px;box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 3px rgba(255,201,77,.22)}
-@media (max-height:760px){#startmap{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}
+@media (max-height:760px){#startmap{max-height:44vh}#startpoints{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}
 #startwho{margin:6px 0 10px}
 #startwho .tag{margin:0 0 6px}
 #startchars{display:flex;gap:8px;flex-wrap:wrap}
