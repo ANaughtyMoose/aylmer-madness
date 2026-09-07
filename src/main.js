@@ -93,6 +93,7 @@ import { hangout } from './game/hangout.js';
 // The spine (Wave 2a): the calendar, the envelope, gas, and the endings.
 import * as calendar from './game/calendar.js';
 import * as fuel from './game/fuel.js';
+import * as tow from './game/tow.js';
 import { refundJob } from './game/missionkit.js';
 import { StoryOpener as EndingCards, endingCards } from './game/story.js';
 // Wave 3: races that interrupt, and skills that improve with use.
@@ -936,6 +937,7 @@ function enterDrive(save = null, startKey = null) {
   G.health = save ? { ...save.health } : {};
   restoreDamage(G.veh, G.health[spec.id] || 0);
   G.repair.t = 0; G.towed = false;
+  settleAfterPlacing();
   audio.setEngineProfile(spec.sound);
   // Jobs, records, money, playtime, unlocks: all of it comes out of the save.
   G.done = new Set(save ? save.progress : []);
@@ -1134,6 +1136,32 @@ function resetCarLocations(quiet = false) {
   return G.parked;
 }
 
+// Getting unstuck is free; getting fixed is not. Both live in game/tow.js;
+// these three only turn its records into toasts.
+let towUI = null;
+function doReset() {
+  const r = tow.freeReset(G);
+  if (!r.ok) return;
+  hud.toast(r.name ? `Remis sur ${r.name}` : 'Remis sur la route', 1400);
+}
+function doTow() {
+  const r = tow.callTow(G);
+  if (!r.ok) {
+    if (r.broke) { hud.toast(`La dépanneuse veut ${r.cost} $. T’as pas ça.\nT, c’est gratis — mais ça répare rien.`, 3000); audio.chime(false); }
+    return;
+  }
+  hud.toast(`Dépanneuse: ${r.cost} $.\nRemis sur ${r.name || 'la route'}, pis réparé.`, 3000);
+  hud.setRepairHint(null); hud.setRepairPrompt(null);
+  audio.chime(true);
+}
+// A save can put the car inside a house (the autosave caught you on the lawn,
+// and the footprint under it is from the assessment roll). Move it out, free.
+function settleAfterPlacing() {
+  const s = tow.settleSpawn(G);
+  if (s.moved) hud.toast(s.reason === 'water' ? 'Le char était dans l’eau — remis sur la route, gratis.'
+    : 'Le char était pogné — remis sur la route, gratis.', 3000);
+}
+
 function swapCar(id) {
   if (G.veh && G.veh.spec && carById(id)) fuel.onSwap(G, G.veh.baseSpec || G.veh.spec, carById(id));
   const v = G.veh, spot = G.parked[id];
@@ -1147,6 +1175,7 @@ function swapCar(id) {
   G.veh.assist = G.assist;
   G.veh.reset(spot.x, spot.z, spot.yaw);
   restoreDamage(G.veh, G.health[id]);
+  settleAfterPlacing();
   audio.setEngineProfile(spec.sound);
   G.gearbox = new Gearbox(spec.drive);
   G.repair.t = 0;
@@ -1641,8 +1670,10 @@ function handleKeys() {
   }
   // R is the radio (it is 2004 and the deck still matters); T is the get-me-out-of-here.
   if (input.hit('KeyT')) {
-    if (!fuel.jerrycan(G, G.veh.baseSpec || G.veh.spec)) { G.veh.recover(); hud.toast('Remis sur le chemin', 1200); }
+    if (!fuel.jerrycan(G, G.veh.baseSpec || G.veh.spec)) doReset();
   }
+  // Y is the flatbed: same road, but the car comes back fixed and you pay for it.
+  if (input.hit('KeyY')) doTow();
   if (input.hit('KeyR')) toggleRadio();
   // G is the slang gloss. Tapping it latches the English under every bubble;
   // holding it also puts the last three lines back up with the joke explained.
@@ -1857,6 +1888,8 @@ function tick(dt) {
     // the tank size is parked on G rather than recomputed in the renderer.
     G.fuelTank = fuel.tankOf(v.baseSpec);
     hud.setFuel(G.fuel, G.fuelTank);
+    if (!towUI) towUI = tow.installButtons(G, doReset, doTow);
+    if (towUI) towUI.update(v.damage, G.settings.lang);
     const env = calendar.envelopeText(G);
     hud.setEnvelope(env.amount, env.day, G.reached);
     calendar.checkReached(G, hud);

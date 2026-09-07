@@ -408,3 +408,13 @@ body.modal #radio{display:none !important}
 /* The pause menu's own scrim was tuned to be read THROUGH. With the HUD gone
    it only has the town behind it, so it can be what it always meant to be. */
 body.modal #pause{background:rgba(6,10,13,.9)}
+
+/* Getting unstuck (free) and the flatbed (paid): two buttons above the key
+   legend, for the player who does not know T and Y exist. */
+#towbtns{position:absolute;right:20px;bottom:296px;display:flex;gap:8px;pointer-events:auto;z-index:5}
+#towbtns button{font:inherit;color:#f4efe6;background:rgba(12,22,30,.78);border:1px solid rgba(255,255,255,.16);
+  border-radius:8px;padding:7px 12px;text-align:left;cursor:pointer;line-height:1.15;min-width:120px}
+#towbtns button:hover{background:rgba(255,201,77,.18);border-color:rgba(255,201,77,.55)}
+#towbtns button b{display:block;font-size:12px;letter-spacing:.3px}
+#towbtns button span{display:block;font-size:10px;opacity:.65;margin-top:2px}
+#hud.hidden #towbtns{display:none}
