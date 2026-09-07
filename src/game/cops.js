@@ -311,6 +311,15 @@ export class Cops {
     if (!v) return null;
     this.blink += dt;
     const racing = !!(G.mission && G.mission.def && G.mission.def.race);
+    // PLAN « Playable characters »: Zahra is fifteen, on a bicycle, and « no
+    // police interest whatsoever ». A two-wheeler accrues nothing, and anything
+    // already following you loses interest the moment you are on one — a
+    // constable who would not chase a bike would not keep chasing one either.
+    if (G.veh.spec && G.veh.spec.twoWheel) {
+      if (this.heat || this.units.length || this.blocks.length) this.clear();
+      this._lastStars = 0;
+      return null;
+    }
 
     if (!racing) this._accrue(dt, G);
     else G.ranRed = false;

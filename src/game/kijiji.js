@@ -66,16 +66,12 @@ export const ADS = [
       + 'PAS DANS LE PRIX. LA SUSPENSION EST MOLLE MAIS C\'EST DE MEME QUE C\'EST FAIT.\n'
       + 'PREMIER ARRIVE PREMIER SERVI. PAS DE NEGO.\nJE REPONDS PAS AUX COURRIELS.',
   },
-  {
-    car: 'cavalier', seller: 'Ti-Guy (Les Chars à Ti-Guy)', where: 'Aylmer (lot, chemin d\'Aylmer)',
-    posted: 'le 13 août 2004', calls: 3,
-    flaw: { text: 'Silencieux troué. Les deux 12 pouces cachent un plancher de valise pourri jusqu’au pneu de secours.', damage: 26 },
-    title: 'CAVALIER Z24 1991 V6 SPOILER — TRES PROPRE!!!!',
-    body: 'Z24!!! LE V6 3.1 PAS LE 4 CYLINDRES. SPOILER D\'ORIGINE. SYSTEME DE SON '
-      + 'INSTALLE PAR MOI-MEME (2 12 POUCES DANS LE COFFRE, INCLUS).\n'
-      + 'CA RATTLE EN DESSOUS DE 60 PIS CA RATTLE EN HAUT DE 60, C\'EST NORMAL SUR CES '
-      + 'CHARS LA.\nNEGO UN PEU. SERIEUX SEULEMENT. PAS DE TIRE-KICKER.',
-  },
+  // The Z24 used to be here, at $450, as Ti-Guy's fourth beater. PLAN's cast
+  // table settled that it is Tyler Yank's and it sits at her aunt's on
+  // Samuel-Edey (garage.js UNLOCKS.cavalier, kind 'owned'), so the ad had to
+  // go: line 762 below refuses to list a car that is not for sale, and an ad
+  // for somebody's actual car is a lie the game would be telling. Ti-Guy's lot
+  // is three cars now.
   {
     car: 'bus', seller: 'Transport urbain (liquidation)', where: 'Gatineau (garage municipal)',
     posted: 'le 28 juillet 2004', calls: 6,
