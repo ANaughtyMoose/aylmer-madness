@@ -2182,7 +2182,9 @@ function quickSave() {
 // a job finished, and a car bought / unlocked (PROGRESS calls G.autosave).
 function autosave(reason) {
   if (!G.settings.autosave || !G.veh || G.mode === 'menu') return null;
-  const snap = saveToSlot(G, 'auto', { name: saveName() });
+  // The autosave belongs to the summer you are playing. A bare 'auto' qualifies
+  // to Tom's, which as Zahra would quietly overwrite his.
+  const snap = saveToSlot(G, `${G.character}.auto`, { name: saveName() });
   if (snap) console.log('autosave:', reason);
   return snap;
 }

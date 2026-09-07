@@ -584,7 +584,7 @@ group('autosave');
   // main.js's autosave(), verbatim in shape.
   const autosave = (reason) => {
     if (!G.settings.autosave || !G.veh || G.mode === 'menu') return null;
-    return save.saveToSlot(G, 'auto', { name: 'auto ' + reason });
+    return save.saveToSlot(G, `${G.character}.auto`, { name: 'auto ' + reason });
   };
 
   ok(G.settings.autosave === true, 'autosave is on out of the box');
@@ -613,6 +613,22 @@ group('autosave');
   eq(save.lastSlot(), 'tom.3', 'writing a numbered slot marks it as last used');
   save.saveToSlot(G, 'auto', {});
   eq(save.lastSlot(), 'tom.3', 'the autosave does not steal the F5 slot');
+
+  // The autosave belongs to whoever is playing. A bare 'auto' means Tom's, so
+  // an autosave that forgets to qualify quietly overwrites his summer.
+  save.deleteAllSaves();
+  const Z = fakeG({ character: 'zahra' });
+  Z.settings = { ...Z.settings, autosave: true };
+  save.saveToSlot(Z, `${Z.character}.auto`, {});
+  ok(save.readSlot('zahra.auto') !== null, "Zahra's autosave is Zahra's");
+  ok(save.readSlot('tom.auto') === null, '…and Tom keeps his');
+  {
+    const fs = await import('node:fs');
+    const MAIN = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+    ok(/saveToSlot\(G, `\$\{G\.character\}\.auto`/.test(MAIN),
+      'main.js qualifies the autosave slot with the character');
+  }
+  save.deleteAllSaves();
 }
 
 group('reset car locations');
