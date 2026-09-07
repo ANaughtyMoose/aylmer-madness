@@ -729,9 +729,14 @@ function applyMenuText() {
   if (cont) cont.disabled = !recent;
   if (meta) {
     const row = recent ? listSlots(slotCharacter(recent)).find((r) => r.slot === recent) : null;
+    // Three lines, each answering one question: who and when (in the summer,
+    // and on the clock), where exactly, what you were doing.
     meta.textContent = row
-      ? `${characterById(row.character).name} · ${row.name || t('save.slot') + ' ' + slotNumber(row.slot)} · ${fmtWhen(row.savedAt)}\n` +
-        `${carName(row.carId)} · ${row.jobs} ${t('save.jobs')} · ${fmtPlaytime(row.playtime)}`
+      ? `${characterById(row.character).name} · ${calendar.label(row.day || 0)} · ${fmtWhen(row.savedAt)}`
+        + ` · ${slotNumber(row.slot) === 'auto' ? t('save.autoslot') : t('save.slot') + ' ' + slotNumber(row.slot)}\n`
+        + `${carName(row.carId)} · ${row.name || '?'}${row.near ? ', près de ' + row.near : ''}\n`
+        + `${row.doing ? 'En cours: ' + row.doing : 'Libre, pas de job en cours'}`
+        + ` · ${row.jobs} ${t('save.jobs')} · ${fmtPlaytime(row.playtime)} · ${Math.round(row.money)} $`
       : t('save.none');
   }
   const lo = $('btnLoad');
@@ -2488,9 +2493,30 @@ function buildSaveTab() {
 function saveName() {
   return (G.street || carName(G.carId) || '').toString().slice(0, 40);
 }
+// ...and the rest of « where was I »: the nearest named place, if one is
+// within a short walk, and the job you were in the middle of.
+function nearPlaceLabel() {
+  const v = G.veh;
+  if (!v) return '';
+  let best = '', bd = 90 * 90;
+  for (const k of Object.keys(PLACES)) {
+    const p = PLACES[k];
+    if (!p || !p.label) continue;
+    const dx = p.x - v.x, dz = p.z - v.z, d2 = dx * dx + dz * dz;
+    if (d2 < bd) { bd = d2; best = p.label; }
+  }
+  return best;
+}
+function saveOpts() {
+  return {
+    name: saveName(),
+    near: nearPlaceLabel(),
+    doing: G.mission && G.mission.def ? (G.mission.def.title || '') : '',
+  };
+}
 
 function saveInto(slot) {
-  const snap = saveToSlot(G, slot, { name: saveName() });
+  const snap = saveToSlot(G, slot, saveOpts());
   if (!snap) { hud.toast(t('save.failed'), 1600); return null; }
   G.slot = slot;
   const n = slotNumber(slot);
@@ -2517,7 +2543,7 @@ function autosave(reason) {
   if (!G.settings.autosave || !G.veh || G.mode === 'menu') return null;
   // The autosave belongs to the summer you are playing. A bare 'auto' qualifies
   // to Tom's, which as Zahra would quietly overwrite his.
-  const snap = saveToSlot(G, `${G.character}.auto`, { name: saveName() });
+  const snap = saveToSlot(G, `${G.character}.auto`, saveOpts());
   if (snap) console.log('autosave:', reason);
   return snap;
 }
