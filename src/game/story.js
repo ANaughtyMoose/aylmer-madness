@@ -14,7 +14,10 @@
 //      and the end of their job.
 //
 // Nothing in here draws or steps anything. main.js owns the four hook lines.
+// The one exception is the opener's own card: it goes through ui.js's
+// setModal() so the HUD stops drawing behind it (U7).
 import { MISSIONS } from './missions.js';
+import { setModal } from './ui.js';
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
 
@@ -79,7 +82,7 @@ export class StoryOpener {
     this.active = true;
     this.onDone = onDone;
     this.render();
-    if (this.root) this.root.classList.remove('hidden');
+    setModal('story', true);      // U7: the HUD stops drawing behind it
     return this;
   }
 
@@ -96,14 +99,14 @@ export class StoryOpener {
   finish() {
     if (!this.active) return false;
     this.active = false;
-    if (this.root) this.root.classList.add('hidden');
+    setModal('story', false);
     const fn = this.onDone;
     this.onDone = null;
     if (fn) fn();
     return true;
   }
 
-  hide() { this.active = false; if (this.root) this.root.classList.add('hidden'); }
+  hide() { this.active = false; setModal('story', false); }
 
   render() {
     const c = this.cards[this.i];

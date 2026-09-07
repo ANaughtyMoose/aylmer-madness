@@ -123,8 +123,13 @@ button:hover{background:#ffd979}
 #legendhead{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;opacity:.6;
   cursor:pointer;user-select:none;margin-bottom:5px}
 #legendhead:hover{opacity:.95}
+/* Collapsed really means collapsed. `.collapsed` narrowed the box and dropped
+   the header's margin but left all fourteen rows on screen, so `?` did nothing
+   a player could see and the legend was the biggest thing in the corner of
+   every screenshot (BACKLOG U8). */
 #legend.collapsed{width:auto;padding:5px 10px}
 #legend.collapsed #legendhead{margin:0}
+#legend.collapsed #legendrows{display:none}
 #legendrows{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px}
 .lrow{display:flex;align-items:center;gap:4px;opacity:.82;white-space:nowrap;overflow:hidden}
 .lrow .lab{opacity:.72;text-overflow:ellipsis;overflow:hidden}
@@ -198,7 +203,8 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
 
 /* ---------------------------------------------------------------- intro card */
 #intro{position:fixed;inset:0;z-index:7;display:flex;align-items:center;
-  justify-content:center;pointer-events:none}
+  justify-content:center;pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(6,10,14,.42),rgba(4,7,10,.78))}
 .icard{background:rgba(7,12,16,.88);border:1px solid rgba(255,201,77,.35);
   border-radius:14px;padding:20px 24px;width:min(420px,84vw);text-align:left;
   box-shadow:0 18px 60px rgba(0,0,0,.6);animation:pop .22s ease-out}
@@ -356,10 +362,6 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
   letter-spacing:.9px;color:#9ee6a1;opacity:.92;text-align:right;max-width:300px;
   text-shadow:0 2px 8px rgba(0,0,0,.95);pointer-events:none}
 #repairhint.hidden{display:none}
-#prompt2{position:fixed;bottom:calc(22% - 34px);left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.55);padding:7px 15px;border-radius:20px;font-size:14px;
-  color:#9ee6a1;white-space:nowrap;z-index:5;pointer-events:none}
-#prompt2.hidden{display:none}
 
 /* The sector card: up for a couple of seconds while the next slice of the map
    bakes (main.js showSeamCard). Same ground as #loading so the two read as
@@ -369,3 +371,23 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
 #seam .skicker{font-size:16px;letter-spacing:.32em;text-transform:uppercase;opacity:.65}
 #seam .sname{font-size:76px;font-weight:800;letter-spacing:.1em;line-height:1.1;margin:10px 0 16px;color:#e8b84a;text-shadow:0 4px 24px rgba(0,0,0,.5)}
 #seam .scap{font-size:20px;opacity:.85;max-width:640px;margin:0 auto}
+
+/* ---- U7: one modal at a time, and nothing behind it -----------------------
+   ui.js's setModal()/syncModal() put `modal` on <body> whenever the pause
+   menu, the intro card, the story card, Options, Charger, the seam card or the
+   modes picker is up. Everything that is HUD goes away while it is: not dimmed,
+   not faded, gone. Half of these live outside #hud (they were deliberately kept
+   out of it so a HUD rework would not collide with them), so they are listed
+   one by one rather than caught by a parent. */
+body.modal #hud,
+body.modal #heckles,
+body.modal #tuto,
+body.modal #repairhint,
+body.modal #dmgwrap,
+body.modal #gear,
+body.modal #stars,
+body.modal #radio{display:none !important}
+
+/* The pause menu's own scrim was tuned to be read THROUGH. With the HUD gone
+   it only has the town behind it, so it can be what it always meant to be. */
+body.modal #pause{background:rgba(6,10,13,.9)}

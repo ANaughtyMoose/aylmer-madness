@@ -14,7 +14,11 @@ const menuOnly = process.argv.includes('--menu');   // screenshot the menu; don'
 const sizeArg = process.argv.find((a) => /^--size=\d+x\d+$/.test(a)); const [VW, VH] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1280, 800];   // wipe the origin's storage before loading (no saved garage/progress)
 const script = scriptIdx > 0 ? await import('node:fs').then((fs) => fs.readFileSync(process.argv[scriptIdx + 1], 'utf8')) : '';
 
-const list = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then((r) => r.json());
+// More than one agent runs this at a time, and two of them sharing one Chrome
+// is how a browser gets killed out from under somebody mid-measurement. The
+// port is 9222 unless CDP_PORT says otherwise.
+const CDP_PORT = Number(process.env.CDP_PORT || 9222);
+const list = await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?about:blank`, { method: 'PUT' }).then((r) => r.json());
 const ws = new WebSocket(list.webSocketDebuggerUrl);
 await new Promise((res) => (ws.onopen = res));
 let id = 0;

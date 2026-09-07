@@ -121,7 +121,9 @@ if (table) {
 
 // ---------------------------------------------------------------- the places
 
-for (const k of ['pwhs', 'symmesjr', 'british', 'heritage', 'marina', 'symmes', 'mike']) {
+// `foodcourt` is here because « Poutine express » aims at it: the first job in
+// the game must finish at a door somebody built, not at the mall's centroid.
+for (const k of ['pwhs', 'symmesjr', 'british', 'heritage', 'marina', 'symmes', 'mike', 'foodcourt']) {
   const p = PLACES[k];
   if (!p) { fail(`PLACES.${k} is missing`); continue; }
   if (!p.label) fail(`PLACES.${k} has no label`);

@@ -66,21 +66,30 @@ const ROAD_ORDER = [
 export class ToastQueue {
   constructor(max = 2) {
     this.max = max;
-    this.active = [];     // [{ text, ms, until }] oldest first
+    this.active = [];     // [{ text, ms, until }] oldest first; until null = not started
     this.pending = [];    // [{ text, ms }] FIFO
     this.dirty = false;
+    this.held = false;    // a modal is up: freeze, do not play out behind it
   }
 
   push(text, ms = 2200, urgent = false) {
     const item = { text: String(text ?? ''), ms: Math.max(1, ms | 0) };
     if (urgent) {
-      // A button press needs an answer now. Make room without flushing the
-      // whole queue: the displaced toast returns after the refusal.
-      if (this.active.length >= this.max) {
-        const displaced = this.active.shift();
-        if (displaced) this.pending.unshift({ text: displaced.text, ms: displaced.ms });
+      // A button press needs an answer now, in the line the eye actually lands
+      // on. `active[0]` is the big one; slot two is small and dim, and a
+      // refusal that lands there reads as the button having done nothing —
+      // which is exactly what « il te manque 300 $ » did at the used lot
+      // (PLAYTEST #18). So an urgent toast goes straight to the front slot and
+      // whatever was in it steps back into the queue and comes round again.
+      // `until: null` means "start its clock the next time step() runs", so
+      // push() still needs no clock of its own.
+      const front = this.active.shift();
+      if (front) this.pending.unshift({ text: front.text, ms: front.ms });
+      this.active.unshift({ text: item.text, ms: item.ms, until: null });
+      while (this.active.length > this.max) {
+        const spill = this.active.pop();
+        this.pending.unshift({ text: spill.text, ms: spill.ms });
       }
-      this.pending.unshift(item);
     } else {
       this.pending.push(item);
     }
@@ -88,11 +97,28 @@ export class ToastQueue {
     return this;
   }
 
+  /**
+   * Hold the queue while a modal owns the screen (U7). Nothing expires and
+   * nothing is promoted: a toast that plays out behind a story card is a toast
+   * nobody read. What is already on screen restarts its clock when the modal
+   * closes.
+   */
+  hold(on) {
+    const v = !!on;
+    if (v === this.held) return this;
+    this.held = v;
+    if (v) for (const a of this.active) a.until = null;
+    return this;
+  }
+
   // Expire what is done, promote what fits. Returns true if the screen changed.
   step(now) {
+    if (this.held) return false;
     let changed = false;
     for (let i = this.active.length - 1; i >= 0; i--) {
-      if (this.active[i].until <= now) { this.active.splice(i, 1); changed = true; }
+      const a = this.active[i];
+      if (a.until == null) { a.until = now + a.ms; changed = true; }
+      else if (a.until <= now) { this.active.splice(i, 1); changed = true; }
     }
     while (this.active.length < this.max && this.pending.length) {
       const it = this.pending.shift();
@@ -105,8 +131,9 @@ export class ToastQueue {
 
   // ms until the next expiry, or Infinity when nothing is showing.
   nextDeadline(now) {
+    if (this.held) return Infinity;
     let best = Infinity;
-    for (const a of this.active) best = Math.min(best, a.until - now);
+    for (const a of this.active) best = Math.min(best, (a.until == null ? now + a.ms : a.until) - now);
     return best;
   }
 
@@ -226,13 +253,38 @@ export class Hud {
     if (this.elCar) this.elCar.textContent = name || '—';
   }
 
-  prompt(text) {
+  /**
+   * The one line at the bottom of the screen (U8).
+   *
+   * Four things want it — the mission runner, the police, a garage forecourt
+   * and the Kijiji hint — and each of them used to own its own absolutely
+   * positioned div, stacked 32 px apart. At 1280x800 `#econprompt` landed at
+   * 110 px off the bottom and the tutorial card at 112 px, so « K — Kijiji »
+   * drew underneath « W — pour avancer » on the very first frame of a new
+   * game. One slot, one owner at a time, highest rank wins.
+   */
+  setPrompt(source, text) {
+    if (!this._prompts) this._prompts = { mission: null, repair: null, shop: null };
+    if (!(source in this._prompts)) return;
+    const v = text || null;
+    if (this._prompts[source] === v) return;
+    this._prompts[source] = v;
+    this._renderPrompt();
+  }
+
+  _renderPrompt() {
     const el = this.elPrompt;
     if (!el) return;
-    if (text == null) { el.classList.add('hidden'); return; }
-    el.textContent = text;
+    const p = this._prompts || {};
+    const best = p.mission || p.repair || p.shop || null;
+    if (best === this._promptShown) return;
+    this._promptShown = best;
+    if (!best) { el.textContent = ''; el.classList.add('hidden'); return; }
+    el.textContent = best;
     el.classList.remove('hidden');
   }
+
+  prompt(text) { this.setPrompt('mission', text); }
 
   // Queued: at most two on screen, oldest on top, the rest wait their turn.
   toast(text, ms = 2200, urgent = false) {
@@ -735,22 +787,21 @@ export class Hud {
     el.classList.toggle('hidden', !v);
   }
 
+  // feel agent: the repair line. It used to be its own #prompt2 element 34 px
+  // under #prompt; it shares the one slot now — see setPrompt().
+  setRepairPrompt(text) { this.setPrompt('repair', text); }
+
+  // economy agent: « U — Garage Norm » / « K — Kijiji ». Was #econprompt,
+  // 66 px under #prompt, which is exactly where the tutorial card sits.
+  setShopPrompt(text) { this.setPrompt('shop', text); }
+
   /**
-   * FEEL — a second prompt line, under the main one, that only the repair
-   * spots use. It has its own element so it can never fight the mission
-   * runner for #prompt.
+   * U7: a modal owns the screen. The HUD itself goes away in CSS (body.modal),
+   * and the toast queue freezes so nothing plays out where nobody can read it.
    */
-  setRepairPrompt(text) {
-    if (this._p2El === undefined) {
-      this._p2El = (typeof document !== 'undefined' ? document.getElementById('prompt2') : null);
-    }
-    const v = text || null;
-    if (v === this._lastP2) return;
-    this._lastP2 = v;
-    const el = this._p2El;
-    if (!el) return;
-    el.textContent = v || '';
-    el.classList.toggle('hidden', !v);
+  setModalOpen(on) {
+    this.toasts.hold(on);
+    this._pumpToasts();
   }
 }
 

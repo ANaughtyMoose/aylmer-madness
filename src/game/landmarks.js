@@ -55,6 +55,7 @@ export const BUDGET = {
   marina:     { near: 8000,  far: 1000, site: 800 },
   mike:       { near: 7000,  far: 1000, site: 600 },
   lordaylmer: { near: 8000,  far: 1200, site: 800 },
+  galeries:   { near: 8000,  far: 1400, site: 900 },
 };
 
 // ---------------------------------------------------------------- ring maths
@@ -1349,6 +1350,98 @@ function siteLordAylmer(K) {
   walk(K, -382, 61, -404, 60, 2.2, 0xb0aa9e);
 }
 
+// --- I. Les Galeries d'Aylmer — l'entrée sud et le casse-croûte -----------
+// « Poutine express » is the first thing anybody is ever asked to do, and it
+// ended at a ring floating over empty asphalt: the mall footprint (OSM
+// 68609502, 181 rue Principale) is a 55-point beige box with nothing on it, so
+// the destination was a blank wall. This is the doorway that wall needed — the
+// south entrance off the parking lot, with the food-court casse-croûte inside
+// it, an orange awning, a canopy you can park under, and a board you can read
+// from the drive.
+//
+// It is bolted to the real footprint, not invented beside it: the mall's south
+// wall runs from (-13.1, -283.6) to (12.2, -289.8) in MAP.buildings, so the
+// vestibule sits square on that segment and the marker in front of it is on the
+// lot. Nothing is hidden; the mall keeps its own geometry.
+const GA_A = [-13.1, -283.6], GA_B = [12.2, -289.8];
+const GA_YAW = Math.atan2(GA_B[1] - GA_A[1], GA_B[0] - GA_A[0]);   // along the wall
+// Outward is AWAY from the mall's centroid at (-18.9, -331.2), which is north
+// of this wall, so the doors face south into the parking lot.
+const GA_NX = -Math.sin(GA_YAW), GA_NZ = Math.cos(GA_YAW);
+const GA_MX = (GA_A[0] + GA_B[0]) / 2, GA_MZ = (GA_A[1] + GA_B[1]) / 2;
+// The vestibule box, the canopy in front of it, and the point you stop at.
+const GA = {
+  cx: GA_MX + GA_NX * 2.4, cz: GA_MZ + GA_NZ * 2.4, yaw: GA_YAW, w: 13, d: 5.2, h: 4.3,
+};
+// Where the doors are, in the middle of the front face.
+const GA_FX = GA.cx + GA_NX * (GA.d / 2), GA_FZ = GA.cz + GA_NZ * (GA.d / 2);
+// The stopping point: eleven metres out, on the lot, clear of the canopy posts.
+export const GALERIES_DOOR = {
+  x: +(GA_FX + GA_NX * 11).toFixed(1), z: +(GA_FZ + GA_NZ * 11).toFixed(1),
+  a: GA_YAW + Math.PI / 2,
+};
+
+const GA_ORANGE = 0xd4762a, GA_TRIM = 0xf0ece2;
+
+function buildGaleries(K) {
+  const mb = K.mb;
+  const ring = rectRing(GA.cx, GA.cz, GA.w, GA.d, GA.yaw), tris = fanTris(4);
+  // Full-height glazing across the front, brick on the returns: the front wall
+  // is the long one, so the row picker keys off edge length exactly the way
+  // Lord Aylmer's does.
+  const rows = [{ y0: 0.55, y1: 3.35, w: 2.1, gap: 0.5, margin: 0.9, mullions: 2, frost: 0.15 }];
+  walls(K, ring, 0, GA.h, {
+    mat: 'brick_buff', tint: tint(K, 'brick_buff', 1.02), rows,
+    jamb: 0xb6b0a4, reveal: 0.22, bar: 0x5b5f63,
+    frostHex: 0xa9b3ad, glassLo: GLASS_LO, glassHi: GLASS_HI,
+  }, (i, L) => (L > 8 ? rows : null));
+  band(K, ring, tris, 0, 0.55, 0.14, 0x9a958b);                       // plinth
+  // The awning band: one orange stripe right under the parapet. It is the only
+  // saturated thing for two hundred metres and it is what you actually aim at.
+  band(K, ring, tris, GA.h - 0.85, 0.62, 0.30, GA_ORANGE);
+  band(K, ring, tris, GA.h, 0.42, 0.34, 0xa8a298);
+  mb.capPoly(offsetRing(ring, 0.34), tris, GA.h + 0.42, flat(0x6b6963));
+
+  // The doors themselves — two leaves and a transom, dark glass in the middle
+  // of the front face, so there is somewhere to walk in.
+  for (const s of [-1, 1]) {
+    mb.panel(GA_FX - GA_NZ * s * 1.1, 1.15, GA_FZ + GA_NX * s * 1.1,
+      1.9, 2.3, GA_NX, GA_NZ, flat(0x22303a), null, 0.05);
+    mb.panel(GA_FX - GA_NZ * s * 1.1, 2.42, GA_FZ + GA_NX * s * 1.1,
+      1.9, 0.22, GA_NX, GA_NZ, flat(GA_TRIM), null, 0.06);
+  }
+
+  // A flat canopy over the door apron, on posts you drive under to drop somebody
+  // off. Same trick as the school entrance, three times the width.
+  const kx = GA_FX + GA_NX * 3.4, kz = GA_FZ + GA_NZ * 3.4;
+  canopy(K, kx, 3.5, kz, 14, 6.6, GA.yaw, 0xd6d1c6, K.detail ? 4 : 0);
+
+  if (!K.detail) return;
+  // Bollards down the door line, a rack, and the bin every mall door has.
+  for (let i = -3; i <= 3; i++) {
+    if (!i) continue;
+    mb.cyl(GA_FX - GA_NZ * i * 1.9 + GA_NX * 1.5, 0.45, GA_FZ + GA_NX * i * 1.9 + GA_NZ * 1.5,
+      0.11, 0.9, 6, flat(0xc9a227), 'y', false);
+  }
+  // Both stay inside the canopy's own silhouette on purpose: the far bake drops
+  // them, and smoke_landmarks fails any site whose LOD swap changes its outline.
+  bikeRack(K, GA_FX - GA_NZ * 5.0 + GA_NX * 1.4, GA_FZ + GA_NX * 5.0 + GA_NZ * 1.4, GA.yaw, 4);
+  dumpster(K, GA_FX + GA_NZ * 5.2 + GA_NX * 1.2, GA_FZ - GA_NX * 5.2 + GA_NZ * 1.2, GA.yaw, 0x3f4a52);
+}
+
+function siteGaleries(K) {
+  // The apron in front of the doors, the walk along the wall, the crossing bars
+  // over the drive, and two rows of stalls so the ring stands in a car park and
+  // not on a lawn.
+  K.mb.flatRot(GA_FX + GA_NX * 4.5, GA_FZ + GA_NZ * 4.5, 22, 9, 0.036, -GA.yaw, flat(0xb3ada1));
+  walk(K, GA_FX - GA_NZ * 16, GA_FZ + GA_NX * 16, GA_FX + GA_NZ * 16, GA_FZ - GA_NX * 16,
+    2.6, 0xb0aa9e);
+  crossing(K, GA_FX + GA_NX * 11.5, GA_FZ + GA_NZ * 11.5, 9, 3.2, GA.yaw + Math.PI / 2, 5);
+  lot(K, GA_FX + GA_NX * 20, GA_FZ + GA_NZ * 20, 34, 13, GA.yaw, { rows: 1 });
+  lightStandard(K, GA_FX - GA_NZ * 13 + GA_NX * 15, GA_FZ + GA_NX * 13 + GA_NZ * 15, 8, GA.yaw);
+  lightStandard(K, GA_FX + GA_NZ * 13 + GA_NX * 15, GA_FZ - GA_NX * 13 + GA_NZ * 15, 8, GA.yaw);
+}
+
 // ============================================================ registry
 //
 // Each site: where it is, how big a sphere it fills (LOD swap + frustum test),
@@ -1393,6 +1486,16 @@ export const SITES = [
     sign: { x: -391, z: 56, yaw: Math.PI / 2, w: 4.6, h: 1.25, y: 1.35,
       text: 'LORD AYLMER CAMPUS', sub: 'Junior School · 130, av. Frank-Robinson',
       board: '#243a4a' } },
+  // No `hide`: the mall's own footprint stays exactly as it is and this bolts a
+  // door onto it. See GALERIES_DOOR above for the point missions aim at.
+  { key: 'galeries', cx: GA.cx, cz: GA.cz, r: 46, near: HERO_NEAR,
+    build: buildGaleries, site: siteGaleries,
+    // Off to one side of the doors, not in front of them: a board in the middle
+    // of your own windscreen on the way in is a board you cannot read.
+    sign: { x: GA_FX - GA_NZ * 8.5 + GA_NX * 13, z: GA_FZ + GA_NX * 8.5 + GA_NZ * 13,
+      yaw: GA.yaw, w: 5.4, h: 1.35, y: 1.5,
+      text: 'LES GALERIES D’AYLMER', sub: 'Entrée sud · Casse-croûte du food court',
+      board: '#6a4a1c' } },
 ];
 
 // --------------------------------------------------------- footprint removal

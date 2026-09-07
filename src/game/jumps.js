@@ -214,8 +214,10 @@ export function jumpAir(j) {
   return predictAir(jumpSlope(j), j.kmh / 3.6, drop);
 }
 
-// The beaten track: `path` is a full-power surface with a little rattle in it,
-// so the line reads as worn ground and costs you nothing to be on. hw is
+// The beaten track: `track` is a full-power surface with a little rattle in it,
+// so the line reads as worn ground and costs you nothing to be on. It is its
+// own SURF row and not `path`, which is a municipal footpath and now costs a
+// car real speed — see the note over SURF in terrain.js. hw is
 // generous — six metres — because you are arriving at it sideways at 90.
 // Sixteen metres of packed track with a three-metre feather either side, and the
 // last fifty-eight of it dead straight. Wide, because you arrive at it sideways.
@@ -248,7 +250,7 @@ function buildFeatures(list = JUMPS) {
     // metres of it would be a tan stripe painted across the Outaouais.
     const runout = j.runout != null ? j.runout : jumpAir(j) * (j.kmh / 3.6) + 30;
     out.push({
-      id: 'j_' + j.id + 'Track', type: 'ridge', kind: 'path', side: 'path',
+      id: 'j_' + j.id + 'Track', type: 'ridge', kind: 'track', side: 'track',
       // Above every other flat patch: a track worn across the beach at the Plage
       // des Cèdres is packed ground, not the loose sand either side of it, and a
       // truck that cannot move is not a jump.

@@ -10,6 +10,101 @@ import { fmtWhen, fmtPlaytime, carName } from './save.js';
 const $ = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// ---------------------------------------------------------------- modals
+//
+// U7. Six overlays take the whole screen — the pause menu, the mission intro
+// card, the new-game story card, Options, Charger and the seam card, plus the
+// modes picker modes.js builds at runtime — and every one of them was drawn on
+// top of a HUD that never stopped rendering. In
+// gemini-inbox/shots/playtest-gemini-09-pause.jpg the job list is read through
+// the objective line, a weather toast, the key legend and two prompt lines at
+// once; on a fresh boot the story card has five things bleeding through it.
+//
+// One rule, in one place: at most one of these is open, and while one is open
+// the HUD and every loose piece of chrome that lives outside #hud is hidden and
+// the backdrop dims. `body.modal` is the switch; style.css does the hiding.
+//
+// Highest priority first — a seam card beats a pause menu beats an intro card.
+const MODALS = [
+  ['seam', 'seam'],
+  ['pause', 'pause'],
+  ['options', 'options'],
+  ['load', 'loadscr'],
+  ['modes', 'modepick'],
+  ['story', 'story'],
+  ['intro', 'intro'],
+];
+let modalNow = null;
+let modalListener = null;
+
+const modalEl = (name) => {
+  const row = MODALS.find((m) => m[0] === name);
+  return row ? $(row[1]) : null;
+};
+// modes.js builds #modepick itself and drives it with style.display, not a
+// class, so visibility has to be asked both ways.
+const isShown = (el) => !!el && !el.classList.contains('hidden')
+  && (el.style.display !== 'none')
+  && !(el.id === 'modepick' && !el.style.display);
+
+function applyModal(name) {
+  if (name === modalNow) return;
+  modalNow = name;
+  const body = typeof document !== 'undefined' ? document.body : null;
+  if (body && body.classList) {
+    body.classList.toggle('modal', !!name);
+    if (name) body.dataset.modal = name; else delete body.dataset.modal;
+  }
+  if (modalListener) modalListener(name);
+}
+
+/** Called once when main.js has a Hud, so the toast queue can be frozen. */
+export function onModal(fn) { modalListener = fn; }
+
+/** Which modal owns the screen, or null. */
+export function modalOpen() { return modalNow; }
+
+/**
+ * The door. Opening one closes whichever other one was open, which is the
+ * whole of "exactly one modal at a time".
+ */
+export function setModal(name, on = true) {
+  const el = modalEl(name);
+  if (!el) return modalNow;
+  if (on) {
+    if (modalNow && modalNow !== name) {
+      const other = modalEl(modalNow);
+      if (other) {
+        if (other.id === 'modepick') other.style.display = 'none';
+        else other.classList.add('hidden');
+      }
+    }
+    if (el.id === 'modepick') el.style.display = 'flex'; else el.classList.remove('hidden');
+    applyModal(name);
+  } else {
+    if (el.id === 'modepick') el.style.display = 'none'; else el.classList.add('hidden');
+    if (modalNow === name) applyModal(syncModal(true));
+  }
+  return modalNow;
+}
+
+/**
+ * Once a frame from main.js. The door above covers everything main.js opens,
+ * but the story card and the intro card are shown by their own classes from
+ * their own modules; this adopts whatever is actually on screen so the HUD
+ * behaviour is true however the overlay got there. It never force-closes
+ * anything — hiding an overlay whose owner still thinks it is up is how you
+ * get a game that swallows keys.
+ */
+export function syncModal(peek = false) {
+  let found = null;
+  for (const [name] of MODALS) {
+    if (isShown(modalEl(name))) { found = name; break; }
+  }
+  if (!peek) applyModal(found);
+  return found;
+}
+
 // ---------------------------------------------------------------- legend
 
 // Bottom-right, two columns, always there. `?` folds it down to one pill.
@@ -43,11 +138,15 @@ export class Legend {
   }
 }
 
+// U8: collapsed by default. Expanded, the legend is fourteen rows and 322 px
+// of the bottom-right corner, and it was the single biggest thing on screen on
+// the first frame of a new game. It says « Touches ? » when it is folded, and
+// `?` opens it — which is also the one row of it that matters.
 function legendOpenPref() {
   try {
     const v = globalThis.localStorage?.getItem(KEYS.legend);
-    return v === null || v === undefined ? true : v === '1';
-  } catch { return true; }
+    return v === null || v === undefined ? false : v === '1';
+  } catch { return false; }
 }
 
 // ---------------------------------------------------------------- tutorial
@@ -127,8 +226,8 @@ export class Tutorial {
 // reads as a keyboard and not as a list.
 const ROWS = [
   ['Esc*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0*', '−*', '+*', '⌫*'],
-  ['Tab*', 'Q*', 'W*', 'E*', 'R*', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A*', 'S*', 'D*', 'F', 'G', 'H*', 'J', 'K', 'L', '?*'],
+  ['Tab*', 'Q*', 'W*', 'E*', 'R*', 'T', 'Y', 'U*', 'I', 'O', 'P'],
+  ['A*', 'S*', 'D*', 'F', 'G*', 'H*', 'J', 'K*', 'L', '?*'],
   ['Shift*', 'Z', 'X', 'C*', 'V', 'B', 'N*', 'M'],
   ['Espace*'],
 ];
@@ -295,14 +394,14 @@ export class IntroCard {
         : t('intro.notime');
     }
     this._drawRoute(route, from, to);
-    this.root.classList.remove('hidden');
+    setModal('intro', true);      // U7: through the door, not around it
     if (this._hide) clearTimeout(this._hide);
     this._hide = setTimeout(() => { this.hide(); }, seconds * 1000);
   }
 
   hide() {
     if (this._hide) { clearTimeout(this._hide); this._hide = 0; }
-    if (this.root) this.root.classList.add('hidden');
+    setModal('intro', false);
   }
 
   // Same idea as bigmap: streets in the route's bounding box, north-up.

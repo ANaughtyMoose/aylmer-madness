@@ -33,7 +33,7 @@ export const DEFAULT_CAR = 'ranger';
 
 // Whose driveway each car lives in. Margaret's Saturn shares the driveway at
 // 299 Fraser with your Ranger, so the two of them get slots 0 and 1 there.
-export const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'dave',
+export const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'marina',
   cutlass: 'home', cavalier: 'home', caravan: 'home', bus: 'home',
   // The cart never leaves the golf course; it lives on the clubhouse apron.
   cart: 'golf' };

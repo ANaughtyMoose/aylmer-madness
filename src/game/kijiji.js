@@ -11,7 +11,7 @@
 // The look is deliberate: Verdana, a table, blue underlined links, a hit
 // counter, and photographs taken at night with a flash by somebody holding the
 // camera in one hand and a beer in the other.
-import { CARS, carById } from './cars.js';
+import { CARS, carById, carPlaces } from './cars.js';
 import { UNLOCKS } from './garage.js';
 // Side effect, and the reason it is a named import: famouscars.js is what puts
 // the Tempo into CARS and its price into UNLOCKS, and the ad below would have
@@ -613,7 +613,7 @@ function detailHTML(ad, garage, wallet, done) {
       <div class="price" style="font-size:22px">${ad.car
         ? (off ? `<span class="sold">${money(cost)}</span> ` : '') + money(pay)
         : priceLabel(ad).toUpperCase()}</div>
-      ${spec ? `<div class="meta" style="margin-top:6px">${spec.len} m &middot; ${spec.seats + 1} places
+      ${spec ? `<div class="meta" style="margin-top:6px">${spec.len} m &middot; ${carPlaces(spec)} ${carPlaces(spec) === 1 ? 'place' : 'places'}
         &middot; ${spec.mass} kg</div>` : ''}
       <div class="desc">${ad.body}</div>
       ${report}

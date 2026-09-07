@@ -66,7 +66,18 @@
 export const SURF = {
   asphalt:  { power: 1,    grip: 1,    drag: 1,    shake: 0 },
   concrete: { power: 1,    grip: 0.98, drag: 1,    shake: 0 },
-  path:     { power: 1,    grip: 0.90, drag: 1,    shake: 0.10 },
+  // A park path is paved, so it belongs in the gravel tier and not below it —
+  // but it is two and a half metres of it with bollards, roots and kerb lips,
+  // and it is not a road. `power 1, drag 1` made it asphalt with slightly less
+  // grip, which is how a Ranger came to do 149 km/h through Parc des Cèdres.
+  path:     { power: 0.87, grip: 0.85, drag: 0.95, shake: 0.22 },
+  // `track` is what `path` used to be, and it exists because two different
+  // things were sharing one row. A jump's beaten approach line (jumps.js
+  // buildFeatures) is ground that a hundred trucks have already packed flat:
+  // it must cost nothing, or the ramp cannot be reached at the speed it asks
+  // for. A municipal footpath through a park must cost something, or it is
+  // the fastest road in town. They are not the same surface.
+  track:    { power: 1,    grip: 0.90, drag: 1,    shake: 0.10 },
   gravel:   { power: 0.85, grip: 0.76, drag: 0.90, shake: 0.35 },
   dirt:     { power: 0.88, grip: 0.79, drag: 0.85, shake: 0.30 },
   grass:    { power: 0.81, grip: 0.78, drag: 0.78, shake: 0.08 },
@@ -134,9 +145,22 @@ export const FEATURES = [
     cx: -100, cz: -230, yaw: 1.5708, hw: 9, hl: 1.2, H: 2.05, runs: [0, 0, 9, 0],
   },
 
+  // ---- Les Galeries: the south entrance apron ---------------------------
+  // landmarks.js builds a food-court doorway on the mall's south wall and
+  // « Poutine express » finishes in front of it. Without this the whole car
+  // park is `grass` to the driving model — the painted stalls are a flat quad
+  // with nothing under them — so you slide to a halt on a lawn at the one
+  // destination the game most wants to feel real. Flat concrete, 20 m out.
+  {
+    id: 'galeriesApron', type: 'ridge', kind: 'concrete', side: 'concrete',
+    H: 0, hw: 10, run: 3, taper: 0,
+    pts: [-14.6, -268.8, 20.4, -277.4],
+  },
+
   // ---- Parc des Cèdres --------------------------------------------------
-  // The asphalt path in from Rue Raoul-Roy is driveable (grip is down a little,
-  // speed is not), the beach is sand — slow and slidey — and there is a grass
+  // The asphalt path in from Rue Raoul-Roy is driveable, and now costs a car
+  // both grip and speed (it used to cost neither: a Ranger did 149 km/h down
+  // it, the same as the chemin d'Aylmer). The beach is sand — slow and slidey — and there is a grass
   // mound between the two that works as a takeoff either way across it.
   {
     id: 'cedresPath', type: 'ridge', kind: 'path', side: 'path',

@@ -243,6 +243,10 @@ const SCHOOL = {
   flavour: 'International 3800, 72 places, pis un été complet sans écoliers dedans. La clé est au-dessus du pare-soleil.',
   len: 11.60, wid: 2.44, h: 3.08, wheelbase: 6.93, overhangF: 1.22, track: 2.06, wheelR: 0.52,
   topSpeed: 25.5, accel: 1.75, brake: 6.2, grip: 0.64, steerMax: 0.36, mass: 10500,
+  // Same reason as the city bus (`grunt` in cars.js): a school-bus diesel has
+  // torque its 92 km/h gearing never shows, and without it the thing cannot
+  // drive off a kerb onto a lawn.
+  grunt: 1.3,
   seatY: 2.30, seatZ: 1.10, seatX: 0.70, clearance: 0.36,
   hbGrip: 0.86, hbYaw: 0.94, revTop: 4.44, revEngage: 0.29,
   // Conventional: a body that stops at the cowl, then a windshield, then two

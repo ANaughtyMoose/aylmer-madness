@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Aylmer Madness</title>
+<!-- An inline icon, so a clean boot prints nothing at all in the console.
+     Without it every load ends in a 404 for /favicon.ico, and one real error
+     hidden among noise is an error nobody sees. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2310171c'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23ffc94d'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +15,7 @@
 
 <div id="hud" class="hidden">
   <div id="topleft">
-    <div id="objective">Free roam</div>
+    <div id="objective"></div>
     <div id="sub"></div>
   </div>
   <div id="timer" class="hidden">0:00</div>
@@ -171,10 +175,10 @@
 <div id="heckles"></div>
 
 <!-- feel agent: where to get it fixed. The hint sits under the damage bar as
-     soon as the car is past 25 %, and #prompt2 is the repair spots' own prompt
-     line so it never fights the mission runner for #prompt. -->
+     soon as the car is past 25 %. The repair spots' prompt used to be its own
+     #prompt2 line under #prompt; U8 gave the bottom of the screen a single
+     prompt slot, so it goes through hud.setRepairPrompt() into #prompt now. -->
 <div id="repairhint" class="hidden"></div>
-<div id="prompt2" class="hidden"></div>
 
 <script type="module" src="src/main.js?v=starts-15-labels"></script>
 </body>

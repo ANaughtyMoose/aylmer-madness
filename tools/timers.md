@@ -8,29 +8,36 @@ draws. `implied km/h` is what the current timer demands as a door-to-door
 average, stops, traffic and the stage radius included. `@40 km/h` is what the
 timer would be at a relaxed 40 km/h average, as a starting point for tuning.
 
-Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 140 · Z24 155 · Caravan 133 · urbain 86 · Club 26 km/h.
+Top speeds for scale: XL 150 · 4-door 172 · Si 178 · Sunfire 176 · Ciera 168 · Z24 180 · Caravan 158 · urbain 92 · Club 24 km/h.
 
 | mission | stage | target | route m | timer s | implied km/h | @40 km/h |
 |---|---|---|---:|---:|---:|---:|
-| school | 1/1 | Heritage College — sortie vers Hull | 1,925 | 180 | 38.5 | 173 |
-| **school** | **total** | 1 stages | **1,925** | **180** | 38.5 | 173 |
-| gang | 1/4 | Ramasse Margaret — 299 Chemin Fraser | 2,161 | — | — | — |
-| gang | 2/4 | Ramasse Sayyad — 75 Denise-Friend | 2,315 | — | — | — |
-| gang | 3/4 | Ramasse Adam — 20 chemin Vanier, Deschênes | 4,794 | — | — | — |
-| gang | 4/4 | Dépose la gang au Parc des Cèdres | 5,747 | — | — | — | <!-- max 45 km/h -->
-| **gang** | **total** | 4 stages | **15,016** | **—** | — | 1,351 |
 | poutine | 1/2 | Galeries Aylmer — le food court | 1,392 | — | — | — |
 | poutine | 2/2 | Livre chez Sayyad — 75 Denise-Friend | 1,154 | 95 | 43.7 | 104 | <!-- max 40 km/h -->
 | **poutine** | **total** | 2 stages | **2,547** | **95** | — | 229 |
 | dep | 1/2 | Dépanneur Palmyra — quatre slush | 3,977 | — | — | — |
 | dep | 2/2 | Parc des Cèdres — avant que ça fonde | 1,103 | 95 | 41.8 | 99 |
 | **dep** | **total** | 2 stages | **5,080** | **95** | — | 457 |
+| gang | 1/4 | Ramasse Margaret — 299 Chemin Fraser | 2,161 | — | — | — |
+| gang | 2/4 | Ramasse Sayyad — 75 Denise-Friend | 2,315 | — | — | — |
+| gang | 3/4 | Ramasse Adam — le stationnement de la marina | 1,302 | — | — | — |
+| gang | 4/4 | Dépose la gang au Parc des Cèdres | 559 | — | — | — | <!-- max 45 km/h -->
+| **gang** | **total** | 4 stages | **6,337** | **—** | — | 570 |
+| sayyad | 1/3 | Rends-toi chez Sayyad — 75 Denise-Friend | 623 | — | — | — |
+| sayyad | 2/3 | Fais 3 doughnuts devant chez lui — 0/3 | — | — | — | — |
+| sayyad | 3/3 | Sacre ton camp! 300 m en 25 s | — | 25 | — | — |
+| **sayyad** | **total** | 3 stages | **623** | **25** | — | 56 |
+| curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant minuit | 3,189 | 210 | 54.7 | 287 | <!-- max 35 km/h -->
+| **curfew** | **total** | 1 stages | **3,189** | **210** | 54.7 | 287 |
 | cv | 1/3 | CV #1 — Tim Hortons, rue Principale | 1,566 | — | — | — |
 | cv | 2/3 | CV #2 — Galeries Aylmer | 405 | — | — | — |
 | cv | 3/3 | CV #3 — Marina d’Aylmer | 2,015 | — | — | — |
 | **cv** | **total** | 3 stages | **3,986** | **—** | — | 359 |
-| curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant minuit | 3,189 | 210 | 54.7 | 287 | <!-- max 35 km/h -->
-| **curfew** | **total** | 1 stages | **3,189** | **210** | 54.7 | 287 |
+| divan | 1/2 | Chez Mike — 129 avenue Frank-Robinson | 272 | — | — | — |
+| divan | 2/2 | Le divan dans l’arbre | — | — | — | — |
+| **divan** | **total** | 2 stages | **272** | **—** | — | 24 |
+| school | 1/1 | Heritage College — secteur Hull | 11,996 | 420 | 102.8 | 1,080 |
+| **school** | **total** | 1 stages | **11,996** | **420** | 102.8 | 1,080 |
 | tour | 1/5 | Spot 1/5 — le phare de la marina | 1,341 | 100 | 48.3 | 121 |
 | tour | 2/5 | Spot 2/5 — Aréna Frank-Robinson | 1,320 | 95 | 50.0 | 119 |
 | tour | 3/5 | Spot 3/5 — chemin d'Aylmer, devant les Galeries | 1,260 | 95 | 47.7 | 113 |
@@ -42,14 +49,13 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 | canot | 3/4 | Plage des Cèdres — patcher le canot | 2,469 | — | — | — |
 | canot | 4/4 | Île Aylmer — 1,2 km d’eau | 1,838 | — | — | — |
 | **canot** | **total** | 4 stages | **7,808** | **—** | — | 703 |
-| sayyad | 1/3 | Rends-toi chez Sayyad — 75 Denise-Friend | 623 | — | — | — |
-| sayyad | 2/3 | Fais 3 doughnuts devant chez lui — 0/3 | — | — | — | — |
-| sayyad | 3/3 | Sacre ton camp! 300 m en 25 s | — | 25 | — | — |
-| **sayyad** | **total** | 3 stages | **623** | **25** | — | 56 |
-| divan | 1/2 | Chez Mike — 129 avenue Frank-Robinson | 272 | — | — | — |
-| divan | 2/2 | Le divan dans l’arbre | — | — | — | — |
-| **divan** | **total** | 2 stages | **272** | **—** | — | 24 |
-| racedave | 1/2 | Devant chez Adam — chemin Vanier | 0 | — | — | — |
+| highwayhull | 1/3 | Prends la sortie vers Hull | 12,136 | 260 | 168.0 | 1,092 |
+| highwayhull | 2/3 | Fais un arrêt au musée | 8,091 | 300 | 97.1 | 728 | <!-- max 45 km/h -->
+| highwayhull | 3/3 | Termine au centre-ville de Hull | 840 | 110 | 27.5 | 76 |
+| **highwayhull** | **total** | 3 stages | **21,067** | **670** | 113.2 | 1,896 |
+| chelsea | 1/1 | Monte jusqu’au village de Chelsea | 9,817 | 600 | 58.9 | 884 | <!-- max 45 km/h -->
+| **chelsea** | **total** | 1 stages | **9,817** | **600** | 58.9 | 884 |
+| racedave | 1/2 | Le stationnement de la marina | 0 | — | — | — |
 | racedave | 2/2 | Galeries d’Aylmer — le stationnement | — | — | — | — |
 | **racedave** | **total** | 2 stages | **0** | **—** | — | 0 |
 | racecivic | 1/2 | Devant le 75 Denise-Friend | 0 | — | — | — |
@@ -73,9 +79,9 @@ Top speeds for scale: XLT 131 · 4-door 149 · Si 164 · Sunfire 158 · Ciera 14
 | 1/5 | Ramasse Margaret — 299 Chemin Fraser | 2,161 | — | — |
 | 2/5 | Ramasse Sayyad — 75 Denise-Friend | 2,315 | — | — |
 | 3/5 | Dépose la gang au Parc des Cèdres | 1,250 | — | — |
-| 4/5 | Ramasse Adam — 20 chemin Vanier, Deschênes | 5,767 | — | — |
-| 5/5 | Dépose la gang au Parc des Cèdres | 5,747 | — | — |
-| **total** | 5 stages | **17,239** | — | — |
+| 4/5 | Ramasse Adam — le stationnement de la marina | 559 | — | — |
+| 5/5 | Dépose la gang au Parc des Cèdres | 559 | — | — |
+| **total** | 5 stages | **6,843** | — | — |
 
 ## Notes
 

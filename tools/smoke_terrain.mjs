@@ -300,13 +300,32 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
     `power ${spread('grass').power}, grip ${spread('grass').grip}, drag ${spread('grass').drag}`);
   ok('...but a lawn is a shortcut, not a handbrake',
     spread('grass').power > 0.75 && spread('grass').grip > 0.7);
-  ok('the surfaces stay in order: asphalt beats gravel beats grass beats sand',
-    SURF.asphalt.power > SURF.gravel.power && SURF.gravel.power > SURF.grass.power
-    && SURF.grass.power > SURF.sand.power);
+  ok('the surfaces stay in order: asphalt beats path beats gravel beats grass beats sand',
+    SURF.asphalt.power > SURF.path.power && SURF.path.power > SURF.gravel.power
+    && SURF.gravel.power > SURF.grass.power && SURF.grass.power > SURF.sand.power);
   ok('asphalt and concrete carry no penalty at all',
     SURF.asphalt.power === 1 && SURF.concrete.power === 1);
-  ok('a park path costs grip but not speed, as asked',
-    SURF.path.power === 1 && SURF.path.grip < 0.95);
+  // This used to read « a park path costs grip but not speed, as asked » and
+  // pinned `SURF.path.power === 1`. What was asked for turned out to be a
+  // Ranger doing 149 km/h down the Parc des Cèdres trail — identical to the
+  // chemin d'Aylmer — so a footpath was the fastest shortcut in town. The
+  // assertion was wrong, not the measurement: the note over SURF has always
+  // said the order is asphalt > gravel/path > grass > sand, and `path` was the
+  // one row that never joined it. It is in the gravel tier now, a little
+  // better because it is paved, and it still costs real grip.
+  ok('a park path is in the gravel tier, not the road tier',
+    SURF.path.power < 1 && SURF.path.power > SURF.gravel.power
+    && SURF.path.power < SURF.dirt.power,
+    `power ${SURF.path.power}`);
+  ok('...and it costs grip and rattles you',
+    SURF.path.grip < 0.9 && SURF.path.shake > SURF.grass.shake,
+    `grip ${SURF.path.grip}, shake ${SURF.path.shake}`);
+  // A jump's approach line is packed ground and has to stay free, or the ramp
+  // cannot be reached at the speed it asks for. jumps.js builds it from `track`
+  // for exactly that reason; if the two ever collapse back into one row,
+  // smoke_jumps stops flying L'Envolée des Cèdres.
+  ok('a beaten jump track is not a footpath and still costs nothing',
+    SURF.track.power === 1 && SURF.track.drag === 1 && SURF.track.power > SURF.path.power);
   ok('sand is the slowest and the slidiest thing in town',
     SURF.sand.power === Math.min(...Object.values(SURF).map((s) => s.power))
     && SURF.sand.grip === Math.min(...Object.values(SURF).map((s) => s.grip)));
@@ -378,6 +397,36 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
   for (let i = 0; i < 120; i++) v.update(1 / 60, ctl({ throttle: 1 }), flat);
   ok('a world with no groundAt at all (smoke.mjs, the mission bots) still drives',
     v.z > 8 && v.y === 0 && v.gh === 0 && !v.air, `z ${r2(v.z)}`);
+}
+
+// -------------------------------------------------- the path, actually driven
+//
+// The table above says what the numbers are; this says what they buy. A car on
+// a footpath has to be measurably slower than the same car on the road, and a
+// machine built for turf has to not notice — that is the whole reason the trail
+// through Parc des Cèdres exists.
+{
+  const flatOut = (spec, kind, secs = 40) => {
+    const world = {
+      roadAt: () => kind === 'asphalt', querySegments: () => [], queryPoles: () => [],
+      waterAt: () => false, groundAt: () => ({ h: 0, nx: 0, ny: 1, nz: 0, kind }),
+      groundY: () => 0, bounds,
+    };
+    const veh = new Vehicle(spec);
+    veh.reset(0, 0, 0);
+    const c = ctl({ throttle: 1 });
+    for (let i = 0; i < 60 * secs; i++) veh.update(1 / 60, c, world);
+    return veh.speedKmh;
+  };
+  const truck = carById('ranger');
+  const road = flatOut(truck, 'asphalt'), path = flatOut(truck, 'path');
+  ok('the Ranger pays for cutting through the park',
+    path < road - 25 && path > flatOut(truck, 'gravel'),
+    `${r2(path)} km/h on the path against ${r2(road)} on the road and ${r2(flatOut(truck, 'gravel'))} on gravel`);
+  const cart = carById('cart');
+  ok('...and the golf cart, which is built for it, does not',
+    Math.abs(flatOut(cart, 'path') - flatOut(cart, 'asphalt')) < 0.5,
+    `${r2(flatOut(cart, 'path'))} km/h either way`);
 }
 
 // ---------------------------------------------------------------- speed

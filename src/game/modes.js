@@ -20,6 +20,7 @@
 // Everything below is data plus a small DOM overlay. The only thing it asks of
 // main.js is one hook block: installModes(G, { startMission }).
 import { PLACES } from './places.js';
+import { setModal } from './ui.js';
 import { raceMission, raceStages, endRace } from './racejobs.js';
 // The written copy: course names by index into assets/text/racing.json, plus the
 // rivals' taunts. See racingtext.js — a name is a fallback, never a blank.
@@ -177,7 +178,7 @@ export const CHECKPOINT = [
     // The fast open one: out to the Club de Golf and back up chemin Vanier. 8 km
     // of tertiary road where the Sunfire's straight-line speed actually tells.
     start: { x: -605.6, z: 79, a: Math.PI / 2 },
-    cps: ['golf', 'aigle', 'gas', 'deschenes', 'dave'],
+    cps: ['golf', 'aigle', 'gas', 'deschenes', 'vanier'],
     money: 60, timeOfDay: 'morning',
     // Eight kilometres of open tertiary road is where Big Dan's V8 momentum
     // finally has somewhere to go.
@@ -373,7 +374,7 @@ const CSS = `
   background:#2a2118;border:1px solid #6a5326;color:#ffd48a;font-size:12px}
 `;
 
-const state = { open: false, mode: 'blitz', el: null, api: null, hello: false };
+const state = { open: false, mode: 'blitz', el: null, api: null };
 
 // Everything DOM in this file is written defensively on purpose: the smoke tests
 // run it against a two-method `document` stub, and a mode picker that throws
@@ -458,7 +459,9 @@ export function openModes(G, on) {
   const el = overlay(G);
   if (!el) return;
   state.open = !!on;
-  el.style.display = on ? 'flex' : 'none';
+  // U7: through the one door, so opening the picker closes the pause menu (and
+  // the other way round) and the HUD stops drawing behind it.
+  setModal('modes', !!on);
   if (on) {
     state.mode = G.modeNow === 'cruise' ? 'blitz' : (G.modeNow || 'blitz');
     paint(G);
@@ -557,29 +560,26 @@ export function installModes(G, api) {
   return G.modes;
 }
 
-// How long after entering drive before the game mentions that M exists.
-const HELLO_AT = 6;
-
-/** Per-tick, from race.js's hook. Owns the M key and one first-run toast. */
+/** Per-tick, from race.js's hook. Owns the M key. */
 export function updateModes(G, dt) {
   if (G.mode !== 'drive') return;
   if (G.input && G.input.hit && G.input.hit('KeyM') && !G.story?.active) {
     openModes(G, true);
     return;
   }
-  // A mode picker nobody knows about is the same as no mode picker.
-  if (!state.hello && G.time > HELLO_AT && !G.mission) {
-    state.hello = true;
-    if (G.hud) G.hud.toast('M — les modes\nBlitz, Checkpoint, Balade', 3200);
-  }
+  // There used to be a first-run toast here — « M — les modes / Blitz,
+  // Checkpoint, Balade » — and it fired six seconds into a brand new game, in
+  // 26 px type across the middle of the screen, on top of the story card
+  // (BACKLOG U8, gemini-inbox "ten things"). M is on the key legend and in the
+  // pause menu's Touches tab; a mode picker does not need to shout over the
+  // opening of the game to be discovered.
   // Falling out of a course (finished, failed, abandoned) is falling back into
   // Cruise, which is where the story jobs are.
   if (!G.mission && G.modeNow !== 'cruise') G.modeNow = 'cruise';
 }
 
-/** Tests: forget the overlay and the one-shot toast. */
+/** Tests: forget the overlay. */
 export function resetModes() {
   state.open = false;
-  state.hello = false;
   state.el = null;
 }

@@ -167,6 +167,48 @@ group('the lot bus is a New Look now');
   ok(!FOR_SALE.includes('schoolbus'), 'the school bus is not for sale');
 }
 
+// -------------------------------------------- 2b. a bus can leave the tarmac
+
+// Both buses used to settle at 0.8 km/h the moment a wheel touched grass, which
+// is not "bad off-road", it is "cannot move": engine thrust on grass
+// (accel × 0.81) came out below the off-road drag term, so the equilibrium was
+// a walking pace and no amount of throttle changed it. `spec.grunt` (cars.js)
+// is the low-speed torque `accel` hides, faded in with `offRoad`. Three things
+// have to stay true at once, and they pull against each other.
+group('a bus can get off the road, and is still bad at it');
+{
+  const flatOut = (spec, kind, secs = 40) => {
+    const world = {
+      roadAt: () => kind === 'asphalt', querySegments: () => [], queryPoles: () => [],
+      waterAt: () => false, groundAt: () => ({ h: 0, nx: 0, ny: 1, nz: 0, kind }),
+      groundY: () => 0, bounds: MAP.bounds,
+    };
+    const v = new Vehicle(spec);
+    v.reset(0, 0, 0);
+    const c = { steer: 0, throttle: 1, brake: 0, handbrake: false };
+    for (let i = 0; i < 60 * secs; i++) v.update(1 / 60, c, world);
+    return v.speedKmh;
+  };
+  for (const id of ['bus', 'schoolbus']) {
+    const spec = carById(id);
+    const road = flatOut(spec, 'asphalt');
+    const grass = flatOut(spec, 'grass');
+    ok(grass >= 15, `${id}: ${r1(grass)} km/h on grass — it can crawl off the tarmac`);
+    ok(grass < road * 0.5, `${id}: and grass still costs it more than half its ${r1(road)} km/h`);
+    ok(flatOut(spec, 'sand') < 10, `${id}: the beach is still no place for a bus (${r1(flatOut(spec, 'sand'))} km/h)`);
+    ok(spec.grunt > 1, `${id}: carries a grunt factor of ${spec.grunt}`);
+  }
+  // The whole point of fading grunt in with offRoad: asphalt is untouched.
+  const bus = carById('bus');
+  const g = bus.grunt;
+  bus.grunt = 1;
+  const plain = flatOut(bus, 'asphalt');
+  bus.grunt = g;
+  ok(Math.abs(flatOut(bus, 'asphalt') - plain) < 1e-9,
+    'and on a road it changes nothing at all', `${r1(plain)} km/h either way`);
+  ok(CARS.filter((c) => c.grunt).length === 2, 'only the two buses have one');
+}
+
 // --------------------------------------------------- 3. the table invariants
 
 group('what smoke_driving asks of every car');

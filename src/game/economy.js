@@ -82,10 +82,6 @@ const CSS = `
 #mecano .norm.bad{border-left-color:#e2705f;color:#f0c9c2}
 #mecano .board{font-size:11px;opacity:.55;margin-top:12px;line-height:1.7}
 #mecano .no{color:#e2705f;font-size:11px}
-#econprompt{position:fixed;bottom:calc(22% - 66px);left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.55);padding:7px 15px;border-radius:20px;font:14px Helvetica,Arial,sans-serif;
-  color:#ffc94d;white-space:nowrap;z-index:5;pointer-events:none}
-#econprompt.hidden{display:none}
 #moment{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(circle at 50% 38%,rgba(18,24,30,.985),rgba(3,5,7,1));
   color:#fff;font:15px/1.75 Helvetica,Arial,sans-serif;text-align:center;padding:24px}
@@ -126,7 +122,9 @@ export function installEconomy(env) {
   // les chars chez eux » would put them at (0, 0).
   Object.assign(OWNER, OWNERS);
 
-  const prompt = div('econprompt', 'hidden');
+  // U8: the « U — Garage Norm · K — Kijiji » line used to be #econprompt, its
+  // own element stacked under #prompt. It goes through hud.setShopPrompt() and
+  // the one prompt slot now, so there is nothing to create.
   const moment = div('moment', 'hidden');
 
   // ---- the modifier layer ------------------------------------------------
@@ -454,7 +452,7 @@ export function installEconomy(env) {
   const ROLLING = 3;
 
   function pulse() {
-    if (!G.veh || G.mode !== 'drive') { prompt.classList.add('hidden'); return; }
+    if (!G.veh || G.mode !== 'drive') { hud.setShopPrompt(null); return; }
     retune();
     if (Math.abs(G.veh.vLong) > ROLLING && (shopOpen || kijiji.isOpen())) {
       closeShop();
@@ -481,14 +479,19 @@ export function installEconomy(env) {
     // The forecourt prompt. Silent while a mission, a repair or the moment card
     // owns the screen — those keys belong to somebody else.
     if (G.mission || momentVisible() || shopOpen || kijiji.isOpen()) {
-      prompt.classList.add('hidden');
+      hud.setShopPrompt(null);
       return;
     }
     const s = shopAt();
-    prompt.textContent = s
-      ? `U  —  ${s.name}     ·     K  —  Kijiji`
-      : 'K  —  Kijiji';
-    prompt.classList.toggle('hidden', !s && !nearHint());
+    // U8: one prompt slot. This used to be #econprompt, its own line 66 px
+    // under #prompt — which at 1280x800 is exactly where the tutorial card
+    // sits, so « K — Kijiji » and « W — pour avancer » drew on top of each
+    // other on the first frame of a new game. hud.setPrompt() ranks it below
+    // the mission runner and the repair spots, so it only appears when the
+    // slot is free.
+    hud.setShopPrompt(
+      !s && !nearHint() ? null
+        : s ? `U  —  ${s.name}     ·     K  —  Kijiji` : 'K  —  Kijiji');
   }
 
   const momentVisible = () => !moment.classList.contains('hidden');

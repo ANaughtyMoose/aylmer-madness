@@ -16,9 +16,20 @@ export const PLACES = {
   // The 'steph' key is historical; the person is Sayyad.
   steph:     { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
   margaret:  { x: 932.9, z: 143.9, label: '299 Chemin Fraser (Margaret)', snap: true },
-  dave:      { x: 2389.2, z: 1384.6, label: '20 Chemin Vanier (Adam, Deschênes)', snap: true },
+  // Adam Actell lives in Mayo, up the Lièvre, forty minutes east and off this
+  // map. He is never home when you want him: he drives in, parks the Sunfire in
+  // the marina lot, and that is where you find him. Nothing in Aylmer is his
+  // address. This key is the street itself — a checkpoint on chemin Vanier out
+  // in Deschênes — and belongs to nobody.
+  vanier:    { x: 2389.2, z: 1384.6, label: 'Chemin Vanier, Deschênes', snap: true },
   // Landmarks.
   mall:      { x: -18.9, z: -331.2, label: 'Galeries d’Aylmer', snap: true, lot: true },
+  // The doors, not the building. `mall` is the OSM centroid snapped to the
+  // nearest lane, which is how « Poutine express » came to finish in an empty
+  // corner of the parking lot facing a blank wall. This one is the stopping
+  // point in front of the south entrance landmarks.js builds — no snapping,
+  // because the whole point is that it lines up with the canopy.
+  foodcourt: { x: 3.4, z: -271.2, a: 1.3305, label: 'Galeries d’Aylmer — l’entrée sud' },
   beach:     { x: -1918.1, z: -451.5, label: 'Plage des Cèdres', snap: true, lot: true },
   marina:    { x: -1766, z: -88, label: 'Marina d’Aylmer', snap: true, lot: true },
   lookout:   { x: -1798, z: -22, label: 'Le phare de la marina', snap: true, lot: true },
