@@ -13,7 +13,8 @@ const suis = {
   build() {
     return [follow({
       carId: 'civic', roster: 'sayyad', name: 'Sayyad', from: 'sayyad', to: 'beach', pace: 0.5,
-      text: 'Suis la Civic jusqu’à la Plage des Cèdres',
+      car: 'la Civic ROUGE', wait: 6, go: 'Envoye, suis-moé!',
+      text: 'Suis la Civic ROUGE jusqu’à la Plage des Cèdres',
       sub: 'W à fond, reste en arrière de lui. Il t’attend pas. Il t’a dit qu’il t’attendrait pas.',
       hint: 'Il coupe par les petites rues. Colle-le, pis regarde la ligne bleue si tu le perds.',
       start: 'Suis-moé. Pis essaie de pas avoir l’air d’un touriste.',

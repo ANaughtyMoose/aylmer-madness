@@ -58,6 +58,9 @@ Thomas pressed Continue and was inside a house. What came out of the next hour:
 | #26 | Saves carry `near` (nearest named place) and `doing` (job title); Continue reads « Tom · sam 26 juin · 12:55 · Emplacement 1 / Ranger · Chemin Fraser, près de 299 Chemin Fraser / En cours: Poutine express · … » | A save has to say where you were and what you were doing. |
 | #27 | « English version → » on the menu and a selector in the options; the English strings are deliberate calques; `.photocopy` in style.css turns every UI panel into a four-generation Xerox (inverted to paper, blurred, skewed, streaked, fine print at 38 %) while the canvas stays crisp; a French ERRATUM on the English menu | The Québec exam joke: English is one click away and almost impossible to read. French is the master copy; `store.js` no longer forces `lang` to fr. |
 
+| #29 | `follow()` in verbs.js: the leader is the car actually parked at the kerb, sits `wait` s (6 for Sayyad) with the objective marker ON it and a countdown in the objective line, honks at three and as he pulls out, and the HUD shouts « SAYYAD PART — colle la Civic ROUGE! ». `AWAY.sayyad` gains `'suis'` — he used to stand in his driveway waving while « his » Civic drove off. | The player has to see who is leaving, in which car, and when. |
+| #29 | `continueSlot()`: « Continuer » takes the newest autosave (written only at the end of a job) and says « Après « Poutine express » »; it falls back to the newest manual slot only when nobody has finished a job yet. | One autosave, at the end of the last job you finished, is where Continue starts. |
+
 Two suites (`smoke_ui`, `smoke_save`) asserted the interface could not be
 English. They encoded the earlier decision, so they were rewritten to the new
 one — not loosened. `tools/smoke_lang.mjs` and `tools/smoke_tow.mjs` are new.

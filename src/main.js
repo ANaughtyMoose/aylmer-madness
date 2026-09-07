@@ -43,7 +43,7 @@ import {
 // them they own every localStorage key the game touches; main.js only asks.
 import {
   listSlots, listGroups, readSlot, deleteSlot, deleteAllSaves,
-  mostRecentSlot, lastSlot, saveToSlot, migrateLegacy, hasAnySave,
+  mostRecentSlot, continueSlot, lastSlot, saveToSlot, migrateLegacy, hasAnySave,
   fmtPlaytime, fmtWhen, carName, START_MONEY, apronSpot,
   CHARACTERS, CHARACTER_IDS, DEFAULT_CHARACTER, DEFAULT_TARGET,
   characterById, slotCharacter, slotNumber,
@@ -725,7 +725,7 @@ function applyMenuText() {
   set('carshome', t('opt.resetCars'));
   // « Continuer » is only a door if there is something behind it.
   const cont = $('btnContinue'), meta = $('contmeta');
-  const recent = mostRecentSlot();
+  const recent = continueSlot();
   if (cont) cont.disabled = !recent;
   if (meta) {
     const row = recent ? listSlots(slotCharacter(recent)).find((r) => r.slot === recent) : null;
@@ -735,7 +735,7 @@ function applyMenuText() {
       ? `${characterById(row.character).name} · ${calendar.label(row.day || 0)} · ${fmtWhen(row.savedAt)}`
         + ` · ${slotNumber(row.slot) === 'auto' ? t('save.autoslot') : t('save.slot') + ' ' + slotNumber(row.slot)}\n`
         + `${carName(row.carId)} · ${row.name || '?'}${row.near ? ', près de ' + row.near : ''}\n`
-        + `${row.doing ? 'En cours: ' + row.doing : 'Libre, pas de job en cours'}`
+        + `${row.doing ? 'En cours: ' + row.doing : (row.last ? 'Après \u00ab ' + row.last + ' \u00bb' : 'Libre, pas de job en cours')}`
         + ` · ${row.jobs} ${t('save.jobs')} · ${fmtPlaytime(row.playtime)} · ${Math.round(row.money)} $`
       : t('save.none');
   }
@@ -1532,6 +1532,7 @@ function updateMission(dt) {
     sayFriend(def, 'end');
     refreshFreeRoam();
     endOfJob();        // the day is spent; Labour Day may have arrived
+    G.lastDone = def.title;
     autosave('job');   // one of exactly two events that write without being asked
     ambush.afterJob(G, def, hud);   // …and maybe somebody wants to race you home
     return;
@@ -2543,7 +2544,7 @@ function autosave(reason) {
   if (!G.settings.autosave || !G.veh || G.mode === 'menu') return null;
   // The autosave belongs to the summer you are playing. A bare 'auto' qualifies
   // to Tom's, which as Zahra would quietly overwrite his.
-  const snap = saveToSlot(G, `${G.character}.auto`, saveOpts());
+  const snap = saveToSlot(G, `${G.character}.auto`, { ...saveOpts(), last: G.lastDone || '' });
   if (snap) console.log('autosave:', reason);
   return snap;
 }
@@ -2722,7 +2723,7 @@ $('startmap').addEventListener('click', (e) => {
   if (best) selectStart(best);        // selectStart itself refuses a locked one
 });
 $('btnContinue').onclick = () => {
-  const slot = mostRecentSlot();
+  const slot = continueSlot();
   if (slot) loadIntoGame(slot);
 };
 $('btnLoad').onclick = () => { if ($('btnLoad').disabled) return; openLoadScreen(true); };
