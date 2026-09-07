@@ -1991,6 +1991,12 @@ function tick(dt) {
   const load = clamp(drivePedal * 0.85 + Math.min(0.2, v.speedKmh / 400), 0, 1);
   audio.engine(gb.rpm, load, v.speedKmh, drivePedal, gb.clutch);
   audio.skid(v.skid);
+  // The driver's head. It reads measured acceleration and the gearbox's rpm, so
+  // it belongs on the fixed step with them and not in render(): off the frame
+  // clock the dip would be a different size at 60 Hz and at 144, and a headless
+  // run that steps the sim five hundred times and draws once would never see a
+  // dive at all. (It did not. That is how this was found.)
+  if (G.cockpit) G.cockpit.update(dt, G);
   hud.setGear(v.reversing ? 'R' : gb.gear);
   // Where the car is, so the Ottawa signal (CHEZ 106) can fade the further west
   // you get. The five local stations ignore it.
@@ -2129,7 +2135,8 @@ function render(dt) {
   // the eye inside a bicycle.
   if (!G.cockpit) G.cockpit = new Cockpit(r);
   const inCab = cam.name === 'driver' && f === v && hasCockpit(v.spec);
-  if (inCab) G.cockpit.update(dt, G);
+  // (The head itself is stepped in tick(), on the fixed clock, with the physics
+  // it reads.)
   // From the seat the radio is two paper door speakers and a cassette adapter,
   // not a station. audio.setCabin only does work on a change.
   audio.setCabin(inCab);

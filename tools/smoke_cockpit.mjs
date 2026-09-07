@@ -210,7 +210,12 @@ const web = pointsWithColour(ext, 0xcdcdc4);
 ok(web.every((p) => p[0] > 0), 'on the DRIVER\'s mirror only — the one you look at');
 ok(hasColour(ext, 0x6d6a3f), 'with two dried pine needles caught in them');
 ok(hasColour(ext, 0x8a5a30), 'and orange-brown rust along the cowl seam');
-ok(hasColour(ext, 0x1d2226), 'black paddle mirrors with dark glass, no chrome anywhere');
+// The glass is sky over road: it does not reflect, but from the seat you look
+// straight into it, and a dark quad out there is a hole in the door.
+ok(hasColour(ext, 0x7d93ab) && hasColour(ext, 0x4a4f56),
+  'black paddle mirrors whose glass reads as sky over road');
+const mglass = pointsWithColour(ext, 0x7d93ab);
+ok(mglass.some((p) => p[0] > 0) && mglass.some((p) => p[0] < 0), 'one on each door');
 ok(!hasColour(ext, 0xd8d8d8) && !hasColour(ext, 0xc0c0c0), 'and nothing chromed on the brackets either');
 // The hood misalignment: a sliver of body colour standing PROUD of the cowl on
 // the driver's side only. It is the first thing you see over the wheel.

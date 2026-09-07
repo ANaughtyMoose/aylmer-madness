@@ -13,7 +13,8 @@
 // the car's OWN model matrix. It pitches, rolls and bounces with the body
 // because it IS the body's frame, and the sun that lights the hood lights the
 // dash. Everything the checklist asks for is geometry, and the whole Ranger cab
-// costs about a fortieth of the triangle budget of one house.
+// — dash, wheel, cluster, bench, mirrors and all — costs 2510 triangles, which
+// is about a fortieth of one of the houses it drives past.
 //
 // Car-local space, exactly as cars.js states it: +Z forward, +Y up (y = 0 is
 // the ground plane the wheels stand on), +X is the driver's LEFT.
@@ -73,7 +74,14 @@ const CORD = 0x121214;            // the cassette adapter lead
 const AMBER = 0xf2a02c;           // CHECK ENGINE
 const WEB = 0xcdcdc4;             // what is left of a spider's summer
 const NEEDLEPINE = 0x6d6a3f;      // two dried pine needles caught in it
-const GLASSDK = 0x1d2226;         // mirror glass. See buildExtras().
+// A mirror seen from the seat, in two bands. It does not reflect — a second
+// render pass per mirror to show a road you already have behind you is not
+// worth a frame — but "a dark quad is what a mirror looks like from the wrong
+// angle" was an excuse written by somebody looking at the chase cam. From the
+// driver's seat you are at exactly the RIGHT angle, and a black rectangle out
+// there reads as a hole in the door, not as glass.
+const MIRRORSKY = 0x7d93ab;
+const MIRRORRD = 0x4a4f56;
 const NEEDLE = 0xe86a4a;          // orange, like every Ford cluster of the era
 // The cluster reads the way a real Ford one does: a light grey plastic MASK
 // with round holes cut in it, black dial faces behind the holes, white
@@ -82,7 +90,7 @@ const NEEDLE = 0xe86a4a;          // orange, like every Ford cluster of the era
 // rectangle with a couple of white specks on it.
 const DIALMARK = 0xe6e4da;        // the graduations, white on black
 const DIALFACE = 0x121417;        // the dial face behind the mask
-const CLUSTER = 0x53575f;         // the mask itself, moulded grey plastic
+const CLUSTER = 0x484c53;         // the mask itself, moulded grey plastic
 const DEADLAMP = 0x2a2d31;        // the three warning lamps that are NOT on
 const RUST = 0x8a5a30;            // the cowl seam, nine winters of road salt
 
@@ -139,14 +147,18 @@ export function cabOf(spec) {
   const yPad = Math.min(yCowl - 0.08, floorY + 0.52);
   const zDash = zCowl - 0.34;
   const zFace = zDash + 0.04;
-  const yInstr = yPad - 0.10;    // the middle of the instrument cluster
+  const yInstr = yPad - 0.09;    // the middle of the instrument cluster
   // The wheel hangs off a column that comes through the fascia; on every one of
   // these the hub is a little under half a metre behind the base of the glass,
   // and its centre sits a hand's width below the top of the dash.
   const zWheel = zCowl - 0.46;
-  const yWheel = yPad - 0.06;
+  // A hand's width and a half below the top of the dash, which is where a truck
+  // wheel is and, more to the point, BELOW the cluster rather than in front of
+  // it: with the hub level with the pad the gauges sat under the boss, and you
+  // read a car's instruments through the top of the wheel, not under it.
+  const yWheel = yPad - 0.13;
   const rake = s.style === 'truck' || s.style === 'bus' ? 0.55 : 0.42;   // trucks hold the wheel flat
-  const wheelR = s.style === 'bus' ? 0.26 : 0.19;
+  const wheelR = s.style === 'bus' ? 0.26 : 0.185;
 
   // The back of the cab. A truck has a wall there and a backlight above it, and
   // both are in `glassTop`'s FIRST range (the windshield is the last). A car has
@@ -375,9 +387,15 @@ export function buildCockpit(spec) {
   }
 
   // ---- instrument binnacle ----------------------------------------------
-  // Only the brow here: it is moulded plastic and it takes the sun like the
-  // rest of the dash. The cluster itself is buildCluster(), drawn unlit.
-  mb.tower(eye[0], yPad - 0.055, zF - 0.046, 0.54, 0.10, 0.055, opal, { dTop: 0.16, dz: -0.04 });
+  // A raised surround only. There WAS a separate brow here, a shelf of its own
+  // standing over the cluster, and from the driver's eye it hid the top half of
+  // both dials: on this truck the lip of the dash pad IS the brow, and a second
+  // one under it only takes the gauges away. The cluster itself is
+  // buildCluster(), drawn unlit.
+  // BEHIND the cluster, not over it: at zF - 0.020 this slab's front face landed
+  // half a millimetre in front of the mask and swallowed it whole, leaving the
+  // dials floating on a black panel that was not the panel they belong to.
+  mb.box(eye[0], c.yInstr, zF - 0.008, 0.50, 0.20, 0.030, shade(OPAL, 0.86));
 
   // ---- centre stack: the factory cassette deck ---------------------------
   mb.box(0, yPad - 0.20, zF - 0.012, 0.24, 0.30, 0.05, opalDk);                     // the bezel
@@ -565,13 +583,15 @@ export function buildCluster(spec) {
   const c = cabOf(spec), eye = driverEye(spec);
   const mb = new MeshBuilder();
   const bx = eye[0], by = c.yInstr, bz = c.zFace - 0.030;
-  mb.box(bx, by, bz, 0.50, 0.20, 0.014, rgb(CLUSTER));                    // the face
-  dial(mb, bx + 0.10, by + 0.012, bz - 0.010, 0.082, 18, rgb(DIALFACE), rgb(DIALMARK));
-  dial(mb, bx - 0.14, by + 0.012, bz - 0.010, 0.050, 12, rgb(DIALFACE), rgb(DIALMARK));
-  // The dead lamps, inboard of the live one and clear of the wheel's spokes.
-  // They are what makes the amber beside them read as ON.
+  mb.box(bx, by, bz, 0.46, 0.155, 0.014, rgb(CLUSTER));                   // the mask
+  dial(mb, bx + 0.085, by + 0.014, bz - 0.010, 0.058, 16, rgb(DIALFACE), rgb(DIALMARK));
+  dial(mb, bx - 0.115, by + 0.014, bz - 0.010, 0.034, 12, rgb(DIALFACE), rgb(DIALMARK));
+  // The dead lamps, inboard of the live one. The whole bank sits just off the
+  // wheel's top spoke — centred on the column it was cut in half by it, and half
+  // a CHECK ENGINE light either side of a black bar is not a warning, it is a
+  // rendering artefact.
   for (let k = 1; k <= 3; k++) {
-    mb.box(bx + 0.075 - k * 0.052, by - 0.078, bz - 0.010, 0.040, 0.022, 0.004, rgb(DEADLAMP));
+    mb.box(bx + 0.005 - k * 0.045, by - 0.058, bz - 0.010, 0.032, 0.018, 0.004, rgb(DEADLAMP));
   }
   mb.finish();
   return mb;
@@ -585,7 +605,7 @@ export function buildTelltale(spec) {
   if (!hasCockpit(spec)) return null;
   const c = cabOf(spec), eye = driverEye(spec);
   const mb = new MeshBuilder();
-  mb.box(eye[0] + 0.075, c.yInstr - 0.078, c.zFace - 0.042, 0.044, 0.024, 0.004, rgb(AMBER));
+  mb.box(eye[0] + 0.005, c.yInstr - 0.058, c.zFace - 0.042, 0.036, 0.020, 0.004, rgb(AMBER));
   mb.finish();
   return mb;
 }
@@ -594,7 +614,7 @@ export function buildTelltale(spec) {
  * One needle, authored about its pivot at the origin pointing up +Y in the XY
  * plane. Drawn twice: road speed on the big dial, tank on the small one.
  */
-export function buildNeedle(len = 0.075) {
+export function buildNeedle(len = 0.052) {
   const mb = new MeshBuilder();
   const c = rgb(NEEDLE);
   mb.box(0, len / 2, 0, 0.006, len, 0.004, c);
@@ -655,7 +675,7 @@ export function buildExtras(spec) {
   if (!hasCockpit(spec) || spec.style === 'bus') return null;
   const s = spec;
   const mb = new MeshBuilder();
-  const blk = shade(0x2e3033, 0.85), glass = rgb(GLASSDK), steel = shade(0x2e3033, 1.15);
+  const blk = shade(0x2e3033, 0.85), steel = shade(0x2e3033, 1.15);
   const tMirror = s.style === 'truck' ? 0.69 : s.glassSide[1] - 0.03;
   const hw = pl(s.plan, tMirror);
   const beltY = Math.min(pl(s.belt, tMirror), pl(s.top, tMirror));
@@ -664,7 +684,9 @@ export function buildExtras(spec) {
   for (const sx of [1, -1]) {
     const x = sx * (hw + 0.13);
     mb.box(x, yM, zM, 0.055, 0.23, 0.17, blk);                       // the paddle housing
-    mb.box(x - sx * 0.030, yM, zM - 0.005, 0.006, 0.19, 0.14, glass); // the glass, facing back and in
+    // Sky over road, which is all a wing mirror ever shows.
+    mb.box(x - sx * 0.031, yM + 0.052, zM - 0.005, 0.006, 0.075, 0.14, rgb(MIRRORSKY));
+    mb.box(x - sx * 0.031, yM - 0.043, zM - 0.005, 0.006, 0.11, 0.14, rgb(MIRRORRD));
     // The loop bracket: two arms off the door skin and a stem between them.
     for (const dy of [0.09, -0.09]) {
       mb.box(sx * (hw + 0.065), yM + dy, zM + 0.01, 0.13, 0.016, 0.016, steel);
@@ -678,10 +700,10 @@ export function buildExtras(spec) {
     // and not a cobweb decal.
     const x = (hw + 0.13);
     for (const [dy, dz, l] of [[0.10, 0.10, 0.16], [0.02, 0.13, 0.20], [-0.07, 0.09, 0.13]]) {
-      mb.box(x - 0.05, yM + dy + l * 0.15, zM + dz / 2, 0.004, l * 0.3, dz, rgb(WEB));
+      mb.box(x - 0.055, yM + dy + l * 0.15, zM + dz / 2, 0.006, l * 0.34, dz, rgb(WEB));
     }
-    mb.box(x - 0.05, yM + 0.055, zM + 0.075, 0.006, 0.055, 0.008, rgb(NEEDLEPINE));
-    mb.box(x - 0.05, yM - 0.010, zM + 0.055, 0.006, 0.045, 0.012, rgb(NEEDLEPINE));
+    mb.box(x - 0.055, yM + 0.055, zM + 0.075, 0.008, 0.060, 0.010, rgb(NEEDLEPINE));
+    mb.box(x - 0.055, yM - 0.010, zM + 0.055, 0.008, 0.050, 0.014, rgb(NEEDLEPINE));
 
     // Wipers, parked at the cowl.
     const tC = s.glassTop[s.glassTop.length - 1][1];
@@ -864,15 +886,15 @@ export class Cockpit {
 
     // The needles. Speed sweeps 0-160 over 240 degrees from seven o'clock; the
     // fuel needle does a quarter of that arc off whatever is in the tank.
-    const by = c.yInstr + 0.012, bz = c.zFace - 0.044;
+    const by = c.yInstr + 0.014, bz = c.zFace - 0.046;
     const kmh = clamp((G.veh && G.veh.speedKmh) || 0, 0, 160);
-    this.local(m.eye[0] + 0.10, by, bz, 0, 0, -2.094 + 4.189 * (kmh / 160));
+    this.local(m.eye[0] + 0.085, by, bz, 0, 0, -2.094 + 4.189 * (kmh / 160));
     m4.mul(this._m, model, this._l);
     r.draw(this.needle, this._m, NEEDLE_OPTS);
     const tank = G.fuelTank || 0, lit = G.fuel;
     if (tank > 0 && lit != null) {
-      this.local(m.eye[0] - 0.14, by, bz, 0, 0,
-        -1.047 + 2.094 * clamp(lit / tank, 0, 1), 0.55);
+      this.local(m.eye[0] - 0.115, by, bz, 0, 0,
+        -1.047 + 2.094 * clamp(lit / tank, 0, 1), 0.58);
       m4.mul(this._m, model, this._l);
       r.draw(this.needle, this._m, NEEDLE_OPTS);
     }
