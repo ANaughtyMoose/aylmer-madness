@@ -229,9 +229,17 @@ hud.setRange(G.mapPrefs.range);
 // Margaret's Saturn lives in the same driveway as your Ranger at 299 Fraser.
 const OWNER = {
   ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 'marina',
-  // The four beaters live on the lot until somebody buys them, and after that
+  // The other playable characters' vehicles, each outside its own house:
+  // Mike's Forester at 129 Frank-Robinson, Abraham's Sienna at 841
+  // Wilfrid-Lavigne. Zahra's Diamondback is in VEHICLE_OWNERS below, at the
+  // Denise-Friend house she shares with Sayyad.
+  forester: 'mike', sienna: 'abraham',
+  // Tyler Yank's Z24, at her aunt's on Samuel-Edey. It used to be the fourth
+  // beater on the lot; it is hers now, so it never moves to your driveway.
+  cavalier: 'tyler',
+  // The three beaters live on the lot until somebody buys them, and after that
   // they live in your driveway with everything else.
-  cutlass: 'usedlot', cavalier: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
+  cutlass: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
   // The Club's cart. It stays at the golf course whatever you do with it.
   cart: 'golf',
 };
@@ -242,7 +250,7 @@ Object.assign(OWNER, VEHICLE_OWNERS);
 const homeKey = (id) => (OWNER[id] === 'usedlot' ? 'home' : OWNER[id]);
 const homeOf = (id) => PLACES[homeKey(id)] || PLACES.home;
 
-const garage = new Garage(G.done);
+const garage = new Garage(G.done, G.character);
 G.garage = garage;
 // The sky. Seeded, so a fresh game always opens on the same clear July morning
 // and only then starts making its own weather.
@@ -308,8 +316,14 @@ const turntable = new CarTurntable();
 // the picker is the exact place the car will appear once the world is built.
 // 'sayyad' and the legacy 'steph' are the same house (75 Denise-Friend); the
 // list carries the readable key, because it ends up in a data-key attribute.
+// The five playable characters' front doors come first: picking a character
+// moves the pin to their own house (selectCharacter below), so every one of
+// them has to be a start point or the GO button would name a place the map
+// cannot show. Zahra shares Sayyad's, so there are four pins for five people.
+// (tools/smoke_shell.mjs reads this array out of the source text, so keep the
+// commentary outside the brackets.)
 const START_POINTS = [
-  'home', 'sayyad', 'mall', 'beach', 'marina', 'principale',
+  'home', 'sayyad', 'mike', 'abraham', 'mall', 'beach', 'marina', 'principale',
   'arena', 'deschenes', 'golf', 'heritage',
   'hulldowntown', 'hullmuseum', 'hullcasino', 'hullmall',
   'ottawa', 'chelsea',
@@ -318,7 +332,8 @@ const START_POINTS = [
 // opens so the confirm button is never dead on arrival.
 const DEFAULT_START = 'home';
 const START_MAP_LABELS = {
-  home: 'Chez nous', sayyad: 'Chez Sayyad', mall: 'Galeries d’Aylmer',
+  home: 'Chez nous', sayyad: 'Chez Sayyad', mike: 'Chez Mike',
+  abraham: 'Chez Abraham', mall: 'Galeries d’Aylmer',
   beach: 'Plage des Cèdres',
   marina: 'Marina', principale: 'Vieux-Aylmer', arena: 'Aréna Frank-Robinson',
   deschenes: 'Deschênes', golf: 'Club de golf', heritage: 'Heritage College',
@@ -432,11 +447,17 @@ function selectCharacter(id) {
   pickedCharacter = CHARACTER_IDS.includes(id) ? id : DEFAULT_CHARACTER;
   const row = $('startchars');
   if (row) for (const el of row.children) el.classList.toggle('sel', el.dataset.character === pickedCharacter);
-  // Their own car, when the garage will hand it over — otherwise the menu's
-  // pick stands and enterDrive falls back the same way it always did.
+  // Whose summer this is decides which cards the menu shows as owned: Sayyad's
+  // Civic is a mission reward for Tom and simply his own car for him.
+  garage.setCharacter(pickedCharacter);
+  // Their own vehicle, and their own front door. Both are only defaults — the
+  // player can still pick any pin on the map afterwards — but opening the
+  // picker as Mike and being offered 299 Chemin Fraser in a Ranger was the
+  // whole of what « chaque personnage a son propre été » did NOT do.
   const who = characterById(pickedCharacter);
-  if (who.car !== G.carId && garage.has(who.car, G.done)) { G.carId = who.car; buildMenu(); }
-  selectStart(pickedStart);
+  if (who.car !== G.carId && garage.has(who.car, G.done)) G.carId = who.car;
+  buildMenu();
+  selectStart(PLACES[who.home] && availableStartPoints().includes(who.home) ? who.home : pickedStart);
 }
 
 function openStartPicker(open) {
@@ -601,7 +622,8 @@ function startGame(save = null, startKey = null, character = null) {
     G.homeXZ = { x: p.x, z: p.z };
   }
   if (save && save.carId) G.carId = save.carId;
-  if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = 'ranger';
+  garage.setCharacter(G.character);
+  if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = characterById(G.character).car;
   $('menu').classList.add('hidden');
   setModal('options', false);
   setModal('load', false);
@@ -737,7 +759,12 @@ function worldStages() {
 function enterDrive(save = null, startKey = null) {
   if (save && save.character) G.character = save.character;
   if (!CHARACTER_IDS.includes(G.character)) G.character = DEFAULT_CHARACTER;
+  const who = characterById(G.character);
+  // A new game starts in the character's own vehicle. A slot knows better —
+  // it remembers what they were driving when they saved.
   if (save && save.carId) G.carId = save.carId;
+  else G.carId = who.car;
+  garage.setCharacter(G.character);
   const spec = carById(G.carId);
   G.veh = new Vehicle(spec);
   G.veh.assist = G.assist;
@@ -747,7 +774,11 @@ function enterDrive(save = null, startKey = null) {
   if (!save) garage.reset();
   try { if (save && save.unlocks) garage.restore(save.unlocks); } catch (e) { console.warn('unlocks', e); }
   garage.setProgress(G.done);
-  if (!garage.has(spec.id, G.done)) { G.carId = 'ranger'; }
+  // The garage is per-character now, so this is the net that catches a
+  // hand-edited save or a character whose car got renamed — never the normal
+  // path. Falling back to THEIR car rather than to the Ranger matters: Zahra
+  // has no licence and must not be dropped into a pickup truck.
+  if (!garage.has(spec.id, G.done)) { G.carId = garage.has(who.car, G.done) ? who.car : 'ranger'; }
   const home = homeParked(G.carId);
   G.parked = {};
   for (const c of CARS) {
@@ -756,9 +787,15 @@ function enterDrive(save = null, startKey = null) {
     if (p) G.parked[c.id] = { x: p.x, z: p.z, yaw: p.yaw };
   }
   G.gearbox = new Gearbox(spec.drive);
+  // Where the summer starts. The picker's pin wins if there is one (it is
+  // pre-set to this character's own house); without one — the debug API, a
+  // test, anything that calls enterDrive directly — it is their front door,
+  // and only then the car's own parking table.
   const chosenPlace = !save && startKey && PLACES[startKey];
   const chosen = chosenPlace && { x: chosenPlace.x, z: chosenPlace.z, yaw: chosenPlace.a || 0 };
-  const start = chosen || (save && save.parked && save.parked[spec.id]) || home[spec.id] || homeSpot(spec.id);
+  const doorstep = !save && PLACES[who.home] && curbSpot(PLACES[who.home], 0);
+  const start = chosen || (save && save.parked && save.parked[spec.id]) || doorstep
+    || home[spec.id] || homeSpot(spec.id);
   G.veh.reset(start.x, start.z, start.yaw);
   G.health = save ? { ...save.health } : {};
   restoreDamage(G.veh, G.health[spec.id] || 0);
@@ -804,7 +841,10 @@ function enterDrive(save = null, startKey = null) {
   G.wallet.render();
   // The spine: 73 days, a target, a tank. save.js carries day/fuel/target
   // (Wave 2b); a save without them starts the summer fresh at the first day.
-  G.character = (save && save.character) || 'tom';
+  // NOT `G.character = save.character || 'tom'`: that line stamped every new
+  // game back to Tom fifty lines after the picker had said otherwise, so
+  // choosing Zahra started Tom's summer with Zahra's name on the menu. The
+  // character was settled at the top of this function; leave it alone.
   calendar.restoreSummer(G, save);
   fuel.initFuel(G, save);
   if (G.props) {
@@ -1058,7 +1098,7 @@ function stepEnv(dt) {
 function startMission(def) {
   const spec = G.veh.spec;
   const stages = def.build({
-    carId: spec.id, carName: spec.name, seats: spec.seats,
+    carId: spec.id, carName: spec.name, seats: spec.seats, places: carPlaces(spec),
     money: G.wallet ? G.wallet.value : 0,
   });
   G.mission = {
@@ -1101,7 +1141,7 @@ function resumeMission(saved) {
   }
   const spec = G.veh.spec;
   const stages = def.build({
-    carId: spec.id, carName: spec.name, seats: spec.seats,
+    carId: spec.id, carName: spec.name, seats: spec.seats, places: carPlaces(spec),
     money: G.wallet ? G.wallet.value : 0,
   });
   if (!stages || !stages.length) return false;

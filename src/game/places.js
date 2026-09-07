@@ -70,6 +70,27 @@ export const PLACES = {
   sayyad:    { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
   // 129 avenue Frank-Robinson, west side, just south of rue Smiley.
   mike:      { x: -428.3, z: 58.3, label: '129 Frank-Robinson (Mike)', snap: true },
+  // 'zahra' is the same house as 'steph'/'sayyad' — 75 Denise-Friend. She is
+  // his sister, so the third key on one address is not a duplicate, it is the
+  // start point the character picker needs to be able to name.
+  zahra:     { x: -720.5, z: -465.4, label: '75 Denise-Friend (Zahra)', snap: true },
+  // 841 boulevard Wilfrid-Lavigne. The boulevard starts at rue Principale
+  // (z = -150 in this frame) and runs north; the 800 block is interpolated at
+  // roughly a civic number to the metre along it, which puts the house near
+  // z = -1000, and the authored point is set back off the road on the east
+  // side. `snap: true`, so the marker and the kerb land on the boulevard
+  // whatever the setback turns out to be. The block is right; the driveway is
+  // an estimate.
+  abraham:   { x: -182, z: -998, label: '841 Wilfrid-Lavigne (Abraham)', snap: true },
+  // ~312 rue Samuel-Edey, where Tyler Yank lives with her aunt. UNCERTAIN:
+  // PLAN says « ~312 » and nothing narrows it, so this is the 300 block by the
+  // same interpolation as above — 312 m north of the street's south end at
+  // chemin d'Aylmer — and it is deliberately NOT snapped: snapping an already
+  // approximate address would pull it to whichever segment happens to be
+  // nearest and make a guess look like a survey. The point is on the road
+  // itself, so the Z24 parks on pavement; `a` is the street's own bearing
+  // there. If anyone ever learns the real number, move this and nothing else.
+  tyler:     { x: 600, z: -535, a: -3.03, label: '312 Samuel-Edey (Tyler)' },
   // Île Aylmer, out in Lac Deschênes. Deliberately NOT snapped to a road.
   island:    { x: -1227, z: 612, label: 'Île Aylmer' },
   // Club de Golf Gatineau: the clubhouse sits ~29 m south of the service loop

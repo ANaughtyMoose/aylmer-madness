@@ -16,6 +16,17 @@ import { DoughnutMeter, DONUT, couchLaunch, CouchFlight } from './stunts.js';
 
 const P = 'job:';
 const say = (G, text, ms) => G.hud && G.hud.toast(text, ms);
+
+// A canoe and a three-seater couch go on a ROOF. A bicycle has no roof, and
+// Zahra is the reason that is suddenly a live question: her whole summer is on
+// two wheels. Same shape as golfjob.js's `wrongCar` — `condition` refuses the
+// stage and `prompt` says why out loud, so the job stalls with a line instead
+// of strapping a canoe to a Diamondback or dividing by a roof that is not
+// there. It reads the spec, not an id, so it covers the chrome cruiser and
+// anything else two-wheeled that gets added later.
+const onTwoWheels = (G) => !!(G.veh && G.veh.spec && G.veh.spec.twoWheel);
+const needsARoof = (what) => (G) => (onTwoWheels(G)
+  ? `${what} sur un vélo? Reviens avec un char.` : null);
 const blip = (G, f, d, t, v) => G.audio && G.audio.blip(f, d, t, v);
 
 function clearJob(G) {
@@ -59,6 +70,8 @@ const canot = {
         sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour acheter le canot (45 $)',
         hint: 'Promenade Wychwood. Faut être arrêté dans le pilier avant que le E marche.',
         at: 'yardsale', radius: 13, hold: true, cost: 45,
+        condition: (G) => !onTwoWheels(G),
+        prompt: needsARoof('Un canot de cèdre de seize pieds'),
         holdText: 'E — acheter le canot   ·   45 $',
         brokeText: 'Quarante-cinq piasses. T’en as pas quarante-cinq. Va tondre des gazons.',
         toast: 'Un canot. 45 $. « Il flotte », qu’il a dit. En principe.',
@@ -343,6 +356,8 @@ const divan = {
         sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour charger le divan',
         hint: 'Frank-Robinson, au nord de la Principale. Faut être arrêté dans le pilier pour que le E marche.',
         at: 'mike', radius: 14, hold: true,
+        condition: (G) => !onTwoWheels(G),
+        prompt: needsARoof('Un divan trois places'),
         holdText: `E — charger le divan sur le ${ctx.carName}`,
         toast: 'Le divan est sur le toit. Mike tient une corde. C’est tout.',
         onEnter(G) {

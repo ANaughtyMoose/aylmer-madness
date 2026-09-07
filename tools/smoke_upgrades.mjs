@@ -172,7 +172,9 @@ group('Kijiji');
   const g = fresh();
   const cars = K.ADS.filter((a) => a.car);
   ok(K.ADS.length >= 8, `${K.ADS.length} ads`);
-  ok(cars.length >= 5, `${cars.length} of them are cars for sale`);
+  // Four, not five: the Z24's ad went when PLAN's cast table settled that the
+  // car is Tyler Yank's rather than Ti-Guy's fourth beater (see kijiji.js).
+  ok(cars.length >= 4, `${cars.length} of them are cars for sale`);
   ok(K.ADS.some((a) => !a.car), 'and at least one is a couch');
   for (const a of cars) {
     ok(UNLOCKS[a.car] && UNLOCKS[a.car].kind === 'buy', `${a.car} is genuinely for sale`);
@@ -186,7 +188,7 @@ group('Kijiji');
 
   // The Tempo: the cheapest whole car in the game, and the only one that is
   // only ever sold here.
-  ok(g.cost('tempo') < Math.min(...['cutlass', 'cavalier', 'caravan'].map((id) => g.cost(id))),
+  ok(g.cost('tempo') < Math.min(...['cutlass', 'caravan'].map((id) => g.cost(id))),
     `the Tempo at $${g.cost('tempo')} undercuts everything on the lot`);
   const w = new Wallet(null);
   w.set(100);
@@ -214,7 +216,7 @@ group('the forty ads in assets/text/kijiji.json');
   const buyable = all.filter((a) => a.car);
   const phantoms = all.filter((a) => a.phantom);
   ok(all.length === K.ADS.length + raw.listings.length, `${all.length} ads on the page`);
-  ok(buyable.length === 5, 'five of them are cars this game can actually build');
+  ok(buyable.length === 4, 'four of them are cars this game can actually build');
   ok(phantoms.length === raw.listings.length, `${phantoms.length} are phantoms`);
   ok(phantoms.every((a) => !a.car), 'and not one phantom is buyable');
   ok(phantoms.every((a) => a.redFlag), 'every phantom knows what is wrong with itself');

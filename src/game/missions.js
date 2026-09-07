@@ -163,6 +163,16 @@ const CORE_MISSIONS = [
         toast: 'Tout le monde débarque', passengers, money,
       });
 
+      // A bicycle carries the rider and nobody else. `ctx.places` is
+      // cars.js's carPlaces(): 3 in the Ranger, 7 in the Sienna, 1 on the
+      // Diamondback — which is the number that says « this errand is not
+      // possible on that », where `seats` would have quietly built the
+      // two-trip variant and then never let anybody in. Same shape as
+      // golfjob.js: the stage refuses and says why, rather than failing.
+      if (ctx.places <= 1) {
+        return [{ ...marc, condition: () => false,
+          prompt: () => 'Trois personnes pis un vélo. Reviens en char.' }];
+      }
       // The Ranger's bench seats three total, so two friends is the legal max
       // and the run has to be done twice.
       if (ctx.seats < 3) {
@@ -502,7 +512,7 @@ for (const m of ALL_MISSIONS) {
 // working, so a job with no `money` anywhere in it is a bug, not a design.
 // (Two builds per job: the bench-seat variant and the normal one.)
 export function missionPayout(def, ctx) {
-  const c = Object.assign({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 0 }, ctx || {});
+  const c = Object.assign({ carId: 'ranger', carName: 'Ranger', seats: 2, places: 3, money: 0 }, ctx || {});
   let total = 0;
   for (const st of def.build(c)) total += (st.money || 0) - (st.cost || 0);
   return total;

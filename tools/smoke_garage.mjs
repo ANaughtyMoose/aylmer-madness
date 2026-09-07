@@ -18,6 +18,11 @@ globalThis.localStorage = new FakeStorage();
 
 const { CARS, carById } = await import('../src/game/cars.js');
 const { Garage, UNLOCKS, FOR_SALE, START_CAR } = await import('../src/game/garage.js');
+// Registers the two buses and the two bicycles into CARS, UNLOCKS and OWNER.
+// Zahra's start vehicle is one of them, so without this the Diamondback simply
+// is not in the game as far as this suite can see.
+await import('../src/game/vehicles.js');
+const { CHARACTERS, OWNER } = await import('../src/game/save.js');
 const { MISSIONS, missionPayout } = await import('../src/game/missions.js');
 const { PLACES, resolvePlaces } = await import('../src/game/places.js');
 const { Wallet, START } = await import('../src/game/money.js');
@@ -37,12 +42,19 @@ const fresh = () => { localStorage.clear(); return new Garage(new Set()); };
 group('unlock rules');
 {
   const g = fresh();
-  // Nine cars now. You own exactly one of them; the tenth thing on the list,
-  // the Club's golf cart, is not owned by anybody and never was, which is why
-  // it is drivable from the first frame and never announced.
-  ok(CARS.length === 9, `${CARS.length} cars in the game`);
-  ok(g.unlocked().join() === `${START_CAR},cart`,
-    'you start with the Ranger and the Club\'s cart, and nothing else', JSON.stringify(g.unlocked()));
+  // Fourteen: the nine this suite used to count, plus Wave 3's Forester and
+  // Sienna, plus the two buses and the two bicycles game/vehicles.js registers
+  // — this suite now imports that, because Zahra starts on one of them.
+  ok(CARS.length === 14, `${CARS.length} cars in the game`);
+  // As Tom, on the first frame: your truck, and the four things nobody owns
+  // (the Club's cart, the school bus in the yard at l'Aigle, Sayyad's cruiser
+  // chained to nothing, and the Diamondback). Mike's Forester, Abraham's
+  // Sienna and Sayyad's Civic are not yours and do not appear.
+  ok(g.unlocked().join() === `${START_CAR},cart,schoolbus,cruiser,dbike`,
+    'you start with the Ranger and the four unowned things, and nothing else',
+    JSON.stringify(g.unlocked()));
+  ok(!g.has('forester') && !g.has('sienna') && !g.has('civic'),
+    'nobody else\'s car is in there');
   ok(g.reason('cart', new Set()) === null, 'the cart is never locked');
   for (const c of CARS) ok(!!UNLOCKS[c.id], `${c.id} has an unlock rule`);
   ok(CARS.every((c) => c.sound && c.drive), 'every car has a sound profile and a gearbox');
@@ -72,12 +84,18 @@ group('the used lot');
   const d = Math.hypot(PLACES.usedlot.x - PLACES.ctire.x, PLACES.usedlot.z - PLACES.ctire.z);
   ok(d < 250, `the lot is ${d.toFixed(0)} m from the Canadian Tire`);
   ok((PLACES.usedlot.street || '').includes('Aylmer'), `and it is on ${PLACES.usedlot.street}`);
-  ok(FOR_SALE.length === 4, `four cars for sale: ${FOR_SALE.join(', ')}`);
+  // Three, not four: the Z24 came off Ti-Guy's gravel when PLAN's cast table
+  // settled that it is Tyler Yank's and lives at her aunt's on Samuel-Edey.
+  // The assertion was the stale thing here, not the code — see the comment
+  // over UNLOCKS.cavalier.
+  ok(FOR_SALE.length === 3, `three cars for sale: ${FOR_SALE.join(', ')}`);
+  ok(!FOR_SALE.includes('cavalier') && UNLOCKS.cavalier.who === 'Tyler',
+    'and the Z24 is not one of them — it is Tyler\'s');
 
   const g = fresh();
   const w = new Wallet(null);
   w.set(1000);
-  const prices = { cutlass: 300, cavalier: 450, caravan: 250, bus: 1500 };
+  const prices = { cutlass: 300, caravan: 250, bus: 1500 };
   for (const id of FOR_SALE) ok(g.cost(id) === prices[id], `${id} costs $${g.cost(id)}`);
 
   // Too poor.
@@ -94,7 +112,7 @@ group('the used lot');
   ok(r.ok, 'three hundred and twenty does');
   ok(w.value === 20, `the wallet went 320 -> ${w.value}`);
   ok(g.has('cutlass'), 'and the Cutlass is yours');
-  ok(g.forSale().length === 3, 'three left on the lot');
+  ok(g.forSale().length === 2, 'two left on the lot');
 
   // Buying it twice is free and harmless.
   r = g.buy('cutlass', w, new Set());
@@ -122,13 +140,13 @@ group('persistence');
   const w = new Wallet(null); w.set(2000);
   const a = new Garage(new Set());
   a.buy('caravan', w, new Set());
-  a.buy('cavalier', w, new Set());
+  a.buy('cutlass', w, new Set());
   const raw = readJSON(KEYS.cars, null);
   ok(raw && Array.isArray(raw.bought), `aylmer.cars holds ${JSON.stringify(raw.bought)}`);
 
   // A fresh Garage in a fresh session sees the same cars.
   const b = new Garage(new Set());
-  ok(b.has('caravan') && b.has('cavalier'), 'a reload keeps what you bought');
+  ok(b.has('caravan') && b.has('cutlass'), 'a reload keeps what you bought');
   ok(!b.has('bus'), 'and not what you did not');
 
   // Save slots: serialize / restore instead of the localStorage key.
@@ -137,7 +155,7 @@ group('persistence');
   c.reset();
   ok(!c.has('caravan'), 'reset clears the lot purchases');
   c.restore(snap);
-  ok(c.has('caravan') && c.has('cavalier'), 'restore() puts a save slot back');
+  ok(c.has('caravan') && c.has('cutlass'), 'restore() puts a save slot back');
   ok(JSON.stringify(c.serialize().bought.slice().sort()) === JSON.stringify(snap.bought.slice().sort()),
     'serialize -> restore -> serialize round-trips');
   c.restore({ bought: ['not-a-car', 'bus'], seen: 7 });
@@ -204,6 +222,48 @@ group('the new cars');
   // Margaret lives at 299 Fraser with you, so every car — even the bus — starts by picking her up at home.
   ok(inBus[0].at === 'home', 'the bus picks Margaret up at home too');
   ok(inRanger[0].at === 'home', 'everything else picks her up at the driveway');
+}
+
+// -------------------------------------------------- 5b. the five characters
+//
+// Wave 3, deliverable 4: choosing a character starts THAT person's summer in
+// THEIR vehicle. Two tables have to agree for that to be true — save.js's
+// CHARACTERS[].car and garage.js's UNLOCKS — and nothing else in the game
+// checks it, so a rename on one side would silently drop the player into the
+// Ranger with no error anywhere.
+
+group('every character starts in their own vehicle');
+{
+  ok(CHARACTERS.length === 5, `${CHARACTERS.length} playable summers`);
+  for (const who of CHARACTERS) {
+    const spec = CARS.find((c) => c.id === who.car);
+    ok(!!spec, `${who.id} starts in ${who.car}, which is in CARS`);
+    // The first frame: no jobs done, nothing bought, a garage that has never
+    // been saved. If it is locked HERE the character cannot start at all.
+    const g = new Garage(new Set(), who.id);
+    ok(g.has(who.car, new Set()), `${who.id}: the garage hands over the ${who.car} from the first frame`);
+    ok(g.reason(who.car, new Set()) === null, `${who.id}: ...so the menu card is never locked`);
+    ok(g.unlocked(new Set()).includes(who.car), `${who.id}: and it is in unlocked()`);
+    // Nobody is announced their own car with an « on te passe les clés » toast.
+    ok(g.newlyUnlocked(new Set()).every((u) => u.id !== who.car),
+      `${who.id}: the ${who.car} never announces itself`);
+    // Where they start it.
+    ok(!!PLACES[who.home], `${who.id} starts at PLACES.${who.home}`);
+  }
+  // ...and the converse: nobody else's car is quietly handed out. Only Tom's
+  // Ranger (the premise of the summer) is on more than one character's list.
+  const tom = new Garage(new Set(), 'tom');
+  for (const who of CHARACTERS) {
+    if (who.id === 'tom' || who.car === 'dbike') continue;
+    ok(!tom.has(who.car, new Set()), `Tom does not get to start in the ${who.car}`);
+  }
+  // Zahra's Diamondback is the exception on purpose: a bicycle chained to
+  // nothing is nobody's, which is exactly why the bikes are kind 'free'.
+  ok(UNLOCKS.dbike.kind === 'free', 'the Diamondback belongs to nobody, so anybody may ride it');
+  // Each of the five vehicles has an address to be parked at.
+  for (const who of CHARACTERS) {
+    ok(!!PLACES[OWNER[who.car] || ''], `the ${who.car} parks at PLACES.${OWNER[who.car]}`);
+  }
 }
 
 // ---------------------------------------------------------------- 6. radio
