@@ -520,7 +520,13 @@ Gemini's "ten things a new player notices first" puts four defects in the
 first two minutes of play. Fix these before the spine, because the spine is
 pointless if the opening is broken:
 
-1. **Traffic on the wrong side.** Gemini's proposed fix: the lane offset in
+1. ~~**Traffic on the wrong side.**~~ **Done, PR #7 (2026-09-06).** It was not the
+   sign: cars steered at the far end of their road segment and the chord ran
+   through the oncoming lane on left-hand bends. Look-ahead pure pursuit along
+   the lane line; `tools/smoke_traffic.mjs` pins it (28 suites). The camera
+   jitter at speed was the fixed 1/60 accumulator aliasing against the display;
+   the loop now sub-steps real frame time. Same PR. Original note kept below.
+   Gemini's proposed fix: the lane offset in
    `laneAt()` (`src/game/traffic.js` ~line 223, `rx = -e.dz*off, rz = e.dx*off`)
    has the wrong handedness. **Verify against the player car's own right-hand
    convention in `cars.js` before flipping it** — if the sign is right and the
@@ -567,7 +573,12 @@ Civilization), then map all 18 jobs to keys, then validate with the snippet in
 live top right, always, and the HUD chrome flips to English with the seam card
 (BACKLOG U11–U12).
 
-### Step 3 — Feel (one agent; Gemini's `look/FEEL.md` numbers arrive first)
+### Step 3 — Feel, and the driver's seat (one agent; Gemini's `look/FEEL.md` numbers arrive first)
+
+Also here: **the in-car view** (BACKLOG C6, Thomas 2026-09-06) — a fifth `C`
+stop at the driver's eye, the wheel turning with input, a per-car interior
+plate from `docs/GEMINI_INTERIOR_PROMPT.md` (Gemini paints them into
+`gemini-inbox/interiors/`). Small true details, nothing on the dash.
 
 Camera jitter (`main.js` ~1748: decouple the chase camera from instantaneous
 suspension jounce, critically damp the position spring), along-slope gravity
