@@ -171,7 +171,16 @@ group('save slots');
   // Most recent wins « Continuer ».
   save.writeSlot('1', { ...full, savedAt: '2026-01-01T00:00:00.000Z' });
   save.writeSlot('3', { ...full, savedAt: '2026-07-01T00:00:00.000Z' });
-  eq(save.mostRecentSlot(), 'tom.3', 'Continuer picks the newest slot');
+  eq(save.mostRecentSlot(), 'tom.3', 'the newest slot of any kind is tom.3');
+  // 2026-09-07: « Continuer » is the end of the last job you finished — the
+  // autosave — whenever there is one, even if an F5 is newer.
+  eq(save.continueSlot(), 'tom.3', 'with no autosave, Continuer falls back to the newest manual slot');
+  save.writeSlot('auto', { ...full, savedAt: '2026-06-01T00:00:00.000Z', last: 'Poutine express' });
+  eq(save.continueSlot(), 'tom.auto', 'with an autosave, Continuer takes it even though slot 3 is newer');
+  eq(save.mostRecentAuto(), 'tom.auto', 'the newest autosave across characters');
+  eq(save.listSlots().find((r) => r.slot === 'tom.auto').last, 'Poutine express', 'and it knows which job it came after');
+  save.deleteSlot('auto');
+  eq(save.continueSlot(), 'tom.3', 'delete the autosave and the fallback is back');
 
   // Garbage in, sane save out.
   localStorage.setItem('aylmer.save.tom.1', '{not json');

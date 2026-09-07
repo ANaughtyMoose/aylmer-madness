@@ -305,6 +305,7 @@ export function normalizeSave(raw, slot = '') {
     name: typeof raw.name === 'string' ? raw.name.slice(0, 40) : '',
     near: typeof raw.near === 'string' ? raw.near.slice(0, 60) : '',
     doing: typeof raw.doing === 'string' ? raw.doing.slice(0, 60) : '',
+    last: typeof raw.last === 'string' ? raw.last.slice(0, 60) : '',
     savedAt: typeof raw.savedAt === 'string' ? raw.savedAt : new Date(0).toISOString(),
     playtime: Math.max(0, num(raw.playtime, 0)),
     character,
@@ -400,7 +401,7 @@ export function listSlots(character = DEFAULT_CHARACTER) {
       slot, character: who, empty: false, name: s.name, savedAt: s.savedAt, playtime: s.playtime,
       carId: s.carId, money: s.money, jobs: s.progress.length, best: s.best,
       day: s.day, target: s.target, job: s.mission ? s.mission.id : null, save: s,
-      near: s.near || '', doing: s.doing || '',
+      near: s.near || '', doing: s.doing || '', last: s.last || '',
     };
   });
 }
@@ -422,8 +423,27 @@ export function listGroups() {
   });
 }
 
-// The slot « Continuer » resumes: newest savedAt wins, ties go to a real slot
-// over the autosave.
+// Thomas, 2026-09-07: « make one auto save so you start at the end of the
+// last mission you completed. » The autosave IS that (it is written at the
+// end of every job and nowhere else), so « Continuer » takes the newest
+// autosave across every character when there is one, and only falls back to
+// the newest manual slot when nobody has finished a job yet. Manual slots are
+// what the Charger screen is for.
+export function mostRecentAuto() {
+  let best = null, bt = -Infinity;
+  for (const row of listAllSlots()) {
+    if (row.empty || slotNumber(row.slot) !== 'auto') continue;
+    const t = Date.parse(row.savedAt) || 0;
+    if (t > bt) { bt = t; best = row.slot; }
+  }
+  return best;
+}
+export function continueSlot() {
+  return mostRecentAuto() || mostRecentSlot();
+}
+
+// The newest slot of any kind: newest savedAt wins, ties go to a real slot
+// over the autosave. What the boot uses to know who you were.
 export function mostRecentSlot() {
   let best = null, bt = -Infinity;
   for (const row of listAllSlots()) {
@@ -460,6 +480,9 @@ export function snapshot(G, opts = {}) {
     // them without loading the world.
     near: typeof opts.near === 'string' ? opts.near.slice(0, 60) : '',
     doing: typeof opts.doing === 'string' ? opts.doing.slice(0, 60) : '',
+    // The autosave is written at the end of a job; this is which one, so
+    // « Continuer » can say « après Poutine express » instead of « libre ».
+    last: typeof opts.last === 'string' ? opts.last.slice(0, 60) : '',
     savedAt: new Date().toISOString(),
     playtime: num(G.playtime, 0),
     character: G.character,

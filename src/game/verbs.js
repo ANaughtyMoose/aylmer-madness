@@ -74,8 +74,25 @@ export function cruiseFor(G, frac) {
 // Somebody drives from A to B and does not wait. Stay within `maxBehind`; fall
 // further back for more than `grace` seconds and they are gone. The GPS still
 // shows the destination — you know where he is going, the point is the pace.
+//
+// Thomas, 2026-09-07: « when you follow Sayyad, he should get in the red car
+// and it should be more obvious. I didn't see he was leaving until too late. »
+// So the leader does not simply exist-and-go any more. The car is the one
+// actually parked at the kerb (not a copy at the address point), it sits for
+// `wait` seconds with the objective marker ON it and a countdown in the
+// objective line, honks at three and at one, and when it goes the HUD says so
+// in capitals. `m.followWait` is a scalar so a reload mid-countdown resumes it.
 export function follow(o) {
   const to = at(o.to), from = at(o.from);
+  const car = o.car || 'son char';
+  const wait = o.wait == null ? 6 : o.wait;
+  const countdown = (G, m) => {
+    const s = Math.max(0, Math.ceil(m.followWait));
+    if (G.hud && G.hud.setObjective) {
+      G.hud.setObjective(`${o.name} embarque dans ${car}`,
+        `Il part dans ${s} s — place-toi derrière, pis reste collé`);
+    }
+  };
   return {
     kind: 'follow',
     text: o.text, sub: o.sub || 'W à fond. Reste en arrière de lui, il t’attend pas.', hint: o.hint || 'La ligne bleue va où il va.',
@@ -84,17 +101,49 @@ export function follow(o) {
     money: o.money, toast: o.toast,
     onEnter(G, m) {
       m.followLost = 0;
-      const p = from;
+      if (typeof m.followWait !== 'number') m.followWait = wait;
+      // Where the car really is: the kerb spot, or the address if it is not
+      // parked anywhere (a test, or a car already borrowed by another job).
+      const pk = (G.parked && G.parked[o.carId]) || (G.raceParked && G.raceParked[o.carId]) || null;
+      const p = pk || from;
       const path = G.nav ? G.nav.route(p.x, p.z, to.x, to.z) : null;
       m._leader = spawnRival(G, o.carId, {
-        roster: o.roster, name: o.name, x: p.x, z: p.z, yaw: p.a || 0, path, active: true,
+        roster: o.roster, name: o.name, x: p.x, z: p.z, yaw: pk ? (pk.yaw || 0) : (p.a || 0), path,
+        active: m.followWait <= 0,
         cruise: cruiseFor(G, o.pace || 0.5),
       });
+      if (m.followWait > 0) {
+        // The marker sits on the car until it moves, so you know WHICH car.
+        m.target = { x: p.x, z: p.z, r: 14 };
+        G.routeKey = '';
+        countdown(G, m);
+      }
       if (o.start) heckle.line(o.name, o.start, 3000);
     },
     onTick(G, m, st, dt) {
       const rv = m._leader;
       if (!rv) return null;
+      if (m.followWait > 0) {
+        const before = Math.ceil(m.followWait);
+        m.followWait -= dt;
+        const now = Math.max(0, Math.ceil(m.followWait));
+        if (now !== before) {
+          countdown(G, m);
+          if (G.hud && G.hud.pulseObjective) G.hud.pulseObjective(1);
+          // Two toots: with three seconds left, and as he pulls out. A friend,
+          // not an ambulance.
+          if ((now === 2 || now === 0) && G.audio && G.audio.honk) G.audio.honk(392, 0.28, 0.08);
+        }
+        if (m.followWait > 0) return null;
+        // He goes.
+        rv.active = true;
+        m.target = { x: to.x, z: to.z, r: o.radius || 40 };
+        G.routeKey = '';
+        if (G.hud && G.hud.setObjective) G.hud.setObjective(st.text, st.sub || '');
+        if (G.hud && G.hud.toast) G.hud.toast(`${o.name.toUpperCase()} PART — colle ${car}!`, 2600, true);
+        heckle.line(o.name, o.go || 'Envoye!', 2000);
+        return null;
+      }
       const d = dist(G.veh, rv);
       const gone = remaining(rv) < 25;
       if (gone) rv.active = false;
@@ -107,6 +156,7 @@ export function follow(o) {
     condition(G, m) { const rv = m._leader; return !!rv && remaining(rv) < 25 && dist(G.veh, rv) < (o.radius || 40); },
     prompt(G, m) {
       const rv = m._leader; if (!rv) return '';
+      if (m.followWait > 0) return `${o.name} embarque dans ${car} — il part dans ${Math.max(0, Math.ceil(m.followWait))} s`;
       const d = Math.round(dist(G.veh, rv));
       return remaining(rv) < 25 ? `${o.name} est rendu — rejoins-le` : `${o.name}: ${d} m devant${d > 90 ? ' — pèse!' : ''}`;
     },

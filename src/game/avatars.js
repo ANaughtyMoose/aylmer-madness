@@ -663,7 +663,9 @@ export const CAST = {
 // « Réveiller Sayyad » only works if he is asleep inside, he spends both of his
 // races in the Civic, and Mike spends « Le divan dans l'arbre » round the back.
 const AWAY = {
-  sayyad: ['sayyad', 'racecivic', 'blitz'], margaret: [], mike: ['divan'], zahra: [],
+  // 'suis' was missing: Sayyad stood in his driveway waving while « his »
+  // Civic drove off, which is how nobody noticed he was leaving.
+  sayyad: ['sayyad', 'racecivic', 'blitz', 'suis'], margaret: [], mike: ['divan'], zahra: [],
 };
 
 // Which pickup circle belongs to whom. The `steph` / `marc` keys in missions.js

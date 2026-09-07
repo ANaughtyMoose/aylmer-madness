@@ -48,11 +48,23 @@ ok('V1 six verb jobs, in the arrays, valid, paid', () => {
 
 ok('V2 follow: he leaves, you keep up or you lose him', () => {
   const G = fakeG(PLACES.sayyad.x, PLACES.sayyad.z);
-  const st = verbs.follow({ carId: 'civic', roster: 'sayyad', name: 'Sayyad', from: 'sayyad', to: 'beach', text: 't', money: 35 });
+  const st = verbs.follow({ carId: 'civic', roster: 'sayyad', name: 'Sayyad', from: 'sayyad', to: 'beach', text: 't', money: 35, car: 'la Civic ROUGE', wait: 3 });
   const m = {};
+  // the Civic is parked at the kerb, 5 m from the address point: he must leave from THERE
+  G.parked.civic = { x: PLACES.sayyad.x + 5, z: PLACES.sayyad.z, yaw: 1.2 };
+  let honks = 0; G.audio = { honk() { honks++; } };
   st.onEnter(G, m);
   const rv = m._leader;
-  assert.ok(rv && G.rivals.length === 1 && rv.active, 'a leader on the road');
+  assert.ok(rv && G.rivals.length === 1, 'a leader');
+  assert.ok(!rv.active, 'he does not leave the second you take the job');
+  assert.ok(Math.abs(rv.x - (PLACES.sayyad.x + 5)) < 0.01, 'the car is the parked one, not a copy at the door');
+  assert.ok(m.target && Math.abs(m.target.x - rv.x) < 0.01, 'the marker is on the car');
+  assert.ok(st.prompt(G, m).includes('ROUGE') && st.prompt(G, m).includes('3 s'), st.prompt(G, m));
+  for (let i = 0; i < 60 * 3.2; i++) assert.equal(st.onTick(G, m, st, 1 / 60), null);
+  assert.ok(rv.active, 'after the countdown he goes');
+  assert.equal(honks, 2, 'two toots on the way out');
+  assert.ok(Math.abs(m.target.x - PLACES.beach.x) < 0.01, 'and the marker moves to the beach');
+  assert.ok(G.hud.toasts.some((t) => /SAYYAD PART/.test(t)), 'the HUD shouts it');
   assert.ok(rv.skill.cruise > 8 && rv.skill.cruise <= 30, `cruise ${rv.skill.cruise}`);
   assert.ok(!st.condition(G, m), 'not done at the start');
   // stay close: nothing happens

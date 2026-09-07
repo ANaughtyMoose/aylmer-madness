@@ -283,7 +283,7 @@ function slotCell(r, mode) {
     esc(fmtPlaytime(r.playtime)) + ' ' + esc(t('save.playtime')),
     // A slot carries the job you were in the middle of now, so say so: it is
     // the difference between « charge celle-là » and losing twenty minutes.
-    r.doing ? 'en cours: ' + esc(r.doing) : (r.job ? 'job en cours' : ''),
+    r.doing ? 'en cours: ' + esc(r.doing) : (r.job ? 'job en cours' : (r.last ? 'après \u00ab ' + esc(r.last) + ' \u00bb' : '')),
   ].filter(Boolean).join(' · ');
   const btns = [
     mode === 'save' && !auto
