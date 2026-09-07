@@ -154,9 +154,13 @@ group('i18n');
 {
   setLang('fr');
   eq(t('menu.drive'), 'EMBARQUE', 'French is the base dictionary');
+  // Thomas, 2026-09-07: English is selectable now — as the photocopy. French
+  // stays the master copy and the default; English is a click away and worse.
   setLang('en');
-  eq(getLang(), 'fr', 'English cannot be selected');
-  eq(t('menu.drive'), 'EMBARQUE', 'the interface remains in Quebec French');
+  eq(getLang(), 'en', 'English can be selected');
+  eq(t('menu.drive'), 'ROLL', 'and the interface becomes the departmental translation');
+  setLang('fr');
+  eq(t('menu.drive'), 'EMBARQUE', 'French is exactly what it was, and the default');
   eq(t('intro.go'), 'GO', 'shared wording remains available');
   eq(t('hud.kmh'), 'km/h', 'units remain available');
   eq(t('definitely.not.a.key'), 'definitely.not.a.key', 'an unknown key returns itself');
