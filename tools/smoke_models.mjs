@@ -226,6 +226,18 @@ ok(worstNormalError(truck) < 1e-6, `pickup: normals are unit length (worst ${wor
     'pickup: overall length is the Ranger plus its grille bumper');
 }
 
+// --offset moves the origin after everything else, which is how a body whose
+// overhangs are unequal gets its origin onto the axle midpoint rather than the
+// centre of its bounding box.
+{
+  const m = conv([join(FIX, 'pickup.gltf'), '--out', join(TMP, 'p_off.json'),
+    '--forward', '+x', '--center', '--offset', '0,0.5,-1.25']);
+  ok(near(m.min[1], truck.min[1] + 0.5) && near(m.min[2], truck.min[2] - 1.25),
+    `--offset: shifts after --center (${m.min})`);
+  ok(near(m.max[0], truck.max[0]), '--offset: leaves the axes it was not given alone');
+  ok(near(signedVolume(m), signedVolume(truck), 1e-4), '--offset: a translation changes no volume');
+}
+
 // ------------------------------------------------------------- 4. colours
 // COLOR_0 wins, then baseColorFactor, then the average of baseColorTexture.
 {

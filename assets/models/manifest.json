@@ -1,0 +1,70 @@
+{
+ "format": "aylmer-mesh-1",
+ "models": [
+  {
+   "slug": "tree-sugar-maple",
+   "kind": "prop",
+   "name": "Érable à sucre"
+  },
+  {
+   "slug": "tree-white-pine",
+   "kind": "prop",
+   "name": "Pin blanc"
+  },
+  {
+   "slug": "tree-white-cedar",
+   "kind": "prop",
+   "name": "Cèdre blanc"
+  },
+  {
+   "slug": "tree-birch",
+   "kind": "prop",
+   "name": "Bouleau à papier"
+  },
+  {
+   "slug": "tree-spruce",
+   "kind": "prop",
+   "name": "Épinette"
+  },
+  {
+   "slug": "lamp-post",
+   "kind": "prop",
+   "name": "Lampadaire"
+  },
+  {
+   "slug": "hydro-pole",
+   "kind": "prop",
+   "name": "Poteau d’Hydro"
+  },
+  {
+   "slug": "stop-sign",
+   "kind": "prop",
+   "name": "Panneau ARRÊT"
+  },
+  {
+   "slug": "garbage-can",
+   "kind": "prop",
+   "name": "Poubelle"
+  },
+  {
+   "slug": "dumpster",
+   "kind": "prop",
+   "name": "Conteneur à déchets"
+  },
+  {
+   "slug": "park-bench",
+   "kind": "prop",
+   "name": "Banc de parc"
+  },
+  {
+   "slug": "pickup-ranger",
+   "kind": "vehicle",
+   "name": "Camionnette (Ranger)"
+  },
+  {
+   "slug": "city-bus",
+   "kind": "vehicle",
+   "name": "Autobus STO"
+  }
+ ]
+}

@@ -28,6 +28,10 @@
 //                    whose nose points +Y comes out nose -Z once --up z has
 //                    been applied, so that model wants `--up z --forward -z`.
 //   --center         drop the mesh onto y = 0 and centre it in x/z
+//   --offset X,Y,Z   metres, applied LAST. What --center cannot do: a car body's
+//                    origin has to be the midpoint between its axles (cars.js
+//                    hangs the wheels at +-wheelbase/2), which is not the centre
+//                    of its bounding box on any vehicle with unequal overhangs.
 //   --maxTris N      refuse (loudly) rather than ship a mesh over N triangles
 //   --uv             keep TEXCOORD_0
 //   --material N=HEX repaint the material named N (repeatable; sRGB hex, the
@@ -35,6 +39,13 @@
 //                    is the GEOMETRY: Kenney's Nature Kit is deliberately
 //                    turquoise-and-salmon, which is a fine look and not Aylmer's.
 //   --color HEX      repaint every material at once
+//   --recolor A=B    snap sampled colours to a palette (repeatable). Every
+//                    vertex takes the B whose A is nearest to it in RGB. This is
+//                    what --material cannot do: a Kenney City or Car kit model
+//                    has ONE material called `colormap` covering the whole
+//                    vehicle, so naming the material can only flatten it. Run
+//                    with --listColors first to see what is actually in there.
+//   --listColors     print the model's colour clusters and write nothing else
 //   --node NAME      only nodes whose name matches (substring, repeatable)
 //   --mesh NAME      only meshes whose name matches (substring, repeatable)
 //   --license FILE   licence sidecar (default: <input>.license.json)
@@ -55,8 +66,8 @@ import { inflateSync } from 'node:zlib';
 function parseArgs(argv) {
   const o = {
     in: null, out: null, scale: [1, 1, 1], up: 'y', forward: '+z', center: false,
-    maxTris: 0, uv: false, nodes: [], meshes: [], license: null,
-    maxJson: 1024 * 1024, quiet: false, slug: null, material: {}, color: null,
+    maxTris: 0, uv: false, nodes: [], meshes: [], license: null, offset: null,
+    maxJson: 1024 * 1024, quiet: false, slug: null, material: {}, color: null, recolor: [], listColors: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -73,6 +84,12 @@ function parseArgs(argv) {
     else if (a === '--up') o.up = next().toLowerCase();
     else if (a === '--forward') o.forward = next().toLowerCase();
     else if (a === '--center' || a === '--centre') o.center = true;
+    else if (a === '--offset') {
+      o.offset = next().split(',').map(Number);
+      if (o.offset.length !== 3 || o.offset.some((v) => !Number.isFinite(v))) {
+        throw new Error('--offset wants X,Y,Z in metres');
+      }
+    }
     else if (a === '--maxTris') o.maxTris = Number(next());
     else if (a === '--uv') o.uv = true;
     else if (a === '--material') {
@@ -80,6 +97,11 @@ function parseArgs(argv) {
       if (!hex) throw new Error('--material wants NAME=#RRGGBB');
       o.material[name] = parseHex(hex);
     } else if (a === '--color' || a === '--colour') o.color = parseHex(next());
+    else if (a === '--recolor' || a === '--recolour') {
+      const [from, to] = next().split('=');
+      if (!to) throw new Error('--recolor wants FROMHEX=TOHEX');
+      o.recolor.push([parseHex(from), parseHex(to)]);
+    } else if (a === '--listColors') o.listColors = true;
     else if (a === '--node') o.nodes.push(next());
     else if (a === '--mesh') o.meshes.push(next());
     else if (a === '--license') o.license = next();
@@ -580,6 +602,8 @@ function jpegScanAverage(buf, start, frame, scan, qt, huff, adobeTransform) {
 
 // ------------------------------------------------------------------ colour
 
+const hex = (c) => '#' + c.map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+
 const srgbToLinear = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
 const linearToSrgb = (c) => {
   const v = Math.min(1, Math.max(0, c));
@@ -832,6 +856,30 @@ function convert(opt) {
     }
   }
 
+  // ---- palette snap. Nearest key in plain RGB: the sampled colours inside one
+  // of Kenney's swatches drift by a few units (his colormap is not perfectly
+  // flat), and a tolerance would need tuning per model where nearest never does.
+  if (opt.recolor.length) {
+    const hits = new Array(opt.recolor.length).fill(0);
+    for (let i = 0; i < col.length; i += 3) {
+      let best = 0, bestD = Infinity;
+      for (let k = 0; k < opt.recolor.length; k++) {
+        const a = opt.recolor[k][0];
+        const d = (col[i] - a[0]) ** 2 + (col[i + 1] - a[1]) ** 2 + (col[i + 2] - a[2]) ** 2;
+        if (d < bestD) { bestD = d; best = k; }
+      }
+      hits[best]++;
+      const b = opt.recolor[best][1];
+      col[i] = b[0]; col[i + 1] = b[1]; col[i + 2] = b[2];
+    }
+    // A key nothing landed on is a key that was measured wrong, and the part it
+    // was meant for has silently taken some other colour.
+    for (let k = 0; k < hits.length; k++) {
+      if (!hits[k]) warn(`--recolor entry ${k + 1} (${hex(opt.recolor[k][0])}) claimed no vertices `
+        + `in ${basename(opt.in)} — run --listColors and use a colour that is really there`);
+    }
+  }
+
   // ---- bounds, then centring
   const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
   const bounds = () => {
@@ -847,6 +895,11 @@ function convert(opt) {
   if (opt.center) {
     const dx = -(min[0] + max[0]) / 2, dy = -min[1], dz = -(min[2] + max[2]) / 2;
     for (let i = 0; i < pos.length; i += 3) { pos[i] += dx; pos[i + 1] += dy; pos[i + 2] += dz; }
+    bounds();
+  }
+  if (opt.offset) {
+    const [ox, oy, oz] = opt.offset;
+    for (let i = 0; i < pos.length; i += 3) { pos[i] += ox; pos[i + 1] += oy; pos[i + 2] += oz; }
     bounds();
   }
 
@@ -919,6 +972,28 @@ function write(opt, m, license) {
 
 // ------------------------------------------------------------------ main
 
+// The colour clusters actually present, biggest first: what you write a
+// --recolor palette from. Merges anything within a couple of units, because a
+// Kenney swatch samples as a spread and not a single value.
+function listColors(m) {
+  const buckets = [];
+  for (let i = 0; i < m.col.length; i += 3) {
+    const c = [m.col[i], m.col[i + 1], m.col[i + 2]];
+    let hit = null;
+    for (const b of buckets) {
+      const d = (b.c[0] - c[0]) ** 2 + (b.c[1] - c[1]) ** 2 + (b.c[2] - c[2]) ** 2;
+      if (d < 0.02 * 0.02) { hit = b; break; }
+    }
+    if (hit) hit.n++; else buckets.push({ c, n: 1 });
+  }
+  buckets.sort((a, b) => b.n - a.n);
+  console.log(`${buckets.length} colour clusters, biggest first:`);
+  for (const b of buckets.slice(0, 24)) {
+    console.log(`  ${hex(b.c)}  ${String(b.n).padStart(6)} verts `
+      + `(${(100 * b.n / (m.col.length / 3)).toFixed(1)}%)`);
+  }
+}
+
 export function run(argv) {
   // Both caches are module-level so one conversion can reuse a kit's shared
   // atlas. They have to be emptied per run, or a second file converted in the
@@ -928,6 +1003,7 @@ export function run(argv) {
   usedOverrides.clear();
   const opt = parseArgs(argv);
   const m = convert(opt);
+  if (opt.listColors) { listColors(m); return { ...m, warnings: warnings.slice() }; }
   const license = readLicense(opt);
   const res = write(opt, m, license);
   if (!opt.quiet) {
