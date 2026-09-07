@@ -258,7 +258,18 @@ build();
 
 // Atlas in the background: rebuild once it lands, keep the stub look if it does not.
 const drawOpts = { tex: null };
-loadMaterials(r, { base: '../../assets/materials/' }).then((m) => { MATS = m; drawOpts.tex = m.tex; build(); })
+// ?atlas=real loads the photographed atlas (tools/make_atlas.py --from) instead
+// of the procedural one. Same manifest, same rects, same cells — the only way
+// to answer "is a real brick better than a drawn one" is to look at a house
+// built from each.
+const ATLAS = new URLSearchParams(location.search).get('atlas') === 'real'
+  ? { manifest: await fetch('../../assets/materials/atlas.real.json').then((q) => q.json()),
+      image: await new Promise((res) => {
+        const im = new Image(); im.onload = () => res(im);
+        im.src = '../../assets/materials/atlas.real.png';
+      }) }
+  : {};
+loadMaterials(r, { base: '../../assets/materials/', ...ATLAS }).then((m) => { MATS = m; drawOpts.tex = m.tex; build(); })
   .catch((e) => console.warn('lab: no atlas, vertex colours only —', e.message));
 
 const mm = m4.create();
