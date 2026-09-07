@@ -563,7 +563,22 @@ pointless if the opening is broken:
 Done means: `smoke_traffic.mjs` exists and passes, and a fresh-storage boot
 video shows the first job ending somewhere real.
 
-### Step 2 — Wave 2, the spine (2a Fable / 2b Opus as split above; one correction)
+### Step 2 — Wave 2, the spine — **done (PRs #14, #16, 2026-09-07)**
+
+Shipped: the envelope top right with the date and days left; 73 days, a job or
+race costs one (half on easy); Labour Day fires one of two endings; pay lifted
+to the budget table (opt-in via `startSummer`, node suites unchanged); failed
+jobs refund; style capped at $15; difficulty read for tickets/timers/pay/start
+day; gas (half a tank, the pump at the Petro-Canada, a dry tank coasts, the
+jerrycan on T); a save per character (`tom.1` … `zahra.auto`), the job in
+progress travels with the slot, the wallet lives in the slot; the real summer
+of 2004 on the date toast (`assets/text/summer2004.json`). 30 suites.
+**Not done here:** the seven missing places and the 18-job campaign mapping
+(moved to Wave 3 with the verbs), race courses cannot resume mid-race (they are
+built ad hoc), rivals still cruise at a table speed (`G.rivalFrac` is set and
+waiting for Wave 3).
+
+Original notes:
 
 `assets/text/campaign.json` uses **descriptive French strings** for `to`, not
 `places.js` keys, so nothing can resolve them yet. Gemini's
