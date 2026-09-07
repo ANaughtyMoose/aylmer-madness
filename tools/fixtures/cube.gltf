@@ -1,0 +1,91 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "aylmer-madness tools/fixtures/make_fixtures.mjs"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "Cube",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Cube",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0
+     },
+     "indices": 1,
+     "material": 0
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "Orange",
+   "pbrMetallicRoughness": {
+    "baseColorFactor": [
+     0.8,
+     0.2,
+     0.1,
+     1
+    ]
+   }
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "cube.bin",
+   "byteLength": 360
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 288,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 288,
+   "byteLength": 72,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 24,
+   "type": "VEC3",
+   "min": [
+    -1,
+    -1,
+    -1
+   ],
+   "max": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 36,
+   "type": "SCALAR"
+  }
+ ]
+}

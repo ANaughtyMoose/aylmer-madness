@@ -10,3 +10,9 @@ assets/radio/*
 
 # Raw Street View crops pulled by the look pass are Google's pixels: reference only, never shipped.
 gemini-inbox/look/streetview/
+
+# Borrowed model SOURCES (Kenney / Quaternius / Poly Haven .glb + .gltf). The
+# CONVERTED assets/models/*.json are committed and are what the game loads;
+# the originals are a build input, re-downloadable from the URLs in
+# assets/models/LICENSES.md, and there is no reason to carry them in git.
+assets/models/src/
