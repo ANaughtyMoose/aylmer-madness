@@ -24,37 +24,35 @@ merge with `gh pr merge N --merge --admin -R ANaughtyMoose/aylmer-madness`).
 
 31 smoke suites, all green on a quiet machine (`for t in tools/smoke*.mjs; do node "$t" …`).
 
-## Running when the session ended — two agents, two worktrees, NOT pushed
+## Both agents landed (recovered 2026-09-07 after the session crashed)
 
-1. **`wave/3-vehicles`** at `/Users/thomaslever/Desktop/Coding Projects/wt-wave3-vehicles` (Opus).
-   Brief: Forester (Mike), Sienna (Abraham), Cavalier (Tyler), each character starts
-   in their own car at their own house, Zahra on the Diamondback as a playable
-   start, fuel tables, engine voices, tests, screenshots. **Addendum sent:** start
-   points locked until a named job is done (table next to the start-point data,
-   padlock rows, derived from `G.done`, `smoke_start.mjs`, two screenshots).
-   Thomas saw the placeholder strip (Zahra/Mike as Ranger, Abraham as Sunfire)
-   and called it wrong — this branch is the fix.
-2. **`feat/cockpit`** at `/Users/thomaslever/Desktop/Coding Projects/wt-cockpit` (Opus).
-   Brief: a fifth `C` camera `driver` with a 3D cockpit mesh in the engine's own
-   flat-shaded language (NOT Gemini's photo plate), Gemini's
-   `gemini-inbox/interiors/RANGER-HANDOFF.md` as the checklist (no rear-view mirror,
-   misaligned white hood, black paddle mirrors with the spider web, blue MuVo on
-   the bench, CHECK ENGINE, thumbtacked headliner), head dip on braking, idle
-   shiver, radio low-pass in that view, `smoke_cockpit.mjs`, four screenshots.
+The session that wrote this file died with the two agents still running. The
+next session reconstructed everything from this file plus `git status` /
+`git log` in each worktree, and both branches are now on `main`:
 
-**To finish either:** `cd` into the worktree, `git merge origin/main`, run all
-suites, boot check per VERIFY.md, `git push -u origin <branch>`, `gh pr create`,
-merge with `--admin`, then `git worktree remove --force <dir>`. If an agent is
-still running when you arrive, its report lands as a task notification in the
-old session only — look at the branch's `git log` and `git status` to see how
-far it got. A clean tree with commits and screenshots in `docs/shots/` means
-it finished; a dirty tree means it did not.
+| PR | What |
+|---|---|
+| #22 | Wave 3b, `wave/3-vehicles`: Mike's Forester, Abraham's Sienna, Tyler's Z24 Cavalier, Zahra on the Diamondback, each character starts in their own car at their own house; start points locked until a named job is done (padlock rows, `smoke_start.mjs`, `smoke_vehicles.mjs`, `docs/shots/start-picker-locks.jpg`) |
+| #23 | `feat/cockpit`: a fifth `C` camera `driver`; the Ranger cab as flat-shaded geometry in `src/game/cockpit.js`, drawn with the car's own model matrix (no rear-view mirror, misaligned white hood, paddle mirrors with the web, blue MuVo on the bench, CHECK ENGINE, thumbtacked headliner), head dip, idle shiver, 150° Shift head turn, 2.4 kHz low-pass on the radio in that view; `smoke_cockpit.mjs`; four shots `docs/shots/cockpit-ranger-*.jpg`. Only the Ranger gets the checklist, other cars get a generic cab, mirrors do not reflect. |
+
+33 suites green, cold boot verified on each branch before merging. All agent
+worktrees are removed.
+
+Two things the recovery found, both worth remembering:
+
+- The vehicles agent's last commit did not parse (`const open` shadowing the
+  function's `open` parameter; backticks inside the injected-CSS template
+  literal in `installSkin`). Every suite was green because none imports
+  `main.js`. The boot check is not optional.
+- Renaming that local to `openKeys` then broke `tools/smoke_shell.mjs`, which
+  greps `main.js` source text. **Re-run the suites after every edit, including
+  a rename.** Fixed in #23.
 
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.
-- Whether the cockpit look is right once `feat/cockpit` lands (he wants to *feel*
-  in the Ranger, consistent with the chase cam).
+- Whether the cockpit look is right now that #23 has landed (press `C` to
+  `driver`; he wants to *feel* in the Ranger, consistent with the chase cam).
 
 ## Gemini (Antigravity) — what exists in `gemini-inbox/`, none of it committed except docs
 
@@ -65,7 +63,7 @@ it finished; a dirty tree means it did not.
 
 ## What is next (the plan's order)
 
-1. Merge the two running branches (above). Then Thomas plays.
+1. Thomas plays: the five characters in their own cars, and the driver's seat.
 2. **Wave 3 leftovers:** the seven missing places (Russell's 1 Arial, Abraham's 841 Wilfrid-Lavigne, the Petro-Canada as a place, the British Hotel, Galeries de Hull, Byward Market, Museum of Civilization) and the 18-job `campaign.json` mapping to place keys; rivals in the four scripted races still use table speeds (`G.rivalFrac` is read only by the ambush); race courses cannot resume mid-race.
 3. **Step 3 feel:** camera on kerbs/bumps, slope gravity (no g·sin(pitch) term in `cars.js`).
 4. **Wave 5, the look:** wire the converted models (trees are baked into chunks — read `docs/MODELS.md` for the two ways round it), the real-texture atlas, the facades from `gemini-inbox/look/facades/` on the hero houses, then sky/tone/shadows GLSL ports. Re-measure the four-point memory after.
@@ -81,7 +79,7 @@ it finished; a dirty tree means it did not.
 - `tools/timers.mjs` fails silently when the repo path has a space (the `import.meta.url` guard).
 - `tools/smoke_react.mjs` flakes on timing above load ~8; rerun on a quiet machine before believing it.
 - The VERIFY duplicate-key grep is noisy now (lab pages, hangout's own scoped keys); compare against `main`, not against empty.
-- The auto-mode classifier blocks `gh pr merge --admin`, `kill`/`pkill` and long chained commands unless these rules are allowed: `Bash(gh pr merge:*)`, `Bash(git push:*)`, `Bash(kill:*)`, `Bash(pkill:*)`.
+- The auto-mode classifier blocks `gh pr merge --admin`, `kill`/`pkill` and long `;`-chained one-liners. `Bash(gh pr merge:*)`, `Bash(kill:*)`, `Bash(pkill:*)` are now allowed in `~/.claude/settings.json`; keep commands short and put loops in a script file.
 - Ports used by this session's agents: 8151/8161/8171/8181/8191/8201/8211 (servers), 9222/9224/9226/9228/9230/9232 (Chrome). `tools/headless.mjs` honours `CDP_PORT`.
 - Never more than three headless Chromes; above load 8 no timing number counts.
 
