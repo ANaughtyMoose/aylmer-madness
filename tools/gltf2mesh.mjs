@@ -17,7 +17,11 @@
 //
 // Options
 //   --out FILE       where to write (default: alongside the input, .json)
-//   --scale K        uniform metres multiplier, applied after the axis fixes
+//   --scale K        metres multiplier, applied after the axis fixes. One number
+//                    is uniform; "SX,SY,SZ" scales per axis, which is what it
+//                    takes to make a stylised kit vehicle carry a real car's
+//                    length, width and height at once — a toy car's proportions
+//                    are not a Ranger's, and no single number reconciles them.
 //   --up y|z         which axis is up in the SOURCE (default y, glTF's own)
 //   --forward AXIS   which axis is the nose, AFTER the --up fix: +x -x +z -z
 //                    (default +z). The order matters: a Blender Z-up export
@@ -26,6 +30,11 @@
 //   --center         drop the mesh onto y = 0 and centre it in x/z
 //   --maxTris N      refuse (loudly) rather than ship a mesh over N triangles
 //   --uv             keep TEXCOORD_0
+//   --material N=HEX repaint the material named N (repeatable; sRGB hex, the
+//                    same #RRGGBB the rest of the game writes). What is borrowed
+//                    is the GEOMETRY: Kenney's Nature Kit is deliberately
+//                    turquoise-and-salmon, which is a fine look and not Aylmer's.
+//   --color HEX      repaint every material at once
 //   --node NAME      only nodes whose name matches (substring, repeatable)
 //   --mesh NAME      only meshes whose name matches (substring, repeatable)
 //   --license FILE   licence sidecar (default: <input>.license.json)
@@ -45,9 +54,9 @@ import { inflateSync } from 'node:zlib';
 
 function parseArgs(argv) {
   const o = {
-    in: null, out: null, scale: 1, up: 'y', forward: '+z', center: false,
+    in: null, out: null, scale: [1, 1, 1], up: 'y', forward: '+z', center: false,
     maxTris: 0, uv: false, nodes: [], meshes: [], license: null,
-    maxJson: 1024 * 1024, quiet: false, slug: null,
+    maxJson: 1024 * 1024, quiet: false, slug: null, material: {}, color: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -56,12 +65,21 @@ function parseArgs(argv) {
       return argv[++i];
     };
     if (a === '--out') o.out = next();
-    else if (a === '--scale') o.scale = Number(next());
+    else if (a === '--scale') {
+      const parts = next().split(',').map(Number);
+      o.scale = parts.length === 1 ? [parts[0], parts[0], parts[0]] : parts;
+      if (o.scale.length !== 3) throw new Error('--scale wants K or SX,SY,SZ');
+    }
     else if (a === '--up') o.up = next().toLowerCase();
     else if (a === '--forward') o.forward = next().toLowerCase();
     else if (a === '--center' || a === '--centre') o.center = true;
     else if (a === '--maxTris') o.maxTris = Number(next());
     else if (a === '--uv') o.uv = true;
+    else if (a === '--material') {
+      const [name, hex] = next().split('=');
+      if (!hex) throw new Error('--material wants NAME=#RRGGBB');
+      o.material[name] = parseHex(hex);
+    } else if (a === '--color' || a === '--colour') o.color = parseHex(next());
     else if (a === '--node') o.nodes.push(next());
     else if (a === '--mesh') o.meshes.push(next());
     else if (a === '--license') o.license = next();
@@ -77,8 +95,19 @@ function parseArgs(argv) {
   if (!['+x', '-x', '+z', '-z'].includes(o.forward)) {
     throw new Error(`--forward must be one of +x -x +z -z, got ${o.forward}`);
   }
-  if (!(o.scale > 0)) throw new Error('--scale must be positive');
+  // Only positive scales: a negative one mirrors, and every face comes out
+  // inside out with nothing to warn you.
+  if (!o.scale.every((v) => v > 0)) throw new Error('--scale must be positive on every axis');
   return o;
+}
+
+// #RRGGBB (or bare RRGGBB) -> an sRGB triple, which is the space every colour
+// in the engine is already written in.
+function parseHex(h) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(h).trim());
+  if (!m) throw new Error(`not a #RRGGBB colour: ${h}`);
+  const n = parseInt(m[1], 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
 const warnings = [];
@@ -317,6 +346,36 @@ function decodePNG(buf) {
   return { ...ihdr, ch: CH, rowBytes, data: out, palette, trns };
 }
 
+// One texel, nearest, in LINEAR light. Nearest and not bilinear on purpose: a
+// Kenney kit's `colormap` is a strip of flat swatches, and blending across a
+// swatch boundary invents a colour that is in neither.
+function pngPixel(png, u, v) {
+  const { w, h, depth, color, ch, rowBytes, data, palette } = png;
+  // Wrap, so a UV that has drifted a hair outside [0,1] still lands somewhere.
+  let x = Math.floor(((u % 1) + 1) % 1 * w);
+  let y = Math.floor(((1 - v) % 1 + 1) % 1 * h);   // glTF V is measured downward
+  if (x >= w) x = w - 1; if (y >= h) y = h - 1;
+  const sample = (row, i) => {
+    if (depth === 16) return data.readUInt16BE(row * rowBytes + i * 2) / 65535;
+    if (depth === 8) return data[row * rowBytes + i] / 255;
+    const bit = i * depth;
+    const byte = data[row * rowBytes + (bit >> 3)];
+    const shift = 8 - depth - (bit & 7);
+    return ((byte >> shift) & ((1 << depth) - 1)) / (color === 3 ? 1 : (1 << depth) - 1);
+  };
+  let pr, pg, pb;
+  if (color === 3) {
+    const idx = sample(y, x) | 0;
+    pr = palette[idx * 3] / 255; pg = palette[idx * 3 + 1] / 255; pb = palette[idx * 3 + 2] / 255;
+  } else {
+    const base = x * ch;
+    pr = sample(y, base);
+    if (color === 0 || color === 4) { pg = pr; pb = pr; }
+    else { pg = sample(y, base + 1); pb = sample(y, base + 2); }
+  }
+  return [srgbToLinear(pr), srgbToLinear(pg), srgbToLinear(pb)];
+}
+
 // Mean colour, weighted by alpha: a leaf card is mostly transparent gutter and
 // averaging the gutter in turns every tree the colour of nothing.
 function pngAverage(png) {
@@ -530,7 +589,13 @@ const linearToSrgb = (c) => {
 // The average colour of a material's baseColorTexture, in LINEAR light, cached
 // per texture index because a Kenney kit is fifty meshes sharing one atlas.
 const texAvgCache = new Map();
-function textureAverage(g, texIndex) {
+const usedOverrides = new Set();
+
+// Decode a texture once per file: { avg (linear rgb), png (or null) }. `png`
+// being present is what unlocks per-vertex sampling, which is the difference
+// between a Kenney kit arriving in its real colours and arriving as one flat
+// average of its whole palette strip — a grey blob.
+function textureData(g, texIndex) {
   if (texAvgCache.has(texIndex)) return texAvgCache.get(texIndex);
   let result = null;
   try {
@@ -547,9 +612,15 @@ function textureAverage(g, texIndex) {
       const b = g.buffers[bv.buffer];
       bytes = b.subarray(bv.byteOffset || 0, (bv.byteOffset || 0) + bv.byteLength);
     }
-    if (bytes[0] === 0x89 && bytes[1] === 0x50) result = pngAverage(decodePNG(bytes));
-    else if (bytes[0] === 0xff && bytes[1] === 0xd8) result = jpegAverage(bytes);
-    else throw new Error('image is neither PNG nor JPEG');
+    if (bytes[0] === 0x89 && bytes[1] === 0x50) {
+      const png = decodePNG(bytes);
+      result = { avg: pngAverage(png), png };
+    } else if (bytes[0] === 0xff && bytes[1] === 0xd8) {
+      // The DC-only JPEG decoder yields the mean and nothing addressable, so a
+      // JPEG-textured model gets one flat colour per material. None of the kits
+      // in assets/models use JPEG; Poly Haven's photogrammetry does.
+      result = { avg: jpegAverage(bytes), png: null };
+    } else throw new Error('image is neither PNG nor JPEG');
   } catch (e) {
     warn(`texture ${texIndex}: ${e.message} — falling back to baseColorFactor`);
     result = null;
@@ -559,16 +630,36 @@ function textureAverage(g, texIndex) {
 }
 
 // Per-material flat colour, sRGB, ready to go straight into a vertex.
-function materialColour(g, matIndex) {
+// How a primitive is coloured: a flat sRGB triple, and — when the material's
+// baseColorTexture decoded to real pixels — a per-vertex sampler to use instead.
+// Order of preference is the documented one: an override, then COLOR_0 (handled
+// by the caller), then baseColorTexture, then baseColorFactor.
+function materialColour(g, matIndex, opt) {
   const mat = matIndex === undefined ? null : g.json.materials?.[matIndex];
+  // An override is already sRGB and skips the whole factor/texture chain.
+  if (opt.color) return { flat: opt.color, sample: null };
+  if (mat && opt.material[mat.name]) {
+    usedOverrides.add(mat.name);
+    return { flat: opt.material[mat.name], sample: null };
+  }
   const pbr = mat?.pbrMetallicRoughness || {};
   const factor = pbr.baseColorFactor || [1, 1, 1, 1];
   let lin = [factor[0], factor[1], factor[2]];
+  let sample = null;
   if (pbr.baseColorTexture) {
-    const avg = textureAverage(g, pbr.baseColorTexture.index);
-    if (avg) lin = [avg[0] * factor[0], avg[1] * factor[1], avg[2] * factor[2]];
+    const tex = textureData(g, pbr.baseColorTexture.index);
+    if (tex) {
+      lin = [tex.avg[0] * factor[0], tex.avg[1] * factor[1], tex.avg[2] * factor[2]];
+      if (tex.png) {
+        sample = (u, v) => {
+          const t = pngPixel(tex.png, u, v);
+          return [linearToSrgb(t[0] * factor[0]), linearToSrgb(t[1] * factor[1]),
+            linearToSrgb(t[2] * factor[2])];
+        };
+      }
+    }
   }
-  return lin.map(linearToSrgb);
+  return { flat: lin.map(linearToSrgb), sample };
 }
 
 // ------------------------------------------------------------------ traversal
@@ -642,8 +733,10 @@ function convert(opt) {
     const N = attrs.NORMAL !== undefined ? readAccessor(g, attrs.NORMAL) : null;
     if (!N) hadNormals = false;
     const C = attrs.COLOR_0 !== undefined ? readAccessor(g, attrs.COLOR_0) : null;
-    const T = (opt.uv && attrs.TEXCOORD_0 !== undefined) ? readAccessor(g, attrs.TEXCOORD_0) : null;
-    const flat = materialColour(g, prim.material);
+
+    const paint = materialColour(g, prim.material, opt);
+    // The sampler needs UVs whether or not --uv keeps them in the output.
+    const UV = attrs.TEXCOORD_0 !== undefined ? readAccessor(g, attrs.TEXCOORD_0) : null;
     const nm = normalMatrix(world);
 
     const base = pos.length / 3;
@@ -660,8 +753,11 @@ function convert(opt) {
         col.push(linearToSrgb(C.data[i * C.comps]),
           linearToSrgb(C.data[i * C.comps + 1]),
           linearToSrgb(C.data[i * C.comps + 2]));
-      } else col.push(flat[0], flat[1], flat[2]);
-      if (opt.uv) uvs.push(T ? T.data[i * 2] : 0, T ? T.data[i * 2 + 1] : 0);
+      } else if (paint.sample && UV) {
+        const c = paint.sample(UV.data[i * 2], UV.data[i * 2 + 1]);
+        col.push(c[0], c[1], c[2]);
+      } else col.push(paint.flat[0], paint.flat[1], paint.flat[2]);
+      if (opt.uv) uvs.push(UV ? UV.data[i * 2] : 0, UV ? UV.data[i * 2 + 1] : 0);
     }
     // A node with a negative determinant is a MIRRORED instance. Its geometry
     // is fine; its winding is inside out, and the renderer culls by winding.
@@ -675,6 +771,14 @@ function convert(opt) {
     }
   }
   if (!idx.length) throw new Error('no triangles survived conversion');
+  // A misspelt material name would otherwise repaint nothing and say nothing,
+  // and the model would ship in the kit's own palette.
+  for (const name of Object.keys(opt.material)) {
+    if (!usedOverrides.has(name)) {
+      warn(`--material ${name} matched no material in ${basename(opt.in)} `
+        + `(it has: ${(g.json.materials || []).map((m) => m.name).join(', ') || 'none'})`);
+    }
+  }
 
   // ---- axis fixes. Both are proper rotations, so winding survives untouched.
   const rotate = (x, y, z) => {
@@ -687,11 +791,18 @@ function convert(opt) {
     else if (opt.forward === '-z') { x = -x; z = -z; }
     return [x, y, z];
   };
+  const [sx, sy, sz] = opt.scale;
+  // A non-uniform scale takes normals through the INVERSE, not the scale: shrink
+  // a body in x and its side normals must tip further out, not further in. For a
+  // uniform scale this is a no-op after renormalising.
+  const [ix, iy, iz] = [1 / sx, 1 / sy, 1 / sz];
   for (let i = 0; i < pos.length; i += 3) {
     const p = rotate(pos[i], pos[i + 1], pos[i + 2]);
-    pos[i] = p[0] * opt.scale; pos[i + 1] = p[1] * opt.scale; pos[i + 2] = p[2] * opt.scale;
+    pos[i] = p[0] * sx; pos[i + 1] = p[1] * sy; pos[i + 2] = p[2] * sz;
     const n = rotate(nor[i], nor[i + 1], nor[i + 2]);
-    nor[i] = n[0]; nor[i + 1] = n[1]; nor[i + 2] = n[2];
+    const qx = n[0] * ix, qy = n[1] * iy, qz = n[2] * iz;
+    const l = Math.hypot(qx, qy, qz) || 1;
+    nor[i] = qx / l; nor[i + 1] = qy / l; nor[i + 2] = qz / l;
   }
 
   // ---- normals, where the source had none. Accumulating area-weighted face
@@ -814,6 +925,7 @@ export function run(argv) {
   // same process inherits the first one's texture 0 and its warnings.
   warnings.length = 0;
   texAvgCache.clear();
+  usedOverrides.clear();
   const opt = parseArgs(argv);
   const m = convert(opt);
   const license = readLicense(opt);

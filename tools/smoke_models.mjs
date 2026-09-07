@@ -126,11 +126,18 @@ ok(cubeGlb.tris === 12, 'glb: 12 tris');
 ok(conv([join(FIX, 'cube.gltf'), '--out', join(TMP, 'cube2.json'), '--maxTris', '12']).tris === 12,
   'maxTris: exactly at budget is allowed');
 
-// --scale is uniform metres, applied after the axis fixes.
+// --scale is metres, applied after the axis fixes: one number or three.
 {
   const s = conv([join(FIX, 'cube.gltf'), '--out', join(TMP, 'cube_s.json'), '--scale', '2.5']);
   ok(s.max.every((v) => near(v, 2.5)), `scale: ±1 becomes ±2.5 (got ${s.max})`);
   ok(near(signedVolume(s), 125, 1e-4), 'scale: positive scale keeps the winding');
+  const n = conv([join(FIX, 'cube.gltf'), '--out', join(TMP, 'cube_n.json'), '--scale', '3,1,0.5']);
+  ok(near(n.max[0], 3) && near(n.max[1], 1) && near(n.max[2], 0.5),
+    `scale: SX,SY,SZ scales per axis (got ${n.max})`);
+  ok(near(signedVolume(n), 8 * 3 * 1 * 0.5, 1e-4), 'scale: a non-uniform scale still winds outward');
+  ok(worstNormalError(n) < 1e-6, 'scale: normals stay unit length under a non-uniform scale');
+  ok(windingMismatches(n) === 0,
+    'scale: normals go through the INVERSE scale, so they still agree with the faces');
 }
 
 // ------------------------------------------------------- 2. the axis fixes
@@ -222,6 +229,7 @@ ok(worstNormalError(truck) < 1e-6, `pickup: normals are unit length (worst ${wor
 // ------------------------------------------------------------- 4. colours
 // COLOR_0 wins, then baseColorFactor, then the average of baseColorTexture.
 {
+  const toLin = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
   const seen = new Map();
   for (let i = 0; i < truck.col.length; i += 3) {
     const k = truck.col.slice(i, i + 3).map((v) => v.toFixed(3)).join(',');
@@ -236,11 +244,41 @@ ok(worstNormalError(truck) < 1e-6, `pickup: normals are unit length (worst ${wor
   // taken in LINEAR light and re-encoded — mixing sRGB numbers directly gives a
   // visibly different, and wrong, grey.
   const lin = [[60, 60, 64], [30, 30, 34], [40, 40, 44], [20, 20, 24]];
-  const toLin = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
   const avg = [0, 1, 2].map((k) => srgb(lin.reduce((s, p) => s + toLin(p[k] / 255), 0) / 4));
   ok([...seen.keys()].some((k) => k === avg.map((v) => v.toFixed(3)).join(',')),
     `colour: the tyres take the average of their baseColorTexture (want ${avg.map((v) => v.toFixed(3))})`);
-  ok(seen.size === 4, `colour: four distinct materials on the truck (got ${seen.size})`);
+  // The SIGN is one primitive whose two halves point at two different texels of
+  // that 2x2 PNG. Both texels must come out separately, or the converter has
+  // flattened the texture to one average — which is what turns a Kenney
+  // palette-atlas kit into a grey blob.
+  const texel = (r, g, b) => [r, g, b].map((v) => srgb(toLin(v / 255)).toFixed(3)).join(',');
+  ok([...seen.keys()].includes(texel(40, 40, 44)),
+    'colour: a textured primitive is sampled PER VERTEX (lower texel)');
+  ok([...seen.keys()].includes(texel(30, 30, 34)),
+    'colour: ...and its other half gets the other texel, not their average');
+  ok(seen.size === 6,
+    `colour: four flat materials plus the sign's two sampled texels (got ${seen.size}: ${[...seen.keys()]})`);
+}
+
+// --material repaints by name, and says so when a name matched nothing —
+// a silent no-op would ship the model in the kit's own palette.
+{
+  const m = conv([join(FIX, 'pickup.gltf'), '--out', join(TMP, 'p_paint.json'),
+    '--material', 'Paint=#1c8f83', '--material', 'Tyre=#17181a']);
+  const has = (hex) => {
+    const want = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    for (let i = 0; i < m.col.length; i += 3) {
+      if (Math.abs(m.col[i] - want[0]) < 1e-3 && Math.abs(m.col[i + 1] - want[1]) < 1e-3
+        && Math.abs(m.col[i + 2] - want[2]) < 1e-3) return true;
+    }
+    return false;
+  };
+  ok(has('#1c8f83'), '--material: repaints the named material, sRGB hex as written');
+  ok(has('#17181a'), '--material: beats the baseColorTexture average too');
+  ok(m.warnings.length === 0, `--material: no warning when every name matched (${m.warnings})`);
+  const typo = conv([join(FIX, 'pickup.gltf'), '--out', join(TMP, 'p_typo.json'), '--material', 'Pain=#ff0000']);
+  ok(typo.warnings.some((w) => /matched no material/.test(w)),
+    '--material: a name that matched nothing warns rather than silently doing nothing');
 }
 
 // ----------------------------------------------------------- 5. UVs and IO

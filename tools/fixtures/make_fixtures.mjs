@@ -187,7 +187,7 @@ function tinyPNG() {
     if (padN) { chunks.push(Buffer.alloc(padN)); byteOffset += padN; }
     return bv;
   };
-  const addPrim = (name, geo, material, vcol) => {
+  const addPrim = (name, geo, material, vcol, uvPairs) => {
     const b = bounds(geo.P);
     const pv = push(Buffer.from(new Float32Array(geo.P).buffer), 34962);
     const attributes = { POSITION: accessors.length };
@@ -200,6 +200,22 @@ function tinyPNG() {
       const cv = push(Buffer.from(Uint8Array.from(bytes).buffer), 34962);
       attributes.COLOR_0 = accessors.length;
       accessors.push({ bufferView: cv, componentType: 5121, normalized: true, count: geo.P.length / 3, type: 'VEC4' });
+    }
+    if (uvPairs) {
+      // TEXCOORD_0 chosen so the two halves of the box land on two DIFFERENT
+      // texels of the 2x2 tyre PNG: that is what proves the converter samples
+      // the texture per vertex rather than flattening it to one average, which
+      // is the difference between a Kenney palette-atlas kit arriving in its
+      // real colours and arriving as one grey blob.
+      const n = geo.P.length / 3;
+      const uv = [];
+      for (let i = 0; i < n; i++) {
+        const [u, v] = i < n / 2 ? uvPairs[0] : uvPairs[1];
+        uv.push(u, v);
+      }
+      const uvv = push(Buffer.from(new Float32Array(uv).buffer), 34962);
+      attributes.TEXCOORD_0 = accessors.length;
+      accessors.push({ bufferView: uvv, componentType: 5126, count: n, type: 'VEC2' });
     }
     const iv = push(Buffer.from(new Uint16Array(geo.I).buffer), 34963);
     const indices = accessors.length;
@@ -219,6 +235,13 @@ function tinyPNG() {
   // thin along Z and round in X/Y. Getting this backwards makes a truck whose
   // "wheels" are discs facing forward, which passes a bounds check and fails
   // the moment anything asks where the contact patches are.
+  // A flat sign panel standing INSIDE the bed, textured from the same 2x2 PNG:
+  // one half samples one texel, the other half another. Kept inside the body's
+  // own extents so it cannot move the bounds the axis tests are pinned to.
+  const signGeo = box(-2.35, FLOAT + 0.74, -0.40, -2.31, FLOAT + 1.10, 0.40);
+  const signMesh = addPrim('Sign', signGeo, 2, false, [[0.25, 0.25], [0.75, 0.75]]);
+  nodes.push({ name: 'Sign', mesh: signMesh });
+
   const wheelGeo = box(-R, -R, -0.12, R, R, 0.12);
   const wheelMesh = addPrim('Wheel', wheelGeo, 2, false);
   for (const [name, x, z, sign] of wheels) {
