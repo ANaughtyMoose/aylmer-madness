@@ -1,0 +1,335 @@
+{
+  "_comment": "Real-world sky and ambient light RGB triplets [0, 1] for the Ottawa Valley (Aylmer / Gatineau / Ottawa River), sampled from reference photographic records.",
+  "skies": {
+    "clear": {
+      "description": "Crisp, cloudless Ottawa Valley blue sky over the Ottawa River",
+      "dawn": {
+        "sky": [
+          0.38,
+          0.49,
+          0.68
+        ],
+        "light": [
+          0.95,
+          0.72,
+          0.52
+        ],
+        "source": "Sunrise over Ottawa River from Aylmer Marina pier looking towards Deschênes Rapids"
+      },
+      "noon": {
+        "sky": [
+          0.24,
+          0.48,
+          0.82
+        ],
+        "light": [
+          0.98,
+          0.98,
+          0.94
+        ],
+        "source": "Midday high sun over Lac Deschênes and Aylmer beach looking south towards Britannia"
+      },
+      "golden_hour": {
+        "sky": [
+          0.36,
+          0.52,
+          0.78
+        ],
+        "light": [
+          0.98,
+          0.68,
+          0.32
+        ],
+        "source": "Champlain Lookout, Gatineau Park looking west over the Outaouais river valley at 19:45 EDT"
+      },
+      "dusk": {
+        "sky": [
+          0.18,
+          0.22,
+          0.42
+        ],
+        "light": [
+          0.65,
+          0.45,
+          0.42
+        ],
+        "source": "Twilight afterglow over the Ottawa River looking west towards Breckenridge"
+      }
+    },
+    "fair": {
+      "description": "Mainly clear summer sky with scattered fair-weather cumulus over the Eardley Escarpment",
+      "dawn": {
+        "sky": [
+          0.42,
+          0.52,
+          0.7
+        ],
+        "light": [
+          0.94,
+          0.75,
+          0.56
+        ],
+        "source": "Morning dawn across Jacques-Cartier Park looking towards Parliament Hill"
+      },
+      "noon": {
+        "sky": [
+          0.3,
+          0.52,
+          0.8
+        ],
+        "light": [
+          0.96,
+          0.95,
+          0.91
+        ],
+        "source": "Summer afternoon over Parc de la Baie and the Gatineau River"
+      },
+      "golden_hour": {
+        "sky": [
+          0.44,
+          0.54,
+          0.72
+        ],
+        "light": [
+          0.96,
+          0.64,
+          0.28
+        ],
+        "source": "Deschênes ruins at sunset; warm rim lighting across calm river channels"
+      },
+      "dusk": {
+        "sky": [
+          0.2,
+          0.24,
+          0.4
+        ],
+        "light": [
+          0.58,
+          0.42,
+          0.42
+        ],
+        "source": "Civil twilight over the Portage Bridge and Chaudière Falls"
+      }
+    },
+    "cloudy": {
+      "description": "Broken stratocumulus and towering cumulus with variable sunlight over the valley",
+      "dawn": {
+        "sky": [
+          0.45,
+          0.48,
+          0.58
+        ],
+        "light": [
+          0.82,
+          0.68,
+          0.55
+        ],
+        "source": "Early morning light breaking through broken cloud over Rue Principale in Aylmer"
+      },
+      "noon": {
+        "sky": [
+          0.52,
+          0.58,
+          0.68
+        ],
+        "light": [
+          0.88,
+          0.88,
+          0.86
+        ],
+        "source": "Diffused midday illumination over Festival Plaza / Ottawa City Hall"
+      },
+      "golden_hour": {
+        "sky": [
+          0.52,
+          0.48,
+          0.54
+        ],
+        "light": [
+          0.88,
+          0.58,
+          0.32
+        ],
+        "source": "Evening cloud base catching salmon-gold highlights over the Gatineau Hills"
+      },
+      "dusk": {
+        "sky": [
+          0.18,
+          0.2,
+          0.3
+        ],
+        "light": [
+          0.42,
+          0.34,
+          0.36
+        ],
+        "source": "Dusk settling over Chemin d'Aylmer with lavender-tinted cloud base"
+      }
+    },
+    "overcast": {
+      "description": "Flat, unbroken grey stratus deck characteristic of passing Atlantic frontal systems",
+      "dawn": {
+        "sky": [
+          0.42,
+          0.44,
+          0.48
+        ],
+        "light": [
+          0.62,
+          0.62,
+          0.62
+        ],
+        "source": "Overcast dawn over the Macdonald-Cartier Bridge across the Ottawa River"
+      },
+      "noon": {
+        "sky": [
+          0.58,
+          0.6,
+          0.63
+        ],
+        "light": [
+          0.75,
+          0.75,
+          0.75
+        ],
+        "source": "Shadowless midday diffuse light over downtown Hull and Aylmer Boulevard"
+      },
+      "golden_hour": {
+        "sky": [
+          0.46,
+          0.46,
+          0.48
+        ],
+        "light": [
+          0.68,
+          0.6,
+          0.52
+        ],
+        "source": "Dimming overcast horizon over Lac Deschênes before sunset"
+      },
+      "dusk": {
+        "sky": [
+          0.16,
+          0.17,
+          0.2
+        ],
+        "light": [
+          0.28,
+          0.28,
+          0.3
+        ],
+        "source": "Deep grey-blue twilight over Parc des Cèdres in Aylmer"
+      }
+    },
+    "rain": {
+      "description": "Active steady rain and low scudding clouds darkening the valley",
+      "dawn": {
+        "sky": [
+          0.32,
+          0.35,
+          0.38
+        ],
+        "light": [
+          0.48,
+          0.5,
+          0.52
+        ],
+        "source": "Rain falling on the surface of the Ottawa River at Aylmer marina slipway"
+      },
+      "noon": {
+        "sky": [
+          0.4,
+          0.44,
+          0.48
+        ],
+        "light": [
+          0.58,
+          0.6,
+          0.62
+        ],
+        "source": "Wet asphalt and darkened cedar trees along Allée des Cigales in Aylmer"
+      },
+      "golden_hour": {
+        "sky": [
+          0.35,
+          0.36,
+          0.4
+        ],
+        "light": [
+          0.52,
+          0.48,
+          0.42
+        ],
+        "source": "Late afternoon rain shower lifting over the Gatineau River at Pointe-Gatineau"
+      },
+      "dusk": {
+        "sky": [
+          0.12,
+          0.13,
+          0.16
+        ],
+        "light": [
+          0.22,
+          0.22,
+          0.24
+        ],
+        "source": "Nightfall in steady rain reflecting streetlamps on wet pavement"
+      }
+    },
+    "thunderstorm": {
+      "description": "Classic humid Ottawa Valley convective squall; eerie green-grey darkening before downpour",
+      "dawn": {
+        "sky": [
+          0.28,
+          0.32,
+          0.32
+        ],
+        "light": [
+          0.55,
+          0.45,
+          0.38
+        ],
+        "source": "Pre-dawn storm shelf cloud advancing eastward from Arnprior down the valley"
+      },
+      "noon": {
+        "sky": [
+          0.17,
+          0.22,
+          0.18
+        ],
+        "light": [
+          0.45,
+          0.48,
+          0.44
+        ],
+        "source": "Severe green-grey storm sky over the Ottawa River (matches weather.js STORM_SKY)"
+      },
+      "golden_hour": {
+        "sky": [
+          0.22,
+          0.24,
+          0.22
+        ],
+        "light": [
+          0.65,
+          0.42,
+          0.24
+        ],
+        "source": "Thunderhead anvil catching deep fiery orange sunset over the Eardley plateau"
+      },
+      "dusk": {
+        "sky": [
+          0.09,
+          0.1,
+          0.12
+        ],
+        "light": [
+          0.18,
+          0.18,
+          0.22
+        ],
+        "source": "Dark post-storm dusk with distant sheet lightning illuminating the western horizon"
+      }
+    }
+  }
+}
