@@ -303,7 +303,10 @@ export function normalizeSave(raw, slot = '') {
     // 2a's fields, clamped to what the summer can actually mean. `fuel` is
     // null-or-litres on purpose: null is "the tank has never been touched",
     // which is not the same number as an empty one.
-    day: Math.min(DAYS - 1, Math.max(0, Math.round(num(raw.day, 0)))),
+    // Clamped, not rounded: 2a's calendar advances `day` as a float (a job part
+    // way through Tuesday is 1.4), and snapping it here would quietly move the
+    // deadline every time you saved.
+    day: Math.min(DAYS - 1, Math.max(0, num(raw.day, 0))),
     fuel: typeof raw.fuel === 'number' && isFinite(raw.fuel)
       ? Math.min(FUEL_MAX, Math.max(0, raw.fuel)) : null,
     target: Math.min(TARGET_MAX, Math.max(TARGET_MIN, Math.round(num(raw.target, DEFAULT_TARGET)))),

@@ -254,6 +254,10 @@ group('the summer in the slot');
   save.writeSlot('tom.1', { ...fresh, day: 40, fuel: 21.5, target: 900, money: 640 });
   const back = save.readSlot('tom.1');
   eq(back.day, 40, 'the day round-trips');
+  save.writeSlot('mike.1', { ...save.newSave('', 'mike'), day: 12.4 });
+  eq(save.readSlot('mike.1').day, 12.4,
+    'a part-finished day round-trips too: the calendar counts in fractions');
+  save.deleteSlot('mike.1');
   eq(back.fuel, 21.5, 'the litres in the tank round-trip');
   eq(back.target, 900, 'the envelope goal round-trips');
   eq(back.money, 640, 'and the money, which no longer lives anywhere else');
