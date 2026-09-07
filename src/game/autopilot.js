@@ -121,6 +121,10 @@ export function start(A, PLACES, want = 'ottawa') {
   function status(dest, path, kmh, note) {
     const s = ((performance.now() - st.t0) / 1000) | 0;
     const left = Math.hypot(dest.x - A.G.veh.x, dest.z - A.G.veh.z);
+    // The title too: Safari on a stock Mac allows no scripting at all, but
+    // AppleScript can read a window's name, so this is how the Safari run
+    // reports where it is — and a restarted clock is how a reload shows up.
+    document.title = `${(left / 1000).toFixed(1)} km · ${(s / 60) | 0}:${String(s % 60).padStart(2, '0')} · laps ${st.laps} · tows ${st.tows || 0} · ${A.G.world.sectors ? A.G.world.sectors.loaded() : ''}`;
     panel.textContent = `→ ${dest.label} · ${(left / 1000).toFixed(1)} km · ${kmh | 0} km/h · ${(s / 60) | 0}:${String(s % 60).padStart(2, '0')} · laps ${st.laps} · resets ${st.resets} · tows ${st.tows || 0} · ${A.G.world.sectors ? A.G.world.sectors.loaded() : ''} ${note}`;
   }
 
