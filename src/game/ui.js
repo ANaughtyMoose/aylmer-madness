@@ -5,7 +5,7 @@
 import { t, KEYMAP, languages } from './i18n.js';
 import { MAP } from './mapdata.js';
 import { KEYS, readFlag, writeFlag } from './store.js';
-import { fmtWhen, fmtPlaytime, carName } from './save.js';
+import { fmtWhen, fmtPlaytime, carName, slotNumber } from './save.js';
 
 const $ = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -258,49 +258,78 @@ export function keyboardHTML() {
 //
 // Deleting asks a second time on the button itself: no window.confirm anywhere
 // in this game — a modal dialog freezes the headless harness.
-export function slotsHTML(rows, mode = 'load') {
-  const cells = rows.map((r) => {
-    const auto = r.slot === 'auto';
-    const title = auto ? t('save.autoslot') : t('save.slot') + ' ' + r.slot;
-    if (r.empty) {
-      return `<div class="slot empty" data-slot="${esc(r.slot)}">` +
-        `<div class="sname">${esc(title)}</div>` +
-        `<div class="smeta">${esc(t('save.empty'))}</div>` +
-        (mode === 'save' && !auto
-          ? `<div class="sbtns"><button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button></div>`
-          : '<div class="sbtns"></div>') +
-        `</div>`;
-    }
-    const meta = [
-      r.name ? esc(r.name) : '',
-      esc(fmtWhen(r.savedAt)),
-      esc(carName(r.carId)),
-      '$' + Math.round(r.money),
-      r.jobs + ' ' + esc(t('save.jobs')),
-      esc(fmtPlaytime(r.playtime)) + ' ' + esc(t('save.playtime')),
-    ].filter(Boolean).join(' · ');
-    const btns = [
-      mode === 'save' && !auto
-        ? `<button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button>` : '',
-      `<button class="loadslot" data-slot="${esc(r.slot)}">${esc(t('save.load'))}</button>`,
-      `<button class="delslot danger" data-slot="${esc(r.slot)}">${esc(t('save.delete'))}</button>`,
-    ].join('');
-    return `<div class="slot" data-slot="${esc(r.slot)}">` +
+// One box. `r` is a row out of save.listSlots(); the slot id it carries is
+// qualified (`tom.1`), and only the number is worth showing — the character's
+// name is already the heading of the block the box sits in.
+function slotCell(r, mode) {
+  const n = slotNumber(r.slot);
+  const auto = n === 'auto';
+  const title = auto ? t('save.autoslot') : t('save.slot') + ' ' + n;
+  if (r.empty) {
+    return `<div class="slot empty" data-slot="${esc(r.slot)}">` +
       `<div class="sname">${esc(title)}</div>` +
-      `<div class="smeta">${meta}</div><div class="sbtns">${btns}</div></div>`;
-  }).join('');
+      `<div class="smeta">${esc(t('save.empty'))}</div>` +
+      (mode === 'save' && !auto
+        ? `<div class="sbtns"><button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button></div>`
+        : '<div class="sbtns"></div>') +
+      `</div>`;
+  }
+  const meta = [
+    r.name ? esc(r.name) : '',
+    esc(fmtWhen(r.savedAt)),
+    esc(carName(r.carId)),
+    '$' + Math.round(r.money),
+    r.jobs + ' ' + esc(t('save.jobs')),
+    esc(fmtPlaytime(r.playtime)) + ' ' + esc(t('save.playtime')),
+    // A slot carries the job you were in the middle of now, so say so: it is
+    // the difference between « charge celle-là » and losing twenty minutes.
+    r.job ? 'job en cours' : '',
+  ].filter(Boolean).join(' · ');
+  const btns = [
+    mode === 'save' && !auto
+      ? `<button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button>` : '',
+    `<button class="loadslot" data-slot="${esc(r.slot)}">${esc(t('save.load'))}</button>`,
+    `<button class="delslot danger" data-slot="${esc(r.slot)}">${esc(t('save.delete'))}</button>`,
+  ].join('');
+  return `<div class="slot" data-slot="${esc(r.slot)}">` +
+    `<div class="sname">${esc(title)}</div>` +
+    `<div class="smeta">${meta}</div><div class="sbtns">${btns}</div></div>`;
+}
+
+// The pause menu's Sauvegarde tab: one character's four slots.
+export function slotsHTML(rows, mode = 'load') {
+  const cells = rows.map((r) => slotCell(r, mode)).join('');
   const empty = rows.every((r) => r.empty) && mode !== 'save';
   return `<div class="slots">${cells}</div>` +
     `<p class="hint">${esc(empty ? t('save.none') : t('save.hint'))}</p>`;
 }
 
-// `handlers` = { save(slot), load(slot), del(slot) }. Delete arms first.
+// The « Charger » screen: five summers, one block each. Choosing a character is
+// not a mid-run swap — « Nouvelle partie » next to a name starts that person's
+// summer from the beginning and leaves everybody else's alone — so the button
+// belongs beside their slots and nowhere else.
+export function groupsHTML(groups, mode = 'load') {
+  const blocks = groups.map((g) => {
+    const head = `<div class="sghead"><b>${esc(g.name)}</b>` +
+      `<span>${esc(g.carName || carName(g.car))}</span>` +
+      `<button class="newgame" data-character="${esc(g.character)}">Nouvelle partie</button></div>`;
+    return `<section class="savegroup${g.used ? '' : ' unused'}" data-character="${esc(g.character)}">` +
+      head + `<div class="slots">${g.rows.map((r) => slotCell(r, mode)).join('')}</div></section>`;
+  }).join('');
+  const empty = groups.every((g) => !g.used);
+  return `<div class="savegroups">${blocks}</div>` +
+    `<p class="hint">${esc(empty ? t('save.none') : t('save.hint'))}` +
+    ` Chaque personnage a son propre été.</p>`;
+}
+
+// `handlers` = { save(slot), load(slot), del(slot), fresh(character) }. Delete arms first.
 export function wireSlots(root, handlers = {}) {
   if (!root || !root.querySelectorAll) return;
   const bind = (sel, fn) => {
     for (const b of root.querySelectorAll(sel)) b.onclick = () => fn(b.dataset.slot);
   };
   bind('button.saveslot', (s) => handlers.save?.(s));
+  for (const b of root.querySelectorAll('button.newgame')) b.onclick = () => handlers.fresh?.(b.dataset.character);
   bind('button.loadslot', (s) => handlers.load?.(s));
   for (const b of root.querySelectorAll('button.delslot')) {
     const label = b.textContent;

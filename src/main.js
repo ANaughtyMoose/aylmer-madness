@@ -23,7 +23,7 @@ import { loadCarSkin } from './game/carskin.js';
 import { Nav, routeLength } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
-import { MISSIONS, TIME_OF_DAY, unlockArc } from './game/missions.js';
+import { MISSIONS, ALL_MISSIONS, TIME_OF_DAY, unlockArc } from './game/missions.js';
 // No query string on this import. A `?v=` suffix makes the browser treat the
 // file as a second, separate module: PLACES forks into two objects, only one of
 // them ever meets resolvePlaces(), and every mission target silently stops being
@@ -36,15 +36,17 @@ import {
   loadSettings, saveSettings, loadMapPrefs, saveMapPrefs, MAP_SIZES,
 } from './game/store.js';
 import {
-  Legend, Tutorial, Loading, IntroCard, keyboardHTML, slotsHTML, wireSlots,
+  Legend, Tutorial, Loading, IntroCard, keyboardHTML, slotsHTML, groupsHTML, wireSlots,
   setModal, syncModal, onModal,
 } from './game/ui.js';
 // Explicit save slots (save.js) and the options screen (options.js). Between
 // them they own every localStorage key the game touches; main.js only asks.
 import {
-  listSlots, readSlot, deleteSlot, deleteAllSaves,
+  listSlots, listGroups, readSlot, deleteSlot, deleteAllSaves,
   mostRecentSlot, lastSlot, saveToSlot, migrateLegacy, hasAnySave,
   fmtPlaytime, fmtWhen, carName, START_MONEY, apronSpot,
+  CHARACTERS, CHARACTER_IDS, DEFAULT_CHARACTER, DEFAULT_TARGET,
+  characterById, slotCharacter, slotNumber,
 } from './game/save.js';
 import { QUALITY, applySettings, mountOptions, toggleFullscreen } from './game/options.js';
 import { CarTurntable } from './game/turntable.js';
@@ -163,6 +165,16 @@ const G = {
   playtime: 0,                // seconds at the wheel in THIS save
   stats: { dist: 0 },
   slot: null,                 // which save slot this session came from / F5 goes to
+  // Whose summer this is. A character is not a mid-run swap: picking one starts
+  // that person's story from the beginning, in their own slots (save.js).
+  character: DEFAULT_CHARACTER,
+  // ---- [wave/2b] persisted for 2a, who owns what they mean. `day` is the
+  // 0-based index into the 73-day summer, `fuel` is litres (null = the fuel
+  // system has not run yet, so the tank is full) and `target` is the envelope.
+  day: 0, fuel: null, target: DEFAULT_TARGET,
+  // ...and the two beats of the ending: Labour Day has played, and the envelope
+  // has been full at least once.
+  summerOver: false, reached: false,
   nav: null, bigmap: null,
   route: null, routeKey: '', routeTimer: 0, waypoint: null,
   parked: {},           // carId -> {x, z, yaw} for the cars you're not driving
@@ -323,6 +335,10 @@ Object.assign(START_MAP_LABELS, OTTAWA_START_LABELS);
 // Pre-selected, so the picker's GO button is never dead on arrival. The Ottawa
 // pushes above happen first, so the default is chosen from the full list.
 let pickedStart = DEFAULT_START;
+// Whose summer the GO button is about to start. Picking a character is never a
+// mid-run swap — it starts that person's story from the beginning, in that
+// person's own slots. See save.js and PLAN.md « Playable characters ».
+let pickedCharacter = DEFAULT_CHARACTER;
 const availableStartPoints = () => START_POINTS.filter((key) => PLACES[key]);
 // The list is filtered by PLACES[key] existing, so a typo used to vanish
 // silently. Say it out loud instead — once, at boot.
@@ -398,6 +414,31 @@ function selectStart(key) {
   drawStartPicker();
 }
 
+// index.html belongs to the shell agent, so the character strip is built here
+// and slotted above the map the first time the picker opens.
+function ensureCharRow() {
+  if ($('startchars')) return $('startchars');
+  const layout = document.querySelector('#startpicker .startlayout');
+  if (!layout || !layout.parentNode) return null;
+  const wrap = document.createElement('div');
+  wrap.id = 'startwho';
+  wrap.innerHTML = '<p class="tag">Qui joue? Chaque personnage a son propre été — sa cenne, ses jobs, son 6 septembre.</p>'
+    + '<div id="startchars"></div>';
+  layout.parentNode.insertBefore(wrap, layout);
+  return $('startchars');
+}
+
+function selectCharacter(id) {
+  pickedCharacter = CHARACTER_IDS.includes(id) ? id : DEFAULT_CHARACTER;
+  const row = $('startchars');
+  if (row) for (const el of row.children) el.classList.toggle('sel', el.dataset.character === pickedCharacter);
+  // Their own car, when the garage will hand it over — otherwise the menu's
+  // pick stands and enterDrive falls back the same way it always did.
+  const who = characterById(pickedCharacter);
+  if (who.car !== G.carId && garage.has(who.car, G.done)) { G.carId = who.car; buildMenu(); }
+  selectStart(pickedStart);
+}
+
 function openStartPicker(open) {
   $('startpicker').classList.toggle('hidden', !open);
   if (!open) return;
@@ -407,12 +448,21 @@ function openStartPicker(open) {
   $('startpoints').innerHTML = availableStartPoints().map((key, i) =>
     `<button class="startpoint" data-key="${key}"><b>${i + 1}</b><span>${PLACES[key].label}</span></button>`).join('');
   for (const el of $('startpoints').children) el.onclick = () => selectStart(el.dataset.key);
+  const chars = ensureCharRow();
+  if (chars) {
+    chars.innerHTML = CHARACTERS.map((c) =>
+      `<button class="startchar" data-character="${c.id}"><b>${c.name}</b>` +
+      `<span>${carName(c.car)}</span></button>`).join('');
+    for (const el of chars.children) el.onclick = () => selectCharacter(el.dataset.character);
+  }
   // The picker is one long panel and the GO button is at the bottom of it. On a
   // 700 px window that used to be below the fold, which is how a player ends up
   // staring at a screen that looks like it does nothing. Pin it.
   installSkin();
   const first = availableStartPoints();
   selectStart(first.includes(DEFAULT_START) ? DEFAULT_START : first[0]);
+  // ...and whoever you were last, which repaints the GO label a second time.
+  selectCharacter(pickedCharacter);
   $('startpicker').scrollTop = 0;
 }
 
@@ -438,7 +488,25 @@ function installSkin() {
 #startconfirm{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
   z-index:4;min-width:min(520px,86vw);font-size:19px;letter-spacing:1.6px;
   padding:16px 26px;box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 3px rgba(255,201,77,.22)}
-@media (max-height:760px){#startmap{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}`;
+@media (max-height:760px){#startmap{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}
+#startwho{margin:6px 0 10px}
+#startwho .tag{margin:0 0 6px}
+#startchars{display:flex;gap:8px;flex-wrap:wrap}
+.startchar{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:8px 14px;border-radius:8px;border:2px solid rgba(233,237,242,.22);
+  background:rgba(255,255,255,.05);color:#e9edf2;cursor:pointer;font:inherit;text-align:left}
+.startchar b{font-size:15px;letter-spacing:.6px}
+.startchar span{font-size:11px;opacity:.62}
+.startchar.sel{border-color:#ffc94d;background:rgba(255,201,77,.14)}
+.savegroups{display:flex;flex-direction:column;gap:14px}
+.savegroup{border-top:1px solid rgba(233,237,242,.14);padding-top:8px}
+/* The empty slots fade, never the button: starting that character's summer is
+   the whole point of the block, and a dimmed button reads as disabled. */
+.savegroup.unused .slots{opacity:.5}
+.sghead{display:flex;align-items:baseline;gap:10px;margin:0 0 6px;text-align:left}
+.sghead b{font-size:17px;letter-spacing:.6px}
+.sghead span{font-size:12px;opacity:.6;flex:1}
+.sghead .newgame{font-size:12px;padding:5px 12px}`;
   document.head.appendChild(el);
 }
 
@@ -500,9 +568,9 @@ function applyMenuText() {
   const recent = mostRecentSlot();
   if (cont) cont.disabled = !recent;
   if (meta) {
-    const row = recent ? listSlots().find((r) => r.slot === recent) : null;
+    const row = recent ? listSlots(slotCharacter(recent)).find((r) => r.slot === recent) : null;
     meta.textContent = row
-      ? `${row.name || t('save.slot') + ' ' + row.slot} · ${fmtWhen(row.savedAt)}\n` +
+      ? `${characterById(row.character).name} · ${row.name || t('save.slot') + ' ' + slotNumber(row.slot)} · ${fmtWhen(row.savedAt)}\n` +
         `${carName(row.carId)} · ${row.jobs} ${t('save.jobs')} · ${fmtPlaytime(row.playtime)}`
       : t('save.none');
   }
@@ -520,7 +588,11 @@ function applyMenuText() {
 let tipTimer = 0;
 // `save` is a slot's contents, or null for a new game. It is held across the
 // world build so the loading screen does not have to know about it.
-function startGame(save = null, startKey = null) {
+function startGame(save = null, startKey = null, character = null) {
+  // Whose summer this is, before anything reads it. A slot knows; a new game is
+  // told by the picker.
+  G.character = save && save.character ? save.character
+    : (CHARACTER_IDS.includes(character) ? character : (G.character || DEFAULT_CHARACTER));
   // Where the world has to exist first. Raw PLACES coordinates are fine for
   // picking a sector; the snapping happens after the bake.
   {
@@ -663,6 +735,8 @@ function worldStages() {
 // Nothing else in the game decides where a car is — that is the whole point of
 // the save slots, and why the old aylmer.garage auto-restore is gone.
 function enterDrive(save = null, startKey = null) {
+  if (save && save.character) G.character = save.character;
+  if (!CHARACTER_IDS.includes(G.character)) G.character = DEFAULT_CHARACTER;
   if (save && save.carId) G.carId = save.carId;
   const spec = carById(G.carId);
   G.veh = new Vehicle(spec);
@@ -698,6 +772,13 @@ function enterDrive(save = null, startKey = null) {
   // zeroed for a new game and overlaid with whatever the save recorded.
   G.stats = { ...STATS0, ...((save && save.stats) || {}) };
   G.slot = save ? (save.slot || null) : null;
+  // 2a's three, straight off the slot. A new game starts on day 0 with a tank
+  // nobody has metered yet and the envelope on the kitchen table.
+  G.day = save ? save.day : 0;
+  G.fuel = save ? save.fuel : null;
+  G.target = save ? save.target : DEFAULT_TARGET;
+  G.summerOver = save ? save.summerOver : false;
+  G.reached = save ? save.reached : false;
   try { if (save && save.unlocks) G.garage?.restore?.(save.unlocks); } catch (e) { console.warn('unlocks', e); }
   G.waypoint = null; G.route = null; G.routeKey = '';
   G.traffic = new Traffic(G.q.traffic);
@@ -765,6 +846,9 @@ function enterDrive(save = null, startKey = null) {
   story.hide();
   G.stuck = null;
   if (!save && !G.settings.storySeen) playStory();
+  // Playtest #11: a slot carries the job you were in the middle of. Last,
+  // because it needs the car, the wallet, the HUD and the stats to exist.
+  if (save && save.mission) resumeMission(save.mission);
 }
 
 // ---------------------------------------------------------------- story
@@ -998,6 +1082,47 @@ function startMission(def) {
   G.tutoJobTaken = true;
   G.stuck = null;
   sayFriend(def, 'start');
+}
+
+// Playtest #11: put a saved job back on its feet.
+//
+// The def is the only thing worth persisting — everything a stage owns is
+// rebuilt by def.build() and the stage's own onEnter, so this restarts the
+// stage you were in rather than pretending to freeze it mid-drop. The clock
+// comes back off the save; whatever scalar the stage was counting comes back
+// on top. A def that no longer exists (a job pulled out of the build) is
+// dropped out loud, because silently landing in free roam is exactly the bug.
+function resumeMission(saved) {
+  if (!saved || !saved.id) return false;
+  const def = ALL_MISSIONS.find((d) => d.id === saved.id);
+  if (!def) {
+    hud.toast('Job perdue\nElle existe plus dans c\u2019te version-l\u00e0. T\u2019es en balade.', 3200);
+    return false;
+  }
+  const spec = G.veh.spec;
+  const stages = def.build({
+    carId: spec.id, carName: spec.name, seats: spec.seats,
+    money: G.wallet ? G.wallet.value : 0,
+  });
+  if (!stages || !stages.length) return false;
+  const idx = Math.max(0, Math.min(stages.length - 1, saved.stage | 0));
+  G.mission = {
+    def, stages, idx, timeLeft: null, failed: false, elapsed: saved.elapsed || 0,
+    styleStart: { stats: { ...G.stats }, damage: G.veh.damage || 0 },
+  };
+  G.veh.passengers = Math.min(spec.seats || 1, saved.passengers || 0);
+  G.waypoint = null;
+  setEnv(def.timeOfDay);
+  applyStage();
+  Object.assign(G.mission, saved.state || {});
+  if (saved.timeLeft != null) G.mission.timeLeft = saved.timeLeft;
+  hud.setTimer(G.mission.timeLeft);
+  // No intro card: you have already read the brief, you were doing the job.
+  G.introUntil = 0;
+  G.tutoJobTaken = true;
+  G.stuck = null;
+  hud.toast('Job reprise: ' + def.title + '\n' + (stages[idx].text || ''), 3200);
+  return true;
 }
 
 function applyStage() {
@@ -2080,7 +2205,8 @@ function buildTabBar() {
 function buildSaveTab() {
   const el = $('tabsave');
   if (!el) return;
-  el.innerHTML = slotsHTML(listSlots(), 'save');
+  // The pause menu writes into the summer you are playing, and only that one.
+  el.innerHTML = slotsHTML(listSlots(G.character), 'save');
   wireSlots(el, {
     save: (slot) => { saveInto(slot); buildSaveTab(); },
     load: (slot) => loadIntoGame(slot),
@@ -2097,17 +2223,19 @@ function saveInto(slot) {
   const snap = saveToSlot(G, slot, { name: saveName() });
   if (!snap) { hud.toast(t('save.failed'), 1600); return null; }
   G.slot = slot;
-  hud.toast(t('save.saved') + '\n' + (slot === 'auto' ? t('save.autoslot') : t('save.slot') + ' ' + slot)
-    // A slot carries jobs FINISHED, not a job in progress. Saying so beats
-    // finding out after the load, which is how it used to go.
-    + (G.mission ? '\n(la job en cours est pas sauvegardée)' : ''), G.mission ? 2600 : 1500);
+  const n = slotNumber(slot);
+  // The old warning about the job in progress not being kept is gone: it is
+  // kept now, and the load says « Job reprise: … ».
+  hud.toast(t('save.saved') + '\n' + (n === 'auto' ? t('save.autoslot') : t('save.slot') + ' ' + n)
+    + (G.mission ? '\navec la job en cours' : ''), G.mission ? 2200 : 1500);
   audio.blip(720, 0.12, 'triangle', 0.16);
   return snap;
 }
 
 // F5: into the slot you used last (never the autosave), '1' the first time.
 function quickSave() {
-  const slot = (G.slot && G.slot !== 'auto') ? G.slot : (lastSlot() || '1');
+  const mine = G.slot && slotCharacter(G.slot) === G.character && slotNumber(G.slot) !== 'auto' ? G.slot : null;
+  const slot = mine || lastSlot(G.character) || `${G.character}.1`;
   const snap = saveInto(slot);
   if (snap && G.mode === 'paused') buildSaveTab();
   return snap;
@@ -2117,7 +2245,9 @@ function quickSave() {
 // a job finished, and a car bought / unlocked (PROGRESS calls G.autosave).
 function autosave(reason) {
   if (!G.settings.autosave || !G.veh || G.mode === 'menu') return null;
-  const snap = saveToSlot(G, 'auto', { name: saveName() });
+  // The autosave belongs to the summer you are playing. A bare 'auto' qualifies
+  // to Tom's, which as Zahra would quietly overwrite his.
+  const snap = saveToSlot(G, `${G.character}.auto`, { name: saveName() });
   if (snap) console.log('autosave:', reason);
   return snap;
 }
@@ -2126,7 +2256,7 @@ G.autosave = autosave;
 function loadIntoGame(slot) {
   const save = readSlot(slot);
   if (!save) return null;
-  save.slot = slot;
+  save.slot = save.slot || slot;
   setModal('load', false);
   if (!G.world) { startGame(save); return save; }
   pause(false);
@@ -2134,17 +2264,25 @@ function loadIntoGame(slot) {
   return save;
 }
 
-// The main menu's « Charger » screen: same rows, read-only plus Delete.
+// The main menu's « Charger » screen: the same rows, grouped by character —
+// five separate summers — read-only plus Delete, plus « Nouvelle partie » for
+// whoever you feel like being, which starts THAT character from the beginning
+// and touches nobody else's slots.
 function openLoadScreen(on) {
   const scr = $('loadscr');
   if (!scr) return;
   if (!on) { setModal('load', false); return; }
   const body = $('loadbody');
   const draw = () => {
-    body.innerHTML = slotsHTML(listSlots(), 'load');
+    body.innerHTML = groupsHTML(listGroups(), 'load');
     wireSlots(body, {
       load: (slot) => loadIntoGame(slot),
       del: (slot) => { deleteSlot(slot); draw(); applyMenuText(); },
+      fresh: (character) => {
+        setModal('load', false);
+        pickedCharacter = CHARACTER_IDS.includes(character) ? character : DEFAULT_CHARACTER;
+        openStartPicker(true);
+      },
     });
   };
   draw();
@@ -2266,7 +2404,7 @@ function toMenu() {
 
 $('start').onclick = () => openStartPicker(true);
 $('startback').onclick = () => openStartPicker(false);
-$('startconfirm').onclick = () => { if (pickedStart) { openStartPicker(false); startGame(null, pickedStart); } };
+$('startconfirm').onclick = () => { if (pickedStart) { openStartPicker(false); startGame(null, pickedStart, pickedCharacter); } };
 $('startmap').addEventListener('click', (e) => {
   const tr = $('startmap')._pickerTransform;
   if (!tr) return;
@@ -2309,11 +2447,15 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('pointerdown', () => audio.resume(), { once: true });
 
-// Come back in the car the most recent save was in, so the menu highlights it.
+// Come back as whoever you were, in the car that save was in, so the menu and
+// the start picker both open on the summer you were last playing.
 {
   const recent = mostRecentSlot();
   const save = recent ? readSlot(recent) : null;
-  if (save && CARS.some((c) => c.id === save.carId)) G.carId = save.carId;
+  if (save) {
+    if (CARS.some((c) => c.id === save.carId)) G.carId = save.carId;
+    if (CHARACTER_IDS.includes(save.character)) { G.character = save.character; pickedCharacter = save.character; }
+  }
 }
 buildMenu();
 applyMenuText();
@@ -2363,7 +2505,14 @@ window.AYLMER = {
   save: (slot) => saveInto(slot),
   quickSave,
   load: (slot) => loadIntoGame(slot),
-  slots: () => listSlots().map(({ save, ...row }) => row),
+  slots: (character) => (character ? listSlots(character) : listGroups().flatMap((g) => g.rows))
+    .map(({ save, ...row }) => row),
+  // Who you are playing. Reading is free; setting one only takes effect from
+  // the menu, because a character is a fresh summer, not a mid-run swap.
+  character: (id) => { if (id && CHARACTER_IDS.includes(id)) pickedCharacter = id; return G.character; },
+  characters: () => CHARACTERS.map((c) => ({ ...c })),
+  // Playtest #11, for the browser check: what job is running, and where in it.
+  job: () => (G.mission ? { id: G.mission.def.id, stage: G.mission.idx, timeLeft: G.mission.timeLeft } : null),
   resetCars: () => resetCarLocations(),
   settings: (patch) => { onSettings(saveSettings({ ...G.settings, ...(patch || {}) })); return G.settings; },
   // Debug/screenshot hooks: force a time of day, and read back what the last

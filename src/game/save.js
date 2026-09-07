@@ -6,27 +6,72 @@
 // player asks for it (pause → Sauvegarde → a slot, or F5) or an autosave event
 // fires (a job finished, a car bought/unlocked) with autosave on in the options.
 //
-// Four slots: '1', '2', '3' and 'auto', one localStorage key each:
+// A slot belongs to a CHARACTER. Choosing Zahra does not continue Tom's summer,
+// it starts hers — and coming back to Tom resumes his exactly where it was. So
+// the slot id is `<character>.<n>`, four per character, one localStorage key
+// each:
 //
-//   aylmer.save.1 … aylmer.save.auto   {version,name,savedAt,playtime,carId,
-//                                       parked,health,money,progress,best,
-//                                       unlocks,stats,timeOfDay}
-//   aylmer.save.last                   the slot F5 quick-saves into
-//   aylmer.save.migrated               "1" once the legacy keys have been folded in
+//   aylmer.save.tom.1 … aylmer.save.zahra.auto
+//         {version,name,savedAt,playtime,character,carId,parked,health,money,
+//          progress,best,unlocks,stats,timeOfDay,day,fuel,target,summerOver,
+//          reached,mission}
+//   aylmer.save.last                   the slot F5 quick-saves into (qualified)
+//   aylmer.save.migrated               the migration stamp; '2' once v1 is folded in
+//
+// A bare '1' / 'auto' is still accepted everywhere a slot id is taken and means
+// Tom's — that is what the v1 slots were, and the migration renames the keys.
 //
 // `parked` holds EVERY car including the one you were driving, so carId +
 // parked[carId] is where you get put down when the slot is loaded.
+//
+// v2 also carries the four fields the summer runs on (`day`, `fuel`, `target`,
+// and the wallet, which no longer persists itself — see money.js) plus the job
+// you were in the middle of, so loading no longer drops it on the floor.
 import { PLACES } from './places.js';
 import { CARS } from './cars.js';
 import { loadGarage } from './store.js';
 
-export const SAVE_VERSION = 1;
-export const SLOTS = ['1', '2', '3', 'auto'];
+export const SAVE_VERSION = 2;
+
+// The five playable summers. `car` is what that character starts in; Wave 3 is
+// what gives Zahra the Diamondback and Mike his own, so until those vehicles
+// exist everyone starts in something CARS actually has — a save pointing at a
+// car the garage cannot build would load you into the Ranger anyway, silently.
+export const CHARACTERS = [
+  { id: 'tom', name: 'Tom', car: 'ranger' },
+  { id: 'sayyad', name: 'Sayyad', car: 'civic' },
+  { id: 'zahra', name: 'Zahra', car: 'ranger' },
+  { id: 'mike', name: 'Mike', car: 'ranger' },
+  { id: 'abraham', name: 'Abraham', car: 'sunfire' },
+];
+export const CHARACTER_IDS = CHARACTERS.map((c) => c.id);
+export const DEFAULT_CHARACTER = 'tom';
+export const characterById = (id) => CHARACTERS.find((c) => c.id === id) || CHARACTERS[0];
+
+// Three slots you write into plus the autosave, per character.
+export const SLOT_NUMBERS = ['1', '2', '3', 'auto'];
+export const SLOTS = CHARACTER_IDS.flatMap((c) => SLOT_NUMBERS.map((n) => `${c}.${n}`));
 export const KEY_PREFIX = 'aylmer.save.';
 export const LAST_KEY = KEY_PREFIX + 'last';
 export const MIGRATED_KEY = KEY_PREFIX + 'migrated';
+// Bumped when the migration has to run again for everyone. '2' = v1 slots have
+// been renamed under Tom and the wallet's private key has been folded in.
+export const MIGRATION_STAMP = '2';
 // The legacy keys the migration reads exactly once.
 export const LEGACY_KEYS = ['aylmer.progress', 'aylmer.money', 'aylmer.best', 'aylmer.garage'];
+// The wallet used to keep its own copy of your money here, which is how a slot
+// could load $410 and the HUD show $80. Deleted on migration, never read again.
+export const MONEY_KEY = 'aylmer.money';
+
+// The summer: Saturday 26 June to Monday 6 September 2004, 73 days, 0-based.
+export const DAYS = 73;
+// A tank nobody has: the clamp only has to keep a corrupt number out of the
+// fuel gauge, and the biggest vehicle in the game is a city bus.
+export const FUEL_MAX = 200;
+// The envelope on the kitchen table. Difficulty may move it; it stays a number
+// a summer of jobs can plausibly reach.
+export const DEFAULT_TARGET = 1200;
+export const TARGET_MIN = 100, TARGET_MAX = 5000;
 
 export const START_MONEY = 80;
 export const DEFAULT_CAR = 'ranger';
@@ -38,7 +83,25 @@ export const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 
   // The cart never leaves the golf course; it lives on the clubhouse apron.
   cart: 'golf' };
 
-export const slotKey = (slot) => KEY_PREFIX + slot;
+// '1' and 'tom.1' are the same slot: the first is what v1 called it. Anything
+// else — an unknown character, a fifth slot number — is not a slot at all.
+export function qualifySlot(slot) {
+  if (typeof slot !== 'string' || !slot) return null;
+  const dot = slot.indexOf('.');
+  if (dot < 0) return SLOT_NUMBERS.includes(slot) ? `${DEFAULT_CHARACTER}.${slot}` : null;
+  const ch = slot.slice(0, dot), n = slot.slice(dot + 1);
+  return CHARACTER_IDS.includes(ch) && SLOT_NUMBERS.includes(n) ? `${ch}.${n}` : null;
+}
+export function slotCharacter(slot) {
+  const q = qualifySlot(slot);
+  return q ? q.slice(0, q.indexOf('.')) : '';
+}
+export function slotNumber(slot) {
+  const q = qualifySlot(slot);
+  return q ? q.slice(q.indexOf('.') + 1) : '';
+}
+
+export const slotKey = (slot) => KEY_PREFIX + (qualifySlot(slot) || slot);
 
 function store() {
   try { return globalThis.localStorage || null; } catch { return null; }
@@ -101,13 +164,15 @@ export function homeSpot(carId) {
 
 // ---------------------------------------------------------------- shape
 
-export function newSave(name = '') {
+export function newSave(name = '', character = DEFAULT_CHARACTER) {
+  const who = characterById(CHARACTER_IDS.includes(character) ? character : DEFAULT_CHARACTER);
   return {
     version: SAVE_VERSION,
     name: name || '',
     savedAt: new Date().toISOString(),
     playtime: 0,
-    carId: DEFAULT_CAR,
+    character: who.id,
+    carId: CARS.some((c) => c.id === who.car) ? who.car : DEFAULT_CAR,
     parked: homeParked(),
     health: {},
     money: START_MONEY,
@@ -116,6 +181,67 @@ export function newSave(name = '') {
     unlocks: null,
     stats: {},
     timeOfDay: 'day',
+    // 2a's three: the day index into the 73-day summer, the litres in the tank
+    // (null = nobody has initialised the fuel system yet, so treat it as full)
+    // and the envelope goal.
+    day: 0,
+    fuel: null,
+    target: DEFAULT_TARGET,
+    // The two beats of the ending: whether Labour Day has played, and whether
+    // the envelope has ever been full. Both are one-way, both belong to 2a.
+    summerOver: false,
+    reached: false,
+    // The job you were in the middle of, or null. See missionSnapshot().
+    mission: null,
+  };
+}
+
+// The keys a live mission rebuilds for itself out of the def, so they must not
+// come back out of a save: `stages` is def.build(), `target` is stageTarget(),
+// and `def` is the def. Everything else on the mission object is live state.
+const MISSION_STRUCTURAL = new Set(['def', 'stages', 'target', 'idx', 'timeLeft', 'elapsed', 'failed', 'styleStart']);
+
+// A job in progress, small and flat. Only scalars: the stage objects hang
+// meters, spawned rivals and prop handles off the mission too (`m.donut`,
+// `m.legs`, `m.couch`), and those are rebuilt by the stage's own onEnter when
+// the job resumes — a stale copy of one is worse than none.
+export function missionSnapshot(G) {
+  const m = G && G.mission;
+  if (!m || !m.def || typeof m.def.id !== 'string' || !Array.isArray(m.stages)) return null;
+  const state = {};
+  for (const k of Object.keys(m)) {
+    if (MISSION_STRUCTURAL.has(k)) continue;
+    const v = m[k], ty = typeof v;
+    if (ty === 'string' ? v.length <= 200 : (ty === 'boolean' || (ty === 'number' && isFinite(v)))) state[k] = v;
+  }
+  return {
+    id: m.def.id,
+    stage: Math.max(0, Math.min(m.stages.length - 1, Math.round(num(m.idx, 0)))),
+    timeLeft: typeof m.timeLeft === 'number' && isFinite(m.timeLeft) ? Math.max(0, m.timeLeft) : null,
+    elapsed: Math.max(0, num(m.elapsed, 0)),
+    passengers: Math.max(0, Math.round(num(G.veh && G.veh.passengers, 0))),
+    state,
+  };
+}
+
+function normalizeMission(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof raw.id !== 'string' || !raw.id) return null;
+  const state = {};
+  if (raw.state && typeof raw.state === 'object') {
+    for (const k of Object.keys(raw.state)) {
+      if (MISSION_STRUCTURAL.has(k)) continue;
+      const v = raw.state[k], ty = typeof v;
+      if (ty === 'string' ? v.length <= 200 : (ty === 'boolean' || (ty === 'number' && isFinite(v)))) state[k] = v;
+    }
+  }
+  return {
+    id: raw.id.slice(0, 64),
+    stage: Math.max(0, Math.round(num(raw.stage, 0))),
+    timeLeft: typeof raw.timeLeft === 'number' && isFinite(raw.timeLeft) ? Math.max(0, raw.timeLeft) : null,
+    elapsed: Math.max(0, num(raw.elapsed, 0)),
+    passengers: Math.max(0, Math.round(num(raw.passengers, 0))),
+    state,
   };
 }
 
@@ -149,7 +275,13 @@ export function normalizeSave(raw, slot = '') {
       if (typeof v === 'number' && isFinite(v) && v >= 0) best[id] = v;
     }
   }
-  const carId = carIds.includes(raw.carId) ? raw.carId : DEFAULT_CAR;
+  // The slot says whose summer this is; the blob only gets a say when the slot
+  // does not (a hand-built save handed over by another module).
+  const character = slotCharacter(slot)
+    || (CHARACTER_IDS.includes(raw.character) ? raw.character : DEFAULT_CHARACTER);
+  const startCar = characterById(character).car;
+  const fallbackCar = carIds.includes(startCar) ? startCar : DEFAULT_CAR;
+  const carId = carIds.includes(raw.carId) ? raw.carId : fallbackCar;
   const home = homeParked();
   // A car the save has nothing to say about is at home, not at (0,0).
   for (const id of carIds) if (!parked[id]) parked[id] = home[id] || homeSpot(id);
@@ -158,6 +290,7 @@ export function normalizeSave(raw, slot = '') {
     name: typeof raw.name === 'string' ? raw.name.slice(0, 40) : '',
     savedAt: typeof raw.savedAt === 'string' ? raw.savedAt : new Date(0).toISOString(),
     playtime: Math.max(0, num(raw.playtime, 0)),
+    character,
     carId,
     parked,
     health,
@@ -167,7 +300,20 @@ export function normalizeSave(raw, slot = '') {
     unlocks: raw.unlocks && typeof raw.unlocks === 'object' ? raw.unlocks : null,
     stats: raw.stats && typeof raw.stats === 'object' ? raw.stats : {},
     timeOfDay: typeof raw.timeOfDay === 'string' ? raw.timeOfDay : 'day',
-    slot: slot || raw.slot || '',
+    // 2a's fields, clamped to what the summer can actually mean. `fuel` is
+    // null-or-litres on purpose: null is "the tank has never been touched",
+    // which is not the same number as an empty one.
+    // Clamped, not rounded: 2a's calendar advances `day` as a float (a job part
+    // way through Tuesday is 1.4), and snapping it here would quietly move the
+    // deadline every time you saved.
+    day: Math.min(DAYS - 1, Math.max(0, num(raw.day, 0))),
+    fuel: typeof raw.fuel === 'number' && isFinite(raw.fuel)
+      ? Math.min(FUEL_MAX, Math.max(0, raw.fuel)) : null,
+    target: Math.min(TARGET_MAX, Math.max(TARGET_MIN, Math.round(num(raw.target, DEFAULT_TARGET)))),
+    summerOver: raw.summerOver === true,
+    reached: raw.reached === true,
+    mission: normalizeMission(raw.mission),
+    slot: qualifySlot(slot) || qualifySlot(raw.slot) || '',
   };
 }
 
@@ -180,18 +326,21 @@ export function readSlot(slot) {
 }
 
 export function writeSlot(slot, save) {
-  if (!SLOTS.includes(slot)) return false;
-  const clean = normalizeSave(save, slot);
+  const id = qualifySlot(slot);
+  if (!id) return false;
+  const clean = normalizeSave(save, id);
   if (!clean) return false;
   delete clean.slot;
-  const okWrite = writeRaw(slotKey(slot), JSON.stringify(clean));
-  if (okWrite && slot !== 'auto') writeRaw(LAST_KEY, slot);
+  const okWrite = writeRaw(slotKey(id), JSON.stringify(clean));
+  if (okWrite && slotNumber(id) !== 'auto') writeRaw(LAST_KEY, id);
   return okWrite;
 }
 
 export function deleteSlot(slot) {
-  removeRaw(slotKey(slot));
-  if (lastSlot() === slot) removeRaw(LAST_KEY);
+  const id = qualifySlot(slot);
+  if (!id) return false;
+  removeRaw(slotKey(id));
+  if (lastSlot() === id) removeRaw(LAST_KEY);
   return true;
 }
 
@@ -203,24 +352,54 @@ export function deleteAllSaves() {
 
 export function hasAnySave() { return SLOTS.some((s) => readRaw(slotKey(s)) !== null); }
 
-export function lastSlot() {
-  const v = readRaw(LAST_KEY);
-  return SLOTS.includes(v) ? v : null;
+// Whether this character has a summer going.
+export function hasSaveFor(character) {
+  return SLOT_NUMBERS.some((n) => readRaw(slotKey(`${character}.${n}`)) !== null);
+}
+
+// F5 goes into the slot you used last — but only if it is this character's.
+// Switching to Zahra and pressing F5 must not overwrite Tom's slot 3.
+export function lastSlot(character = null) {
+  const v = qualifySlot(readRaw(LAST_KEY));
+  if (!v) return null;
+  return !character || slotCharacter(v) === character ? v : null;
 }
 export function setLastSlot(slot) {
-  if (SLOTS.includes(slot)) writeRaw(LAST_KEY, slot);
-  return slot;
+  const id = qualifySlot(slot);
+  if (id) writeRaw(LAST_KEY, id);
+  return id;
 }
 
 // One row per slot for the load screen: empty ones included, so the picker can
-// draw four boxes without knowing anything about localStorage.
-export function listSlots() {
-  return SLOTS.map((slot) => {
+// draw four boxes without knowing anything about localStorage. One character at
+// a time, because that is what a screen shows at once.
+export function listSlots(character = DEFAULT_CHARACTER) {
+  const who = CHARACTER_IDS.includes(character) ? character : DEFAULT_CHARACTER;
+  return SLOT_NUMBERS.map((n) => {
+    const slot = `${who}.${n}`;
     const s = readSlot(slot);
-    if (!s) return { slot, empty: true };
+    if (!s) return { slot, character: who, empty: true };
     return {
-      slot, empty: false, name: s.name, savedAt: s.savedAt, playtime: s.playtime,
-      carId: s.carId, money: s.money, jobs: s.progress.length, best: s.best, save: s,
+      slot, character: who, empty: false, name: s.name, savedAt: s.savedAt, playtime: s.playtime,
+      carId: s.carId, money: s.money, jobs: s.progress.length, best: s.best,
+      day: s.day, target: s.target, job: s.mission ? s.mission.id : null, save: s,
+    };
+  });
+}
+
+// Every slot of every character, in character order.
+export function listAllSlots() {
+  return CHARACTER_IDS.flatMap((c) => listSlots(c));
+}
+
+// The Charger screen: one block per character, so five summers read as five
+// summers instead of twenty boxes.
+export function listGroups() {
+  return CHARACTERS.map((c) => {
+    const rows = listSlots(c.id);
+    return {
+      character: c.id, name: c.name, car: c.car, carName: carName(c.car),
+      rows, used: rows.filter((r) => !r.empty).length,
     };
   });
 }
@@ -229,10 +408,10 @@ export function listSlots() {
 // over the autosave.
 export function mostRecentSlot() {
   let best = null, bt = -Infinity;
-  for (const row of listSlots()) {
+  for (const row of listAllSlots()) {
     if (row.empty) continue;
     const t = Date.parse(row.savedAt) || 0;
-    if (t > bt || (t === bt && best === 'auto')) { bt = t; best = row.slot; }
+    if (t > bt || (t === bt && slotNumber(best) === 'auto')) { bt = t; best = row.slot; }
   }
   return best;
 }
@@ -258,6 +437,7 @@ export function snapshot(G, opts = {}) {
     name: opts.name || '',
     savedAt: new Date().toISOString(),
     playtime: num(G.playtime, 0),
+    character: G.character,
     carId: G.carId,
     parked,
     health,
@@ -267,6 +447,13 @@ export function snapshot(G, opts = {}) {
     unlocks,
     stats: { ...(G.stats || {}) },
     timeOfDay: G.envKey || 'day',
+    // 2a writes these three as the summer runs; here they just get kept.
+    day: G.day,
+    fuel: G.fuel,
+    target: G.target,
+    summerOver: G.summerOver,
+    reached: G.reached,
+    mission: missionSnapshot(G),
   }, opts.slot || '');
 }
 
@@ -279,39 +466,91 @@ export function saveToSlot(G, slot, opts = {}) {
 
 // ---------------------------------------------------------------- migration
 
-// One-shot: an existing player's aylmer.progress / money / best / garage become
-// the 'auto' slot the first time this build runs. After that the flag is set and
-// the legacy keys are never read again — the save slots are the only truth.
+// Two one-shots, stamped once.
+//
+// v1 -> v2: the slots were `aylmer.save.1/2/3/auto` and belonged to nobody.
+// They are Tom's — that is who the game was about — so they are renamed under
+// him and given the fields v2 adds (day 0, a full tank, the $1,200 envelope).
+//
+// Before slots existed at all there were four loose keys (aylmer.progress /
+// money / best / garage); those still become Tom's autosave, but only for a
+// player who has no slot of any kind.
+//
+// Either way the wallet's private key goes: money lives in the slot now, and
+// leaving it behind is how the HUD and the save disagree after a load.
 export function migrateLegacy() {
-  if (readRaw(MIGRATED_KEY) === '1') return null;
-  if (hasAnySave()) { writeRaw(MIGRATED_KEY, '1'); return null; }
-  const progRaw = readRaw('aylmer.progress');
-  const moneyRaw = readRaw('aylmer.money');
-  const bestRaw = readRaw('aylmer.best');
-  const garageRaw = readRaw('aylmer.garage');
-  if (progRaw === null && moneyRaw === null && bestRaw === null && garageRaw === null) {
-    writeRaw(MIGRATED_KEY, '1');
-    return null;
+  if (readRaw(MIGRATED_KEY) === MIGRATION_STAMP) return null;
+  const stamp = readRaw(MIGRATED_KEY);
+  const moneyRaw = readRaw(MONEY_KEY);
+  const loose = Number(moneyRaw);
+  const looseMoney = Number.isFinite(loose) && loose >= 0 ? loose : null;
+  // Read before the loop: writeSlot() sets this marker itself, so by the time
+  // the rename is done it no longer says what v1 left behind.
+  const lastRaw = readRaw(LAST_KEY);
+  let first = null;
+
+  // (a) the v1 slots, renamed under Tom.
+  for (const n of SLOT_NUMBERS) {
+    const raw = readRaw(KEY_PREFIX + n);
+    if (raw === null) continue;
+    removeRaw(KEY_PREFIX + n);
+    let obj = null;
+    try { obj = JSON.parse(raw); } catch { obj = null; }
+    if (!obj || typeof obj !== 'object') continue;
+    const save = normalizeSave({
+      ...obj,
+      version: SAVE_VERSION,
+      character: DEFAULT_CHARACTER,
+      day: 0,
+      fuel: null,
+      target: DEFAULT_TARGET,
+      summerOver: false,
+      reached: false,
+      // A v1 slot that never stored money takes the wallet's old private key,
+      // because that is where the number on screen was actually coming from.
+      money: typeof obj.money === 'number' ? obj.money : (looseMoney != null ? looseMoney : START_MONEY),
+      mission: null,
+    }, `${DEFAULT_CHARACTER}.${n}`);
+    if (writeSlot(`${DEFAULT_CHARACTER}.${n}`, save) && !first) first = save;
   }
-  const parse = (raw, dflt) => { try { return raw ? JSON.parse(raw) : dflt; } catch { return dflt; } };
-  const garage = garageRaw !== null ? loadGarage() : { carId: null, parked: {}, health: {} };
-  const money = Number(moneyRaw);
-  const save = normalizeSave({
-    version: SAVE_VERSION,
-    name: 'Ancienne partie',
-    savedAt: new Date().toISOString(),
-    playtime: 0,
-    carId: garage.carId || DEFAULT_CAR,
-    parked: garage.parked || {},
-    health: garage.health || {},
-    money: Number.isFinite(money) && money >= 0 ? money : START_MONEY,
-    progress: parse(progRaw, []),
-    best: parse(bestRaw, {}),
-    timeOfDay: 'day',
-  }, 'auto');
-  writeSlot('auto', save);
-  writeRaw(MIGRATED_KEY, '1');
-  return save;
+  if (SLOT_NUMBERS.includes(lastRaw)) writeRaw(LAST_KEY, `${DEFAULT_CHARACTER}.${lastRaw}`);
+
+  // (b) the pre-slot keys, for a player who has nothing else.
+  if (!first && stamp !== '1' && !hasAnySave()) {
+    const progRaw = readRaw('aylmer.progress');
+    const bestRaw = readRaw('aylmer.best');
+    const garageRaw = readRaw('aylmer.garage');
+    if (progRaw !== null || moneyRaw !== null || bestRaw !== null || garageRaw !== null) {
+      const parse = (raw, dflt) => { try { return raw ? JSON.parse(raw) : dflt; } catch { return dflt; } };
+      const garage = garageRaw !== null ? loadGarage() : { carId: null, parked: {}, health: {} };
+      const save = normalizeSave({
+        version: SAVE_VERSION,
+        name: 'Ancienne partie',
+        savedAt: new Date().toISOString(),
+        playtime: 0,
+        character: DEFAULT_CHARACTER,
+        carId: garage.carId || DEFAULT_CAR,
+        parked: garage.parked || {},
+        health: garage.health || {},
+        money: looseMoney != null ? looseMoney : START_MONEY,
+        progress: parse(progRaw, []),
+        best: parse(bestRaw, {}),
+        timeOfDay: 'day',
+        day: 0,
+        fuel: null,
+        target: DEFAULT_TARGET,
+        summerOver: false,
+        reached: false,
+        mission: null,
+      }, `${DEFAULT_CHARACTER}.auto`);
+      writeSlot(`${DEFAULT_CHARACTER}.auto`, save);
+      first = save;
+    }
+  }
+
+  removeRaw(MONEY_KEY);
+  writeRaw(MIGRATED_KEY, MIGRATION_STAMP);
+  return first;
 }
 
 // ---------------------------------------------------------------- formatting
