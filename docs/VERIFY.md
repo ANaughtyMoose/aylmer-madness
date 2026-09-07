@@ -140,19 +140,23 @@ without the reload banner.** Both are now met on `wave/1-memory`; keep them.
 **Safari is the real test**, and it is stricter than Chrome. On this machine
 Safari cannot be scripted from outside (Remote Automation and JavaScript from
 Apple Events are both off, and that is what a friend's laptop looks like too),
-so the drive is done by the page itself:
+so the drive is done by the page itself and read back through the tab title,
+which AppleScript can see without any developer setting:
 
 ```bash
-open "http://localhost:8123/index.html?drive=ottawa"     # the dev chauffeur: Aylmer <-> Parliament, on the GPS route
-# memory: RSS of the WebContent process that holds the localhost:8123 socket
-lsof -nP -iTCP:8123 -sTCP:ESTABLISHED | awk '/WebContent/ {print $2}' | head -1 | xargs ps -o rss= -p
-# a reload shows up as a SECOND request for the page in the server log
-grep -c 'GET /index.html?drive=ottawa' server.log
+open "http://localhost:8123/index.html?drive=ottawa&ua=safari"   # the dev chauffeur: Aylmer <-> Parliament on the GPS route
+# every 30 s: the tab name is "km left · m:ss · laps · tows · sectors"
+osascript -e 'tell application "Safari" to get name of every tab of every window'
+# memory: RSS of the busiest WebContent process (the one rendering at 60 fps)
+ps -axo pid,pcpu,rss,comm | grep WebContent | sort -k2 -n | tail -1
 ```
 
-Twenty minutes, sampling every 30 s. If the WebContent RSS climbs without a
-plateau, something is leaking per frame; if the page is requested twice, Safari
-reloaded it.
+The clock in the title only advances while the tab is **visible** — Safari
+pauses requestAnimationFrame for a covered window, so a frozen clock means
+the window is behind something, not that the game hung. A clock that goes
+**backwards** is a reload: that is the banner, seen from a shell. Twenty
+minutes of clock is the bar. Keep the Safari window uncovered for the whole
+run; it cannot be done in the background.
 
 ## Merging parallel work
 

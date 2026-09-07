@@ -445,6 +445,10 @@ bike is the cheapest vehicle and the most different game.
 
 ## Wave 5 — Graphics (only after Wave 1)
 
+**Order revised 2026-09-06 — see "Borrow, don't build": converted CC0 models
+and photographed CC0 textures first, then sky/tone/shadows, then Gemini's
+facades, then variation.** The original notes:
+
 The ceiling is not the renderer: **every surface is one flat colour.** In order:
 
 1. **Materials.** `assets/text/materials.json` has 33 tileable specs with hex
@@ -500,23 +504,128 @@ must not touch.
 
 ---
 
-## Known bugs, ranked
+## Priorities after Gemini's review (2026-09-04) — the order for the big run
 
-1. ~~Memory~~ — fixed on `wave/1-memory`, see Wave 1.
-2. **Traffic drives on the wrong side of the road.** `traffic.js` `laneAt` /
-   `wantOn`; suspect the lane-offset sign for one direction, or a one-way being
-   read as two-way.
-3. **Camera still jitters over bumps** and slightly under acceleration. Already
-   softened once (two slow sines instead of one at 9.7 Hz, plus a shake slider).
-   Remaining source is the suspension feeding `camPitch` and the chase camera's
-   `dt * 9` position lerp ringing at the new higher top speeds.
-4. **Money exploit:** stages pay as they land and a failed job keeps them, so
-   « La surchauffe du pont » banks $90 per Backspace. Wave 2a fixes it.
-5. **The difficulty option is a placebo** — persisted, read by nothing. Wave 2a.
-6. Both buses bog to 1.3 km/h on grass and cannot leave tarmac.
-7. `SURF.path` gives a footpath no penalty — the Ranger does 149 km/h down one.
-8. The « Poutine express » destination does not visibly exist at the Galeries.
-9. ~30 console 404s on every boot (`assets/cars/*/*.png`) hide real errors.
+Gemini 3.8 Flash reviewed `wave/1-memory` at `4835c66` read-only; its package
+is in `gemini-inbox/` (`INDEX.md`, `REVIEW.md`, `PLAYTEST-GEMINI.md`,
+`CONTENT-AUDIT.md`, `TESTS-AUDIT.md`, `STATUS.md`). It reproduced eight of the
+fourteen known bugs with screenshots, found the first-job problem is worse than
+we thought, and got a few things wrong (listed below so nobody chases them).
+This section supersedes the old "Known bugs, ranked".
+
+### Step 0 — Ship Wave 1 — done (PR #5, 2026-09-03)
+
+Heap 1057 → 148 MB, sector gating, the bridge "wall" fixed, and the live site
+serves it. Everything below branches from `main`.
+
+### Step 1 — The first two minutes (one agent, one branch, small diffs)
+
+Gemini's "ten things a new player notices first" puts four defects in the
+first two minutes of play. Fix these before the spine, because the spine is
+pointless if the opening is broken:
+
+1. ~~**Traffic on the wrong side.**~~ **Done, PR #7 (2026-09-06).** It was not the
+   sign: cars steered at the far end of their road segment and the chord ran
+   through the oncoming lane on left-hand bends. Look-ahead pure pursuit along
+   the lane line; `tools/smoke_traffic.mjs` pins it (28 suites). The camera
+   jitter at speed was the fixed 1/60 accumulator aliasing against the display;
+   the loop now sub-steps real frame time. Same PR. Original note kept below.
+   Gemini's proposed fix: the lane offset in
+   `laneAt()` (`src/game/traffic.js` ~line 223, `rx = -e.dz*off, rz = e.dx*off`)
+   has the wrong handedness. **Verify against the player car's own right-hand
+   convention in `cars.js` before flipping it** — if the sign is right and the
+   one-way flag is wrong, flipping it breaks every road. Add
+   `tools/smoke_traffic.mjs` (every spawned car right of its edge's centreline)
+   — the suite that would have caught this does not exist.
+2. **The first job goes nowhere.** « Poutine express » ends in an empty
+   parking lot at the Galeries with a ring floating over asphalt. Either build
+   the casse-croûte / food-court entrance or move the job to one of the 120 real
+   storefronts. **This is the first thing a player is asked to do.**
+3. **Footpaths are free speed.** `SURF.path` in `terrain.js` ~line 69 has no
+   penalty; the Ranger does 149 km/h through Parc des Cèdres. Gemini suggests
+   `power 0.75, drag 1.35`; keep the bike and the golf cart fast on it.
+4. **HUD overlap on boot.** The tutorial's « W — pour avancer » prompt draws on
+   top of the « K — Kijiji » hint in the driveway.
+5. **Save mid-job loses the job silently** (`save.js` ~line 58 does not
+   serialise `G.mission`; radio station and time of day are not saved either).
+   Serialise the mission, or at minimum keep the warning toast. (Wave 2b
+   owns `save.js`; if 2b starts first, it takes this item.)
+6. **Buses bog to 1.3 km/h on grass** (`cars.js`): a torque floor off-road.
+7. **Adam lives in Mayo, not Deschênes** (settled, see the cast table): re-point
+   « Ramasser la gang » stage 3 and « Adam jusqu'aux Galeries », delete every
+   20 chemin Vanier mention, `smoke_story.mjs` green. Do it here so no Wave 2
+   brief inherits it.
+8. **~30 console 404s on every boot** (`assets/cars/*/*.png`) hide real errors.
+9. **UI layering** — one modal at a time with the HUD hidden behind it, one
+   prompt slot while driving, and the second start click removed (BACKLOG
+   U7–U9). Small, and every screenshot in `gemini-inbox/shots/` shows why.
+
+Done means: `smoke_traffic.mjs` exists and passes, and a fresh-storage boot
+video shows the first job ending somewhere real.
+
+### Step 2 — Wave 2, the spine (2a Fable / 2b Opus as split above; one correction)
+
+`assets/text/campaign.json` uses **descriptive French strings** for `to`, not
+`places.js` keys, so nothing can resolve them yet. Gemini's
+`gemini-inbox/story/campaign.v2.json` is **not** a drop-in either: it has 15
+jobs, not 18, and seven of its keys do not exist (`russell`, `adam`, `petro`,
+`british`, `galeries_hull`, `bymarket`, `civilisation`). The real work: add the
+missing places (Russell's at 1 Arial, Adam's in Deschênes, the Petro-Canada,
+the British Hotel, the Galeries de Hull, the Byward Market, the Museum of
+Civilization), then map all 18 jobs to keys, then validate with the snippet in
+`docs/VERIFY.md`. Everything else in Wave 2 stands. The two meters (envelope, calendar)
+live top right, always, and the HUD chrome flips to English with the seam card
+(BACKLOG U11–U12).
+
+### Step 3 — Feel, and the driver's seat (one agent; Gemini's `look/FEEL.md` numbers arrive first)
+
+Also here: **the in-car view** (BACKLOG C6, Thomas 2026-09-06) — a fifth `C`
+stop at the driver's eye, the wheel turning with input, a per-car interior
+plate from `docs/GEMINI_INTERIOR_PROMPT.md` (Gemini paints them into
+`gemini-inbox/interiors/`). Small true details, nothing on the dash.
+
+Camera jitter (`main.js` ~1748: decouple the chase camera from instantaneous
+suspension jounce, critically damp the position spring), along-slope gravity
+(no `g·sin(pitch)` term anywhere in `cars.js` ~1395, so nothing coasts down the
+Principale hill), the sense of speed. The look pass asks Gemini to tune these
+live through `window.AYLMER.G` and write down the constants; take its numbers
+as a starting point, not as truth.
+
+### Step 4 — Wave 3 (verbs, races, characters) as written.
+
+### Step 5 — Wave 4 + Wave 5 together: places, faces, and the look
+
+The look pass (`docs/GEMINI_LOOK_PROMPT.md`) has Gemini pulling the 2009 Street
+View panoramas as pixels this time, producing 2004-corrected orthographic
+facades for every cast house and landmark, real tiles for the 26 atlas cells,
+tree sprites, a sky palette, Québec road furniture, 13 car sheets, seam cards
+and UI mocks, all under `gemini-inbox/look/` with an `INTEGRATION.md`. Wave 5
+becomes wiring: facade quads on hero buildings via the signage texture path
+(`renderer.texture` + `mb.textured`), the atlas swap, the sky table. Russell's
+garage, the clubhouse roof (Gemini: three roofless slabs, `houses.js`), and the
+avatar corrections go in the same wave because they are the same kind of work.
+
+### What Gemini got wrong — do not act on these
+
+- **"Keybinding collisions on R, T, M."** False. `KeyM` is only in `modes.js`
+  (open/close/consume of the same screen), `KeyR` is in `main.js` and in the
+  houses *lab*, `KeyT` is bound once. The duplicate check in `docs/VERIFY.md`
+  is still the truth.
+- **"No hysteresis on the sector seam at X = 5400."** `sectors.js` builds at
+  `APPROACH = 1200` m and frees at 2600 m; there is hysteresis. Whether a
+  build stalls the frame (Gemini measured 1.9 s under load) is worth a look,
+  the claimed cause is not.
+- **"`campaign.v2.json` resolves all destinations."** See Step 2.
+- **Golf-cart job, asset 404s, Ranger mirrors, bridge wall:** correctly
+  reported as already fixed on this branch.
+- Its A6 list (`REVIEW.md`) has real keepers — the Tim Hortons drive-thru, the
+  Principale hill coast, potholes with a dashboard rattle, cyclists on the
+  Voyageurs pathway, the pull-over at a school zone — and generic filler. Read
+  it, do not import it wholesale.
+- The Champlain Bridge cycling-path conflict is resolved in Thomas's favour
+  with 2002 Ottawa Citizen citations (`CONTENT-AUDIT.md` §7): the separated
+  path opened October 2002. Strike the `changedSince` note in
+  `streetview_pack.json`.
 
 ---
 
@@ -536,6 +645,48 @@ as the school, and asserted the Maman sculpture was installed in 2004 when the
 gallery acquired it in 2005. All were caught by checking. Keep checking.
 
 ---
+
+## Borrow, don't build (settled with Thomas, 2026-09-06)
+
+The engine stays. It is the right shape for a 3.8 M-triangle baked city with
+sector streaming, and a port to Three.js or Babylon would cost two to three
+weeks to get back to here. Unreal, Unity and Godot 4 are out for good: none of
+them ships as "open a link in Safari on GitHub Pages". What *is* borrowed:
+
+| Borrow | From | How it enters the game | Owner |
+|---|---|---|---|
+| **3D models**: cars, trees, signs, lamp posts, hydrants, shelters, props | CC0 / CC-BY glTF: Kenney, Quaternius, Poly Haven, Sketchfab (licence recorded per file) | `tools/gltf2mesh.mjs`, a build-time converter to the engine's mesh format (positions, normals, vertex colour, optional atlas UV). **Runtime stays dependency-free.** `assets/models/<slug>.json` + `LICENSES.md` | Opus |
+| **Textures**: brick, siding, shingle, asphalt, grass, gravel, concrete | ambientCG / Poly Haven, CC0, seamless, photographed | `tools/make_atlas.py --from assets/textures/` replaces the procedural cells; Gemini's generated tiles become the fallback | Opus |
+| **Sky**: a physical sky (Preetham/Hosek) | three.js `Sky` GLSL, MIT | ported into `sky.js`'s dome shader, ~120 lines, no library | Fable |
+| **Tone mapping + bloom** | ACES fit from three.js, MIT | ~60 lines in `gl.js`'s fragment shader plus one blur pass | Fable |
+| **Shadows** | the textbook cascaded shadow map | one depth pass, one cascade to start | Fable |
+| **Exhaust / tyre smoke / dust** | CC0 sprite sheets | `debris.js` already has the particle loop | Opus |
+| **Multiplayer transport** | Cloudflare Durable Objects (Thomas has an account) or PeerJS | Gemini's `gemini-inbox/multiplayer/DESIGN.md`, never hand-rolled netcode | later |
+
+Not borrowed, on purpose: the arcade car model (it is what Midtown Madness
+used and it feels right), the synthesized engines (a feature people notice),
+the map pipeline (already OSM + StatCan + LiDAR), the writing.
+
+**Wave 5 order changes accordingly:** models and textures first, because they
+change the picture the most per day; sky, tone mapping and shadows second;
+Gemini's facades for the hero buildings third (the one thing nobody else has);
+house variation last.
+
+## Timeline (agent working days from 2026-09-06; calendar at Thomas's pace)
+
+| Day | Fable (this session) | Opus agents (≤ 2 at once) | Gemini (free, in parallel) |
+|---|---|---|---|
+| 0 | traffic + loop ✅ (PR #7) · merges | Step 1 opening fixes (running: 2 of 7 landed) | look pass (running) · interiors · calendar |
+| 1–2 | **Wave 2a** envelope, calendar, fuel, pay table, difficulty, endings | **Wave 2b** per-character saves, mid-job save · **glTF converter** + first CC0 car/tree pass | CC0 asset scouting list (URLs + licences) |
+| 2 (eve) | integrate Wave 2, boot, Safari run to Ottawa | | |
+| 3–5 | **Wave 3** verbs that are not deliveries · races that interrupt, rivals scaled to the car | Zahra's bike, Forester, Sienna, Cavalier from converted models · skills-by-use table | |
+| 5–6 | **Step 3** camera damping on bumps, slope gravity · **driver's seat** camera + interior plates | textures → atlas · smoke/dust sprites | |
+| 6–8 | sky + tone mapping + shadows · hero facades on the four houses | Russell's house and garage · avatar corrections · English Ottawa · house variation | |
+| 8 | playtest with two friends, Safari soak, ship | | |
+
+Roughly eight agent days; two to three weeks of calendar. Every merge is
+sequential with the boot check, never more than three browsers, and the
+four-point memory numbers are re-measured after Wave 5's models land.
 
 ## Decisions from Thomas (2026-09-01) — these are settled, do not re-litigate
 

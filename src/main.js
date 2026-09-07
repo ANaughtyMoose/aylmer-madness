@@ -1223,7 +1223,7 @@ function mapState() {
 
 // ---------------------------------------------------------------- loop
 
-let last = performance.now(), acc = 0;
+let last = performance.now();
 
 function frame(now) {
   requestAnimationFrame(frame);
@@ -1251,14 +1251,18 @@ function frame(now) {
   input.update(dt);
   handleKeys();
 
-  acc += dt;
-  let steps = 0;
-  while (acc >= STEP && steps < 5) {
-    tick(STEP);
-    acc -= STEP;
-    steps++;
-  }
-  if (steps === 5) acc = 0;
+  // Simulated time equals displayed time, always. This used to be a fixed
+  // 1/60 accumulator: whatever was left over waited for the next frame, so on a
+  // 60 Hz display a frame drew the truck after zero, one or two physics steps
+  // depending on where the remainder sat, and on a 120 Hz MacBook it alternated
+  // zero and one every frame. At 40 m/s a step is 0.67 m — that was the
+  // "jitter at speed", and it was never in the physics (measured: the
+  // suspension, pitch and camera are perfectly still at 146 km/h in fixed
+  // steps). Sub-stepping the real frame time keeps every integrator at or
+  // below the 1/60 it was tuned for, with nothing left over to alias.
+  const n = Math.min(8, Math.max(1, Math.ceil(dt / STEP)));
+  const h = dt / n;
+  for (let i = 0; i < n; i++) tick(h);
 
   stepEnv(dt);
   render(dt);
@@ -1762,9 +1766,12 @@ function render(dt) {
   // The camera rides at the car's own height and never sinks into a berm.
   let py = (f.bodyY || 0) + cam.height + Math.abs(f.vLong) * 0.012;
   if (G.phys && G.phys.groundY) py = Math.max(py, G.phys.groundY(px, pz) + 1.1);
-  G.camPos[0] = lerp(G.camPos[0], px, Math.min(1, dt * 9));
-  G.camPos[1] = lerp(G.camPos[1], py, Math.min(1, dt * 6));
-  G.camPos[2] = lerp(G.camPos[2], pz, Math.min(1, dt * 9));
+  // Frame-rate-independent smoothing: the same lag at 60 and 120 Hz, and no
+  // per-frame wobble when dt varies (min(1, dt*k) only approximates this).
+  const kxz = 1 - Math.exp(-9 * dt), ky = 1 - Math.exp(-6 * dt);
+  G.camPos[0] = lerp(G.camPos[0], px, kxz);
+  G.camPos[1] = lerp(G.camPos[1], py, ky);
+  G.camPos[2] = lerp(G.camPos[2], pz, kxz);
 
   // Speed FOV, off absolute speed rather than a fraction of this car's top.
   // The fraction version quietly got weaker the day cars.js started solving real
