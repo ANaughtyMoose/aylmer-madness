@@ -156,9 +156,9 @@ group('the start picker');
   // locked pin would leave the GO button naming a place the click handler
   // refuses. The assertion moved with the code; the promise it encodes ("the
   // picker is never dead on arrival") is the same one.
-  ok(/const open = availableStartPoints\(\)\.filter\(\(key\) => startOpen\(key, done\)\)/.test(MAIN),
+  ok(/const openKeys = availableStartPoints\(\)\.filter\(\(key\) => startOpen\(key, done\)\)/.test(MAIN),
     'the picker only ever pre-selects an unlocked point');
-  ok(/selectStart\(open\.includes\(DEFAULT_START\)/.test(MAIN), 'opening the picker selects something');
+  ok(/selectStart\(openKeys\.includes\(DEFAULT_START\)/.test(MAIN), 'opening the picker selects something');
   ok(/if \(!startOpen\(key\)\) return;/.test(MAIN), 'and selectStart refuses a locked one whatever asked');
 }
 
