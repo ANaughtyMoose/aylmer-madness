@@ -43,6 +43,31 @@ Not done in this wave, on purpose: chunk streaming inside a sector (PLAN step
 3). Two sectors resident is ~215 MB of GPU buffers; do it only if a laptop
 still complains.
 
+## 1b. Saves — per character, and they carry the job (`wave/2b-saves`, 2026-09-07)
+
+~~One set of slots for everybody; the wallet kept its own copy of your money in
+`localStorage['aylmer.money']` regardless of which slot you loaded; a slot did
+not carry the job you were in the middle of (PLAYTEST #11).~~ All three fixed:
+
+- **A slot belongs to a character.** `aylmer.save.tom.1` … `aylmer.save.zahra.auto`,
+  four each, five summers that never touch. The Charger screen groups by
+  character with their name and car and a « Nouvelle partie » per person; the
+  start picker has a character strip above the map. `migrateLegacy` renames the
+  v1 slots under Tom and requalifies the F5 marker.
+- **The wallet lives in the save.** `money.js` keeps no storage of its own and
+  gained an `onChange(value, delta)` hook for the envelope meter. The migration
+  folds the old key into a v1 slot that lacks money, then deletes it.
+- **A slot carries the job in progress** — id, stage, clock, passengers, and the
+  scalars the stage was counting (not the meters, rivals or prop handles, which
+  `def.build()` and the stage's own `onEnter` rebuild). « Job reprise: … » on
+  load; « Job perdue » if the def has been removed.
+- **Save shape v2** also persists `day`, `fuel`, `target`, `summerOver` and
+  `reached` for 2a, clamped rather than trusted.
+
+Still open here: **`smoke_save.mjs` does not import `main.js`**, so the resume
+path is pinned by a source-regex assertion plus a real-browser check, not by
+node. That is the standing hole VERIFY.md §1 names, not a new one.
+
 ## 2. Traffic drives on the wrong side
 
 Cars and buses are regularly on the wrong side of the road. `traffic.js`

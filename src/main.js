@@ -495,8 +495,10 @@ function installSkin() {
 .startchar.sel{border-color:#ffc94d;background:rgba(255,201,77,.14)}
 .savegroups{display:flex;flex-direction:column;gap:14px}
 .savegroup{border-top:1px solid rgba(233,237,242,.14);padding-top:8px}
-.savegroup.unused{opacity:.62}
-.sghead{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+/* The empty slots fade, never the button: starting that character's summer is
+   the whole point of the block, and a dimmed button reads as disabled. */
+.savegroup.unused .slots{opacity:.5}
+.sghead{display:flex;align-items:baseline;gap:10px;margin:0 0 6px;text-align:left}
 .sghead b{font-size:17px;letter-spacing:.6px}
 .sghead span{font-size:12px;opacity:.6;flex:1}
 .sghead .newgame{font-size:12px;padding:5px 12px}`;
