@@ -12,6 +12,28 @@ export function angleDelta(a, b) {
   return d;
 }
 
+/**
+ * Fraction along the 2-D segment p→q at which it crosses the segment a→b, or
+ * -1 if the two do not cross. Both are finite segments, so a wall the ray stops
+ * short of is not a crossing and neither is one it starts past.
+ *
+ * Two things use it, and both are "did this path go through that wall": the
+ * camera boom in game/camclip.js, and the swept guard in Vehicle.collide that
+ * catches a wall crossed between two collision bites.
+ */
+export function segCross(px, pz, qx, qz, ax, az, bx, bz) {
+  const rx = qx - px, rz = qz - pz;
+  const sx = bx - ax, sz = bz - az;
+  const den = rx * sz - rz * sx;
+  if (den > -1e-9 && den < 1e-9) return -1;      // parallel or degenerate
+  const dx = ax - px, dz = az - pz;
+  const t = (dx * sz - dz * sx) / den;
+  if (t < 0 || t > 1) return -1;
+  const u = (dx * rz - dz * rx) / den;
+  if (u < 0 || u > 1) return -1;
+  return t;
+}
+
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {

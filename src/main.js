@@ -103,6 +103,9 @@ import * as skills from './game/skills.js';
 // assert on the camera list without importing this file, which touches
 // `document` on line one.
 import { CAMS, DRIVER_CAM, DRIVER_NEAR, Cockpit, hasCockpit } from './game/cockpit.js';
+// The boom does not go through walls any more (playtest). Pure and testable,
+// so tools/smoke_camclip.mjs can drive it against a fake world.
+import { makeClip, clipCamera } from './game/camclip.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -2210,6 +2213,16 @@ function render(dt) {
   }
   // The camera rides at the car's own height and never sinks into a berm.
   let py = (f.bodyY || 0) + cam.height + Math.abs(f.vLong) * 0.012;
+  // ...and it does not ride inside a house. Only the three third-person cams
+  // have a boom to shorten: the hood cam sits on the bonnet and the driver's
+  // eye is a point in the car's own frame, so neither can be occluded by
+  // anything the car is not already touching. See game/camclip.js.
+  if (cam.name !== 'hood' && cam.name !== 'driver' && G.world && G.world.querySegments) {
+    if (!G.camClip) G.camClip = makeClip();
+    const gy = G.phys && G.phys.groundY ? G.phys.groundY(f.x, f.z) : (f.bodyY || 0);
+    const c = clipCamera(G.camClip, G.world, f.x, (f.bodyY || 0) + 1.2, f.z, px, py, pz, dt, gy);
+    px = c.x; py = c.y; pz = c.z;
+  }
   if (G.phys && G.phys.groundY) py = Math.max(py, G.phys.groundY(px, pz) + 1.1);
   // Frame-rate-independent smoothing: the same lag at 60 and 120 Hz, and no
   // per-frame wobble when dt varies (min(1, dt*k) only approximates this).

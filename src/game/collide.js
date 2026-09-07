@@ -19,10 +19,17 @@ export const RESTITUTION = 0.30;   // arcade: a hit shoves more than it bounces
 export const FRICTION = 0.55;      // tangential scrub at the contact patch
 export const SPIN = 1.35;          // extra rotation on off-centre hits, for flavour
 
-// Scratch — module-level so the hot loop never allocates.
-const A0 = { x: 0, z: 0 }, A1 = { x: 0, z: 0 };
-const B0 = { x: 0, z: 0 }, B1 = { x: 0, z: 0 };
-const AS = [A0, A1], BS = [B0, B1];
+// Consecutive circles are this many radii apart, so they always overlap: at
+// 1.5 r two circles of radius r cover the strip between them out to two thirds
+// of the way to the flank, which is far more than a rectangle-in-a-stadium ever
+// promised. See circles() for why the count is not two.
+export const SPACING = 1.5;
+
+// Scratch — module-level so the hot loop never allocates. They grow to the
+// longest body ever tested and are then reused; `cn` carries the count out of
+// circles(), which already has a return value.
+const AS = [], BS = [];
+let cn = 0;
 
 // The last contact found, filled by findContact() and consumed by resolveContact().
 export const contact = {
@@ -33,13 +40,33 @@ export const contact = {
   impulse: 0,       // normal impulse magnitude, N·s
 };
 
-// Fills c0/c1 with the two circle centres and returns their radius.
-function circles(b, c0, c1) {
+// Fills `into` with the circle centres nose to tail and returns their radius;
+// the count is left in `cn`.
+//
+// This used to be exactly two circles, one at each end. For a 4.5 m car that is
+// a fair stadium — the circles are 2.7 m apart and 1.7 m across, so the hole in
+// the middle is under a metre and something is always touching. For the STO bus
+// it is not a stadium at all: 12 m long and 2.59 m wide puts the two circles
+// 9.4 m apart with a radius of 1.3, leaving SIX AND A HALF METRES of the middle
+// of the bus with no collider in it. That is Thomas's "sometimes you can drive
+// through a bus", and it was never about the bus's extents — traffic.js has had
+// `len: spec.len` on it since it was written. It was the shape.
+//
+// So the span is filled with as many circles as it takes for consecutive ones
+// to overlap. A short body still gets the two it always had plus enough to
+// close its own middle; nothing gets wider, because the radius is untouched.
+function circles(b, into) {
   const r = b.wid * 0.5;
-  const off = Math.max(0.05, b.len * 0.5 - r);
+  const end = Math.max(0.05, b.len * 0.5 - r);
+  const n = Math.max(2, Math.ceil((end * 2) / (r * SPACING)) + 1);
   const fx = Math.sin(b.yaw), fz = Math.cos(b.yaw);
-  c0.x = b.x + fx * off; c0.z = b.z + fz * off;
-  c1.x = b.x - fx * off; c1.z = b.z - fz * off;
+  for (let i = 0; i < n; i++) {
+    let p = into[i];
+    if (!p) { p = { x: 0, z: 0 }; into[i] = p; }
+    const o = end - (end * 2 * i) / (n - 1);      // nose first, as before
+    p.x = b.x + fx * o; p.z = b.z + fz * o;
+  }
+  cn = n;
   return r;
 }
 
@@ -55,12 +82,13 @@ export function nearby(A, B, slack = 0) {
 
 // Deepest overlapping circle pair, written into `contact`. True if they touch.
 export function findContact(A, B) {
-  const ra = circles(A, A0, A1), rb = circles(B, B0, B1);
+  const ra = circles(A, AS), na = cn;
+  const rb = circles(B, BS), nb = cn;
   const sum = ra + rb, sum2 = sum * sum;
   let best = 0;
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < na; i++) {
     const a = AS[i];
-    for (let j = 0; j < 2; j++) {
+    for (let j = 0; j < nb; j++) {
       const b = BS[j];
       let dx = a.x - b.x, dz = a.z - b.z;
       const d2 = dx * dx + dz * dz;
