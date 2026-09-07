@@ -48,8 +48,10 @@ export const SAVE_VERSION = 2;
 export const CHARACTERS = [
   { id: 'tom', name: 'Tom', car: 'ranger', home: 'home' },
   { id: 'sayyad', name: 'Sayyad', car: 'civic', home: 'sayyad' },
-  // Sayyad's sister: the same house on Denise-Friend.
-  { id: 'zahra', name: 'Zahra', car: 'dbike', home: 'zahra' },
+  // Sayyad's sister, so `home` is his key and not one of her own: it is
+  // literally the same house on Denise-Friend, and two pins on one address
+  // would be two pins on one address.
+  { id: 'zahra', name: 'Zahra', car: 'dbike', home: 'sayyad' },
   { id: 'mike', name: 'Mike', car: 'forester', home: 'mike' },
   { id: 'abraham', name: 'Abraham', car: 'sienna', home: 'abraham' },
 ];

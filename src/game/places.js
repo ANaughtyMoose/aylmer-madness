@@ -70,10 +70,10 @@ export const PLACES = {
   sayyad:    { x: -720.5, z: -465.4, label: '75 Denise-Friend (Sayyad)', snap: true },
   // 129 avenue Frank-Robinson, west side, just south of rue Smiley.
   mike:      { x: -428.3, z: 58.3, label: '129 Frank-Robinson (Mike)', snap: true },
-  // 'zahra' is the same house as 'steph'/'sayyad' — 75 Denise-Friend. She is
-  // his sister, so the third key on one address is not a duplicate, it is the
-  // start point the character picker needs to be able to name.
-  zahra:     { x: -720.5, z: -465.4, label: '75 Denise-Friend (Zahra)', snap: true },
+  // Zahra has no key of her own: she is Sayyad's sister and 'sayyad' above IS
+  // her address. save.js's CHARACTERS gives her `home: 'sayyad'` for exactly
+  // that reason — a third key on one house would put a second pin on the
+  // start-picker map in the same place.
   // 841 boulevard Wilfrid-Lavigne. The boulevard starts at rue Principale
   // (z = -150 in this frame) and runs north; the 800 block is interpolated at
   // roughly a civic number to the metre along it, which puts the house near

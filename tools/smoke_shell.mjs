@@ -150,7 +150,16 @@ group('the start picker');
   // The confirm button is never disabled on arrival any more.
   ok(/btn\.disabled = false/.test(MAIN), 'the picker confirm button starts enabled');
   ok(!/\$\('startconfirm'\)\.disabled = true/.test(MAIN), 'nothing switches it back off');
-  ok(/selectStart\(first\.includes\(DEFAULT_START\)/.test(MAIN), 'opening the picker selects something');
+  // ...and it opens on something you are ALLOWED to start from. Wave 3 locks
+  // most of the pins behind jobs (main.js START_UNLOCKS), so the pre-selection
+  // is made from the open list rather than from the whole one — pre-selecting a
+  // locked pin would leave the GO button naming a place the click handler
+  // refuses. The assertion moved with the code; the promise it encodes ("the
+  // picker is never dead on arrival") is the same one.
+  ok(/const open = availableStartPoints\(\)\.filter\(\(key\) => startOpen\(key, done\)\)/.test(MAIN),
+    'the picker only ever pre-selects an unlocked point');
+  ok(/selectStart\(open\.includes\(DEFAULT_START\)/.test(MAIN), 'opening the picker selects something');
+  ok(/if \(!startOpen\(key\)\) return;/.test(MAIN), 'and selectStart refuses a locked one whatever asked');
 }
 
 group('the GO button');
