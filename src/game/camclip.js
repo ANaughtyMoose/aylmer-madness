@@ -34,6 +34,12 @@ export const MIN_FRAC = 0.18;  // never collapse the boom onto the car
 export const RELEASE = 2.4;    // 1/s, exponential ease back out
 export const PROBE = 0.35;     // how far past a crossing we look for a footprint
 export const BLD_PAD = 0.5;    // ...and the pad used for that lookup
+export const SAFE_PAD = 0.2;   // the pad marchOut uses. Deliberately SMALLER
+                               // than MARGIN: if the two overlapped, the march
+                               // would keep pulling the boom in past the margin
+                               // the ray test had already given it, and a house
+                               // five metres behind the car would put the camera
+                               // on the tailgate.
 export const FENCE_H = 1.9;    // a collider with no footprint behind it is
                                // assumed to be a fence this tall
 export const STEP = 0.06;      // boom fraction per step when marching out of a
@@ -134,7 +140,7 @@ function marchOut(world, fx, fz, dx, dz, frac) {
   if (!world || !world.buildingAt) return frac;
   let f = frac;
   for (let i = 0; i < 32 && f > MIN_FRAC; i++) {
-    if (!world.buildingAt(fx + dx * f, fz + dz * f, BLD_PAD)) return f;
+    if (!world.buildingAt(fx + dx * f, fz + dz * f, SAFE_PAD)) return f;
     f -= STEP;
   }
   return Math.max(MIN_FRAC, f);

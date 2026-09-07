@@ -86,6 +86,39 @@ against the new higher speeds. Try: critically damping the camera spring,
 low-passing the suspension contribution before it reaches the camera, and
 decoupling pitch from `f.pitch` while airborne.
 
+## 3b. The camera in the wall, and driving through walls and buses — fixed (2026-09-07)
+
+From the second playtest: « sometimes the camera gets stuck behind buildings,
+sometimes you can drive through walls or a bus. » Three separate defects, all
+measured before and after (`docs/shots/camera-clip-before.jpg` /
+`camera-clip-after.jpg`, `docs/shots/wall-180.jpg`):
+
+- ~~**The chase camera had no occlusion handling at all.**~~ `game/camclip.js`
+  casts the boom as a 2-D ray, takes the first crossing out of `querySegments`
+  and stands 0.6 m in front of it, lifted a little; `buildingAt` is the backstop
+  for a camera point in a footprint the ray never crossed a wall of. A crossing
+  only counts when there is a footprint behind it or the ray is under fence
+  height — otherwise every chain-link yard in town would stutter the boom.
+  Snap in over one frame, ease out at 2.4/s. Chase/close/far only.
+- ~~**`Vehicle.collide` capped its bites at five**~~, so anything travelling more
+  than 3.45 m in a step laid them further apart than the probe is wide: 300 km/h
+  in a 125 ms step went clean through a fence. The cap is 24 now and a swept
+  segment test of the path backs it up at any step.
+- ~~**Two probe circles is a dumbbell, not a car.**~~ The middle of every body had
+  no collider in it — 84 cm on the Ranger, four metres on the bus for walls, and
+  **six and a half metres** on the bus in `collide.js`, which is why a car parked
+  across the middle of a bus registered no contact at all. Both now fill the span
+  until consecutive circles overlap. Nothing got wider.
+
+`tools/smoke_camclip.mjs` (37) and `tools/smoke_walls.mjs` (24) are new; the
+walls suite fails ten assertions against the pre-fix tree.
+
+**Still open here:** §3 above (the jitter over bumps) is untouched — the
+occlusion clip is a position clamp, not a damping change. The camera does not
+clip against traffic, parked cars or trees, only against wall colliders and
+building footprints, and `AIR_OVER_WALLS` still switches wall collision off
+entirely above 1.6 m of air, which is what makes a jump a shortcut.
+
 ## 4. The missions need a story
 
 Reordered so the opening is short and rewarding, and every brief now says what
