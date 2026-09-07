@@ -1178,7 +1178,7 @@ export const DAMAGE = { COSMETIC: 25, PERF: 60, DEAD: 100 };
 // Surfaces a machine built for turf is HAPPIER on than tarmac. `spec.turf`
 // multiplies the per-kind grip on these and nowhere else; every car without a
 // `turf` factor drives exactly as it did before this line existed.
-const TURF_KIND = { grass: 1, path: 1, sand: 1 };
+const TURF_KIND = { grass: 1, path: 1, sand: 1, track: 1 };
 
 const GRASS = 0.81;                     // surface multiplier off the asphalt (== SURF.grass.power)
 const SURF_RAMP = (1 - GRASS) / 0.5;    // D4: the full penalty takes half a second
