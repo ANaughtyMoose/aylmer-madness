@@ -85,6 +85,9 @@ const { MAP } = await import('../src/game/mapdata.js');
 const { t, setLang } = await import('../src/game/i18n.js');
 const { slotsHTML, groupsHTML } = await import('../src/game/ui.js');
 const money = await import('../src/game/money.js');
+// The camera clamp is a count, not a constant: C has five stops since the
+// driver's seat landed (BACKLOG C6), and this suite had 3 typed into it.
+const { CAMS } = await import('../src/game/cockpit.js');
 
 // Places have to be snapped before curbSpot() means anything — same fake world
 // the other smoke tests use.
@@ -704,7 +707,7 @@ group('options');
   eq(bad.fogMul, 0.5, 'fog thickness clamps to 0.5x');
   eq(bad.fov, 0.2, 'FOV clamps high');
   eq(bad.steerSens, 1.6, 'steering sensitivity clamps high');
-  eq(bad.cam, 3, 'the camera index clamps to the last camera');
+  eq(bad.cam, CAMS.length - 1, `the camera index clamps to the last camera (${CAMS.length - 1})`);
   eq(bad.mapSize, store.MAP_SIZES.length - 1, 'minimap size clamps');
   eq(bad.quality, 'med', 'an unknown preset falls back to medium');
   eq(bad.lang, 'fr', 'an unknown language stores as French');
