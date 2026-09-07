@@ -10,3 +10,6 @@ assets/radio/*
 
 # Raw Street View crops pulled by the look pass are Google's pixels: reference only, never shipped.
 gemini-inbox/look/streetview/
+
+# Gemini's raw asset downloads (333 MB of CC0 packs) are reference for tools/gltf2mesh.mjs; only converted meshes ship.
+gemini-inbox/assets/src/
