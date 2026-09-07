@@ -89,7 +89,11 @@ decoupling pitch from `f.pitch` while airborne.
 ## 4. The missions need a story
 
 Reordered so the opening is short and rewarding, and every brief now says what
-it unlocks. Still to do:
+it unlocks. ~~The summer opens on « Poutine express ».~~ It opens on
+« L'alternateur » now (2026-09-07): Thomas asked for the first job to be buying
+something at the Canadian Tire, and said of the old one « reality is I never
+went to the poutine place so it just doesn't feel right ». The poutine run is
+fifth and reads as Sayyad's order. Still to do:
 
 - **The destinations repeat.** Poutine express and the dep run are effectively
   the same errand twice. Each job should go somewhere it has not been.
