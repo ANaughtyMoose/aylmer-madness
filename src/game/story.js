@@ -374,6 +374,31 @@ export function updateStuck(G, dt, hud = null) {
 // bubbles, not toasts, so the name is in bold and they do not fight the big
 // mission text for the middle of the screen.
 export const FRIEND_LINES = {
+  // Wave 3 — the jobs that are not deliveries (game/verbjobs.js).
+  suis: {
+    start: [['Sayyad', '« Regarde pas la carte, regarde-moé. Pis si tu me perds, c’est pas moé qui t’attends. »']],
+    end: [['Sayyad', '« Bon. Astheure tu sais où c’est. Dis-le pas à Adam. »']],
+  },
+  dames: {
+    start: [['Margaret', '« Le bingo commence à sept heures. J’ai mon sac. Pis mes lunettes. Pis… ok, on y va. »']],
+    end: [['Margaret', '« T’es fin. Ton père conduisait moins bien à ton âge. Dis-y pas. »']],
+  },
+  vitres: {
+    start: [['Norm', '« C’est une vitre. Pas une planche. Roule comme si ta mère était dessus. »']],
+    end: [['Norm', '« …Correct. Va te chercher un café, je te l’offre. »']],
+  },
+  seme: {
+    start: [['Mike', '« Deux rues. Ma théorie, c’est deux rues. Fais-moé pas mentir. »']],
+    end: [['Mike', '« Je le savais. Je vais l’écrire. Personne va me croire, mais je vais l’écrire. »']],
+  },
+  sunfire: {
+    start: [['Adam', '« Au bord de l’eau, proche du belvédère, là où on était l’an passé. Je te l’ai dit trois fois. »']],
+    end: [['Adam', '« Le ticket? Quel ticket. …Ah. Ok. Je vais le payer en septembre. »']],
+  },
+  quatre: {
+    start: [['Mike', '« Tout le monde dans le truck. Tom décide de l’ordre. Tom décide de tout, c’est son char. »']],
+    end: [['Sayyad', '« T’as ramené tout le monde. Ça fait de toé le gars responsable. Ris pas, c’est vrai. »']],
+  },
   highwayhull: {
     start: [['Sayyad', '« La 148 jusqu’à Hull? Mets ma cassette. Celle avec le gros solo. »']],
     end: [['Margaret', '« Bon. Maintenant faut retrouver le chemin pour revenir. »']],

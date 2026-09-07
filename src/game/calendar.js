@@ -21,7 +21,7 @@ export const TARGET = 1200;                           // the envelope, in dollar
 // Races are already priced right and take only the difficulty factor. It is
 // set on G by startSummer, so the node suites — which never start a summer —
 // keep the numbers they were written against.
-export const PAY_LIFT = 1.3;
+export const PAY_LIFT = 1.05;   // was 1.3 with 22 jobs; the six Wave 3 jobs carry the budget now
 
 // Easy / normal / hard, straight from the plan. `firstDay` is where the summer
 // starts (hard begins on 24 July, the day after Tom's birthday), `dayCost` is

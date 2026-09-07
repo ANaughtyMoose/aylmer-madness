@@ -95,6 +95,9 @@ import * as calendar from './game/calendar.js';
 import * as fuel from './game/fuel.js';
 import { refundJob } from './game/missionkit.js';
 import { StoryOpener as EndingCards, endingCards } from './game/story.js';
+// Wave 3: races that interrupt, and skills that improve with use.
+import * as ambush from './game/ambush.js';
+import * as skills from './game/skills.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -630,10 +633,13 @@ function installSkin() {
 .startpanel .topbar{position:sticky;top:0;z-index:3;padding:6px 0;
   background:linear-gradient(180deg,#12212b 68%,rgba(18,33,43,0))}
 #startmap{max-height:52vh}
+/* The list scrolls inside its own column, as tall as the map, so the pinned GO
+   bar never sits on top of the last start points (it did, on a 1440×900). */
+#startpoints{max-height:52vh;overflow:auto;padding-right:4px;padding-bottom:6px;align-content:start}
 #startconfirm{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
   z-index:4;min-width:min(520px,86vw);font-size:19px;letter-spacing:1.6px;
   padding:16px 26px;box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 3px rgba(255,201,77,.22)}
-@media (max-height:760px){#startmap{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}
+@media (max-height:760px){#startmap{max-height:44vh}#startpoints{max-height:44vh}.startpanel h2{font-size:24px;margin:2px 0}}
 #startwho{margin:6px 0 10px}
 #startwho .tag{margin:0 0 6px}
 #startpickhint{white-space:pre-line}
@@ -963,6 +969,7 @@ function enterDrive(save = null, startKey = null) {
   G.mission = null;
   G.boat = null; G.focus = null;
   G.rivals = []; G.raceParked = {}; G.ranRed = false;
+  G.ambush = null; skills.reset();
   if (!G.cops) G.cops = new Cops(); else G.cops.reset();
   hud.setStars(0);
   if (!G.wallet) G.wallet = new Wallet($('money'));
@@ -1360,6 +1367,9 @@ function updateMission(dt) {
   const v = G.veh;
   if (!m) {
     refreshFreeRoam(dt);
+    // A challenge is standing (ambush.js): it owns the prompt and E for the
+    // next few seconds, so the job pillar under the truck does not.
+    if (G.ambush) { G.wantStart = false; return; }
     // Several missions share a start marker, so offer one and let Tab cycle.
     const near = MISSIONS.filter((d) => {
       const p = PLACES[d.giver];
@@ -1487,6 +1497,7 @@ function updateMission(dt) {
     refreshFreeRoam();
     endOfJob();        // the day is spent; Labour Day may have arrived
     autosave('job');   // one of exactly two events that write without being asked
+    ambush.afterJob(G, def, hud);   // …and maybe somebody wants to race you home
     return;
   }
   applyStage();
@@ -1830,7 +1841,8 @@ function tick(dt) {
   // its own spec with the numbers scaled. `baseSpec` is the dry sheet; it is
   // captured here rather than at construction so a car swap heals itself.
   if (!v.baseSpec) v.baseSpec = v.spec;
-  v.spec = weather.specFor(v.baseSpec);
+  // Skills sit outside the weather clone so weather's cache still sees the base.
+  v.spec = skills.specFor(weather.specFor(v.baseSpec), G);
   {
     // Gas: burned off the metres just driven, filled when you sit on the
     // Petro-Canada forecourt (the same spot the repairs use). A dry tank hands
@@ -1922,12 +1934,14 @@ function tick(dt) {
   // Walls, poles, traffic and parked cars have all had their say by now.
   if (v.impact > preImpact + 0.08) audio.crash(v.impact);
   driveHooks(dt, v);
+  skills.tick(G, dt, v, ctl, hud);
   G.signals.update(dt);
   if (G.signals.playerRanRed(v)) {
     G.ranRed = true;
     hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700);
     heckle.say('Chauffeur', 'red');
   }
+  ambush.tick(G, dt, hud);
   updateMission(dt);
   heckleTriggers(dt, v);
   // ---- hangout agent hook (the only lines this file owns for the porch) ----
