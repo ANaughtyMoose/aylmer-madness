@@ -145,6 +145,18 @@ export const FEATURES = [
     cx: -100, cz: -230, yaw: 1.5708, hw: 9, hl: 1.2, H: 2.05, runs: [0, 0, 9, 0],
   },
 
+  // ---- Les Galeries: the south entrance apron ---------------------------
+  // landmarks.js builds a food-court doorway on the mall's south wall and
+  // « Poutine express » finishes in front of it. Without this the whole car
+  // park is `grass` to the driving model — the painted stalls are a flat quad
+  // with nothing under them — so you slide to a halt on a lawn at the one
+  // destination the game most wants to feel real. Flat concrete, 20 m out.
+  {
+    id: 'galeriesApron', type: 'ridge', kind: 'concrete', side: 'concrete',
+    H: 0, hw: 10, run: 3, taper: 0,
+    pts: [-14.6, -268.8, 20.4, -277.4],
+  },
+
   // ---- Parc des Cèdres --------------------------------------------------
   // The asphalt path in from Rue Raoul-Roy is driveable, and now costs a car
   // both grip and speed (it used to cost neither: a Ranger did 149 km/h down

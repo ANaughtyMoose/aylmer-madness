@@ -187,10 +187,10 @@ const CORE_MISSIONS = [
     build(ctx) {
       return [
         {
-          text: 'Galeries Aylmer — le food court',
-          sub: 'GPS jusqu’au pilier jaune dans le stationnement, au fond à gauche',
-          hint: 'Les Galeries sont sur le chemin d’Aylmer. Tab pour la carte.',
-          at: 'mall', radius: 22,
+          text: 'Galeries Aylmer — le casse-croûte du food court',
+          sub: 'GPS jusqu’au pilier jaune — l’entrée sud, sous l’auvent orange',
+          hint: 'Les Galeries sont sur le chemin d’Aylmer. La porte sud donne sur le stationnement. Tab pour la carte.',
+          at: 'foodcourt', radius: 14,
           toast: 'Deux poutines. Sauce à part, comme demandé.',
         },
         {
