@@ -113,15 +113,39 @@ group('toast queue');
   q.step(300); eq(q.texts(), [], 'drained');
 }
 {
-  // A direct response to E must not sit behind scenery/tutorial messages.
+  // A direct response to E must not sit behind scenery/tutorial messages —
+  // and « visible somewhere » is not enough. Slot two is small and dim
+  // (.toastline:nth-child(2) is 21 px at .88 opacity against 26 px at 1), so a
+  // refusal that lands there is what PLAYTEST #18 recorded as "press E and the
+  // game does nothing". It has to be the FRONT line.
   const q = new ToastQueue(2);
   q.push('ancien 1', 2000);
   q.push('ancien 2', 2000);
   q.step(0);
   q.push('il te manque 200 $', 1200, true);
   q.step(1);
-  ok(q.texts().includes('il te manque 200 $'), 'urgent interaction feedback is visible immediately');
+  eq(q.texts()[0], 'il te manque 200 $', 'urgent feedback takes the front slot, not the small one');
   ok(q.pending.some((x) => x.text === 'ancien 1'), 'the displaced toast is preserved for later');
+  q.step(1201);
+  ok(!q.texts().includes('il te manque 200 $'), 'and it still expires on its own clock');
+}
+{
+  // U7: while a modal owns the screen the queue freezes. A toast that plays
+  // out behind a story card is a toast nobody read.
+  const q = new ToastQueue(2);
+  q.push('avant', 1000);
+  q.step(0);
+  eq(q.texts(), ['avant'], 'showing before the modal opens');
+  q.hold(true);
+  q.push('pendant', 1000);
+  ok(q.step(5000) === false, 'nothing expires and nothing is promoted while held');
+  eq(q.texts(), ['avant'], 'and the queue has not moved');
+  eq(q.nextDeadline(5000), Infinity, 'no deadline while held');
+  q.hold(false);
+  q.step(5000);
+  eq(q.texts(), ['avant', 'pendant'], 'both play once the modal closes');
+  q.step(5999); eq(q.texts(), ['avant', 'pendant'], 'on a clock that restarted, not one that ran out');
+  q.step(6001); eq(q.texts(), [], 'and then they go');
 }
 
 // ---------------------------------------------------------------- 2. i18n

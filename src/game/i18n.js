@@ -181,6 +181,8 @@ const FR = {
   'k.slang': 'Traduction du slang (tiens: les 3 dernières)',
   'k.modes': 'Modes — blitz, checkpoint, balade',
   'k.weather': 'La météo — pousse au prochain front',
+  'k.kijiji': 'Les p’tites annonces',
+  'k.mecano': 'Le mécano (quand t’es sur la cour)',
   'k.mute': 'Son on/off',
   'k.save': 'Sauvegarde rapide',
   'k.pause': 'Pause',
@@ -369,6 +371,8 @@ const EN = {
   'k.recover': 'Put the car back on the road',
   'k.horn': 'Horn',
   'k.radio': 'Radio (CKOI / tape / off)',
+  'k.kijiji': 'The classifieds',
+  'k.mecano': 'The mechanic (on the forecourt)',
   'k.mute': 'Sound on/off',
   'k.save': 'Quick save',
   'k.pause': 'Pause',
@@ -436,6 +440,12 @@ export const KEYMAP = [
   // only way to find the races was to catch a toast six seconds into a session.
   { caps: ['M'], label: 'k.modes' },
   { caps: ['V'], label: 'k.weather' },
+  // U8 gave the bottom of the screen one prompt slot, and the mission runner
+  // outranks the forecourt, so « K — Kijiji » is no longer permanently parked
+  // on screen at 299 Fraser. Neither key was ever listed here, which is why it
+  // had to be. They are now.
+  { caps: ['K'], label: 'k.kijiji' },
+  { caps: ['U'], label: 'k.mecano' },
   { caps: ['0'], label: 'k.mute' },
   { caps: ['F5'], label: 'k.save' },
   { caps: ['Esc'], label: 'k.pause' },

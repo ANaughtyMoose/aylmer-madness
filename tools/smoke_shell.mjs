@@ -73,6 +73,59 @@ function arrayFromMain(name) {
 
 // ---------------------------------------------------------------- 1. starts
 
+// ---------------------------------------------------------------- U7 / U8
+//
+// The HUD layering rules are DOM and CSS, so node cannot exercise them; what it
+// can do is stop them being quietly unpicked. Every one of these is a thing
+// that was true before and caused the bug.
+group('one modal at a time, one prompt slot');
+{
+  const CSS = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
+  const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const UI = fs.readFileSync(path.join(ROOT, 'src/game/ui.js'), 'utf8');
+  const ECON = fs.readFileSync(path.join(ROOT, 'src/game/economy.js'), 'utf8');
+
+  ok(/body\.modal #hud/.test(CSS), 'a modal hides the HUD');
+  // Half of the chrome deliberately lives OUTSIDE #hud, so hiding #hud alone
+  // leaves the dialogue bubbles, the tutorial card and the damage bar drawing
+  // over the pause menu — which is what the screenshots showed.
+  for (const id of ['heckles', 'tuto', 'repairhint', 'dmgwrap', 'gear', 'stars', 'radio']) {
+    ok(new RegExp(`body\\.modal #${id}[,{]`).test(CSS), `…and #${id}, which lives outside it`);
+  }
+  ok(/#legend\.collapsed #legendrows\{display:none\}/.test(CSS),
+    'a collapsed key legend is actually collapsed');
+
+  ok(/export function setModal/.test(UI) && /export function syncModal/.test(UI),
+    'ui.js owns the one door and the once-a-frame read-back');
+  ok(/syncModal\(\);/.test(MAIN), 'main.js reads the modal state every frame');
+  ok(/onModal\(/.test(MAIN), 'and freezes the toast queue while one is up');
+  // Every overlay main.js used to show by hand now goes through the door, or
+  // "exactly one at a time" is only true of some of them.
+  for (const id of ['pause', 'options', 'loadscr', 'seam']) {
+    ok(!new RegExp(`\\$\\('${id}'\\)\\.classList\\.(add|remove)\\('hidden'\\)`).test(MAIN),
+      `#${id} is not shown or hidden behind setModal()'s back`);
+  }
+
+  // U8: one line at the bottom of the screen. Three elements, 32 px apart, is
+  // how « K — Kijiji » ended up under « W — pour avancer » on the first frame.
+  ok(!/id="prompt2"/.test(HTML), 'the repair prompt has no element of its own');
+  ok(!/econprompt/.test(CSS), 'and neither does the forecourt one');
+  ok(!/div\('econprompt'/.test(ECON), 'economy.js does not build one');
+  ok(/hud\.setShopPrompt\(/.test(ECON), 'it goes through the one slot instead');
+  const HUD = fs.readFileSync(path.join(ROOT, 'src/game/hud.js'), 'utf8');
+  ok(/setPrompt\(source, text\)/.test(HUD), 'hud.js ranks the slot');
+  // K and U are only reachable from the legend now that the mission runner can
+  // pre-empt the forecourt line.
+  const I18N = fs.readFileSync(path.join(ROOT, 'src/game/i18n.js'), 'utf8');
+  ok(/caps: \['K'\]/.test(I18N) && /caps: \['U'\]/.test(I18N),
+    'K and U are on the key legend');
+  // The centre-screen mode toast is gone; M is on the legend instead.
+  const MODES = fs.readFileSync(path.join(ROOT, 'src/game/modes.js'), 'utf8');
+  ok(!/hud\.toast\('M /.test(MODES) && !/toast\(`M /.test(MODES),
+    'no first-run toast across the middle of the screen');
+  ok(/caps: \['M'\]/.test(I18N), '…because M is on the legend');
+}
+
 group('the start picker');
 {
   const starts = arrayFromMain('START_POINTS');

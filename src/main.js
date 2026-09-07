@@ -37,6 +37,7 @@ import {
 } from './game/store.js';
 import {
   Legend, Tutorial, Loading, IntroCard, keyboardHTML, slotsHTML, wireSlots,
+  setModal, syncModal, onModal,
 } from './game/ui.js';
 // Explicit save slots (save.js) and the options screen (options.js). Between
 // them they own every localStorage key the game touches; main.js only asks.
@@ -200,6 +201,10 @@ const loading = new Loading();
 const introCard = new IntroCard();
 const story = new StoryOpener();
 G.legend = legend;
+// U7: while any modal owns the screen the toast queue freezes, so a message
+// does not play out behind a card nobody can see past. The HUD itself is hidden
+// by `body.modal` in style.css.
+onModal((name) => hud.setModalOpen(!!name));
 G.story = story;
 G.heckle = heckle;
 hud.setRange(G.mapPrefs.range);
@@ -521,8 +526,8 @@ function startGame(save = null, startKey = null) {
   if (save && save.carId) G.carId = save.carId;
   if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = 'ranger';
   $('menu').classList.add('hidden');
-  $('options').classList.add('hidden');
-  $('loadscr').classList.add('hidden');
+  setModal('options', false);
+  setModal('load', false);
 
   if (!G.renderer) {
     try {
@@ -724,9 +729,8 @@ function enterDrive(save = null, startKey = null) {
   }
   G.mode = 'drive';
   $('menu').classList.add('hidden');
-  $('pause').classList.add('hidden');
-  $('options').classList.add('hidden');
-  $('loadscr').classList.add('hidden');
+  // U7: whichever overlay was up, it is not up now.
+  for (const m of ['pause', 'options', 'load', 'story', 'intro', 'seam']) setModal(m, false);
   hud.setVisible(G.settings.showHud);
   hud.setCar(spec.name);
   hud.setSize(MAP_SIZES[G.settings.mapSize]);
@@ -1187,7 +1191,7 @@ function openMap(on) {
     const f = G.focus || G.veh;
     G.bigmap.open(f.x, f.z);
     $('bigmap').classList.remove('hidden');
-    $('pause').classList.add('hidden');
+    setModal('pause', false);
     audio.engine(0, 0); audio.skid(0); audio.horn(false);
     weather.suspend();
     paintRadio();
@@ -1223,6 +1227,12 @@ let last = performance.now(), acc = 0;
 
 function frame(now) {
   requestAnimationFrame(frame);
+  // U7. setModal() is the door and covers everything opened from this file,
+  // but the story card and the mission intro card are shown by their own
+  // modules through their own classes, so the truth about what is on screen is
+  // read back once a frame. It is seven getElementById lookups and seven class
+  // checks; it never force-closes anything.
+  syncModal();
   let dt = (now - last) / 1000;
   last = now;
   if (dt > 0.25) dt = 0.25;
@@ -1457,9 +1467,9 @@ function showSeamCard(id) {
   el.querySelector('.skicker').textContent = t(`seam.${id}.kicker`);
   el.querySelector('.sname').textContent = t(`seam.${id}.name`);
   el.querySelector('.scap').textContent = t(`seam.${id}.cap`);
-  el.classList.remove('hidden');
+  setModal('seam', true);
 }
-function hideSeamCard() { const el = $('seam'); if (el) el.classList.add('hidden'); }
+function hideSeamCard() { setModal('seam', false); }
 // ---- end sector gating -------------------------------------------------------
 
 function tick(dt) {
@@ -2047,7 +2057,7 @@ function loadIntoGame(slot) {
   const save = readSlot(slot);
   if (!save) return null;
   save.slot = slot;
-  $('loadscr').classList.add('hidden');
+  setModal('load', false);
   if (!G.world) { startGame(save); return save; }
   pause(false);
   enterDrive(save);
@@ -2058,7 +2068,7 @@ function loadIntoGame(slot) {
 function openLoadScreen(on) {
   const scr = $('loadscr');
   if (!scr) return;
-  if (!on) { scr.classList.add('hidden'); return; }
+  if (!on) { setModal('load', false); return; }
   const body = $('loadbody');
   const draw = () => {
     body.innerHTML = slotsHTML(listSlots(), 'load');
@@ -2068,7 +2078,7 @@ function openLoadScreen(on) {
     });
   };
   draw();
-  scr.classList.remove('hidden');
+  setModal('load', true);
 }
 
 // ---- options -----------------------------------------------------------
@@ -2129,9 +2139,9 @@ function onSettings(s) {
 function openOptions(on) {
   const scr = $('options');
   if (!scr) return;
-  if (!on) { scr.classList.add('hidden'); return; }
+  if (!on) { setModal('options', false); return; }
   mountOptions($('optbody'), optionsCtx());
-  scr.classList.remove('hidden');
+  setModal('options', true);
 }
 
 function applyPauseText() {
@@ -2151,7 +2161,7 @@ function pause(on) {
     applyPauseText();
     flavour.showPause();
     showTab(tab);
-    $('pause').classList.remove('hidden');
+    setModal('pause', true);
     audio.horn(false);
     audio.engine(0, 0); audio.skid(0);
     radio.suspend();
@@ -2159,7 +2169,7 @@ function pause(on) {
   } else {
     G.mode = 'drive';
     last = performance.now();
-    $('pause').classList.add('hidden');
+    setModal('pause', false);
     radio.resume();
     hud.setVisible(G.settings.showHud);
   }
