@@ -109,7 +109,8 @@ ok('P1 jobs take the lift × difficulty, races the difficulty alone, node suites
   let races = 0;
   for (const c of COURSES) races += scaledPay(G, { def: { mode: c.kind || 'blitz' } }, c.money || 0);
   ok(`P2 one clean pass: ${jobs} jobs net $${gross}, ${COURSES.length} courses $${races} (plan: ~950 and 435)`, () => {
-    assert.equal(jobs, 28);
+    // 28 until « L'alternateur » became the first job of the summer.
+    assert.equal(jobs, 29);
     assert.ok(gross >= 950 && gross <= 1050, `jobs net ${gross}`);
     assert.equal(races, 435);
   });

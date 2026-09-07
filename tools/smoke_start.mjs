@@ -134,7 +134,13 @@ group('each job opens exactly its own points');
 {
   const base = openSet(new Set(), 'tom');
   const want = {
+    // The first job of the summer parks you on the chemin d'Aylmer, at the
+    // Canadian Tire counter — so that is the street you may begin on after it.
+    alternateur: ['mall'],
     poutine: ['sayyad', 'mall'],
+    // « Réveiller Sayyad » ends in the street outside 75 Denise-Friend, and it
+    // comes before « Poutine express » now, so it opens that door too.
+    sayyad: ['sayyad'],
     gang: ['marina', 'principale', 'abraham'],
     divan: ['mike', 'arena'],
     curfew: ['deschenes'],

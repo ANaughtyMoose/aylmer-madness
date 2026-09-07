@@ -367,10 +367,14 @@ const START_UNLOCKS = {
   // Your own driveway, and — added at pick time, not here — whichever house the
   // character you chose actually lives in.
   home: null,
-  // 75 Denise-Friend is where the poutine goes.
-  sayyad: ['poutine'],
-  // ...which starts at the food court.
-  mall: ['poutine'],
+  // 75 Denise-Friend is where the poutine goes, and where the doughnuts that
+  // wake him up are done. Either one puts you on Denise-Friend for real.
+  sayyad: ['poutine', 'sayyad'],
+  // The chemin d'Aylmer. « Poutine express » starts at the food court door;
+  // « L'alternateur », the first job of the summer, sends you a few hundred
+  // metres further up the same road to the Canadian Tire counter. Both have you
+  // parked on that street, which is the only thing this table asks.
+  mall: ['alternateur', 'poutine'],
   // « Ramasser la gang » ends at the beach by way of the marina, and the Vieux
   // is the road you take to get there.
   marina: ['gang'],
