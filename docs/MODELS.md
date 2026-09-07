@@ -331,3 +331,22 @@ Each was looked for and each is a deliberate gap, not an oversight.
 
 `gemini-inbox/assets/GAPS.md` reached the same five conclusions independently
 and carries hand-building specifications for them.
+
+---
+
+## Textures, which are the other half of "borrow, don't build"
+
+Same principle, different pipeline, documented in its own file:
+
+* `assets/textures/` — six seamless CC0 photographs from ambientCG, and
+  `sources.json` saying which atlas cell each becomes. See its `LICENSES.md`.
+* `python3 tools/make_atlas.py --from assets/textures` composes them into
+  `assets/materials/atlas.real.png` + `.json`, in the existing layout to the
+  pixel, and leaves `atlas.png` alone.
+* `python3 tools/check_atlas.py --stem atlas.real` proves the seams.
+* `src/game/houses_lab.html?atlas=real` renders a house with it.
+
+Nothing loads `atlas.real.*` yet either. `materials.js` `loadMaterials()` takes
+`opts.manifest` and `opts.image`, which is the whole switch when someone wants
+it — `docs/shots/atlas-houses-procedural.jpg` and `-real.jpg` are the two
+pictures to decide from.
