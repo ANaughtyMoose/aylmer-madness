@@ -48,6 +48,27 @@ Two things the recovery found, both worth remembering:
   greps `main.js` source text. **Re-run the suites after every edit, including
   a rename.** Fixed in #23.
 
+## The first playtest, same afternoon (PRs #25, #26, #27)
+
+Thomas pressed Continue and was inside a house. What came out of the next hour:
+
+| PR | What | The rule it encodes |
+|---|---|---|
+| #25 | `src/game/tow.js`: T / « Remettre sur la route » puts the car on the nearest road, damage kept; Y / « Dépanneuse » does the same AND repairs, for $60 + the garage's price; `settleSpawn` after every load and car swap moves a car that loaded inside a building, in the water or far from any road | **Being stuck is free. Repairs are never free, and the tow is dearer than driving to the mechanic.** |
+| #26 | Saves carry `near` (nearest named place) and `doing` (job title); Continue reads « Tom · sam 26 juin · 12:55 · Emplacement 1 / Ranger · Chemin Fraser, près de 299 Chemin Fraser / En cours: Poutine express · … » | A save has to say where you were and what you were doing. |
+| #27 | « English version → » on the menu and a selector in the options; the English strings are deliberate calques; `.photocopy` in style.css turns every UI panel into a four-generation Xerox (inverted to paper, blurred, skewed, streaked, fine print at 38 %) while the canvas stays crisp; a French ERRATUM on the English menu | The Québec exam joke: English is one click away and almost impossible to read. French is the master copy; `store.js` no longer forces `lang` to fr. |
+
+Two suites (`smoke_ui`, `smoke_save`) asserted the interface could not be
+English. They encoded the earlier decision, so they were rewritten to the new
+one — not loosened. `tools/smoke_lang.mjs` and `tools/smoke_tow.mjs` are new.
+
+Saves, for the record (Thomas asked): four slots per character (1, 2, 3, auto),
+five characters, twenty in all. Nothing writes unless you ask — pause →
+Sauvegarde → a slot, or F5 into the slot you used last — or an autosave event
+fires (a job finished, a car bought or unlocked) with autosave on. « Continuer »
+loads the newest slot across every character, ties going to a real slot over
+the auto. The job in progress travels with the save.
+
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.
