@@ -445,6 +445,10 @@ bike is the cheapest vehicle and the most different game.
 
 ## Wave 5 — Graphics (only after Wave 1)
 
+**Order revised 2026-09-06 — see "Borrow, don't build": converted CC0 models
+and photographed CC0 textures first, then sky/tone/shadows, then Gemini's
+facades, then variation.** The original notes:
+
 The ceiling is not the renderer: **every surface is one flat colour.** In order:
 
 1. **Materials.** `assets/text/materials.json` has 33 tileable specs with hex
@@ -641,6 +645,48 @@ as the school, and asserted the Maman sculpture was installed in 2004 when the
 gallery acquired it in 2005. All were caught by checking. Keep checking.
 
 ---
+
+## Borrow, don't build (settled with Thomas, 2026-09-06)
+
+The engine stays. It is the right shape for a 3.8 M-triangle baked city with
+sector streaming, and a port to Three.js or Babylon would cost two to three
+weeks to get back to here. Unreal, Unity and Godot 4 are out for good: none of
+them ships as "open a link in Safari on GitHub Pages". What *is* borrowed:
+
+| Borrow | From | How it enters the game | Owner |
+|---|---|---|---|
+| **3D models**: cars, trees, signs, lamp posts, hydrants, shelters, props | CC0 / CC-BY glTF: Kenney, Quaternius, Poly Haven, Sketchfab (licence recorded per file) | `tools/gltf2mesh.mjs`, a build-time converter to the engine's mesh format (positions, normals, vertex colour, optional atlas UV). **Runtime stays dependency-free.** `assets/models/<slug>.json` + `LICENSES.md` | Opus |
+| **Textures**: brick, siding, shingle, asphalt, grass, gravel, concrete | ambientCG / Poly Haven, CC0, seamless, photographed | `tools/make_atlas.py --from assets/textures/` replaces the procedural cells; Gemini's generated tiles become the fallback | Opus |
+| **Sky**: a physical sky (Preetham/Hosek) | three.js `Sky` GLSL, MIT | ported into `sky.js`'s dome shader, ~120 lines, no library | Fable |
+| **Tone mapping + bloom** | ACES fit from three.js, MIT | ~60 lines in `gl.js`'s fragment shader plus one blur pass | Fable |
+| **Shadows** | the textbook cascaded shadow map | one depth pass, one cascade to start | Fable |
+| **Exhaust / tyre smoke / dust** | CC0 sprite sheets | `debris.js` already has the particle loop | Opus |
+| **Multiplayer transport** | Cloudflare Durable Objects (Thomas has an account) or PeerJS | Gemini's `gemini-inbox/multiplayer/DESIGN.md`, never hand-rolled netcode | later |
+
+Not borrowed, on purpose: the arcade car model (it is what Midtown Madness
+used and it feels right), the synthesized engines (a feature people notice),
+the map pipeline (already OSM + StatCan + LiDAR), the writing.
+
+**Wave 5 order changes accordingly:** models and textures first, because they
+change the picture the most per day; sky, tone mapping and shadows second;
+Gemini's facades for the hero buildings third (the one thing nobody else has);
+house variation last.
+
+## Timeline (agent working days from 2026-09-06; calendar at Thomas's pace)
+
+| Day | Fable (this session) | Opus agents (≤ 2 at once) | Gemini (free, in parallel) |
+|---|---|---|---|
+| 0 | traffic + loop ✅ (PR #7) · merges | Step 1 opening fixes (running: 2 of 7 landed) | look pass (running) · interiors · calendar |
+| 1–2 | **Wave 2a** envelope, calendar, fuel, pay table, difficulty, endings | **Wave 2b** per-character saves, mid-job save · **glTF converter** + first CC0 car/tree pass | CC0 asset scouting list (URLs + licences) |
+| 2 (eve) | integrate Wave 2, boot, Safari run to Ottawa | | |
+| 3–5 | **Wave 3** verbs that are not deliveries · races that interrupt, rivals scaled to the car | Zahra's bike, Forester, Sienna, Cavalier from converted models · skills-by-use table | |
+| 5–6 | **Step 3** camera damping on bumps, slope gravity · **driver's seat** camera + interior plates | textures → atlas · smoke/dust sprites | |
+| 6–8 | sky + tone mapping + shadows · hero facades on the four houses | Russell's house and garage · avatar corrections · English Ottawa · house variation | |
+| 8 | playtest with two friends, Safari soak, ship | | |
+
+Roughly eight agent days; two to three weeks of calendar. Every merge is
+sequential with the boot check, never more than three browsers, and the
+four-point memory numbers are re-measured after Wave 5's models land.
 
 ## Decisions from Thomas (2026-09-01) — these are settled, do not re-litigate
 
