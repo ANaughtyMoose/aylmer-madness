@@ -95,6 +95,9 @@ import * as calendar from './game/calendar.js';
 import * as fuel from './game/fuel.js';
 import { refundJob } from './game/missionkit.js';
 import { StoryOpener as EndingCards, endingCards } from './game/story.js';
+// Wave 3: races that interrupt, and skills that improve with use.
+import * as ambush from './game/ambush.js';
+import * as skills from './game/skills.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -795,6 +798,7 @@ function enterDrive(save = null, startKey = null) {
   G.mission = null;
   G.boat = null; G.focus = null;
   G.rivals = []; G.raceParked = {}; G.ranRed = false;
+  G.ambush = null; skills.reset();
   if (!G.cops) G.cops = new Cops(); else G.cops.reset();
   hud.setStars(0);
   if (!G.wallet) G.wallet = new Wallet($('money'));
@@ -1189,6 +1193,9 @@ function updateMission(dt) {
   const v = G.veh;
   if (!m) {
     refreshFreeRoam(dt);
+    // A challenge is standing (ambush.js): it owns the prompt and E for the
+    // next few seconds, so the job pillar under the truck does not.
+    if (G.ambush) { G.wantStart = false; return; }
     // Several missions share a start marker, so offer one and let Tab cycle.
     const near = MISSIONS.filter((d) => {
       const p = PLACES[d.giver];
@@ -1316,6 +1323,7 @@ function updateMission(dt) {
     refreshFreeRoam();
     endOfJob();        // the day is spent; Labour Day may have arrived
     autosave('job');   // one of exactly two events that write without being asked
+    ambush.afterJob(G, def, hud);   // …and maybe somebody wants to race you home
     return;
   }
   applyStage();
@@ -1659,7 +1667,8 @@ function tick(dt) {
   // its own spec with the numbers scaled. `baseSpec` is the dry sheet; it is
   // captured here rather than at construction so a car swap heals itself.
   if (!v.baseSpec) v.baseSpec = v.spec;
-  v.spec = weather.specFor(v.baseSpec);
+  // Skills sit outside the weather clone so weather's cache still sees the base.
+  v.spec = skills.specFor(weather.specFor(v.baseSpec), G);
   {
     // Gas: burned off the metres just driven, filled when you sit on the
     // Petro-Canada forecourt (the same spot the repairs use). A dry tank hands
@@ -1751,12 +1760,14 @@ function tick(dt) {
   // Walls, poles, traffic and parked cars have all had their say by now.
   if (v.impact > preImpact + 0.08) audio.crash(v.impact);
   driveHooks(dt, v);
+  skills.tick(G, dt, v, ctl, hud);
   G.signals.update(dt);
   if (G.signals.playerRanRed(v)) {
     G.ranRed = true;
     hud.toast('T\u2019as br\u00fbl\u00e9 un feu rouge', 1700);
     heckle.say('Chauffeur', 'red');
   }
+  ambush.tick(G, dt, hud);
   updateMission(dt);
   heckleTriggers(dt, v);
   // ---- hangout agent hook (the only lines this file owns for the porch) ----

@@ -3,6 +3,7 @@
 import { PLACES } from './places.js';
 import { SIDE_MISSIONS } from './sidejobs.js';
 import { RACE_MISSIONS } from './racejobs.js';
+import { VERB_MISSIONS } from './verbjobs.js';
 import { GOLF_MISSIONS } from './golfjob.js';
 // The five-beat summer (arc.js). Only the beats whose gate is open are in
 // MISSIONS; unlockArc() pushes the rest in as you earn them.
@@ -371,9 +372,11 @@ const openingRank = (m) => {
 };
 const byOpening = (a, b) => openingRank(a) - openingRank(b);
 
+// Wave 3: the jobs that are not deliveries sit after the opening and before the
+// races, so a new player meets « Suis Sayyad » before the fourth courier run.
 export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS].sort(byOpening)
-  .concat(RACE_MISSIONS, GOLF_MISSIONS, openBeats(new Set()));
-export const ALL_MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS, ...ARC];
+  .concat(VERB_MISSIONS, RACE_MISSIONS, GOLF_MISSIONS, openBeats(new Set()));
+export const ALL_MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...VERB_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS, ...ARC];
 
 // What a job hands you, in its own brief. The garage already knows which car
 // each mission unlocks — it prints "Finis « Ramasser la gang »" on the locked

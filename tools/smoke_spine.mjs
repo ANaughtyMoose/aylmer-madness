@@ -83,11 +83,11 @@ ok('C5 the summer file, when present, puts the weather on the toast', () => {
 });
 
 ok('P1 jobs take the lift × difficulty, races the difficulty alone, node suites nothing', () => {
-  assert.equal(cal.PAY_LIFT, 1.3);
+  assert.equal(cal.PAY_LIFT, 1.05);
   const G = cal.startSummer({ difficulty: 'normal' });
-  assert.equal(G.payScale, 1.3); assert.equal(G.racePayScale, 1);
-  assert.equal(scaledPay(G, { def: {} }, 15), 20);
-  assert.equal(scaledPay(G, { def: {} }, 60), 78);
+  assert.ok(Math.abs(G.payScale - 1.05) < 1e-9); assert.equal(G.racePayScale, 1);
+  assert.equal(scaledPay(G, { def: {} }, 15), 16);
+  assert.equal(scaledPay(G, { def: {} }, 60), 63);
   assert.equal(scaledPay(G, { def: { mode: 'blitz' } }, 90), 90);
   const H = cal.startSummer({ difficulty: 'hard' });
   assert.equal(scaledPay(H, { def: { mode: 'blitz' } }, 90), 72);
@@ -109,8 +109,8 @@ ok('P1 jobs take the lift × difficulty, races the difficulty alone, node suites
   let races = 0;
   for (const c of COURSES) races += scaledPay(G, { def: { mode: c.kind || 'blitz' } }, c.money || 0);
   ok(`P2 one clean pass: ${jobs} jobs net $${gross}, ${COURSES.length} courses $${races} (plan: ~950 and 435)`, () => {
-    assert.equal(jobs, 22);
-    assert.ok(gross >= 900 && gross <= 1050, `jobs net ${gross}`);
+    assert.equal(jobs, 28);
+    assert.ok(gross >= 950 && gross <= 1050, `jobs net ${gross}`);
     assert.equal(races, 435);
   });
 }
@@ -118,7 +118,7 @@ ok('P1 jobs take the lift × difficulty, races the difficulty alone, node suites
 ok('P3 a failed job hands back what it paid, never below zero, costs stay paid', () => {
   const G = { wallet: wallet(80), payScale: 1.3 };
   const m = { def: {}, idx: 0 };
-  stageSettle(G, m, { money: 60 });          // 78 after the lift
+  stageSettle(G, m, { money: 60 });          // 78 at a 1.3 scale
   stageSettle(G, m, { cost: 10 });
   assert.equal(G.wallet.value, 148);
   assert.equal(m.paid, 68);
