@@ -803,6 +803,43 @@ export class Hud {
     this.toasts.hold(on);
     this._pumpToasts();
   }
+
+  /**
+   * The spine (Wave 2a): the envelope, top right, always. `amount` is
+   * « 340 $ / 1 200 $ », `day` is « sam 26 juin · 72 jours ». Redrawn only when
+   * the strings change, so calling it every frame costs nothing.
+   */
+  setEnvelope(amount, day, reached) {
+    const el = this._env || (this._env = this._byId('envelope'));
+    if (!el) return;
+    if (amount !== this._envAmt) {
+      this._envAmt = amount;
+      const a = el.querySelector('#envamt'); if (a) a.textContent = amount;
+    }
+    if (day !== this._envDay) {
+      this._envDay = day;
+      const d = el.querySelector('#envday'); if (d) d.textContent = day;
+    }
+    if (!!reached !== this._envOk) { this._envOk = !!reached; el.classList.toggle('reached', !!reached); }
+  }
+
+  /** Litres in the tank, as a bar and a number; hidden for a bike or the cart. */
+  setFuel(litres, tank) {
+    const el = this._fuel || (this._fuel = this._byId('fuel'));
+    if (!el) return;
+    const show = tank > 0;
+    if (show !== this._fuelShown) { this._fuelShown = show; el.classList.toggle('hidden', !show); }
+    if (!show) return;
+    const key = Math.round(litres * 2) + '/' + tank;
+    if (key === this._fuelKey) return;
+    this._fuelKey = key;
+    const f = Math.max(0, Math.min(1, litres / tank));
+    const bar = el.querySelector('i'); if (bar) bar.style.setProperty('--f', (f * 100).toFixed(1) + '%');
+    const txt = el.querySelector('span'); if (txt) txt.textContent = Math.round(litres) + ' L';
+    el.classList.toggle('warn', litres <= 6);
+  }
+
+  _byId(id) { return typeof document !== 'undefined' && document.getElementById ? document.getElementById(id) : null; }
 }
 
 // A footprint worth drawing on a 200 px map: bounding box over ~55 m².

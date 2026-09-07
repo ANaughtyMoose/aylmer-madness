@@ -152,11 +152,36 @@ export function blockedBy(G, m, st) {
   return null;
 }
 
-// Charge / pay for a stage that has just completed.
+// The pay scale is calendar.js's: PAY_LIFT × difficulty for jobs, difficulty
+// alone for races (a def with `mode`). Unset — every node suite — is 1, so the
+// dollar amounts those suites were written against still hold.
+export function scaledPay(G, m, money) {
+  if (!(money > 0)) return 0;
+  const race = !!(m && m.def && m.def.mode);
+  const k = (G && (race ? G.racePayScale : G.payScale)) || 1;
+  return Math.round(money * k);
+}
+
+// Charge / pay for a stage that has just completed. `m.paid` is the running
+// ledger for THIS job: what a failed or abandoned job hands back (see
+// refundJob), because paying per stage and keeping it on failure was a money
+// press — « La surchauffe du pont » banked $90 per Backspace.
 export function stageSettle(G, m, st) {
   if (!G.wallet) return;
-  if (st.cost) G.wallet.spend(st.cost);
-  if (st.money) G.wallet.add(st.money);
+  if (m && m.paid == null) m.paid = 0;
+  if (st.cost) { G.wallet.spend(st.cost); if (m) m.paid -= st.cost; }
+  if (st.money) { const p = scaledPay(G, m, st.money); G.wallet.add(p); if (m) m.paid += p; }
+}
+
+// A job ended badly: the stages it already paid for come back out of the
+// wallet (never below zero — you may have spent it on gas, and gas is gone).
+// Costs you paid stay paid. Returns what was clawed back.
+export function refundJob(G, m) {
+  if (!G.wallet || !m || !(m.paid > 0)) return 0;
+  const back = Math.min(m.paid, G.wallet.value);
+  G.wallet.add(-back);
+  m.paid = 0;
+  return back;
 }
 
 // Called when a job ends for any reason. `aborted` means we are bailing out of a
