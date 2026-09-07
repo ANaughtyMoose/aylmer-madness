@@ -1,29 +1,20 @@
-// Your wallet. Eighty dollars of cut lawns, kept in localStorage so it survives
-// a reload the way the mission progress does.
-const KEY = 'aylmer.money';
+// Your wallet. Eighty dollars of cut lawns.
+//
+// It used to persist itself to localStorage['aylmer.money'], independently of
+// the save slots, which meant the number on screen came from somewhere no save
+// could see: load a slot holding $410 and the HUD showed whatever the previous
+// session had left in the loose key. The slot is the only truth now (save.js
+// carries `money`, and its migration deletes the old key), so this class keeps
+// no storage of its own — enterDrive sets the value at boot and that is that.
 export const START = 80;
 
-function store() {
-  try { return globalThis.localStorage || null; } catch { return null; }
-}
-
-export function loadMoney() {
-  try {
-    const raw = store()?.getItem(KEY);
-    const v = raw == null ? NaN : Number(raw);
-    return Number.isFinite(v) && v >= 0 ? v : START;
-  } catch { return START; }
-}
-
-export function saveMoney(v) {
-  try { store()?.setItem(KEY, String(v)); } catch { /* private mode */ }
-  return v;
-}
-
 export class Wallet {
-  constructor(el) {
+  // `onChange(value, delta)` fires after every movement, for anything that has
+  // to redraw when the money does — the envelope meter wants it.
+  constructor(el, onChange = null) {
     this.el = el || null;
-    this.value = loadMoney();
+    this.onChange = onChange || null;
+    this.value = START;
     this.render();
   }
 
@@ -34,22 +25,35 @@ export class Wallet {
   spend(cost) {
     if (!this.can(cost)) return false;
     this.value -= cost;
-    saveMoney(this.value);
     this.render();
+    this.#changed(-cost);
     return true;
   }
 
   add(amount) {
+    const before = this.value;
     this.value = Math.max(0, this.value + amount);
-    saveMoney(this.value);
     this.render();
+    this.#changed(this.value - before);
     return this.value;
   }
 
-  set(v) { this.value = Math.max(0, v); saveMoney(this.value); this.render(); return this.value; }
+  set(v) {
+    const before = this.value;
+    this.value = Math.max(0, v);
+    this.render();
+    this.#changed(this.value - before);
+    return this.value;
+  }
 
   render() {
     if (this.el) this.el.textContent = '$' + Math.round(this.value);
     return this;
+  }
+
+  // A listener that throws must not swallow a payout the player has earned.
+  #changed(delta) {
+    if (!this.onChange) return;
+    try { this.onChange(this.value, delta); } catch (e) { console.warn('wallet onChange', e); }
   }
 }
