@@ -607,8 +607,8 @@ function openStartPicker(open) {
   installSkin();
   // Whatever is picked has to be a point you are allowed to start from, or the
   // GO button would name somewhere the click handler refuses.
-  const open = availableStartPoints().filter((key) => startOpen(key, done));
-  selectStart(open.includes(DEFAULT_START) ? DEFAULT_START : (open[0] || DEFAULT_START));
+  const openKeys = availableStartPoints().filter((key) => startOpen(key, done));
+  selectStart(openKeys.includes(DEFAULT_START) ? DEFAULT_START : (openKeys[0] || DEFAULT_START));
   // ...and whoever you were last, which repaints the GO label a second time.
   selectCharacter(pickedCharacter);
   $('startpicker').scrollTop = 0;
@@ -644,7 +644,7 @@ function installSkin() {
 #startwho .tag{margin:0 0 6px}
 #startpickhint{white-space:pre-line}
 /* A locked start point: a padlock, the job that opens it in grey, and nothing
-   that reads as clickable. `pointer-events:none` is belt and braces — the
+   that reads as clickable. pointer-events:none is belt and braces — the
    button is disabled and selectStart() refuses the key as well. */
 .startpoint.locked{opacity:.45;cursor:default;pointer-events:none}
 .startpoint.locked .lockwhy{display:block;font-style:normal;font-size:11px;
