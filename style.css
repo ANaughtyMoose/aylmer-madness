@@ -418,3 +418,39 @@ body.modal #pause{background:rgba(6,10,13,.9)}
 #towbtns button b{display:block;font-size:12px;letter-spacing:.3px}
 #towbtns button span{display:block;font-size:10px;opacity:.65;margin-top:2px}
 #hud.hidden #towbtns{display:none}
+
+/* ------------------------------------------------------------------ the English version
+   « You can do your exams in English but they're horrible photocopies. »
+   The French UI is the master copy. This is what the department ran off for
+   the three anglophones in the room: inverted to paper, four generations of
+   toner, a slight skew from the glass, the margin cut off, the fine print
+   washed out. The town itself (the canvas) is untouched — it is the original
+   you keep on the desk to check the figures. */
+.photocopy #menu,.photocopy #pause,.photocopy #options,.photocopy #loadscr,.photocopy #story,
+.photocopy #intro,.photocopy #hud,.photocopy #legend,.photocopy #repairhint,.photocopy #dmgwrap,
+.photocopy #radio,.photocopy #heckles,.photocopy #gear,.photocopy #stars,.photocopy #loading,.photocopy #seam{
+  font-family:"Courier New",Courier,"Nimbus Mono PS",monospace;
+  letter-spacing:.05em;word-spacing:.08em;
+  filter:invert(1) grayscale(1) contrast(1.75) brightness(1.06) blur(.42px)}
+/* the panels come out of the machine crooked and a little too dark */
+.photocopy #menuinner,.photocopy #pause>*,.photocopy #options>*,.photocopy #loadscr>*,.photocopy #story>*,
+.photocopy #intro>*{transform:rotate(-.65deg) translate(5px,-2px);transform-origin:50% 40%}
+.photocopy #menuinner{clip-path:inset(0 0 0 22px)}
+/* headings over-inked, fine print gone */
+.photocopy h1,.photocopy h2,.photocopy h3{-webkit-text-stroke:.9px currentColor;letter-spacing:.02em}
+.photocopy .hint,.photocopy .tag,.photocopy #contmeta,.photocopy #sub,.photocopy .smeta,.photocopy .lockwhy,
+.photocopy #startpickhint,.photocopy #legend .lrow .alt,.photocopy .flav{opacity:.38;filter:blur(.35px)}
+/* toner streaks and the roller bands, laid over every sheet */
+.photocopy #menu::after,.photocopy #pause::after,.photocopy #options::after,.photocopy #story::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,0) 0 41px,rgba(255,255,255,.16) 41px 43px,rgba(255,255,255,0) 43px 97px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,0) 0 3px,rgba(255,255,255,.07) 3px 4px),
+    radial-gradient(ellipse at 78% 18%,rgba(255,255,255,.34) 0 9%,rgba(255,255,255,0) 32%),
+    radial-gradient(ellipse at 12% 86%,rgba(255,255,255,.28) 0 7%,rgba(255,255,255,0) 26%)}
+/* the erratum, chalked on the board in French, only on the English copy */
+#erratum{display:none}
+.photocopy #erratum{display:block;margin:10px auto 0;max-width:520px;padding:8px 12px;
+  border:1px dashed currentColor;font-size:11px;letter-spacing:.06em;opacity:.8;transform:rotate(1.1deg)}
+/* the buttons still work — a photocopy of a button is a button */
+.photocopy button,.photocopy select,.photocopy input{filter:none}

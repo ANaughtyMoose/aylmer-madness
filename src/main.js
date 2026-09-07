@@ -715,6 +715,8 @@ function applyMenuText() {
   set('btnContinue', t('menu.continue'));
   set('btnLoad', t('menu.load'));
   set('btnOptions', t('menu.options'));
+  set('btnEnglish', t('menu.english'));
+  set('erratum', t('menu.erratum'));
   set('btnGarage', t('menu.garageview'));
   set('opttitle', t('opt.title'));
   set('optback', t('menu.back'));
@@ -1023,6 +1025,7 @@ function enterDrive(save = null, startKey = null) {
   radio.loadTape().then(() => paintRadio()).catch(() => {});
   paintRadio();
   applySettings(G, G.settings);   // hud size, legend, volumes, fps counter
+  setPhotocopy(G.settings.lang);
   // Story agent: the town gets its voice back, and a brand new game gets the
   // four opening cards — once ever, then only from Options > Jeu.
   heckle.bind(G);
@@ -2619,8 +2622,15 @@ function optionsCtx() {
 
 // One place where a settings change reaches the running game. applySettings()
 // does the renderer / audio / hud half; the rest is this file's own chrome.
+// The English version is a departmental photocopy; style.css does the paper,
+// this only says which copy you are holding.
+function setPhotocopy(lang) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle('photocopy', lang === 'en');
+}
 function onSettings(s) {
   const { langChanged } = applySettings(G, s);
+  if (langChanged) setPhotocopy(s.lang);
   if (G.world) G.world.setHouseNear(s.quality === 'low' ? 140 : HOUSE_NEAR);
   if (langChanged) {
     applyMenuText();
@@ -2719,6 +2729,14 @@ $('btnLoad').onclick = () => { if ($('btnLoad').disabled) return; openLoadScreen
 $('loadback').onclick = () => openLoadScreen(false);
 $('loadback2').onclick = () => openLoadScreen(false);
 $('btnOptions').onclick = () => openOptions(true);
+// One click for the English copy, one click back to the original.
+$('btnEnglish').onclick = () => {
+  // applySettings() reads the old language off G.settings to know it changed,
+  // so G.settings must NOT be assigned here first.
+  const s = { ...G.settings, lang: G.settings.lang === 'en' ? 'fr' : 'en' };
+  saveSettings(s);
+  onSettings(s);
+};
 $('optback').onclick = () => openOptions(false);
 $('optback2').onclick = () => openOptions(false);
 $('resume').onclick = () => pause(false);

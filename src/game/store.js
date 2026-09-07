@@ -141,9 +141,9 @@ export function normalizeSettings(raw) {
     rumble: bool(s.rumble, D.rumble),
     shake: num(s.shake, 0, 1, D.shake),
 
-    // L'interface est uniquement en français québécois. Cette normalisation
-    // ramène aussi les anciennes préférences anglaises au français.
-    lang: 'fr',
+    // Le français est l'original; l'anglais (2026-09-07) est la photocopie du
+    // département. Rien d'autre n'existe.
+    lang: pick(s.lang, ['fr', 'en'], D.lang),
     autosave: bool(s.autosave, D.autosave),
     difficulty: pick(s.difficulty, DIFFICULTIES, D.difficulty),
 

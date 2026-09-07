@@ -793,11 +793,15 @@ group('the panel');
     ok(fr.includes(t(sec)), `section ${sec} is drawn`);
   }
 
+  // 2026-09-07: the English copy exists now (the photocopy), so the panel
+  // follows the language and carries the selector that undoes it.
   setLang('en');
-  const stillFr = options.optionsHTML(s);
-  ok(stillFr.includes('Volume général') && !stillFr.includes('Master volume'), 'the panel stays in French');
-  ok(stillFr.includes('Remettre les chars chez eux'), 'the reset action stays in French too');
-  ok(!stillFr.includes('id="o_lang"'), 'there is no language selector');
+  const nowEn = options.optionsHTML(s);
+  ok(!nowEn.includes('Volume général') && nowEn.includes('Volume master'), 'the panel follows the language');
+  ok(nowEn.includes('Send all the chars at their house'), 'the reset action too, badly');
+  ok(nowEn.includes('id="o_lang"'), 'there is a language selector');
+  setLang('fr');
+  ok(options.optionsHTML(s).includes('Volume général'), 'and French comes back');
 
   // Only some sections.
   const audioOnly = options.optionsHTML(s, { only: ['audio'] });
