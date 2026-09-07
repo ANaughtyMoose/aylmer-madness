@@ -23,6 +23,21 @@ default UV (0,0) therefore samples white, so untextured geometry sharing a
 chunk mesh with textured houses keeps its vertex colour untouched.
 
 Usage:  python3 tools/make_atlas.py [--out assets/materials]
+        python3 tools/make_atlas.py --from assets/textures   # atlas.real.*
+
+--from swaps the 18 procedural tile cells for photographed CC0 ones
+(assets/textures/, see its LICENSES.md) and writes atlas.real.png +
+atlas.real.json INSTEAD of atlas.png — the procedural atlas stays exactly where
+it is, because it is the fallback when the real one is not installed and it is
+what tools/smoke_atlas.mjs pins.
+
+Everything else about the layout is untouched: the same 336 px pitch, the same
+8 px wrapped bleed, 'flat' still white at (0,0), and the decals still procedural
+(a window or a door is drawn geometry, not a photograph of anything).
+
+Each cell keeps the COLOUR its procedural version had. The photograph is
+desaturated a little and its mean shifted onto that colour, so swapping atlases
+changes the surface and nothing else — no house on the map changes hue.
 """
 
 import argparse
@@ -522,6 +537,143 @@ def write_png(path, arr):
     return len(png)
 
 
+
+# ------------------------------------------------------- reading a photograph
+# There is no Pillow in this project and there is not going to be one, so the
+# PNG reader is here for the same reason write_png is: it is forty lines.
+
+def read_png(path):
+    """8-bit non-interlaced PNG -> float RGB in 0..1. Filters 0/1/2 are
+    vectorised; 3 and 4 carry a left-neighbour dependency that has to be walked,
+    which is slow and is why this only ever runs at build time."""
+    d = open(path, 'rb').read()
+    if d[:8] != b'\x89PNG\r\n\x1a\n':
+        raise SystemExit('%s is not a PNG' % path)
+    off, idat, ihdr, pal = 8, [], None, None
+    while off < len(d):
+        ln = struct.unpack('>I', d[off:off + 4])[0]
+        tag = d[off + 4:off + 8]
+        if tag == b'IHDR':
+            ihdr = struct.unpack('>IIBBBBB', d[off + 8:off + 8 + 13])
+        elif tag == b'PLTE':
+            pal = np.frombuffer(d[off + 8:off + 8 + ln], np.uint8).reshape(-1, 3)
+        elif tag == b'IDAT':
+            idat.append(d[off + 8:off + 8 + ln])
+        off += 12 + ln
+        if tag == b'IEND':
+            break
+    w, h, depth, ctype, _, _, interlace = ihdr
+    if depth != 8 or interlace:
+        raise SystemExit('%s: only 8-bit, non-interlaced PNG is supported' % path)
+    ch = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[ctype]
+    stride = w * ch
+    raw = np.frombuffer(zlib.decompress(b''.join(idat)), np.uint8).reshape(h, stride + 1)
+    filt, data = raw[:, 0], raw[:, 1:].astype(np.int32).copy()
+    out = np.zeros((h, stride), np.uint8)
+    prev = np.zeros(stride, np.int32)
+    for y in range(h):
+        f, row = filt[y], data[y]
+        if f == 0:
+            cur = row & 0xFF
+        elif f == 1:
+            # sub: inside each of the `ch` byte lanes this is a running sum
+            cur = row.copy()
+            lanes = cur[:stride - stride % ch].reshape(-1, ch)
+            np.cumsum(lanes, axis=0, out=lanes)
+            cur &= 0xFF
+        elif f == 2:
+            cur = (row + prev) & 0xFF
+        else:
+            cur = row
+            for i in range(stride):
+                a = cur[i - ch] if i >= ch else 0
+                b = prev[i]
+                if f == 3:
+                    cur[i] = (cur[i] + ((a + b) >> 1)) & 0xFF
+                else:
+                    c = prev[i - ch] if i >= ch else 0
+                    pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c)
+                    pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
+                    cur[i] = (cur[i] + pr) & 0xFF
+        out[y] = cur
+        prev = cur.astype(np.int32)
+    img = out.reshape(h, w, ch)
+    if ctype == 3:
+        img = pal[img[:, :, 0]]
+    elif ctype in (0, 4):
+        img = np.repeat(img[:, :, :1], 3, axis=2)
+    else:
+        img = img[:, :, :3]
+    return img.astype(np.float64) / 255.0
+
+
+def _box_weights(src, dst):
+    """Area-average resample matrix: output row j is the mean of the input rows
+    its footprint covers. Proper box filtering, not a bilinear tap — 1024 -> 320
+    with bilinear aliases mortar joints into moire."""
+    edges = np.linspace(0, src, dst + 1)
+    m = np.zeros((dst, src))
+    for j in range(dst):
+        a, b = edges[j], edges[j + 1]
+        for i in range(int(np.floor(a)), min(int(np.ceil(b)), src)):
+            m[j, i] = max(0.0, min(b, i + 1) - max(a, i))
+    return m / m.sum(axis=1, keepdims=True)
+
+
+def square_and_resize(img, n):
+    """Make a seamless photograph square and n x n, and say how many times it
+    had to repeat to get there.
+
+    A 1024x512 brick sheet is a wall twice as wide as it is tall, not a squashed
+    square: repeating it along the short axis is still seamless and keeps the
+    bricks the shape the photographer left them. But it also puts TWICE the
+    pattern in the cell, so the cell now covers twice as much wall — which is
+    what `metres` in the manifest means, and why the caller multiplies it by the
+    repeat count. Skip that and the bricks come out 4 cm tall."""
+    h, w = img.shape[:2]
+    reps = max(h, w) / min(h, w)
+    if h != w:
+        side = max(h, w)
+        img = np.take(np.take(img, np.arange(side) % h, axis=0), np.arange(side) % w, axis=1)
+        h = w = side
+    if h != n:
+        wy, wx = _box_weights(h, n), _box_weights(w, n)
+        img = np.einsum('ij,jkc->ikc', wy, np.einsum('jkc,lk->jlc', img, wx))
+    return img, reps
+
+
+def tint_to(core, hexcol, desat):
+    """Desaturate towards luminance by `desat`, then scale so the tile's MEAN
+    lands on `hexcol`. Scaling the mean rather than replacing the colour keeps
+    the brick-to-brick and plank-to-plank variation that is the whole reason for
+    using a photograph."""
+    want = np.array([int(hexcol[i:i + 2], 16) / 255.0 for i in (1, 3, 5)])
+    lum = (core * [0.2126, 0.7152, 0.0722]).sum(axis=2, keepdims=True)
+    core = core * (1 - desat) + lum * desat
+    mean = core.reshape(-1, 3).mean(axis=0)
+    return np.clip(core * (want / np.maximum(mean, 1e-6)), 0.0, 1.0)
+
+
+def load_real_tiles(dirpath):
+    """{cell name -> (320 px core, metres multiplier)} from `dirpath`/sources.json.
+
+    The multiplier is how many times a non-square source had to repeat to fill a
+    square cell; `metres` is scaled by it so the pattern keeps its real size on a
+    wall. A cell may override it outright with "metres" in sources.json."""
+    with open(os.path.join(dirpath, 'sources.json')) as f:
+        spec = json.load(f)
+    cache, out = {}, {}
+    for name, s in spec['cells'].items():
+        tile = s['tile']
+        if tile not in cache:
+            cache[tile] = square_and_resize(
+                read_png(os.path.join(dirpath, tile + '.png')), TILE_CORE)
+        core, reps = cache[tile]
+        out[name] = (tint_to(core, s['tint'], float(s.get('desat', 0.5))),
+                     s.get('metres'), reps)
+    return out
+
+
 # ------------------------------------------------------------------------ main
 
 def place(atlas, alpha, x, y, core_rgb, core_a, pad, wrap):
@@ -547,16 +699,31 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', default=os.path.join(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))), 'assets', 'materials'))
+    ap.add_argument('--from', dest='src', default=None,
+                    help='directory of photographed CC0 tiles + sources.json; '
+                         'writes atlas.real.* and leaves atlas.* alone')
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
+    real = load_real_tiles(args.src) if args.src else None
+    stem = 'atlas.real' if real else 'atlas'
 
     rgb = np.zeros((SIZE, SIZE, 3))
     alpha = np.zeros((SIZE, SIZE))
     tiles = {}
 
+    missing = []
     for i, (name, metres, fn) in enumerate(TILED):
         rs = np.random.RandomState(SEED + i * 7919)
-        core = fn(rs, TILE_CORE)
+        if real is not None and name in real:
+            core, override, reps = real[name]
+            metres = override if override is not None else metres * reps
+        else:
+            # 'flat' has no photograph and must not get one: it is the white
+            # cell a default UV of (0,0) samples, and untextured geometry
+            # sharing a chunk mesh depends on it staying white.
+            if real is not None and name != 'flat':
+                missing.append(name)
+            core = fn(rs, TILE_CORE)
         cx = (i % TILE_PER_ROW) * TILE_PITCH
         cy = (i // TILE_PER_ROW) * TILE_PITCH
         place(rgb, alpha, cx, cy, core, None, TILE_PAD, True)
@@ -589,19 +756,24 @@ def main():
     out[:, :, :3] = np.clip(np.rint(rgb * 255), 0, 255).astype(np.uint8)
     out[:, :, 3] = np.clip(np.rint(alpha * 255), 0, 255).astype(np.uint8)
     # empty atlas space: mid grey, fully transparent
-    png_path = os.path.join(args.out, 'atlas.png')
+    png_path = os.path.join(args.out, stem + '.png')
     nbytes = write_png(png_path, out)
 
     manifest = {
         'size': SIZE,
-        'generated_by': 'tools/make_atlas.py',
+        'generated_by': 'tools/make_atlas.py' + (' --from ' + args.src if real else ''),
         'seed': SEED,
         'tiles': dict(sorted(tiles.items())),
     }
-    with open(os.path.join(args.out, 'atlas.json'), 'w') as f:
+    with open(os.path.join(args.out, stem + '.json'), 'w') as f:
         json.dump(manifest, f, indent=1, sort_keys=False)
         f.write('\n')
-    print('atlas.png %d x %d  %.2f MB  (%d tiles)' % (SIZE, SIZE, nbytes / 1048576, len(tiles)))
+    if missing:
+        print('procedural fallback for %d cell(s) with no photograph: %s'
+              % (len(missing), ', '.join(missing)))
+    print('%s.png %d x %d  %.2f MB  (%d tiles%s)'
+          % (stem, SIZE, SIZE, nbytes / 1048576, len(tiles),
+             ', %d photographed' % (len(real) if real else 0) if real else ''))
 
 
 if __name__ == '__main__':

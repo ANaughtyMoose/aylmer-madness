@@ -7,6 +7,7 @@
   * --preview <file> writes a downscaled RGB copy so a human can eyeball it
 
 Usage: python3 tools/check_atlas.py [--preview /tmp/atlas_preview.png]
+       python3 tools/check_atlas.py --stem atlas.real
 """
 
 import argparse
@@ -79,10 +80,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--dir', default=os.path.join(ROOT, 'assets', 'materials'))
     ap.add_argument('--preview', default=None)
+    # `atlas.real` is the photographed atlas (make_atlas.py --from). The seam
+    # check matters more there than here: a procedural tile wraps because the
+    # noise was generated periodic, whereas a photograph only wraps because the
+    # photographer made it so and because the resample did not smear the edge.
+    ap.add_argument('--stem', default='atlas')
     args = ap.parse_args()
 
-    man = json.load(open(os.path.join(args.dir, 'atlas.json')))
-    img = read_png(os.path.join(args.dir, 'atlas.png'))
+    man = json.load(open(os.path.join(args.dir, args.stem + '.json')))
+    img = read_png(os.path.join(args.dir, args.stem + '.png'))
     N = man['size']
     fails = []
     if img.shape[:2] != (N, N):

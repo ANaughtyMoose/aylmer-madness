@@ -80,7 +80,7 @@ export function start(A, PLACES, want = 'ottawa') {
     const t = path[ti], tp = path[Math.max(0, ti - 1)];
     let dx = t[0] - tp[0], dz = t[1] - tp[1];
     const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
-    const tx = t[0] - dz * 2.5, tz = t[1] + dx * 2.5;
+    const tx = t[0] - dz * 1.6, tz = t[1] + dx * 1.6;
     const wantYaw = Math.atan2(tx - v.x, tz - v.z);
     const err = wrap(wantYaw - v.yaw);
     const kmh = v.speedKmh || 0;
@@ -109,18 +109,34 @@ export function start(A, PLACES, want = 'ottawa') {
 
     // Gentle on purpose: at 85 km/h the Ranger was being towed home twice a
     // trip after meeting traffic in a bend, and a tow resets the position.
+    // Something in the lane ahead (a bus at a stop, a car at a red): hold
+    // back rather than shunt it — a tow costs the trip.
+    let ahead = 1e9;
+    const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+    for (const c of (G.traffic && G.traffic.cars) || []) {
+      const rx = c.x - v.x, rz = c.z - v.z;
+      const along = rx * fx + rz * fz, side = Math.abs(rx * fz - rz * fx);
+      if (along > 0 && along < ahead && side < 2.6) ahead = along;
+    }
     const sharp = Math.abs(err) > 0.5;
-    const cap = sharp ? 28 : Math.abs(err) > 0.2 ? 40 : 55;
+    let cap = sharp ? 28 : Math.abs(err) > 0.2 ? 40 : 55;
+    if (ahead < 14) cap = 0; else if (ahead < 30) cap = Math.min(cap, 18);
     press(KEYS.left, err > 0.04);
     press(KEYS.right, err < -0.04);
     press(KEYS.gas, kmh < cap);
-    press(KEYS.brake, kmh > cap + 12);
+    press(KEYS.brake, kmh > cap + (cap ? 12 : 3));
+    if (v.damage - (st.lastDmg || 0) > 8) console.warn(`autopilot: damage ${st.lastDmg | 0} -> ${v.damage | 0} at ${v.x | 0},${v.z | 0} (${kmh | 0} km/h, ahead ${ahead < 1e9 ? ahead | 0 : '-'} m)`);
+    st.lastDmg = v.damage;
     status(dest, path, kmh, '');
   }
 
   function status(dest, path, kmh, note) {
     const s = ((performance.now() - st.t0) / 1000) | 0;
     const left = Math.hypot(dest.x - A.G.veh.x, dest.z - A.G.veh.z);
+    // The title too: Safari on a stock Mac allows no scripting at all, but
+    // AppleScript can read a window's name, so this is how the Safari run
+    // reports where it is — and a restarted clock is how a reload shows up.
+    document.title = `${(left / 1000).toFixed(1)} km · ${(s / 60) | 0}:${String(s % 60).padStart(2, '0')} · laps ${st.laps} · tows ${st.tows || 0} · ${A.G.world.sectors ? A.G.world.sectors.loaded() : ''}`;
     panel.textContent = `→ ${dest.label} · ${(left / 1000).toFixed(1)} km · ${kmh | 0} km/h · ${(s / 60) | 0}:${String(s % 60).padStart(2, '0')} · laps ${st.laps} · resets ${st.resets} · tows ${st.tows || 0} · ${A.G.world.sectors ? A.G.world.sectors.loaded() : ''} ${note}`;
   }
 

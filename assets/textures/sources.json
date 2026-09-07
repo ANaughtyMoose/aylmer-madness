@@ -1,0 +1,75 @@
+{
+  "note": "Which photograph each atlas cell is made from, and the colour it has to come out. The tint is the mean colour the PROCEDURAL cell already had (measured off assets/materials/atlas.png), so atlas.real.png changes the surface of a house and never its hue. `desat` pulls the photograph towards luminance first: 1.0 where several cells share one tile and the tint has to do all the work (the vinyls), lower where the photograph's own colour variation is the point (brick). NOT LISTED HERE, ON PURPOSE: shingle_brown, shingle_dark and shingle_grey. Neither ambientCG nor Poly Haven has an asphalt shingle — only clay barrel tiles, slate and thatch — and slate tinted brown reads as fish scales, which is further from an Aylmer roof than the procedural courses already are. Any cell absent from this file keeps its procedural tile and make_atlas.py says so.",
+  "cells": {
+    "brick_brown": {
+      "tile": "brick_brown",
+      "tint": "#6e5448",
+      "desat": 0.35
+    },
+    "brick_buff": {
+      "tile": "brick_red",
+      "tint": "#b59d7c",
+      "desat": 0.55
+    },
+    "brick_red": {
+      "tile": "brick_red",
+      "tint": "#8c564a",
+      "desat": 0.3
+    },
+    "cedar": {
+      "tile": "siding_wood",
+      "tint": "#796959",
+      "desat": 0.35
+    },
+    "clapboard_white": {
+      "tile": "siding_painted",
+      "tint": "#dddbd4",
+      "desat": 0.7
+    },
+    "clapboard_yellow": {
+      "tile": "siding_painted",
+      "tint": "#cdbc8a",
+      "desat": 0.8
+    },
+    "stone_beige": {
+      "tile": "stone_block",
+      "tint": "#beb196",
+      "desat": 0.4
+    },
+    "stone_grey": {
+      "tile": "stone_block",
+      "tint": "#92928f",
+      "desat": 0.75
+    },
+    "stucco": {
+      "tile": "plaster",
+      "tint": "#c9c1b0",
+      "desat": 0.45
+    },
+    "vinyl_beige": {
+      "tile": "siding_wood",
+      "tint": "#cbbc9f",
+      "desat": 0.9
+    },
+    "vinyl_blue": {
+      "tile": "siding_wood",
+      "tint": "#8193a1",
+      "desat": 1.0
+    },
+    "vinyl_green": {
+      "tile": "siding_wood",
+      "tint": "#6e7f6c",
+      "desat": 1.0
+    },
+    "vinyl_grey": {
+      "tile": "siding_wood",
+      "tint": "#979a97",
+      "desat": 1.0
+    },
+    "vinyl_white": {
+      "tile": "siding_painted",
+      "tint": "#dedcd5",
+      "desat": 0.85
+    }
+  }
+}

@@ -13,3 +13,9 @@ gemini-inbox/look/streetview/
 
 # Gemini's raw asset downloads (333 MB of CC0 packs) are reference for tools/gltf2mesh.mjs; only converted meshes ship.
 gemini-inbox/assets/src/
+
+# Borrowed model SOURCES (Kenney / Quaternius / Poly Haven .glb + .gltf). The
+# CONVERTED assets/models/*.json are committed and are what the game loads;
+# the originals are a build input, re-downloadable from the URLs in
+# assets/models/LICENSES.md, and there is no reason to carry them in git.
+assets/models/src/

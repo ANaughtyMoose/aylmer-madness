@@ -1,0 +1,7 @@
+{
+ "title": "Fixture pickup (not a real asset)",
+ "author": "Aylmer Madness fixtures",
+ "source": "tools/fixtures/make_fixtures.mjs",
+ "license": "CC0-1.0",
+ "note": "Hand-built test geometry. Never shipped; it exists to be converted."
+}
