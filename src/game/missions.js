@@ -53,6 +53,46 @@ export const TIME_OF_DAY = {
 };
 
 const CORE_MISSIONS = [
+  // The first job of the summer, and the reason the keys are in the coin dish at
+  // all. Thomas, after the first playtest: « First mission for Tom should not be
+  // poutine — should be buying something at Canadian Tire. » The alternator does
+  // more work than the hockey stick would: it explains why a seventeen-year-old
+  // has his father's truck this morning, it is an errand a father really does
+  // send his kid on, it introduces the Canadian Tire — which damage.js already
+  // knows as the paid garage — and the chemin d'Aylmer, and the change out of
+  // the hundred is the first money in the envelope.
+  //
+  // No timer on either stage. It is the first two minutes: the player is still
+  // finding out that W goes and S stops, and a clock would teach him to panic
+  // instead of to drive.
+  {
+    id: 'alternateur',
+    title: 'L’alternateur',
+    brief: 'La lumière de batterie clignote depuis mardi. Ton père a laissé les clés, un cent piastres, pis un alternateur payé qui t’attend au comptoir du Canadian Tire.',
+    giver: 'home',
+    timeOfDay: 'morning',
+    build(ctx) {
+      return [
+        {
+          text: 'Canadian Tire — le comptoir des commandes',
+          sub: 'W pour partir, suis la ligne bleue du GPS, arrête-toi (S) dans le pilier jaune pis E — c’est payé, c’est au nom de ton père',
+          hint: 'Chemin d’Aylmer, vers l’ouest. La grosse enseigne rouge, à gauche. Tab ouvre la grande carte.',
+          at: 'ctire', radius: 18, time: null,
+          hold: true, holdText: 'E — ramasser l’alternateur',
+          toast: 'Une boîte grise pis vingt-deux piasses de change.\nLe gars te demande même pas ton nom.',
+        },
+        {
+          text: 'Ramène la boîte au 299 Chemin Fraser',
+          sub: `GPS jusqu’au pilier jaune dans l’entrée, pis 40 km/h max en arrivant (S pour freiner) — la boîte est debout sur le banc du ${ctx.carName}`,
+          hint: 'Chez vous, plein est: le chemin d’Aylmer, pis le chemin Fraser au bout.',
+          at: 'home', radius: 14, time: null, maxSpeed: 40,
+          toast: 'La boîte sur l’établi. Ton père la posera à soir.',
+          money: 22,
+        },
+      ];
+    },
+  },
+
   {
     id: 'school',
     title: 'Première période',
@@ -191,18 +231,22 @@ const CORE_MISSIONS = [
 
   {
     id: 'poutine',
+    // Thomas, after the first playtest: « reality is I never went to the poutine
+    // place so it just doesn't feel right. » It is not Tom's errand and never
+    // was — it is Sayyad's craving, Sayyad's order and Sayyad's money. Tom is
+    // the one with the truck, which is the whole social contract of this summer.
     title: 'Poutine express',
-    brief: 'Food court des Galeries, deux grosses poutines, pis ça refroidit vite.',
+    brief: 'Sayyad a une envie pis pas de char à midi. Deux grosses au food court des Galeries, sauce à part, pis ça refroidit vite.',
     giver: 'home',
     timeOfDay: 'day',
     build(ctx) {
       return [
         {
-          text: 'Galeries Aylmer — le casse-croûte du food court',
-          sub: 'GPS jusqu’au pilier jaune — l’entrée sud, sous l’auvent orange',
+          text: 'Galeries Aylmer — la commande de Sayyad',
+          sub: 'GPS jusqu’au pilier jaune — l’entrée sud, sous l’auvent orange. C’est payé, c’est à son nom.',
           hint: 'Les Galeries sont sur le chemin d’Aylmer. La porte sud donne sur le stationnement. Tab pour la carte.',
           at: 'foodcourt', radius: 14,
-          toast: 'Deux poutines. Sauce à part, comme demandé.',
+          toast: 'Deux poutines. Sauce à part, comme il a dit trois fois.',
         },
         {
           text: 'Livre chez Sayyad — 75 Denise-Friend',
@@ -358,15 +402,32 @@ const CORE_MISSIONS = [
 // is a bad first hour — it is long, it is empty, and it teaches nothing.
 //
 // Open near home, short, with somebody at the far end and a car to show for it.
-// « Poutine express » is ninety-five seconds and hands you Sayyad's Civic;
-// « Ramasser la gang » hands you Margaret's Saturn. Earn a set of keys inside
-// five minutes, then let the map get bigger. The long hauls are still all here,
-// they are just no longer the first thing anybody sees.
+// « Ramasser la gang » hands you Margaret's Saturn, « Poutine express » Sayyad's
+// Civic. Earn a set of keys inside ten minutes, then let the map get bigger. The
+// long hauls are still all here, they are just no longer the first thing anybody
+// sees.
+//
+// « Poutine express » held the top of this list until the first playtest, and
+// Thomas said two things about it: the first job should be buying something at
+// the Canadian Tire, and « reality is I never went to the poutine place so it
+// just doesn't feel right ». So the summer now opens on the errand that came
+// with the keys — the alternator, no clock, one road there and back — and the
+// poutine run drops to fifth, after Sayyad is a person you have met twice. It
+// keeps everything that hangs off it (the Civic in garage.js, the Sayyad chain
+// in famouscars.js, the two start points in main.js); it just is not what a
+// stranger is asked to do in his first two minutes.
+//
+// nearestJob() breaks distance ties in MISSIONS order, and every `home` job is
+// the same nought metres from the driveway, so whichever `home` job stands
+// highest here is the one a fresh save is offered. That is this list's second
+// job, and the reason « L'alternateur » has to be at the top and not merely
+// early.
 const OPENING_ORDER = [
-  'poutine',      // 95 s, from your own driveway — and Sayyad's Civic
+  'alternateur',  // the errand that came with the keys — Canadian Tire and back
   'dep',          // 95 s, the dépanneur run
   'gang',         // pick the friends up — Margaret's Saturn
   'sayyad',       // doughnuts outside 75 Denise-Friend
+  'poutine',      // his order, his money, your truck — and Sayyad's Civic
   'curfew',       // home before midnight — Adam's Sunfire
   'cv',           // hand out the résumés
   'divan',        // the couch, and the tree

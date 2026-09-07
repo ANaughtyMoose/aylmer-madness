@@ -61,8 +61,10 @@ export const STORY_CARDS = [
   {
     title: 'PREMIÈRE JOB',
     body: 'Va chercher ta première job: le pilier jaune chez vous (E dessus).\n\n'
-      + 'On te met un waypoint dessus. Prends ton temps — la ville est à toi '
-      + 'jusqu’à minuit.',
+      + 'Il y a une note avec les clés: l’alternateur du truck lâche, pis y en a '
+      + 'un de payé qui attend au comptoir du Canadian Tire.\n\n'
+      + 'On te met un waypoint dessus. Pas de chrono. Prends ton temps — la ville '
+      + 'est à toi jusqu’à minuit.',
   },
 ];
 
@@ -421,9 +423,20 @@ export const FRIEND_LINES = {
       ['Margaret', '« Bon chauffeur. Pour un gars. »'],
     ],
   },
+  alternateur: {
+    start: [
+      ['Ton père', '« La lumière de batterie clignote depuis mardi. L’alternateur est payé, il est su’a tablette au comptoir, à mon nom. »'],
+      ['Ton père', '« Tiens, un cent. Le change est à toi si la boîte arrive icitte pas magannée. »'],
+    ],
+    end: [
+      ['Ton père', '« C’est le bon. Bon. Garde le change, pis mets-en dans le réservoir. »'],
+      ['Ta mère', '« Il a dit “garde le change”. Écris ça sur le calendrier. »'],
+    ],
+  },
   poutine: {
     start: [
       ['Sayyad', '« Deux grosses. Sauce à part. Pis grouille, le fromage attend pas. »'],
+      ['Sayyad', '« Moé j’ai pas de char à midi. Toé oui. C’est de même que ça marche. »'],
     ],
     end: [
       ['Sayyad', '« Encore chaud. T’es une légende, mon homme. »'],
@@ -463,7 +476,9 @@ export const FRIEND_LINES = {
     ],
     end: [
       ['Sayyad', '« C’ÉTAIT TOÉ?! »'],
-      ['Sayyad', '« Si tu scratches la Civic, tu la répares. Tiens, 20 piasses. »'],
+      // « Réveiller Sayyad » comes before « Poutine express » now, so he may not
+      // have lent you the Civic yet. Same threat, one word further away.
+      ['Sayyad', '« Pis un jour, si tu scratches la Civic en conduisant de même, tu la répares. Tiens, 20 piasses pareil. »'],
     ],
   },
   divan: {
