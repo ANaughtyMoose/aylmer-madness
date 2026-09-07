@@ -275,7 +275,7 @@ function slotCell(r, mode) {
       `</div>`;
   }
   const meta = [
-    r.name ? esc(r.name) : '',
+    r.name ? esc(r.name) + (r.near ? ', près de ' + esc(r.near) : '') : '',
     esc(fmtWhen(r.savedAt)),
     esc(carName(r.carId)),
     '$' + Math.round(r.money),
@@ -283,7 +283,7 @@ function slotCell(r, mode) {
     esc(fmtPlaytime(r.playtime)) + ' ' + esc(t('save.playtime')),
     // A slot carries the job you were in the middle of now, so say so: it is
     // the difference between « charge celle-là » and losing twenty minutes.
-    r.job ? 'job en cours' : '',
+    r.doing ? 'en cours: ' + esc(r.doing) : (r.job ? 'job en cours' : ''),
   ].filter(Boolean).join(' · ');
   const btns = [
     mode === 'save' && !auto
