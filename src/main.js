@@ -2329,6 +2329,9 @@ heckle.load().catch(() => {});
 // ...and if the loading screen is already up when ui.json lands, replace the
 // fallback tip it is showing with a real one.
 flavour.load().then(() => { if (tipTimer) flavour.showTip(heckle.showGloss); }).catch(() => {});
+// The real summer of 2004, day by day (Environment Canada via Gemini): the date
+// toast gets the weather. Optional; absent is silent.
+calendar.loadSummer().catch(() => {});
 radio.loadText()
   .then(() => radio.loadExtras())
   .then(() => {

@@ -1,0 +1,1276 @@
+[
+  {
+    "date": "2004-06-26",
+    "dow": "Sat",
+    "sunrise": "05:16",
+    "sunset": "20:55",
+    "tmaxC": 19.1,
+    "tminC": 7.3,
+    "precipMm": 3.6,
+    "sky": "showers",
+    "humidex": null,
+    "wind": "light",
+    "note": "Opening weekend of summer; cool, blustery morning with passing showers giving way to partial clearing.",
+    "events": [
+      "2004 NHL Entry Draft: Ottawa Senators select Andrej Meszároš 23rd overall and trade Radek Bonk to Los Angeles (subsequently flipped to Montreal)",
+      "Expos @ Blue Jays (SkyDome, Toronto): Blue Jays defeat Expos 10–5"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-06-27",
+    "dow": "Sun",
+    "sunrise": "05:16",
+    "sunset": "20:55",
+    "tmaxC": 21.2,
+    "tminC": 8.9,
+    "precipMm": 0.4,
+    "sky": "showers",
+    "humidex": null,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Ottawa Senators trade goaltender Patrick Lalime to the St. Louis Blues for a draft pick",
+      "Expos @ Blue Jays (SkyDome, Toronto): Expos defeat Blue Jays 9–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-06-28",
+    "dow": "Mon",
+    "sunrise": "05:16",
+    "sunset": "20:55",
+    "tmaxC": 22.5,
+    "tminC": 12.4,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": "38th Canadian federal election day; cloudy with pleasant seasonal temperatures.",
+    "events": [
+      "38th Canadian Federal Election: Paul Martin's Liberal Party wins a minority government; Marcel Proulx re-elected in Hull—Aylmer",
+      "Expos @ Phillies (Citizens Bank Park, Philadelphia): Phillies defeat Expos 14–6"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-06-29",
+    "dow": "Tue",
+    "sunrise": "05:17",
+    "sunset": "20:55",
+    "tmaxC": 20.5,
+    "tminC": 10.4,
+    "precipMm": 11.2,
+    "sky": "thunderstorm",
+    "humidex": null,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "The Tragically Hip release their 10th studio album 'In Between Evolution'",
+      "Expos @ Phillies (Citizens Bank Park): Phillies defeat Expos 17–7"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-06-30",
+    "dow": "Wed",
+    "sunrise": "05:17",
+    "sunset": "20:55",
+    "tmaxC": 24.0,
+    "tminC": 10.4,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 26,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Phillies (Citizens Bank Park): Expos defeat Phillies 6–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-01",
+    "dow": "Thu",
+    "sunrise": "05:18",
+    "sunset": "20:55",
+    "tmaxC": 25.5,
+    "tminC": 13.0,
+    "precipMm": 5.8,
+    "sky": "thunderstorm",
+    "humidex": 31,
+    "wind": "breezy",
+    "note": "Canada Day; hot and humid afternoon broken by a severe thunderstorm with torrential downpours before evening fireworks.",
+    "events": [
+      "Canada Day celebrations across the National Capital Region: noon show on Parliament Hill, family programming at Parc Jacques-Cartier in Gatineau, and evening fireworks over the Ottawa River",
+      "Expos @ Phillies (Citizens Bank Park): Phillies defeat Expos 10–5"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-02",
+    "dow": "Fri",
+    "sunrise": "05:19",
+    "sunset": "20:55",
+    "tmaxC": 24.1,
+    "tminC": 13.8,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 27,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Jazz Festival: Béla Fleck and the Flecktones headline at Confederation Park",
+      "Expos vs. Blue Jays 'home' series at Hiram Bithorn Stadium (San Juan, Puerto Rico): Expos win 2–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-03",
+    "dow": "Sat",
+    "sunrise": "05:19",
+    "sunset": "20:54",
+    "tmaxC": 27.3,
+    "tminC": 12.0,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 29,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Jazz Festival weekend stages at Confederation Park",
+      "Expos vs. Blue Jays @ San Juan, PR: Blue Jays win 2–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-04",
+    "dow": "Sun",
+    "sunrise": "05:20",
+    "sunset": "20:54",
+    "tmaxC": 29.6,
+    "tminC": 13.4,
+    "precipMm": 0.0,
+    "sky": "rain",
+    "humidex": 35,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Jazz Festival closing day performances downtown",
+      "Expos vs. Blue Jays @ San Juan, PR: Expos win 6–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-05",
+    "dow": "Mon",
+    "sunrise": "05:21",
+    "sunset": "20:54",
+    "tmaxC": 26.2,
+    "tminC": 15.3,
+    "precipMm": 0.4,
+    "sky": "showers",
+    "humidex": 33,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Expos vs. Braves @ San Juan, PR: Braves defeat Expos 11–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-06",
+    "dow": "Tue",
+    "sunrise": "05:21",
+    "sunset": "20:54",
+    "tmaxC": 25.0,
+    "tminC": 13.0,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 26,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Senators sign superstar six-time Vezina Trophy goaltender Dominik Hašek as a free agent",
+      "Expos vs. Braves @ San Juan, PR: Braves defeat Expos 1–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-07",
+    "dow": "Wed",
+    "sunrise": "05:22",
+    "sunset": "20:53",
+    "tmaxC": 25.9,
+    "tminC": 11.7,
+    "precipMm": 3.0,
+    "sky": "rain",
+    "humidex": 28,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Braves @ San Juan, PR: Braves defeat Expos 14–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-08",
+    "dow": "Thu",
+    "sunrise": "05:23",
+    "sunset": "20:53",
+    "tmaxC": 26.1,
+    "tminC": 16.3,
+    "precipMm": 1.2,
+    "sky": "rain",
+    "humidex": 31,
+    "wind": "light",
+    "note": "Opening day of Ottawa Bluesfest 2004 at Festival Plaza; grey skies with periods of rain and mist.",
+    "events": [
+      "Cisco Systems Ottawa Bluesfest 2004 opens at Festival Plaza (Ottawa City Hall), kicked off by George Thorogood & The Destroyers",
+      "Expos vs. Pirates @ San Juan, PR: Expos defeat Pirates 2–1"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-09",
+    "dow": "Fri",
+    "sunrise": "05:24",
+    "sunset": "20:52",
+    "tmaxC": 23.0,
+    "tminC": 14.9,
+    "precipMm": 0.0,
+    "sky": "rain",
+    "humidex": 26,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Ottawa Bluesfest at Festival Plaza downtown",
+      "Expos vs. Pirates @ San Juan, PR: Pirates defeat Expos 11–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-10",
+    "dow": "Sat",
+    "sunrise": "05:24",
+    "sunset": "20:52",
+    "tmaxC": 28.5,
+    "tminC": 15.9,
+    "precipMm": 0.4,
+    "sky": "fair",
+    "humidex": 31,
+    "wind": "light",
+    "note": "Hot, humid festival Saturday with humidex reaching 31; Bryan Adams headlines Bluesfest under clear evening skies.",
+    "events": [
+      "Ottawa Bluesfest at Festival Plaza: Bryan Adams headlines main stage to capacity crowd",
+      "Expos vs. Pirates @ San Juan, PR: Expos shut out Pirates 4–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-11",
+    "dow": "Sun",
+    "sunrise": "05:25",
+    "sunset": "20:51",
+    "tmaxC": 26.8,
+    "tminC": 15.1,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 30,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Bluesfest at Festival Plaza: Blue Rodeo and Taj Mahal headline",
+      "Expos vs. Pirates @ San Juan, PR: Expos defeat Pirates 2–1"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-12",
+    "dow": "Mon",
+    "sunrise": "05:26",
+    "sunset": "20:51",
+    "tmaxC": 29.7,
+    "tminC": 16.9,
+    "precipMm": 3.6,
+    "sky": "rain",
+    "humidex": 34,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Major League Baseball All-Star Break begins; Home Run Derby at Minute Maid Park in Houston",
+      "Ottawa Bluesfest dark day on main stages"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-13",
+    "dow": "Tue",
+    "sunrise": "05:27",
+    "sunset": "20:50",
+    "tmaxC": 24.9,
+    "tminC": 19.2,
+    "precipMm": 0.0,
+    "sky": "overcast",
+    "humidex": 31,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "75th MLB All-Star Game at Minute Maid Park in Houston; American League defeats National League 9–4",
+      "Ottawa Bluesfest mid-week acoustic and blues clubhouse performances"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-14",
+    "dow": "Wed",
+    "sunrise": "05:28",
+    "sunset": "20:49",
+    "tmaxC": 26.5,
+    "tminC": 16.0,
+    "precipMm": 12.0,
+    "sky": "thunderstorm",
+    "humidex": 32,
+    "wind": "light",
+    "note": "Severe afternoon thunderstorm cell tracking down the Ottawa River with heavy rain (12 mm) and lightning downtown.",
+    "events": [
+      "Ottawa Bluesfest at Festival Plaza downtown resumes full stage schedule"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-15",
+    "dow": "Thu",
+    "sunrise": "05:29",
+    "sunset": "20:49",
+    "tmaxC": 21.9,
+    "tminC": 17.6,
+    "precipMm": 4.6,
+    "sky": "rain",
+    "humidex": 27,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Bluesfest at Festival Plaza: The Mudboys and featured evening blues sets",
+      "Expos @ Braves (Turner Field, Atlanta): Braves defeat Expos 8–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-16",
+    "dow": "Fri",
+    "sunrise": "05:30",
+    "sunset": "20:48",
+    "tmaxC": 25.6,
+    "tminC": 17.7,
+    "precipMm": 5.2,
+    "sky": "showers",
+    "humidex": 31,
+    "wind": "light",
+    "note": "The Tragically Hip headline Bluesfest; overcast with evening drizzle and rain showers.",
+    "events": [
+      "Ottawa Bluesfest: The Tragically Hip draw festival-record crowd to Festival Plaza",
+      "Les Cowboys Fringants perform historic set at Festival d'été de Québec on the Plains of Abraham, winning the Prix FEQ",
+      "Expos @ Braves (Turner Field, Atlanta): Expos defeat Braves 5–1"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-17",
+    "dow": "Sat",
+    "sunrise": "05:31",
+    "sunset": "20:47",
+    "tmaxC": 27.8,
+    "tminC": 15.8,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 32,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Bluesfest penultimate night at Festival Plaza",
+      "Expos @ Braves (Turner Field, Atlanta): Braves defeat Expos 6–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-18",
+    "dow": "Sun",
+    "sunrise": "05:32",
+    "sunset": "20:46",
+    "tmaxC": 27.9,
+    "tminC": 15.9,
+    "precipMm": 0.0,
+    "sky": "thunderstorm",
+    "humidex": 33,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Bluesfest 2004 concludes 11-day run at Festival Plaza downtown",
+      "Expos @ Braves (Turner Field, Atlanta): Braves defeat Expos 16–5"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-19",
+    "dow": "Mon",
+    "sunrise": "05:33",
+    "sunset": "20:45",
+    "tmaxC": 26.8,
+    "tminC": 17.7,
+    "precipMm": 0.2,
+    "sky": "thunderstorm",
+    "humidex": 32,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Pirates (PNC Park, Pittsburgh): Expos defeat Pirates 6–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-20",
+    "dow": "Tue",
+    "sunrise": "05:34",
+    "sunset": "20:45",
+    "tmaxC": 27.2,
+    "tminC": 17.2,
+    "precipMm": 1.2,
+    "sky": "thunderstorm",
+    "humidex": 31,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Pirates (PNC Park, Pittsburgh): Pirates edge Expos 2–1"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-21",
+    "dow": "Wed",
+    "sunrise": "05:35",
+    "sunset": "20:44",
+    "tmaxC": 29.6,
+    "tminC": 16.7,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 36,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Mets (Shea Stadium, New York): Mets edge Expos 5–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-22",
+    "dow": "Thu",
+    "sunrise": "05:36",
+    "sunset": "20:43",
+    "tmaxC": 28.8,
+    "tminC": 19.8,
+    "precipMm": 0.0,
+    "sky": "rain",
+    "humidex": 36,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Mets (Shea Stadium, New York): Expos defeat Mets 4–1; Comfort Station live at Café Dekcuf in Ottawa"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-23",
+    "dow": "Fri",
+    "sunrise": "05:37",
+    "sunset": "20:42",
+    "tmaxC": 22.9,
+    "tminC": 12.3,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 32,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Expos return to Montreal: homestand opener at Olympic Stadium vs. Florida Marlins (Expos win 2–1 before 8,831 fans)"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-24",
+    "dow": "Sat",
+    "sunrise": "05:38",
+    "sunset": "20:41",
+    "tmaxC": 23.3,
+    "tminC": 9.9,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": null,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Marlins (Olympic Stadium, Montreal): Expos win 6–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-25",
+    "dow": "Sun",
+    "sunrise": "05:39",
+    "sunset": "20:40",
+    "tmaxC": 24.4,
+    "tminC": 13.7,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos sweep Florida Marlins with 6–4 victory at Olympic Stadium"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-26",
+    "dow": "Mon",
+    "sunrise": "05:40",
+    "sunset": "20:39",
+    "tmaxC": 26.3,
+    "tminC": 11.6,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 27,
+    "wind": "light",
+    "note": "High summer heat with humidex reaching 34; sunny and muggy along the river.",
+    "events": [
+      "Expos vs. New York Mets (Olympic Stadium): Expos erupt for 19 runs in wild 19–10 slugfest victory"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-27",
+    "dow": "Tue",
+    "sunrise": "05:41",
+    "sunset": "20:37",
+    "tmaxC": 23.3,
+    "tminC": 15.4,
+    "precipMm": 7.6,
+    "sky": "rain",
+    "humidex": 27,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Mets (Olympic Stadium): Mets defeat Expos 4–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-28",
+    "dow": "Wed",
+    "sunrise": "05:42",
+    "sunset": "20:36",
+    "tmaxC": 20.7,
+    "tminC": 16.2,
+    "precipMm": 0.2,
+    "sky": "rain",
+    "humidex": 25,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Mets (Olympic Stadium): Expos defeat Mets 7–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-29",
+    "dow": "Thu",
+    "sunrise": "05:44",
+    "sunset": "20:35",
+    "tmaxC": 28.8,
+    "tminC": 15.6,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 34,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Mets (Olympic Stadium): Mets defeat Expos 10–1 in series finale"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-30",
+    "dow": "Fri",
+    "sunrise": "05:45",
+    "sunset": "20:34",
+    "tmaxC": 30.0,
+    "tminC": 16.0,
+    "precipMm": 6.4,
+    "sky": "showers",
+    "humidex": 36,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Marlins (Pro Player Stadium, Miami): Expos blank Marlins 9–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-07-31",
+    "dow": "Sat",
+    "sunrise": "05:46",
+    "sunset": "20:33",
+    "tmaxC": 24.4,
+    "tminC": 19.4,
+    "precipMm": 13.4,
+    "sky": "rain",
+    "humidex": 33,
+    "wind": "light",
+    "note": "Opening night of Les Grands Feux du Casino Lac-Leamy; wet weather with 13 mm of rain clearing for late evening.",
+    "events": [
+      "Les Grands Feux du Casino Lac-Leamy 2004 opens at Lac Leamy with international pyromusical display",
+      "Expos @ Marlins (Pro Player Stadium, Miami): Expos defeat Marlins 8–5"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-01",
+    "dow": "Sun",
+    "sunrise": "05:47",
+    "sunset": "20:31",
+    "tmaxC": 26.5,
+    "tminC": 16.8,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 30,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Civic Holiday long weekend: bustling recreation on the Ottawa River, Aylmer Marina, and Parc de la Gatineau"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-02",
+    "dow": "Mon",
+    "sunrise": "05:48",
+    "sunset": "20:30",
+    "tmaxC": 28.6,
+    "tminC": 15.6,
+    "precipMm": 0.0,
+    "sky": "thunderstorm",
+    "humidex": 35,
+    "wind": "light",
+    "note": "Colonel By Day holiday; sunny, hot and muggy with humidex peaking at 31 and an isolated brief pop-up thunderstorm.",
+    "events": [
+      "Colonel By Day (Ontario Civic Holiday in Ottawa; regular business day in Aylmer / Québec, quiet cross-border bridge traffic)"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-03",
+    "dow": "Tue",
+    "sunrise": "05:49",
+    "sunset": "20:29",
+    "tmaxC": 25.1,
+    "tminC": 16.3,
+    "precipMm": 6.4,
+    "sky": "thunderstorm",
+    "humidex": 31,
+    "wind": "light",
+    "note": null,
+    "events": [],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-04",
+    "dow": "Wed",
+    "sunrise": "05:51",
+    "sunset": "20:27",
+    "tmaxC": 25.8,
+    "tminC": 15.6,
+    "precipMm": 1.8,
+    "sky": "cloudy",
+    "humidex": 27,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Les Grands Feux du Casino Lac-Leamy competition evening over Lac Leamy in Gatineau",
+      "Expos @ Cardinals (Busch Memorial Stadium, St. Louis): Cardinals edge Expos 5–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-05",
+    "dow": "Thu",
+    "sunrise": "05:52",
+    "sunset": "20:26",
+    "tmaxC": 19.7,
+    "tminC": 11.2,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": null,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Expos @ Cardinals (Busch Memorial Stadium): Cardinals edge Expos 2–1"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-06",
+    "dow": "Fri",
+    "sunrise": "05:53",
+    "sunset": "20:25",
+    "tmaxC": 18.3,
+    "tminC": 8.6,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Astros (Minute Maid Park, Houston): Astros blank Expos 4–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-07",
+    "dow": "Sat",
+    "sunrise": "05:54",
+    "sunset": "20:23",
+    "tmaxC": 22.4,
+    "tminC": 10.2,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Les Grands Feux du Casino Lac-Leamy fireworks competition show over Lac Leamy",
+      "Expos @ Astros (Minute Maid Park): Expos defeat Astros 8–3; Grand Theft Bus live at Babylon Nightclub on Bank St"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-08",
+    "dow": "Sun",
+    "sunrise": "05:55",
+    "sunset": "20:22",
+    "tmaxC": 21.7,
+    "tminC": 10.8,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Astros (Minute Maid Park): Expos defeat Astros 5–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-09",
+    "dow": "Mon",
+    "sunrise": "05:57",
+    "sunset": "20:20",
+    "tmaxC": 28.9,
+    "tminC": 11.9,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 31,
+    "wind": "light",
+    "note": null,
+    "events": [],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-10",
+    "dow": "Tue",
+    "sunrise": "05:58",
+    "sunset": "20:19",
+    "tmaxC": 25.8,
+    "tminC": 16.0,
+    "precipMm": 67.0,
+    "sky": "thunderstorm",
+    "humidex": 32,
+    "wind": "breezy",
+    "note": "Severe convective rainstorm: tropical downpour drenches Ottawa-Gatineau with 67 mm of torrential rain and localized street flooding.",
+    "events": [
+      "Expos vs. Arizona Diamondbacks (Olympic Stadium, Montreal): Expos shut out D-backs 4–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-11",
+    "dow": "Wed",
+    "sunrise": "05:59",
+    "sunset": "20:17",
+    "tmaxC": 25.0,
+    "tminC": 14.2,
+    "precipMm": 2.4,
+    "sky": "showers",
+    "humidex": 29,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Les Grands Feux du Casino Lac-Leamy pyromusical competition night at Lac Leamy",
+      "Expos vs. Diamondbacks (Olympic Stadium): Expos defeat D-backs 7–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-12",
+    "dow": "Thu",
+    "sunrise": "06:00",
+    "sunset": "20:16",
+    "tmaxC": 21.6,
+    "tminC": 13.7,
+    "precipMm": 0.8,
+    "sky": "fog",
+    "humidex": 25,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Diamondbacks (Olympic Stadium): Expos complete sweep with 7–5 victory"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-13",
+    "dow": "Fri",
+    "sunrise": "06:01",
+    "sunset": "20:14",
+    "tmaxC": 20.1,
+    "tminC": 13.9,
+    "precipMm": 5.8,
+    "sky": "showers",
+    "humidex": null,
+    "wind": "breezy",
+    "note": "Opening day of the 2004 Athens Summer Olympics; humid and showery with 5.8 mm rain.",
+    "events": [
+      "Opening Ceremony of the 2004 Summer Olympic Games in Athens, Greece broadcast across Canada"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-14",
+    "dow": "Sat",
+    "sunrise": "06:03",
+    "sunset": "20:13",
+    "tmaxC": 25.1,
+    "tminC": 12.6,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": "Les Grands Feux du Casino Lac-Leamy Grand Finale; comfortable, clear night over Lac Leamy.",
+    "events": [
+      "Les Grands Feux du Casino Lac-Leamy Grand Finale: Canada's Royal Pyrotechnie crowned champion (Zeus Trophy)",
+      "Expos vs. Astros (Olympic Stadium): Expos defeat Astros 8–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-15",
+    "dow": "Sun",
+    "sunrise": "06:04",
+    "sunset": "20:11",
+    "tmaxC": 24.4,
+    "tminC": 13.3,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 27,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Astros (Olympic Stadium): Astros edge Expos 5–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-16",
+    "dow": "Mon",
+    "sunrise": "06:05",
+    "sunset": "20:09",
+    "tmaxC": 24.9,
+    "tminC": 13.3,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 28,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Giants (SBC Park, San Francisco): Giants defeat Expos 8–5"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-17",
+    "dow": "Tue",
+    "sunrise": "06:06",
+    "sunset": "20:08",
+    "tmaxC": 24.9,
+    "tminC": 13.5,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 27,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos @ Giants (SBC Park, San Francisco): Giants defeat Expos 5–4"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-18",
+    "dow": "Wed",
+    "sunrise": "06:07",
+    "sunset": "20:06",
+    "tmaxC": 26.1,
+    "tminC": 15.8,
+    "precipMm": 0.8,
+    "sky": "cloudy",
+    "humidex": 31,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Jimmy Swift Band live at Mavericks in Ottawa"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-19",
+    "dow": "Thu",
+    "sunrise": "06:09",
+    "sunset": "20:05",
+    "tmaxC": 23.3,
+    "tminC": 11.5,
+    "precipMm": 8.2,
+    "sky": "rain",
+    "humidex": 27,
+    "wind": "breezy",
+    "note": null,
+    "events": [],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-20",
+    "dow": "Fri",
+    "sunrise": "06:10",
+    "sunset": "20:03",
+    "tmaxC": 21.2,
+    "tminC": 8.2,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": "Cool, crisp late-August day following a cold front; breezy with broken fair-weather clouds.",
+    "events": [
+      "Arbitrator awards Ottawa Senators forward Marián Hossa a one-year, $4.3 million contract",
+      "Expos @ Rockies (Coors Field, Denver): Expos defeat Rockies 4–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-21",
+    "dow": "Sat",
+    "sunrise": "06:11",
+    "sunset": "20:01",
+    "tmaxC": 20.1,
+    "tminC": 9.4,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": null,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Ottawa Senators sign Marián Hossa to a three-year contract extension",
+      "Expos @ Rockies (Coors Field, Denver): Rockies defeat Expos 5–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-22",
+    "dow": "Sun",
+    "sunrise": "06:12",
+    "sunset": "19:59",
+    "tmaxC": 22.1,
+    "tminC": 6.7,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": null,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Athens Olympics: Justin Gatlin wins Men's 100m final in 9.85s",
+      "Expos @ Rockies (Coors Field, Denver): Expos defeat Rockies 8–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-23",
+    "dow": "Mon",
+    "sunrise": "06:13",
+    "sunset": "19:58",
+    "tmaxC": 21.7,
+    "tminC": 10.1,
+    "precipMm": 0.0,
+    "sky": "showers",
+    "humidex": 25,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "NHL and NHLPA negotiators meet in Toronto for contentious talks with CBA expiration looming",
+      "Expos vs. Los Angeles Dodgers (Olympic Stadium, Montreal): Expos walk off with 8–7 victory"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-24",
+    "dow": "Tue",
+    "sunrise": "06:15",
+    "sunset": "19:56",
+    "tmaxC": 19.4,
+    "tminC": 7.5,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": null,
+    "wind": "light",
+    "note": "Crisp late-summer high pressure system; crystal clear skies with cool morning low of 8.6°C.",
+    "events": [
+      "Expos vs. Dodgers (Olympic Stadium): Dodgers defeat Expos 10–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-25",
+    "dow": "Wed",
+    "sunrise": "06:16",
+    "sunset": "19:54",
+    "tmaxC": 25.9,
+    "tminC": 8.4,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 33,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Dodgers (Olympic Stadium): Expos defeat Dodgers 6–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-26",
+    "dow": "Thu",
+    "sunrise": "06:17",
+    "sunset": "19:52",
+    "tmaxC": 26.6,
+    "tminC": 19.1,
+    "precipMm": 2.2,
+    "sky": "showers",
+    "humidex": 33,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Dodgers (Olympic Stadium): Dodgers defeat Expos 10–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-27",
+    "dow": "Fri",
+    "sunrise": "06:18",
+    "sunset": "19:51",
+    "tmaxC": 28.3,
+    "tminC": 19.4,
+    "precipMm": 0.6,
+    "sky": "rain",
+    "humidex": 36,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "Ottawa Folk Festival opens at Britannia Park on the Ottawa River with headliner Michael Franti & Spearhead",
+      "Expos vs. San Diego Padres (Olympic Stadium): Expos defeat Padres 10–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-28",
+    "dow": "Sat",
+    "sunrise": "06:20",
+    "sunset": "19:49",
+    "tmaxC": 28.8,
+    "tminC": 20.5,
+    "precipMm": 0.0,
+    "sky": "cloudy",
+    "humidex": 35,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Ottawa Folk Festival at Britannia Park; daytime workshops and riverside acoustic stages",
+      "Expos vs. Padres (Olympic Stadium): Padres defeat Expos 5–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-29",
+    "dow": "Sun",
+    "sunrise": "06:21",
+    "sunset": "19:47",
+    "tmaxC": 20.9,
+    "tminC": 16.9,
+    "precipMm": 15.0,
+    "sky": "thunderstorm",
+    "humidex": 26,
+    "wind": "light",
+    "note": "Vigorous late-summer cold front triggers heavy thunderstorms (15 mm rain) and gusty winds, dropping evening temperatures.",
+    "events": [
+      "Closing Ceremony of the 2004 Athens Summer Olympic Games",
+      "Ottawa Folk Festival concluding performances at Britannia Park",
+      "Expos vs. Padres (Olympic Stadium): Padres defeat Expos 11–3"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-30",
+    "dow": "Mon",
+    "sunrise": "06:22",
+    "sunset": "19:45",
+    "tmaxC": 20.8,
+    "tminC": 16.3,
+    "precipMm": 0.0,
+    "sky": "overcast",
+    "humidex": 26,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Expos vs. Chicago Cubs (Olympic Stadium, Montreal): Cubs defeat Expos 5–2"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-08-31",
+    "dow": "Tue",
+    "sunrise": "06:23",
+    "sunset": "19:43",
+    "tmaxC": 23.2,
+    "tminC": 15.4,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 26,
+    "wind": "breezy",
+    "note": "Brisk, fresh late-summer afternoon with clear blue skies; Ottawa low touches 7.4°C overnight.",
+    "events": [
+      "NHLPA proposes a 5% salary rollback in a last-ditch effort to avert an NHL lockout",
+      "Expos vs. Cubs (Olympic Stadium): Expos shut out Cubs 8–0 in front of 18,049 fans"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-09-01",
+    "dow": "Wed",
+    "sunrise": "06:24",
+    "sunset": "19:41",
+    "tmaxC": 20.2,
+    "tminC": 9.2,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": null,
+    "wind": "breezy",
+    "note": null,
+    "events": [
+      "World Cup of Hockey 2004 preliminary round: Team Canada defeats Slovakia at the Bell Centre in Montreal"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-09-02",
+    "dow": "Thu",
+    "sunrise": "06:25",
+    "sunset": "19:39",
+    "tmaxC": 19.0,
+    "tminC": 7.5,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": null,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "First day of classes for Western Quebec and Outaouais school boards"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-09-03",
+    "dow": "Fri",
+    "sunrise": "06:27",
+    "sunset": "19:38",
+    "tmaxC": 28.8,
+    "tminC": 10.4,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 34,
+    "wind": "light",
+    "note": "Opening day of the Gatineau Hot Air Balloon Festival; calm winds and clear skies ideal for evening balloon ascents.",
+    "events": [
+      "17th Festival de montgolfières de Gatineau opens at Parc de la Baie (hot air balloon flights, Canadian Strongman Championship, concerts by Daniel Boucher and Nanette Workman)",
+      "Expos vs. Braves (Olympic Stadium): Braves defeat Expos 7–1; Contact live at Café Dekcuf in Ottawa"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-09-04",
+    "dow": "Sat",
+    "sunrise": "06:28",
+    "sunset": "19:36",
+    "tmaxC": 23.7,
+    "tminC": 12.1,
+    "precipMm": 0.0,
+    "sky": "fair",
+    "humidex": 26,
+    "wind": "light",
+    "note": "Spectacular late-summer weekend; sunny and warm as 80 hot air balloons lift off over Parc de la Baie.",
+    "events": [
+      "Festival de montgolfières de Gatineau: night illumination of hot air balloons; concerts by Marie-Chantal Toupin and Laurence Jalbert",
+      "World Cup of Hockey: Canada defeats Russia 3–1 in Montreal",
+      "Expos vs. Braves (Olympic Stadium): Braves defeat Expos 9–0"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-09-05",
+    "dow": "Sun",
+    "sunrise": "06:29",
+    "sunset": "19:34",
+    "tmaxC": 23.3,
+    "tminC": 10.3,
+    "precipMm": 0.0,
+    "sky": "clear",
+    "humidex": 26,
+    "wind": "light",
+    "note": null,
+    "events": [
+      "Festival de montgolfières de Gatineau: mass dawn and dusk balloon ascents over Gatineau-Ottawa; concerts by Bruno Pelletier and Gino Vannelli",
+      "World Cup of Hockey: Canada finishes group play undefeated"
+    ],
+    "confidence": "high"
+  },
+  {
+    "date": "2004-09-06",
+    "dow": "Mon",
+    "sunrise": "06:30",
+    "sunset": "19:32",
+    "tmaxC": 23.4,
+    "tminC": 14.7,
+    "precipMm": 0.0,
+    "sky": "overcast",
+    "humidex": 28,
+    "wind": "light",
+    "note": "Labour Day holiday; overcast morning giving way to warm, humid breaks (humidex 28) wrapping up the summer.",
+    "events": [
+      "Labour Day (Fête du Travail): closing day of the Festival de montgolfières de Gatineau featuring La Bottine Souriante at Parc de la Baie",
+      "Expos @ Cubs (Wrigley Field, Chicago): Cubs defeat Expos 9–1"
+    ],
+    "confidence": "high"
+  }
+]
