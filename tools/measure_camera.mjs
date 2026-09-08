@@ -97,13 +97,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Second difference / dt² is the acceleration of the signal. RMS says how rough
 // the whole run was; peak says how bad the worst single frame was, which is the
 // one the eye actually catches. The first and last samples have no neighbours.
-function accelStats(series, dt) {
+// `mask` is optional: only samples whose three-frame window is entirely on the
+// ground are counted. That matters more than it sounds. A car in mid-air is
+// accelerating at g and so is the camera following it, which is not jitter — it
+// is the jump — and it swamps the RMS on any route with air in it. The ground
+// column is the one that answers "does it still jitter over bumps".
+function accelStats(series, dt, mask) {
   let sum = 0, peak = 0, n = 0;
   for (let i = 1; i < series.length - 1; i++) {
+    if (mask && !(mask[i - 1] && mask[i] && mask[i + 1])) continue;
     const a = (series[i + 1] - 2 * series[i] + series[i - 1]) / (dt * dt);
     sum += a * a; if (Math.abs(a) > peak) peak = Math.abs(a); n++;
   }
-  return { rms: n ? Math.sqrt(sum / n) : 0, peak };
+  return { rms: n ? Math.sqrt(sum / n) : 0, peak, n };
 }
 
 // One route at one frame rate, driven entirely inside the page.
@@ -142,7 +148,7 @@ const runRoute = (route, hz) => `(async () => {
   }
   const dt = 1 / ${hz};
   const n = Math.round(r.secs * ${hz});
-  const y = new Array(n), p = new Array(n), x = new Array(n), z = new Array(n);
+  const y = new Array(n), p = new Array(n), x = new Array(n), z = new Array(n), gnd = new Array(n);
   let air = 0, maxSpd = 0;
   for (let i = 0; i < n; i++) {
     const t = i * dt;
@@ -157,19 +163,26 @@ const runRoute = (route, hz) => `(async () => {
     for (let k = 0; k < sub; k++) A.step(1 / 120);
     const c = A.camera(dt);
     y[i] = c.y; p[i] = c.pitch; x[i] = c.x; z[i] = c.z;
+    gnd[i] = G.veh.inAir ? 0 : 1;
     if (G.veh.inAir) air++;
     const s = Math.abs(G.veh.vLong); if (s > maxSpd) maxSpd = s;
   }
   keys.clear();
   const span = (a) => +(Math.max(...a) - Math.min(...a)).toFixed(2);
-  return JSON.stringify({ y, p, x, z, airFrac: air / n, maxKmh: Math.round(maxSpd * 3.6),
+  return JSON.stringify({ y, p, x, z, gnd, airFrac: air / n, maxKmh: Math.round(maxSpd * 3.6),
     ySpan: span(y), pSpan: span(p), mode: G.mode,
     endX: Math.round(G.veh.x), endZ: Math.round(G.veh.z) });
 })()`;
 
 let code = 0;
 const rows = [];
-try {
+// Every row is its own cold boot. Two routes in one page share the traffic, the
+// peds, the damage and the fuel, and the third route in a block was measurably
+// a different drive from the third route in the other block — one row ended
+// twenty metres short of the other and read as a regression that was really the
+// car having wandered onto the verge. A boot is ten seconds; a number nobody
+// can trust is worth more than that.
+const bootGame = async () => {
   await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
   await send('Page.navigate', { url });
   await sleep(1500);
@@ -183,18 +196,26 @@ try {
       if (c && !c.disabled && c.getBoundingClientRect().width > 0) go = c;
     }
     if (go) go.click();
-    for (let i = 0; i < 200; i++) { await new Promise(r => setTimeout(r, 100)); if (window.AYLMER?.G?.mode === 'drive') return 'drive'; }
+    for (let i = 0; i < 300; i++) { await new Promise(r => setTimeout(r, 100)); if (window.AYLMER?.G?.mode === 'drive') return 'drive'; }
     return 'mode=' + window.AYLMER?.G?.mode;
   })()`);
   if (boot !== 'drive') throw new Error('did not reach drive: ' + boot);
+};
+
+try {
   console.log('# camera jitter — RMS and peak of camera acceleration (m/s², rad/s²)');
-  console.log('# route   Hz   height RMS   height peak   pitch RMS   pitch peak   air%  max km/h');
+  console.log('# "ground" excludes every three-frame window with air in it: a car in');
+  console.log('# mid-air accelerates at g and so does the camera, which is the jump,');
+  console.log('# not the jitter. The ground columns are the ones §3 is about.');
+  console.log('# route   Hz  height RMS  height pk   pitch RMS  pitch pk | gnd hRMS  gnd pRMS   air%  km/h');
   for (const hz of RATES) {
     for (const route of ROUTES) {
+      await bootGame();
       const raw = await evaluate(runRoute(route, hz));
       const d = JSON.parse(raw);
       const dt = 1 / hz;
       const hy = accelStats(d.y, dt), pp = accelStats(d.p, dt);
+      const gy = accelStats(d.y, dt, d.gnd), gp = accelStats(d.p, dt, d.gnd);
       // The boom's horizontal wander, as one number: what the eye reads as the
       // picture sliding rather than the car moving.
       const hx = accelStats(d.x, dt), hz2 = accelStats(d.z, dt);
@@ -202,6 +223,8 @@ try {
         route: route.id, hz,
         heightRms: +hy.rms.toFixed(3), heightPeak: +hy.peak.toFixed(2),
         pitchRms: +pp.rms.toFixed(3), pitchPeak: +pp.peak.toFixed(2),
+        gndHeightRms: +gy.rms.toFixed(3), gndHeightPeak: +gy.peak.toFixed(2),
+        gndPitchRms: +gp.rms.toFixed(3), gndPitchPeak: +gp.peak.toFixed(2),
         xzRms: +Math.hypot(hx.rms, hz2.rms).toFixed(2),
         airPct: Math.round(d.airFrac * 100), maxKmh: d.maxKmh,
         // The drive itself, so a row that looks calm because the car never moved
@@ -211,9 +234,10 @@ try {
       rows.push(row);
       console.log(
         route.id.padEnd(8), String(hz).padStart(4),
-        row.heightRms.toFixed(3).padStart(11), row.heightPeak.toFixed(2).padStart(13),
-        row.pitchRms.toFixed(3).padStart(11), row.pitchPeak.toFixed(2).padStart(12),
-        String(row.airPct).padStart(6), String(row.maxKmh).padStart(9),
+        row.heightRms.toFixed(3).padStart(11), row.heightPeak.toFixed(2).padStart(10),
+        row.pitchRms.toFixed(3).padStart(12), row.pitchPeak.toFixed(2).padStart(10), ' |',
+        row.gndHeightRms.toFixed(3).padStart(8), row.gndPitchRms.toFixed(3).padStart(9),
+        String(row.airPct).padStart(6), String(row.maxKmh).padStart(6),
         ('  ' + row.ySpan + 'm/' + row.pSpan + 'rad @' + row.endX + ',' + row.endZ));
     }
   }

@@ -106,6 +106,12 @@ import { CAMS, DRIVER_CAM, DRIVER_NEAR, Cockpit, hasCockpit } from './game/cockp
 // The boom does not go through walls any more (playtest). Pure and testable,
 // so tools/smoke_camclip.mjs can drive it against a fake world.
 import { makeClip, clipCamera } from './game/camclip.js';
+// The filters between the suspension and the eye (NEXT.md §3). Pure scalars, so
+// tools/smoke_camdamp.mjs can pin the step response and the roll-off in node.
+import {
+  makeCamDamp, resetCamDamp, stepCamPos, lowpass,
+  SUSP_RATE, SUSP_GAIN, AIR_RATE, PITCH_RATE, SPEED_RATE,
+} from './game/camdamp.js';
 
 const STEP = 1 / 60;
 // One complete morning -> day -> dusk -> night loop in real-time seconds.
@@ -978,6 +984,7 @@ function enterDrive(save = null, startKey = null) {
   G.world.setHouseNear(G.quality === 'low' ? 140 : HOUSE_NEAR);
   G.camYaw = G.veh.yaw + Math.PI;
   G.camPos = [G.veh.x, 4, G.veh.z];
+  camReset();                       // the springs start where the camera does
   const savedTime = save && DAY_PHASE[save.timeOfDay] != null ? save.timeOfDay : 'day';
   G.dayClock = phaseClock(savedTime);
   setCycleEnv(true);
@@ -2182,6 +2189,23 @@ const white = new Float32Array([1, 1, 1]);
 // without paying for a SwiftShader frame per sample — which is the only way the
 // jitter number is a measurement rather than an opinion.
 const CAM = { pitch: 0, shakePitch: 0, shakeYaw: 0, fov: 1.15 };
+// The filter state (game/camdamp.js): three position springs and four scalars.
+// Reset by camReset() on every boot, teleport and tow.
+const camDamp = makeCamDamp();
+
+// The yaw ease used to be `min(1, dt * 22)` / `min(1, dt * 5.5)`, which is the
+// linear approximation of an exponential and therefore a different camera at
+// every frame rate: at 120 Hz it turns 4% slower per second than at 60. These
+// are the exact rates that reproduce the old 60 Hz behaviour — solve
+// 1 - exp(-k/60) = 22/60 and 5.5/60 — so the feel is preserved and the frame
+// rate stops being part of it.
+const YAW_FAST = 27.4;   // hood cam, and looking back
+const YAW_EASE = 5.77;   // the chase cams
+
+function camReset() {
+  resetCamDamp(camDamp, G.camPos[0], G.camPos[1], G.camPos[2]);
+  G.camClip = null;
+}
 
 function updateCamera(dt) {
   const v = G.veh, cam = CAMS[G.cam];
@@ -2195,10 +2219,17 @@ function updateCamera(dt) {
   const back = G.settings.invertLook ? !G.lookBack : G.lookBack;   // option: look back by default
   const want = f.yaw + (back ? 0 : Math.PI * (1 - (cam.name === 'hood' ? G.revBlend : 0)))
     - clamp(f.vLat * 0.02, -0.35, 0.35);
-  G.camYaw += angleDelta(want, G.camYaw) * Math.min(1, dt * (cam.name === 'hood' || G.lookBack ? 22 : 5.5));
+  G.camYaw += angleDelta(want, G.camYaw)
+    * (1 - Math.exp(-(cam.name === 'hood' || G.lookBack ? YAW_FAST : YAW_EASE) * dt));
   const fx = Math.sin(f.yaw), fz = Math.cos(f.yaw);
+  // Road speed as the camera reads it. The boom length, the ride height and the
+  // speed FOV all hang off this, and raw `vLong` has a kink in it every time a
+  // wheel spins up or the gearbox changes its mind — none of which is the
+  // camera's business. One low-pass, three users.
+  camDamp.speed = lowpass(camDamp.speed, Math.abs(f.vLong), SPEED_RATE, dt);
+  const spd = camDamp.speed;
   // Short vehicles (the golf cart) get a closer chase cam; long ones (the bus) a farther one.
-  const dist = cam.dist * clamp((f.spec ? f.spec.len : 4.5) / 4.5, 0.62, 1.25) + Math.abs(f.vLong) * 0.09;
+  const dist = cam.dist * clamp((f.spec ? f.spec.len : 4.5) / 4.5, 0.62, 1.25) + spd * 0.09;
   const cx = Math.sin(G.camYaw + Math.PI), cz = Math.cos(G.camYaw + Math.PI);
   let px, pz;
   if (cam.name === 'hood') {
@@ -2207,8 +2238,16 @@ function updateCamera(dt) {
   } else {
     px = f.x - cx * dist; pz = f.z - cz * dist;
   }
-  // The camera rides at the car's own height and never sinks into a berm.
-  let py = (f.bodyY || 0) + cam.height + Math.abs(f.vLong) * 0.012;
+  // The camera rides at the car's own height and never sinks into a berm — but
+  // `bodyY` is `y + susp`, so it used to ride the SPRINGS as well, all of them,
+  // and cars.js's springs ring at about 2.3 Hz after every kerb and every
+  // landing. Split the two: the chassis height (`bodyY - susp`) is terrain and
+  // the camera should follow it exactly, and the spring travel is a thump that
+  // the camera should feel a third of, slowly. A landing still compresses the
+  // picture; the ringing afterwards no longer does.
+  const susp = f.susp || 0;
+  camDamp.susp = lowpass(camDamp.susp, susp, SUSP_RATE, dt);
+  let py = (f.bodyY || 0) - susp + camDamp.susp * SUSP_GAIN + cam.height + spd * 0.012;
   // ...and it does not ride inside a house. Only the three third-person cams
   // have a boom to shorten: the hood cam sits on the bonnet and the driver's
   // eye is a point in the car's own frame, so neither can be occluded by
@@ -2220,12 +2259,17 @@ function updateCamera(dt) {
     px = c.x; py = c.y; pz = c.z;
   }
   if (G.phys && G.phys.groundY) py = Math.max(py, G.phys.groundY(px, pz) + 1.1);
-  // Frame-rate-independent smoothing: the same lag at 60 and 120 Hz, and no
-  // per-frame wobble when dt varies (min(1, dt*k) only approximates this).
-  const kxz = 1 - Math.exp(-9 * dt), ky = 1 - Math.exp(-6 * dt);
-  G.camPos[0] = lerp(G.camPos[0], px, kxz);
-  G.camPos[1] = lerp(G.camPos[1], py, ky);
-  G.camPos[2] = lerp(G.camPos[2], pz, kxz);
+  // Critically damped springs, not an exponential lerp. Both are frame-rate
+  // independent; the difference is that a first-order lerp's OUTPUT
+  // acceleration is proportional to its INPUT velocity, so every reversal of
+  // `suspV` — which is what a kerb strike is — arrived at the eye as a step
+  // change in camera acceleration. A second-order filter puts that a whole
+  // derivative further away. `omega = 2k` keeps the old tracking lag, so the
+  // camera sits exactly where it used to on a straight; see game/camdamp.js.
+  // stepCamPos also owns the teleport case: past SNAP_DIST the eye is placed
+  // rather than flown, which the lerp got wrong quietly (it took two seconds to
+  // cross town after a tow) and a spring would get wrong loudly.
+  stepCamPos(camDamp, G.camPos, px, py, pz, dt);
 
   // Speed FOV, off absolute speed rather than a fraction of this car's top.
   // The fraction version quietly got weaker the day cars.js started solving real
@@ -2234,12 +2278,24 @@ function updateCamera(dt) {
   // Metres per second is what the eye is actually reading. Widening the frame is
   // the cheapest, calmest way to say "fast" — the edges stretch, nothing shakes.
   CAM.fov = G.q.fov + cam.fovAdd + G.settings.fov
-    + clamp((Math.abs(f.vLong) - 8) / 34, 0, 1) * 0.16;
+    + clamp((spd - 8) / 34, 0, 1) * 0.16;
   // In the air the chase cam leans with the nose, and every landing rattles the
   // hood cam for a moment. Both are small on purpose — they read, they don't spin.
-  let camPitch = cam.pitch;
+  //
+  // The lean used to be gated on `f.inAir` raw, and `inAir` is a boolean off an
+  // 8 cm clearance test: over anything rough it chatters on and off several
+  // times a second, switching up to 0.22 rad — twelve and a half degrees — of
+  // camera in and out at frame rate. Measured, that was the single largest term
+  // in the pitch jitter, and it was three times worse at 120 Hz than at 60
+  // because it fires on the render clock. Blending the gate and low-passing the
+  // angle keeps the lean — a jump should look where it is going — and drops the
+  // chatter. This is the "decouple pitch from f.pitch while airborne" of §3:
+  // what reaches the eye is a filtered nose attitude, never the body's own.
+  camDamp.air = lowpass(camDamp.air, f.inAir ? 1 : 0, AIR_RATE, dt);
+  camDamp.pitch = lowpass(camDamp.pitch, f.pitch || 0, PITCH_RATE, dt);
+  let camPitch = cam.pitch + clamp(-camDamp.pitch * 0.45, -0.22, 0.22) * camDamp.air;
   let shakePitch = 0;
-  if (f.inAir) camPitch += clamp(-f.pitch * 0.45, -0.22, 0.22);
+  let shakeYaw = 0;
   if (G.camShake > 0.002) {
     // This was one sine at 61 rad/s — about 9.7 Hz — straight onto pitch. That
     // is the frequency the eye reads as flicker rather than as motion, and on a
@@ -2253,10 +2309,16 @@ function updateCamera(dt) {
     const k = G.camShake * (cam.name === 'hood' ? 0.055 : 0.024) * G.settings.shake;
     shakePitch = (Math.sin(G.time * 11.7) * 0.65 + Math.sin(G.time * 7.3) * 0.35) * k;
     camPitch += shakePitch;
-    G.camYaw += Math.sin(G.time * 9.1) * k * 0.5;
+    // The yaw sway used to be ACCUMULATED into G.camYaw — `G.camYaw += sin(...)`
+    // once a frame, with no dt in it. That is a leaky integrator fed a sine, so
+    // it added twice as much sway per second at 120 Hz as at 60, and it leaked
+    // into the boom direction for the next frame as well. It is an offset on the
+    // look direction now, which is what it always meant.
+    shakeYaw = Math.sin(G.time * 9.1) * k * 0.5;
   }
   CAM.pitch = camPitch;
   CAM.shakePitch = shakePitch;
+  CAM.shakeYaw = shakeYaw;
   return CAM;
 }
 
@@ -2291,9 +2353,9 @@ function render(dt) {
     // dip and turn are the only motion added. `cam.pitch` rather than `camPitch`
     // because the in-air lean is already in the body this camera is riding in.
     G.cockpit.view(camWorld, G.camPos, carModel, v.spec, cam.pitch + shakePitch);
-    r.begin(G.camPos, G.camYaw, camPitch, fov, { near: DRIVER_NEAR, world: camWorld });
+    r.begin(G.camPos, G.camYaw + CAM.shakeYaw, camPitch, fov, { near: DRIVER_NEAR, world: camWorld });
   } else {
-    r.begin(G.camPos, G.camYaw, camPitch, fov);
+    r.begin(G.camPos, G.camYaw + CAM.shakeYaw, camPitch, fov);
   }
 
   m4.compose(mm, G.camPos[0], 0, G.camPos[2], 0, 0, 0);
@@ -2858,6 +2920,10 @@ window.AYLMER = {
     return { x: G.camPos[0], y: G.camPos[1], z: G.camPos[2], yaw: G.camYaw, pitch: c.pitch, fov: c.fov };
   },
   teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw); },
+  // Put the camera's springs and blends exactly where the camera is, standing
+  // still. tools/measure_camera.mjs calls it between routes so one route cannot
+  // leave a velocity in the next one's first frame.
+  camReset,
   start: startMission,
   // Save-system hooks, so a test (or a console) can drive the slots without
   // reaching into the DOM. The buttons call exactly the same functions.
