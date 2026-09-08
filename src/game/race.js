@@ -62,6 +62,20 @@ export const SKILL = {
               band: { ahead: 0.92, behind: 1.06 } },
 };
 
+/**
+ * A cruise speed as a fraction of the PLAYER's car, clamped to something a
+ * street can hold. Lives here rather than in verbs.js because it is the one
+ * piece of maths that turns the SKILL table above from an absolute number into
+ * a relative one, and both the ambush (verbs.js raceTo) and the four scripted
+ * races (racejobs.js) need it. verbs.js re-exports it, so nothing that already
+ * imported it from there has to change.
+ */
+export function cruiseFor(G, frac) {
+  const spec = G && G.veh && (G.veh.baseSpec || G.veh.spec);
+  const top = (spec && spec.topSpeed) || 41;
+  return Math.max(8, Math.min(30, top * frac));
+}
+
 export const BAND_AHEAD = 150;    // m up the road before a rival eases off
 export const BAND_BEHIND = 90;    // m down the road before it leans on it
 export const STUCK_T = 3;         // seconds below STUCK_MS before a reset
@@ -255,6 +269,36 @@ export class Rival {
     const l2 = ex * ex + ez * ez || 1e-6;
     const t = clamp(((v.x - ax) * ex + (v.z - az) * ez) / l2, 0, 1);
     return this.cum[k] + Math.sqrt(l2) * t;
+  }
+
+  /**
+   * Put the car at `d` metres along its own route, pointing down it. What a
+   * race resumed out of a save needs: the rivals were somewhere when you hit
+   * save, and standing them back on the start line is not a resume.
+   *
+   * Deliberately NOT place(): place() re-indexes by proximity, and on a
+   * three-lap circuit the same tarmac is three different distances along the
+   * route, so "nearest" always hands back lap one. The caller knows the
+   * distance, so this indexes by it — the same reason unstick() does.
+   */
+  placeAlong(d) {
+    if (this.n < 2) return this;
+    const p = this.path;
+    const total = this.cum[this.n - 1];
+    const want = clamp(d, 0, Math.max(0, total - 1));
+    const k = this._segAt(want);
+    const seg = this.cum[k + 1] - this.cum[k] || 1e-6;
+    const t = clamp((want - this.cum[k]) / seg, 0, 1);
+    const ex = p[k + 1][0] - p[k][0], ez = p[k + 1][1] - p[k][1];
+    const yaw = (ex || ez) ? Math.atan2(ex, ez) : this.veh.yaw;
+    this.veh.reset(p[k][0] + ex * t, p[k][1] + ez * t, yaw);
+    this.i = k;
+    this.stuckT = 0;
+    this.stuckRun = 0;
+    this.lastReset = null;
+    this.progT = 0;
+    this.progAt = this.along();
+    return this;
   }
 
   // How far off the line the car actually is.

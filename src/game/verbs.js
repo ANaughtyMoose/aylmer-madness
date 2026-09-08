@@ -7,7 +7,7 @@
 // only scalars across a reload and the stage's own onEnter rebuilds the rest.
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
-import { Rival, SKILL } from './race.js';
+import { Rival, SKILL, cruiseFor } from './race.js';
 import { ROSTER } from './rivals.js';
 import { heckle } from './heckle.js';
 
@@ -63,11 +63,11 @@ export function behindPlayer(G, back = 120) {
   return { x: v.x - fx * back, z: v.z - fz * back, yaw: v.yaw };
 }
 
-/** The leader's or rival's cruise, scaled from YOUR car so a Civic and a bus get a fair chase. */
-export function cruiseFor(G, frac) {
-  const top = (G.veh && (G.veh.baseSpec || G.veh.spec) && (G.veh.baseSpec || G.veh.spec).topSpeed) || 41;
-  return clamp(top * frac, 8, 30);
-}
+// The leader's or rival's cruise, scaled from YOUR car so a Civic and a bus get
+// a fair chase. It moved next to the SKILL table in race.js when the four
+// scripted races needed it too; re-exported here so every existing importer and
+// every reader who comes looking for it in this file still finds it.
+export { cruiseFor } from './race.js';
 
 // ---------------------------------------------------------------- 1. keep up
 //

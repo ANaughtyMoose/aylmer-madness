@@ -19,7 +19,8 @@
 // races do not set any of them and behave exactly as they always did.
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
-import { Rival, Track, SKILL, ordinalFr, fmtGap, BAND_AHEAD, BAND_BEHIND } from './race.js';
+import { Rival, Track, SKILL, cruiseFor, ordinalFr, fmtGap, BAND_AHEAD, BAND_BEHIND } from './race.js';
+import { DIFF } from './calendar.js';
 
 export const GATE_R = 18;         // checkpoint ring radius, metres
 export const FINISH_R = 20;
@@ -30,6 +31,30 @@ const say = (G, text, ms) => G.hud && G.hud.toast(text, ms);
 const blip = (G, f, d, t, v) => G.audio && G.audio.blip(f, d, t, v);
 
 const at = (c) => (typeof c === 'string' ? PLACES[c] : c);
+
+// ---------------------------------------------------------------- rival pace
+//
+// race.js's SKILL table gives every driver an absolute cruise in m/s, and those
+// numbers were measured against ONE car on ONE difficulty: the Ranger, whose
+// terminal speed is 41.67 m/s, on normal, where calendar.js sets G.rivalFrac to
+// 0.82. Read literally they mean Adam does 18.8 m/s whatever you turned up in —
+// so a player who has won the Z24 wins every scripted race by a minute, and
+// Zahra on the Diamondback cannot ever win one. G.rivalFrac existed for exactly
+// this and only the ambush was reading it (verbs.js raceTo).
+//
+// So a rival's table cruise is re-read as what it always was: a fraction of the
+// reference car, handed to cruiseFor() against the car actually being driven and
+// the difficulty actually being played. On a Ranger at normal difficulty every
+// rival comes out at its table speed to three decimals, so the four races drive
+// exactly as they did; on anything else the field scales with you.
+const REF_FRAC = DIFF.normal.rival;
+const refTop = () => (carById('ranger') || {}).topSpeed || 41.67;
+
+export function rivalCruise(G, sk) {
+  const table = (sk && sk.cruise) || SKILL.dave.cruise;
+  const pace = table / (refTop() * REF_FRAC);
+  return cruiseFor(G, ((G && G.rivalFrac) || REF_FRAC) * pace);
+}
 
 // ---------------------------------------------------------------- best laps
 
@@ -115,7 +140,9 @@ function spawnRivals(G, cfg) {
     // whole tuning object for a rival off the roster in game/rivals.js, whose
     // driving style is written down per person rather than per archetype.
     const sk = (typeof r.skill === 'string' ? SKILL[r.skill] : r.skill) || SKILL.dave;
-    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: sk });
+    // Cloned, never mutated: SKILL and rivals.js's ROSTER hand out shared
+    // objects, and writing a cruise into one would retune every race at once.
+    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: { ...sk, cruise: rivalCruise(G, sk) } });
     const spot = gridSpot(start, i + 1);
     rv.place(spot.x, spot.z, spot.yaw);
     if (path) rv.setPath(path);
@@ -139,6 +166,19 @@ export function endRace(G) {
 }
 
 // ---------------------------------------------------------------- the stages
+
+// Everything a save can carry, written flat on the mission every tick. save.js
+// keeps numbers and drops objects, so this — and not `m.race` — is what comes
+// back after a reload; onEnter above rebuilds the rest out of it.
+function mirror(m, R, rivals) {
+  m.raceDone = R.me.done;
+  m.raceT = R.t;
+  m.raceLapT = R.lapT;
+  for (let i = 0; i < rivals.length; i++) {
+    m['raceRvA' + i] = rivals[i].along();
+    m['raceRvD' + i] = rivals[i].done;
+  }
+}
 
 export function raceStages(cfg, ctx) {
   const grid = {
@@ -174,24 +214,60 @@ export function raceStages(cfg, ctx) {
     money: cfg.money,
     toast: cfg.win,
 
+    // A save taken mid-race comes back straight into THIS stage — the grid
+    // stage does not run again — and until now that meant a race with no
+    // rivals, no leg table and your checkpoints back at zero, on a clock that
+    // had already been spent. save.js keeps only flat numbers off a mission
+    // (missionSnapshot), so `m.race` (an object) and `m.legs` (an array) are
+    // both gone by the time the job resumes; what survives is the handful of
+    // scalars onTick mirrors below. Those are enough to rebuild all of it.
     onEnter(G, m) {
       const laps = cfg.laps || 1;
       const gr = cfg.gateR || (cfg.cps.length > 1 ? GATE_R : FINISH_R);
+      // No leg table means nobody ran the grid stage in this life: rebuild the
+      // course and put the field back on the road. On a first, ordinary entry
+      // the grid stage has already done it and this is a no-op.
+      if (!m.legs) m.legs = spawnRivals(G, cfg);
       const cps = cfg.cps.map((c) => {
         const p = at(c);
         return { x: p.x, z: p.z, r: gr, label: p.label || '' };
       });
       const line = at(cfg.start);
       const track = new Track(cps, laps, m.legs, { x: line.x, z: line.z });
+      const total = track.n * laps;
+      const saved = Math.max(0, Math.round(m.raceDone || 0));
+      const resuming = saved > 0 || (m.raceT || 0) > 0;
+      // A saved gate index past the finish line, or a course whose gates have
+      // changed under the save, cannot be honestly put back. Fail it out loud
+      // on the first tick rather than start a race nobody can win — a broken
+      // state is worse than a lost job.
+      m.raceBroken = resuming && (saved >= total || !track.n) ? 1 : 0;
       m.race = {
         track, laps,
-        me: { done: 0 },
+        me: { done: m.raceBroken ? 0 : Math.min(saved, total - 1) },
         count: COUNT_IN, lastN: 99, going: false,
-        lapT: 0, bestLap: null, lastLapSaid: 0,
+        lapT: m.raceLapT || 0, bestLap: null, lastLapSaid: 0,
         pos: 1, gap: 0, gapName: '',
-        t: 0,
+        t: m.raceT || 0,
       };
       if (!m.target) m.target = { x: cps[0].x, z: cps[0].z, r: cps[0].r };
+      if (resuming && !m.raceBroken) {
+        // Everybody back where they were. The countdown runs again — three
+        // seconds off the clock is what a reload is worth, and it is the only
+        // fair way to hand the wheel back at 90 km/h.
+        const list = G.rivals || [];
+        for (let i = 0; i < list.length; i++) {
+          const along = m['raceRvA' + i], done = m['raceRvD' + i];
+          if (Number.isFinite(along)) list[i].placeAlong(along);
+          if (Number.isFinite(done)) list[i].done = Math.max(0, Math.min(total, Math.round(done)));
+        }
+        const g = track.gate(m.race.me.done);
+        m.target = { x: g.x, z: g.z, r: g.r };
+        G.routeKey = '';
+        const left = total - m.race.me.done;
+        say(G, `Reprise — ${left} checkpoint${left > 1 ? 's' : ''} à faire`, 2400);
+        return;
+      }
       say(G, cfg.intro || 'Trois. Deux. Un.', 2000);
     },
 
@@ -235,6 +311,11 @@ export function raceStages(cfg, ctx) {
     onTick(G, m, st, dt) {
       const R = m.race;
       if (!R) return null;
+      if (m.raceBroken) {
+        m.raceBroken = 0;
+        return { fail: cfg.resumeFail
+          || 'La course peut pas repartir d’où t’étais rendu. Elle compte pas.' };
+      }
       const v = G.veh;
       const rivals = G.rivals || [];
 
@@ -316,6 +397,7 @@ export function raceStages(cfg, ctx) {
       R.pos = pos;
       R.gap = bestGap;
       R.gapName = best ? best.name : '';
+      mirror(m, R, rivals);
       return null;
     },
   };

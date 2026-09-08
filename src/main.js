@@ -1334,8 +1334,15 @@ function resumeMission(saved) {
   G.veh.passengers = Math.min(spec.seats || 1, saved.passengers || 0);
   G.waypoint = null;
   setEnv(def.timeOfDay);
-  applyStage();
+  // The saved scalars go on BEFORE the stage is entered, not after. They used
+  // to be assigned afterwards, which meant every stage's onEnter ran against a
+  // blank mission and could not see the thing it was supposed to resume: the
+  // race stage rebuilt its rivals on the start line with your checkpoints at
+  // zero, and follow() decided whether the leader had already left by reading
+  // a countdown that had not been restored yet. applyStage() then overwrites
+  // timeLeft off the stage, so the saved clock is re-applied under it.
   Object.assign(G.mission, saved.state || {});
+  applyStage();
   if (saved.timeLeft != null) G.mission.timeLeft = saved.timeLeft;
   hud.setTimer(G.mission.timeLeft);
   // No intro card: you have already read the brief, you were doing the job.

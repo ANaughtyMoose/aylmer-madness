@@ -60,8 +60,10 @@ const { Rival, Track, SKILL, updateRivals, ordinalFr, fmtGap, BAND_AHEAD, STUCK_
   await import('../src/game/race.js');
 const { Cops, CRUISER, HEAT, LOSE_T, LOSE_D, BUST_T, TICKET, MAX_UNITS } =
   await import('../src/game/cops.js');
-const { RACE_MISSIONS, CIRCUIT, CIRCUIT_START, GATE_R } =
+const { RACE_MISSIONS, CIRCUIT, CIRCUIT_START, GATE_R, rivalCruise } =
   await import('../src/game/racejobs.js');
+const { missionSnapshot } = await import('../src/game/save.js');
+const { readFileSync } = await import('node:fs');
 const { MISSIONS } = await import('../src/game/missions.js');
 const { Wallet } = await import('../src/game/money.js');
 const {
@@ -550,6 +552,132 @@ group('playthrough: the blitz clock');
   ok(m.timeLeft > t0 + 14, 'a checkpoint is +15 s', `${r1(t0)} -> ${r1(m.timeLeft)}`);
   ok(m.race.me.done === 1, 'and it counts');
   ok(m.target.x === PLACES.dep.x, 'the marker moves on to the next one');
+}
+
+// ================================================================ 6. the rivals scale with your car
+
+group('a scripted race is run against the car you turned up in');
+{
+  // The four races used race.js's SKILL table straight, and those numbers were
+  // measured against the Ranger on normal difficulty. G.rivalFrac has been set
+  // by calendar.js since Wave 2a and only the ambush was reading it.
+  const ranger = { veh: { spec: carById('ranger') } };
+  const z24 = { veh: { spec: carById('cavalier') } };   // Tyler's Z24, 50 m/s
+  const sk = SKILL.dave;
+  ok(Math.abs(rivalCruise(ranger, sk) - sk.cruise) < 0.01,
+    'in the Ranger on normal, Adam drives exactly the speed he always did',
+    `${r1(rivalCruise(ranger, sk))} m/s`);
+  ok(rivalCruise(z24, sk) > sk.cruise + 1.5,
+    'in a quicker car he has to work for it', `${r1(rivalCruise(z24, sk))} m/s`);
+  ok(rivalCruise({ ...ranger, rivalFrac: 0.92 }, sk) > rivalCruise(ranger, sk) + 1.5,
+    'and hard difficulty moves him again', `${r1(rivalCruise({ ...ranger, rivalFrac: 0.92 }, sk))} m/s`);
+  ok(rivalCruise({ veh: { spec: { topSpeed: 8 } } }, sk) >= 8,
+    'a rival never crawls, whatever you are driving');
+
+  // The table object itself must survive: SKILL and rivals.js's ROSTER hand out
+  // shared objects and a race that wrote into one would retune every other race.
+  const before = SKILL.dave.cruise;
+  const G = makeG('civic');
+  const def = RACE_MISSIONS.find((d) => d.id === 'racedave');
+  const m = { def, stages: def.build({ carName: 'x', seats: 2 }), idx: 0, target: null, timeLeft: null };
+  G.mission = m;
+  m.target = stageTarget(G, m, m.stages[0]);
+  stageEnter(G, m, m.stages[0]);
+  ok(SKILL.dave.cruise === before, 'and the SKILL table is not written through');
+  ok(G.rivals[0].skill.cruise > before,
+    'the Civic makes Adam faster than the table', `${r1(G.rivals[0].skill.cruise)} m/s`);
+  missionCleanup(G, m, true);
+}
+
+// ================================================================ 7. a race resumed out of a save
+
+group('playthrough: a race survives a save and a load');
+{
+  const G = makeG('ranger');
+  const def = RACE_MISSIONS.find((d) => d.id === 'circuit');
+  const stages = def.build({ carName: 'x', seats: 2 });
+  const m = { def, stages, idx: 0, target: null, timeLeft: null, elapsed: 12 };
+  G.mission = m;
+  m.target = stageTarget(G, m, stages[0]);
+  stageEnter(G, m, stages[0]);                       // the grid
+  m.idx = 1;
+  m.target = stageTarget(G, m, stages[1]);
+  stageEnter(G, m, stages[1]);
+  const run = stages[1];
+  for (let i = 0; i < 60 * 4; i++) run.onTick(G, m, run, 1 / 60);   // burn the countdown
+  // Two gates in, then twenty seconds of the rivals actually driving.
+  for (let g = 0; g < 2; g++) {
+    G.veh.reset(CIRCUIT[g].x, CIRCUIT[g].z, 0);
+    run.onTick(G, m, run, 1 / 60);
+  }
+  for (let i = 0; i < 60 * 20; i++) { updateRivals(G, 1 / 60); run.onTick(G, m, run, 1 / 60); }
+
+  const wasDone = m.race.me.done, wasT = m.race.t, wasAlong = G.rivals[0].along();
+  ok(wasDone === 2, 'two checkpoints in', `${wasDone}`);
+  ok(wasAlong > 40, 'and a rival is well down the road', `${r1(wasAlong)} m`);
+
+  const snap = JSON.parse(JSON.stringify(missionSnapshot(G)));
+  ok(snap.state.raceDone === 2, 'the save carries your checkpoints');
+  ok(snap.state.raceRvA0 > 40 && Number.isFinite(snap.state.raceRvD0),
+    'and where each rival had got to', `${r1(snap.state.raceRvA0)} m`);
+  ok(snap.stage === 1, 'and the stage it was in');
+
+  // The reload. This is main.js resumeMission's order: the saved scalars go on
+  // the mission BEFORE the stage is entered, because onEnter is what rebuilds
+  // the course out of them.
+  missionCleanup(G, m, true);
+  const G2 = makeG('ranger');
+  const stages2 = def.build({ carName: 'x', seats: 2 });
+  const m2 = { def, stages: stages2, idx: snap.stage, target: null, timeLeft: null,
+    elapsed: snap.elapsed };
+  G2.mission = m2;
+  Object.assign(m2, snap.state);
+  m2.target = stageTarget(G2, m2, stages2[snap.stage]);
+  stageEnter(G2, m2, stages2[snap.stage]);
+
+  ok(m2.race.me.done === wasDone, 'you come back two checkpoints in, not on the line');
+  ok(Math.abs(m2.race.t - wasT) < 0.05, 'and on the clock you left', `${r1(m2.race.t)} s`);
+  ok(G2.rivals.length === 2, 'both rivals are back on the road', `${G2.rivals.length}`);
+  const drift = Math.abs(G2.rivals[0].along() - wasAlong);
+  ok(drift < 6, 'and where they were, not on the start line', `${r1(drift)} m out`);
+  ok(!G2.parked.saturn && !G2.parked.sunfire, 'their cars are off the street again');
+  const g2 = m2.race.track.gate(wasDone);
+  ok(m2.target.x === g2.x && m2.target.z === g2.z,
+    'the marker is on the gate you were driving to');
+  // ...and it is a race again, not a procession.
+  for (let i = 0; i < 60 * 6; i++) { updateRivals(G2, 1 / 60); run.onTick(G2, m2, stages2[1], 1 / 60); }
+  ok(G2.rivals[0].along() > wasAlong, 'the field carries on from there');
+  missionCleanup(G2, m2, true);
+  ok(!!G2.parked.saturn && !!G2.parked.sunfire, 'and cleanup still puts the cars back');
+}
+
+group('a race that cannot honestly be resumed fails out loud');
+{
+  const G = makeG('ranger');
+  const def = RACE_MISSIONS.find((d) => d.id === 'circuit');
+  const stages = def.build({ carName: 'x', seats: 2 });
+  const m = { def, stages, idx: 1, target: null, timeLeft: null, elapsed: 40 };
+  G.mission = m;
+  Object.assign(m, { raceDone: 999, raceT: 40 });     // a save from a longer course
+  m.target = stageTarget(G, m, stages[1]);
+  stageEnter(G, m, stages[1]);
+  const res = stages[1].onTick(G, m, stages[1], 1 / 60);
+  ok(!!(res && res.fail), 'it fails the job rather than starting an unwinnable one',
+    (res && res.fail) || 'no fail');
+  ok(/course/i.test((res && res.fail) || ''), 'with a line the player can read');
+  missionCleanup(G, m, true);
+}
+
+group('main.js restores the saved scalars before the stage is entered');
+{
+  const src = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const assignAt = src.indexOf('Object.assign(G.mission, saved.state');
+  const applyAt = src.indexOf('applyStage();', assignAt);
+  const prevApply = src.lastIndexOf('applyStage();', assignAt);
+  const resumeAt = src.indexOf('function resumeMission(');
+  ok(assignAt > resumeAt, 'resumeMission assigns the saved state');
+  ok(applyAt > assignAt && prevApply < resumeAt,
+    'and does it BEFORE applyStage(), so the stage onEnter can see it');
 }
 
 // ================================================================ done
