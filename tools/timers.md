@@ -27,7 +27,7 @@ Top speeds for scale: XL 150 · 4-door 172 · Si 178 · Sunfire 176 · L 175 · 
 | sayyad | 2/3 | Fais 3 doughnuts devant chez lui — 0/3 | — | — | — | — |
 | sayyad | 3/3 | Sacre ton camp! 300 m en 25 s | — | 25 | — | — |
 | **sayyad** | **total** | 3 stages | **623** | **25** | — | 56 |
-| poutine | 1/2 | Galeries Aylmer — le casse-croûte de la porte sud | 1,417 | — | — | — |
+| poutine | 1/2 | Le casse-croûte des Galeries — la commande de Sayyad | 1,417 | — | — | — |
 | poutine | 2/2 | Livre chez Sayyad — 75 Denise-Friend | 1,178 | 95 | 44.7 | 106 | <!-- max 40 km/h -->
 | **poutine** | **total** | 2 stages | **2,595** | **95** | — | 234 |
 | curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant minuit | 3,189 | 210 | 54.7 | 287 | <!-- max 35 km/h -->

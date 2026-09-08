@@ -261,7 +261,11 @@ const CORE_MISSIONS = [
           // so the objective line may point at a thing and not at a food court
           // nobody can walk into. It has no business name on purpose: nobody
           // has a researched one for 2004 (docs/VERIFY.md §4).
-          text: 'Galeries Aylmer — le casse-croûte de la porte sud',
+          // Both halves are load-bearing and tools/smoke_firstjob.mjs holds the
+          // line on the second: the counter is what you drive to, and Sayyad is
+          // whose errand this is. Drop his name and it goes back to reading as
+          // Tom's craving, which is the thing the first playtest rejected.
+          text: 'Le casse-croûte des Galeries — la commande de Sayyad',
           sub: 'GPS jusqu’au pilier jaune — le comptoir sous l’auvent orange, à gauche des portes. C’est payé, c’est à son nom.',
           hint: 'Les Galeries sont sur le chemin d’Aylmer. La porte sud donne sur le stationnement, l’auvent orange est dessus. Tab pour la carte.',
           at: 'foodcourt', radius: 14,
