@@ -56,6 +56,7 @@ export const BUDGET = {
   mike:       { near: 7000,  far: 1000, site: 600 },
   lordaylmer: { near: 8000,  far: 1200, site: 800 },
   galeries:   { near: 8000,  far: 1400, site: 900 },
+  golf:       { near: 4000,  far: 1000, site: 600 },
 };
 
 // ---------------------------------------------------------------- ring maths
@@ -1442,6 +1443,135 @@ function siteGaleries(K) {
   lightStandard(K, GA_FX + GA_NZ * 13 + GA_NX * 15, GA_FZ - GA_NX * 13 + GA_NZ * 15, 8, GA.yaw);
 }
 
+// --- J. Club de Golf Gatineau, 160 rue du Golf -----------------------------
+//
+// PLAYTEST #36 and docs/HANDOFF.md: « renders as three bare brown wall slabs
+// with no roof. » It was not literally roofless — world.js carries a
+// named-clubhouse special case that drops a gable on it — but that gable is
+// built over the footprint's BOUNDING BOX, and this footprint is a 28-sided
+// blob 48 m by 43 m with a re-entrant west wall, a seven-metre step-out on the
+// east and an entrance block projecting north toward the parking loop. So the
+// roof plane hung seven metres past the east wall over nothing at all, and from
+// the cart apron the building read as brown wall with a green sheet floating
+// above it. A bounding box is the wrong shape for this building.
+//
+// So it gets what every other landmark in town gets: the real OSM outline as
+// walls, and a hipped roof that FOLLOWS that outline. The hip is a homothety of
+// the ring toward its own centroid — a scaled copy of a simple polygon is
+// always simple, which an inward offsetRing of a ring with two-metre entrance
+// bays emphatically is not (it would fold those bays inside out). The pitch
+// therefore varies round the building, steep over the short north bays and
+// shallow over the 36 m course front, which is what a big rambling clubhouse
+// roof does anyway.
+//
+// Everything else here is the ordinary vocabulary of this file: plinth, punched
+// windows on the long elevations, a projecting fascia at the eave, a porte-
+// cochère over the north doors where you drop your bag, a veranda along the
+// course side, a lantern on the ridge, and paving so the cart apron reads as an
+// apron. Name and civic number are OSM's own (MAP.buildings 235894221,
+// « Club de Golf Gatineau », 160 Rue du Golf); nothing here is invented.
+const GC = { id: 235894221, cx: 1257.3, cz: -1311, yaw: 0.142 };
+const GC_EAVE = 5.4;              // OSM says the mass is 6.2 m; this is the eave
+const GC_RISE = 3.9;              // ...and the lantern sits on top of that
+const GC_ROOF = 0x35543f;         // dark green metal, the one on every clubhouse
+const GC_WALLS = 'stucco';
+// Local frame: +u along the building's own bearing, +v toward rue du Golf. The
+// service loop OSM calls Rue du Golf is 46 m up +v from the centroid, the
+// course is off the far end of -v.
+const GC_U = [Math.cos(GC.yaw), Math.sin(GC.yaw)];
+const GC_V = [-Math.sin(GC.yaw), Math.cos(GC.yaw)];
+const gcAt = (u, v) => [GC.cx + u * GC_U[0] + v * GC_V[0], GC.cz + u * GC_U[1] + v * GC_V[1]];
+
+// A homothety of a ring about a point. Unlike offsetRing this cannot fold a
+// re-entrant corner through itself, which is the whole reason the roof above is
+// built this way; the price is that the horizontal run is proportional to how
+// far an edge sits from the centre, so the pitch is not constant.
+function scaleRing(ring, k, cx, cz) {
+  return ring.map((p) => [cx + (p[0] - cx) * k, cz + (p[1] - cz) * k]);
+}
+
+// One course of a hipped roof: a band of trapezoids from `lo` at y0 to `hi` at
+// y1. Same winding rule as walls() and prism() — negative shoelace means
+// walking i -> i+1 and lifting gives an outward-and-up normal.
+function hipCourse(K, lo, hi, y0, y1, col) {
+  const n = lo.length, fwd = shoelace(lo) < 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const a = fwd ? i : j, b = fwd ? j : i;
+    K.mb.quad([lo[a][0], y0, lo[a][1]], [lo[b][0], y0, lo[b][1]],
+      [hi[b][0], y1, hi[b][1]], [hi[a][0], y1, hi[a][1]], col);
+  }
+}
+
+function buildGolf(K, ring, tris) {
+  const mb = K.mb;
+  // Long windows on the elevations that face something — the course front and
+  // the parking loop — and nothing on the two-metre service bays, which is
+  // where the kitchen and the cart barn are.
+  const rows = [{ y0: 1.05, y1: 3.15, w: 1.9, gap: 1.15, margin: 1.4, mullions: 2, sill: 0.12 }];
+  walls(K, ring, 0, GC_EAVE, {
+    mat: GC_WALLS, tint: tint(K, GC_WALLS, 1.02), rows,
+    jamb: 0xb9b2a2, reveal: 0.22, bar: TRIM,
+    glassLo: GLASS_LO, glassHi: GLASS_HI,
+  }, (i, L) => (L > 7 ? rows : null));
+  band(K, ring, tris, 0, 0.5, 0.14, 0x8f8a80);              // plinth
+
+  // ---- the roof. A projecting fascia at the eave first: it is the thing that
+  // was missing, because a wall that stops dead against the sky is what « bare
+  // slab » means. band() hands back the ring it offset, which is the eave line.
+  const eave = band(K, ring, tris, GC_EAVE, 0.44, 0.95, TRIM);
+  const y0 = GC_EAVE + 0.44;
+  const mid = scaleRing(ring, 0.60, GC.cx, GC.cz);
+  const top = scaleRing(ring, 0.28, GC.cx, GC.cz);
+  off(K);
+  hipCourse(K, eave, mid, y0, y0 + GC_RISE * 0.74, flat(GC_ROOF));
+  hipCourse(K, mid, top, y0 + GC_RISE * 0.74, y0 + GC_RISE, flat(GC_ROOF, 1.07));
+  mb.capPoly(top, tris, y0 + GC_RISE, flat(GC_ROOF, 1.13));
+
+  // ---- the lantern on the ridge: 40 triangles, and it is what you pick out
+  // from the chemin d'Aylmer when the fairway is between you and the building.
+  const ridge = y0 + GC_RISE;
+  mb.tower(GC.cx, ridge, GC.cz, 3.4, 3.4, 1.6, flat(TRIM),
+    { yaw: -GC.yaw, noBottom: true, top: flat(TRIM, 0.9) });
+  mb.roof(GC.cx, ridge + 1.6, GC.cz, 4.0, 4.0, 1.1, flat(GC_ROOF, 1.05), -GC.yaw, 0.3,
+    { gableCol: flat(GC_ROOF, 0.9) });
+
+  // ---- the north doors, under a porte-cochère on the apron side. The entrance
+  // block is the part of the footprint that projects toward the loop (local u
+  // 4 to 15, v out to 15.8), so the doors go in the middle of its end wall.
+  const nx = GC_V[0], nz = GC_V[1];
+  for (const s of [-1.3, 1.3]) {
+    const [px, pz] = gcAt(9.6 + s, 15.9);
+    mb.panel(px, 1.2, pz, 2.2, 2.4, nx, nz, flat(0x24333c), null, 0.05);
+    mb.panel(px, 2.52, pz, 2.2, 0.24, nx, nz, flat(TRIM), null, 0.06);
+  }
+  const [kx, kz] = gcAt(9.6, 19.2);
+  canopy(K, kx, 3.6, kz, 13, 6.6, GC.yaw, 0xd8d3c8, K.detail ? 4 : 0);
+
+  // ---- the veranda along the course front, which is the whole point of a
+  // clubhouse. Deck, posts, rail; the canopy holds the site's bounds so the
+  // detail-only railing cannot change the silhouette at the LOD swap.
+  const [vx, vz] = gcAt(1.5, -30.0);
+  mb.flatRot(vx, vz, 30, 5.4, 0.42, -GC.yaw, flat(0x8f7a5c));
+  canopy(K, vx, 3.4, vz, 30, 5.4, GC.yaw, 0xd8d3c8, K.detail ? 6 : 0);
+  const [rax, raz] = gcAt(-13.5, -32.5), [rbx, rbz] = gcAt(16.5, -32.5);
+  railing(K, rax, 0.42, raz, rbx, rbz, 0.98, 0x35543f);
+  steps(K, ...gcAt(1.5, -32.7), -GC_V[0], -GC_V[1], 3.2, 3, 0.16, 0.32, 0x9a948a);
+}
+
+function siteGolf(K) {
+  // The cart apron in front of the doors, the loop's stalls beyond it, the walk
+  // along the north elevation, and the flagpole every golf club in Québec has
+  // standing between the door and the first tee.
+  K.mb.flatRot(...gcAt(9.6, 23.5), 30, 13, 0.036, -GC.yaw, flat(0xb0aa9e));
+  lot(K, ...gcAt(2, 34.5), 44, 14, GC.yaw, { rows: 1 });
+  walk(K, ...gcAt(-19, 12.5), ...gcAt(3.5, 12.5), 2.4, 0xb3ada1);
+  crossing(K, ...gcAt(9.6, 29.5), 9, 3.0, GC.yaw + Math.PI / 2, 5);
+  lightStandard(K, ...gcAt(-9, 26), 8, GC.yaw);
+  lightStandard(K, ...gcAt(27, 26), 8, GC.yaw);
+  flagpole(K, ...gcAt(-15.5, 19), 9.5, 0x2b4d9b);
+}
+
 // ============================================================ registry
 //
 // Each site: where it is, how big a sphere it fills (LOD swap + frustum test),
@@ -1496,6 +1626,13 @@ export const SITES = [
       yaw: GA.yaw, w: 5.4, h: 1.35, y: 1.5,
       text: 'LES GALERIES D’AYLMER', sub: 'Entrée sud · Casse-croûte du food court',
       board: '#6a4a1c' } },
+  // The clubhouse. `keepRing`, because the OSM outline is the building and the
+  // whole bug was that world.js roofed a box instead of that outline.
+  { key: 'golf', cx: GC.cx, cz: GC.cz, r: 62, near: HERO_NEAR + 40,
+    hide: [{ id: GC.id, at: [GC.cx, GC.cz], keepRing: true }],
+    build: buildGolf, site: siteGolf,
+    sign: { x: gcAt(-7, 30)[0], z: gcAt(-7, 30)[1], yaw: GC.yaw, w: 5.0, h: 1.3, y: 1.4,
+      text: 'CLUB DE GOLF GATINEAU', sub: '160, rue du Golf · Aylmer', board: '#20563a' } },
 ];
 
 // --------------------------------------------------------- footprint removal

@@ -141,6 +141,51 @@ if (/school|école|junior|high/i.test(innSign.text + ' ' + innSign.sub)) {
 }
 ok('the Auberge Symmes is signed as an inn/museum, never as a school');
 
+// ------------------------------------------------------------ the clubhouse
+//
+// PLAYTEST #36: « three bare brown wall slabs with no roof ». world.js does
+// carry a named-clubhouse special case, but it gables the footprint's BOUNDING
+// BOX, and this footprint is a 28-sided blob with a 7 m step-out on the east —
+// so the roof hung over nothing and the walls ran into the sky. The site is
+// landmarks.js's now. Three things have to stay true for that to hold.
+{
+  const golf = SITES.find((s) => s.key === 'golf');
+  if (!golf) fail('there is no golf clubhouse site');
+  else {
+    // 1. world.js must not roof it as well: two roofs in one place is worse
+    //    than none, and landmarks.js is imported before buildWorld runs.
+    const b = MAP.buildings.find((q) => q.id === 235894221);
+    if (!b) fail('the clubhouse footprint vanished from MAP');
+    else if (b.name) fail('world.js can still see the clubhouse by name — it will roof it too');
+    else ok('the OSM clubhouse footprint is collapsed, so world.js no longer roofs it');
+
+    // 2. the roof has to be ABOVE the walls and inside the outline, not a plane
+    //    hanging over the car park. The OSM mass is 6.2 m; the near bake must
+    //    reach higher than that and must not reach wider than the footprint
+    //    plus an eave.
+    const bake = bakeSite(golf, STUB);
+    const N = bbox(bake.near);
+    if (N.h < 7.5) fail(`the clubhouse is only ${N.h.toFixed(1)} m tall — the roof is missing`);
+    else ok(`the clubhouse stands ${N.h.toFixed(1)} m to the lantern, over a 6.2 m mass`);
+    // The real OSM outline reaches 33.6 m from its centroid at the far
+    // south-west corner. The veranda and the porte-cochère legitimately project
+    // past the walls; seven metres of roof over open grass is what this test
+    // exists to stop coming back, so 42 m is the whole allowance.
+    const reach = Math.max(
+      Math.hypot(N.min[0] - golf.cx, N.min[2] - golf.cz),
+      Math.hypot(N.max[0] - golf.cx, N.max[2] - golf.cz));
+    if (reach > 42) {
+      fail(`the clubhouse mesh reaches ${reach.toFixed(1)} m from centre against a `
+        + '33.6 m footprint — something is hanging over nothing again');
+    } else ok(`nothing reaches past ${reach.toFixed(1)} m — no roof over open grass`);
+
+    // 3. you cannot drive through it.
+    const col = bakeColliders(golf);
+    if (col.count < 20) fail(`the clubhouse has only ${col.count} wall colliders`);
+    else ok(`the clubhouse outline is ${col.count} wall colliders, not a box`);
+  }
+}
+
 // ---------------------------------------------------------------- the couch
 
 if (Math.hypot(COUCH.x - MIKE_MAPLE.x, COUCH.z - MIKE_MAPLE.z) > 4.0) {

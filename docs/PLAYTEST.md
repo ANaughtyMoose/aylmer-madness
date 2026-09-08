@@ -59,7 +59,7 @@ needs a call).
 | ~~33~~ | **The cart job is 25 minutes long** — **stale: `golfjob.js` now drops at the Aigle and `BACK_TIME` is 360 s** | Measured over the road graph: **9 979 m**, of which the return leg alone is 4 979 m — 773 s at the cart's 24 km/h *flat out with no traffic*. The brief asked for “generous, 6 min”; six minutes is not generous here, it is impossible, so the marshal timer shipped at a measured 1 200 s. The job works; it is just a very long crawl. **Needs an owner call**: move the drop-off to somewhere within ~1 km of the clubhouse and 360 s works as written (one constant, `DROP`, at the top of `golfjob.js`). | **blocker** (design) | open |
 | 34 | Reverse, and the cart downhill | Not touched — the reverse feel is FEEL's. Note for them: the cart's spec asks for “30 km/h downhill”, which the model cannot do — `Vehicle.update`'s longitudinal acceleration is engine + drag only, and a slope only writes `pitch` and `vy`. There is no along-slope gravity term for any car. | annoying | feel |
 | 35 | Chase camera on a 2.4 m vehicle | `CAMS[0].dist` is 9.2 m, tuned for a 4.5 m car. Behind the golf cart it reads as watching a bug from across a fairway. | cosmetic | feel |
-| 36 | Club de Golf Gatineau's clubhouse | Renders as three bare brown wall slabs with no roof, and the chase camera clips straight through them. Every other landmark in town is fine; this footprint is not getting an archetype. | cosmetic | open |
+| ~~36~~ | ~~Club de Golf Gatineau's clubhouse~~ **fixed 2026-09-08** | It was not archetype-less: world.js has a named-clubhouse case that gables the footprint's BOUNDING BOX, and this footprint is a 28-sided blob with a 7 m step-out, so the roof hung over open grass and the walls ran into the sky. It is a hero site in `landmarks.js` now — the real OSM outline as walls, a hipped roof built as a homothety of that outline, an eave fascia, a porte-cochère, a veranda on the course side and a lantern on the ridge. `docs/shots/golf-clubhouse.jpg`. | cosmetic | fixed |
 | 37 | `node tools/car_views.mjs` | Runs, draws the cart correctly (2.40 × 1.22 × 1.80 m, +0.1 % / +1.5 % / +0.0 %, wheels proud 0.070 m) and still exits 1 — because the **Ranger** measures 2.12 m wide against a 1.77 m spec: its XLT chrome mirror heads are drawn even under `{ noMirrors: true }`. Pre-existing, not touched. | cosmetic | open |
 | 38 | Console on every boot | ~30 `404` lines for `assets/cars/*/*.png` and `assets/radio/playlist.json`. Both are optional by design, but a real error is now very easy to miss in the noise. | cosmetic | open |
 
@@ -97,7 +97,8 @@ needs a call).
   (**open**).
 - The golf job is 10 km of driving at 24 km/h (**open**, and the one thing on
   this list that changes whether the job is fun).
-- The clubhouse footprint renders as bare walls (**open**).
+- ~~The clubhouse footprint renders as bare walls~~ (**fixed** — hero site in
+  `landmarks.js`, `docs/shots/golf-clubhouse.jpg`).
 - The Ranger's mirrors ignore `noMirrors`, so `car_views.mjs` exits 1 (**open**).
 
 ## Screenshots
