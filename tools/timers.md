@@ -8,13 +8,13 @@ draws. `implied km/h` is what the current timer demands as a door-to-door
 average, stops, traffic and the stage radius included. `@40 km/h` is what the
 timer would be at a relaxed 40 km/h average, as a starting point for tuning.
 
-Top speeds for scale: XL 150 · 4-door 172 · Si 178 · Sunfire 176 · Ciera 168 · Z24 180 · Caravan 158 · urbain 92 · Club 24 km/h.
+Top speeds for scale: XL 150 · 4-door 172 · Si 178 · Sunfire 176 · L 175 · CE 170 · Ciera 168 · Z24 180 · Caravan 158 · urbain 92 · Club 24 km/h.
 
 | mission | stage | target | route m | timer s | implied km/h | @40 km/h |
 |---|---|---|---:|---:|---:|---:|
-| poutine | 1/2 | Galeries Aylmer — le food court | 1,392 | — | — | — |
-| poutine | 2/2 | Livre chez Sayyad — 75 Denise-Friend | 1,154 | 95 | 43.7 | 104 | <!-- max 40 km/h -->
-| **poutine** | **total** | 2 stages | **2,547** | **95** | — | 229 |
+| alternateur | 1/2 | Canadian Tire — le comptoir des commandes | 946 | — | — | — |
+| alternateur | 2/2 | Ramène la boîte au 299 Chemin Fraser | 893 | — | — | — | <!-- max 40 km/h -->
+| **alternateur** | **total** | 2 stages | **1,838** | **—** | — | 165 |
 | dep | 1/2 | Dépanneur Palmyra — quatre slush | 3,977 | — | — | — |
 | dep | 2/2 | Parc des Cèdres — avant que ça fonde | 1,103 | 95 | 41.8 | 99 |
 | **dep** | **total** | 2 stages | **5,080** | **95** | — | 457 |
@@ -27,6 +27,9 @@ Top speeds for scale: XL 150 · 4-door 172 · Si 178 · Sunfire 176 · Ciera 168
 | sayyad | 2/3 | Fais 3 doughnuts devant chez lui — 0/3 | — | — | — | — |
 | sayyad | 3/3 | Sacre ton camp! 300 m en 25 s | — | 25 | — | — |
 | **sayyad** | **total** | 3 stages | **623** | **25** | — | 56 |
+| poutine | 1/2 | Galeries Aylmer — le casse-croûte de la porte sud | 1,417 | — | — | — |
+| poutine | 2/2 | Livre chez Sayyad — 75 Denise-Friend | 1,178 | 95 | 44.7 | 106 | <!-- max 40 km/h -->
+| **poutine** | **total** | 2 stages | **2,595** | **95** | — | 234 |
 | curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant minuit | 3,189 | 210 | 54.7 | 287 | <!-- max 35 km/h -->
 | **curfew** | **total** | 1 stages | **3,189** | **210** | 54.7 | 287 |
 | cv | 1/3 | CV #1 — Tim Hortons, rue Principale | 1,566 | — | — | — |
@@ -36,8 +39,8 @@ Top speeds for scale: XL 150 · 4-door 172 · Si 178 · Sunfire 176 · Ciera 168
 | divan | 1/2 | Chez Mike — 129 avenue Frank-Robinson | 272 | — | — | — |
 | divan | 2/2 | Le divan dans l’arbre | — | — | — | — |
 | **divan** | **total** | 2 stages | **272** | **—** | — | 24 |
-| school | 1/1 | Heritage College — secteur Hull | 11,996 | 420 | 102.8 | 1,080 |
-| **school** | **total** | 1 stages | **11,996** | **420** | 102.8 | 1,080 |
+| school | 1/1 | Heritage College — secteur Hull | 11,996 | 1320 | 32.7 | 1,080 |
+| **school** | **total** | 1 stages | **11,996** | **1320** | 32.7 | 1,080 |
 | tour | 1/5 | Spot 1/5 — le phare de la marina | 1,341 | 100 | 48.3 | 121 |
 | tour | 2/5 | Spot 2/5 — Aréna Frank-Robinson | 1,320 | 95 | 50.0 | 119 |
 | tour | 3/5 | Spot 3/5 — chemin d'Aylmer, devant les Galeries | 1,260 | 95 | 47.7 | 113 |
@@ -55,6 +58,21 @@ Top speeds for scale: XL 150 · 4-door 172 · Si 178 · Sunfire 176 · Ciera 168
 | **highwayhull** | **total** | 3 stages | **21,067** | **670** | 113.2 | 1,896 |
 | chelsea | 1/1 | Monte jusqu’au village de Chelsea | 9,817 | 600 | 58.9 | 884 | <!-- max 45 km/h -->
 | **chelsea** | **total** | 1 stages | **9,817** | **600** | 58.9 | 884 |
+| suis | 1/1 | Suis la Civic ROUGE jusqu’à la Plage des Cèdres | 1,250 | — | — | — |
+| **suis** | **total** | 1 stages | **1,250** | **—** | — | 112 |
+| dames | 1/2 | Margaret — 299 Chemin Fraser | 0 | — | — | — |
+| dames | 2/2 | Église Saint-Paul, rue Principale | 2,519 | — | — | — |
+| **dames** | **total** | 2 stages | **2,519** | **—** | — | 227 |
+| vitres | 1/2 | Canadian Tire — la commande de Norm | 146 | — | — | — |
+| vitres | 2/2 | Garage Norm Lafleur & Fils | 93 | — | — | — |
+| **vitres** | **total** | 2 stages | **238** | **—** | — | 21 |
+| seme | 1/2 | Sème la police | — | 160 | — | — |
+| seme | 2/2 | Plage des Cèdres — Mike t’attend | 1,775 | — | — | — |
+| **seme** | **total** | 2 stages | **1,775** | **160** | — | 160 |
+| sunfire | 1/1 | Trouve le Sunfire | — | 420 | — | — |
+| **sunfire** | **total** | 1 stages | **0** | **420** | 0.0 | 0 |
+| quatre | 1/1 | Ramène tout le monde | 798 | 600 | 4.8 | 72 |
+| **quatre** | **total** | 1 stages | **798** | **600** | 4.8 | 72 |
 | racedave | 1/2 | Le stationnement de la marina | 0 | — | — | — |
 | racedave | 2/2 | Galeries d’Aylmer — le stationnement | — | — | — | — |
 | **racedave** | **total** | 2 stages | **0** | **—** | — | 0 |

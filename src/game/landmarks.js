@@ -1417,7 +1417,32 @@ function buildGaleries(K) {
   const kx = GA_FX + GA_NX * 3.4, kz = GA_FZ + GA_NZ * 3.4;
   canopy(K, kx, 3.5, kz, 14, 6.6, GA.yaw, 0xd6d1c6, K.detail ? 4 : 0);
 
+  // ---- the casse-croûte counter, left of the doors.
+  //
+  // docs/NEXT.md §4: « the job sends you to the Galeries food court and there is
+  // nothing there to see. Either build the casse-croûte or send the job to one
+  // of the 120 real storefronts. » The 120 in assets/text/storefronts.json are
+  // written, not researched, and nobody has a real 2004 name for the counter
+  // inside this mall — so per docs/VERIFY.md §4 it gets no name at all. What it
+  // gets is the thing a driver can actually see from the far side of the lot
+  // and walk up to: a takeout window with a shelf, its own orange awning, and a
+  // bench to stand the two poutines on while you find your keys.
+  const cs = -4.2;                                   // along the wall, left of the doors
+  const cwx = GA_FX - GA_NZ * cs, cwz = GA_FZ + GA_NX * cs;
+  mb.panel(cwx, 1.62, cwz, 3.2, 1.45, GA_NX, GA_NZ, flat(0x1c262e), null, 0.05);   // the window
+  mb.panel(cwx, 0.82, cwz, 3.4, 0.22, GA_NX, GA_NZ, flat(CONCRETE), null, 0.09);   // the shelf
+  canopy(K, cwx + GA_NX * 0.85, 2.72, cwz + GA_NZ * 0.85, 4.0, 1.7, GA.yaw, GA_ORANGE, 0);
+
   if (!K.detail) return;
+  // The bench under the awning — 24 triangles, and it is the difference between
+  // « a door » and « somewhere people stand around eating chips ».
+  const bx = cwx + GA_NX * 3.4, bz = cwz + GA_NZ * 3.4;
+  mb.box(bx, 0.46, bz, 2.0, 0.09, 0.46, flat(0x8f7a5c), { yaw: -GA.yaw });
+  mb.box(bx - GA_NX * 0.24, 0.72, bz - GA_NZ * 0.24, 2.0, 0.42, 0.08, flat(0x8f7a5c),
+    { yaw: -GA.yaw });
+  for (const u of [-0.82, 0.82]) {
+    mb.post(bx - GA_NZ * u, 0, bz + GA_NX * u, 0.08, 0.44, flat(0x6d6a64));
+  }
   // Bollards down the door line, a rack, and the bin every mall door has.
   for (let i = -3; i <= 3; i++) {
     if (!i) continue;

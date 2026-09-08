@@ -130,9 +130,19 @@ fifth and reads as Sayyad's order. Still to do:
 
 - **The destinations repeat.** Poutine express and the dep run are effectively
   the same errand twice. Each job should go somewhere it has not been.
-- **The poutine place does not exist.** The job sends you to the Galeries food
+- ~~**The poutine place does not exist.** The job sends you to the Galeries food
   court and there is nothing there to see. Either build the casse-croûte or send
-  the job to one of the 120 real storefronts.
+  the job to one of the 120 real storefronts.~~ **Built, 2026-09-08.** Half of it
+  was already there — the Galeries' south door has been a hero site since PR
+  #4493ab4 (vestibule, orange awning band, canopy, doors, board) — and the job
+  aims at that door, not at the mall's centroid. What was missing is the counter
+  itself: `buildGaleries` now puts a takeout window with a shelf, its own orange
+  awning and a bench left of the doors, and the job's brief and objective line
+  name it (« le casse-croûte de la porte sud ») instead of a food court nobody
+  can walk into. **No business name**: the 120 in `assets/text/storefronts.json`
+  are written, not researched, and nobody has a real 2004 name for that counter
+  — `docs/VERIFY.md` §4. `START_UNLOCKS.mall` is unchanged; the destination
+  never left the Galeries.
 - **Unlocks should vary**: cash, a car, a tool, access to a place, a person who
   starts talking to you. Right now it is only ever a car.
 - Written material already in `assets/text/` and unwired: `arc.json` (five-beat

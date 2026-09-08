@@ -249,15 +249,21 @@ const CORE_MISSIONS = [
     // was — it is Sayyad's craving, Sayyad's order and Sayyad's money. Tom is
     // the one with the truck, which is the whole social contract of this summer.
     title: 'Poutine express',
-    brief: 'Sayyad a une envie pis pas de char à midi. Deux grosses au food court des Galeries, sauce à part, pis ça refroidit vite.',
+    brief: 'Sayyad a une envie pis pas de char à midi. Deux grosses au casse-croûte de la porte sud des Galeries, sauce à part, pis ça refroidit vite.',
     giver: 'home',
     timeOfDay: 'day',
     build(ctx) {
       return [
         {
-          text: 'Galeries Aylmer — la commande de Sayyad',
-          sub: 'GPS jusqu’au pilier jaune — l’entrée sud, sous l’auvent orange. C’est payé, c’est à son nom.',
-          hint: 'Les Galeries sont sur le chemin d’Aylmer. La porte sud donne sur le stationnement. Tab pour la carte.',
+          // docs/NEXT.md §4 asked for a destination that exists. It does now:
+          // the counter is a real window in landmarks.js's Galeries door — its
+          // own orange awning, a shelf and a bench, left of the glass doors —
+          // so the objective line may point at a thing and not at a food court
+          // nobody can walk into. It has no business name on purpose: nobody
+          // has a researched one for 2004 (docs/VERIFY.md §4).
+          text: 'Galeries Aylmer — le casse-croûte de la porte sud',
+          sub: 'GPS jusqu’au pilier jaune — le comptoir sous l’auvent orange, à gauche des portes. C’est payé, c’est à son nom.',
+          hint: 'Les Galeries sont sur le chemin d’Aylmer. La porte sud donne sur le stationnement, l’auvent orange est dessus. Tab pour la carte.',
           at: 'foodcourt', radius: 14,
           toast: 'Deux poutines. Sauce à part, comme il a dit trois fois.',
         },
