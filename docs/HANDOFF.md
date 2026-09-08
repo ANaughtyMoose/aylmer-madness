@@ -106,6 +106,37 @@ Also new: `docs/GEMINI_CINEMATIC_PROMPT.md` (PR #33) is ready for Thomas to
 paste into Antigravity — the undelivered look-pass Parts 5/6/8 plus the cold
 open storyboard, colour grade, beat timings and a sound sheet.
 
+## 2026-09-08, later — Gemini's cinematic pass came back; Thomas resumes Monday 14 Sept
+
+Thomas ran `docs/GEMINI_CINEMATIC_PROMPT.md` in Antigravity (Gemini's transcript
+said branch `main (9d9dbed)`, load 4-6). He then fed it his own 2004 photograph,
+his real plate, aerial drone photos of the marina, and asked for the Ranger
+skin atlas to be used. His verdict on the result: the **inputs are great, some
+of the art is total shit and has to be redone**. He used the last of his weekly
+API capacity on the six agents and this; **nothing resumes before Monday
+14 September 2026**. Do only what is asked, in order, three agents at most.
+
+What is on disk, none of it committed (all under `gemini-inbox/`, now gitignored
+where it carries his likeness or plate):
+
+| Where | What | Verdict (Claude looked, Thomas looked) |
+|---|---|---|
+| `cinema/COLDOPEN.md`, `cinema/coldopen/shot1..7_*.png`, `coldopen/keys.json` | 8 s cold open, seven painterly/photoreal frames, camera keys in car-local metres | **Good.** shot1 is the white Ranger, rusted, black bumpers, in the gravel driveway at « 299 » at dawn — exactly the truck. Use the frames as reference for the in-engine drift and the keys as the first pass of `coldopen.js`'s camera table. Check the keys are car-local (+Z forward, +X driver's left) before pasting. |
+| `cinema/GRADE.md`, `cinema/grade/*_graded.png`, `sun_angles.json`, `apply_grade.py`, `extend_lighting.py` | Tone curves, split-tone matrices, sun ephemeris at 45.4° N, lens rules, four before/after grades of committed screenshots | **Probably usable, unverified.** Validate the sun angles against a known ephemeris for 2004-06-26 07:40 EDT before wiring (Gemini's numbers have been confidently wrong before). |
+| `cinema/BEATS.md`, `cinema/beats/*.png`, `render_beats.py` | Phone, mission-passed, seam, endings — HUD mocks drawn by a Python script | **Bad.** Programmatic overlays with missing glyphs (boxes in « E ⊠ Décrocher »), dead layout, a translation panel pasted over the minimap. Keep the timing tables in BEATS.md if they read sanely; redo the mocks or skip them — the story agent's real HUD is the better reference. |
+| `cinema/SOUND.md` | Cue sheet: engine synth, radio, CC0 Foley from CATALOGUE.md, dBFS levels, ducking | Not yet read. Check every sample's licence is the first column of CATALOGUE.md before use. |
+| `look/FEEL.md` | 14 tuned constants (CAMS, Ranger spec, handbrake, roll/pitch rates, camera lag, FOV kick) with before/after and MM2/Burnout/GTA SA comparisons | **Numbers to weigh, not paste.** Gemini's proposed `CAMS` pitches the driver cam to -0.20 and cuts its fovAdd — the cockpit agent set those by looking at the hood; the jitter branch is changing the smoothing constants Gemini also touched. Reconcile by hand. The full list is in Gemini's transcript summary (camYaw lag 5.5→4.2, kxz 9→8.5, ky 6→4.5, FOV kick +0.22 above 8 m/s, Ranger accel 4.1 / brake 8.4 / grip 0.84 / hbGrip 0.54 / hbYaw 1.28, roll 0.024 / pitch 0.016). |
+| `look/ui/STYLE.md`, `seam_aylmer_ottawa.png`, `seam_ottawa_aylmer.png`, `radio/radio_*.png` (7) | 2004 style guide, two seam cards, seven station bumper stickers | Seam cards not yet looked at; STYLE.md not read. Radio stickers name CKOI 94.9, MAX 105.3, CHLL 101.9, CJRC 104.7, CKUQ 97.9, CFRL 88.5, CKOT 102.7 — **check these against `src/game/radio.js`**; VERIFY.md §4 records Gemini inventing call signs before. |
+| `look/ui/title_key_art.png`, `tom_matte_*.png`, `tom_photo_2004.jpg` | Title key art built from Thomas's photo | **Total shit** (Thomas's words): a posterized cut-out of his photo, a clip-art white box for the truck, sawtooth trees. Redo from scratch: painterly like the storyboard frames, the truck from the skin atlas, no cut-out compositing. The photo and mattes carry his likeness — gitignored, never commit. |
+| `look/cars/ranger/{side,top,front,rear,dashboard}.png`, `civic/dashboard.png`, `manifest.json`, `plate_766_nbz*.png` | Ranger views, two dashboards, his real plate as a texture | **Off spec.** `side.png` is a labelled collage (« SIDE VIEW (DRIVERS) », « TWO TIRES »), not the clean 2:1 orthographic on white that `assets/cars/README.md` and `tools/car_views.mjs` need; the dashboard was corrected to a floor 5-speed after Thomas caught the automatic column shifter. Plate files carry his real registration — gitignored, never commit, never bake into a shipped texture. Redo the four views to spec. |
+| `look/MARINA.md`, `look/marina_topography_plan.png` | Real marina/Parc des Cèdres layout from his drone photos: L-shaped rip-rap jetty with the lighthouse, four comb-dock piers, red-orange hip-roof pavilion, boat ramp with mast crane, dry-storage yard, the Sentier des Voyageurs path, the beach with lifeguard chair; drop-in `buildMarina`/`siteMarina` for `landmarks.js` | **Promising, unverified.** The drone photos are spring; the doc says how to summer it. Have the places agent (or a fresh one) validate the geometry against `data/buildings.json` and the water mask before pasting the drop-in. |
+| `showcase.html` | Gemini's gallery of all of the above | Reference only. |
+
+Rules learned from this pass, for the next Gemini prompt:
+- **Say what medium each deliverable is.** Gemini produced good images where it generated images (storyboard) and garbage where it wrote Python to composite (title, beats, orthos). Ask for generated images to spec, forbid script-composited mock-ups.
+- **The truck is white.** It produced a dark green Ranger once; the canon is in `cars.js` (`body: 0xebe8dd`, black bumpers, no chrome). Put the canon in the prompt, not in the repo it is told to read.
+- **Likeness rule was overridden by Thomas himself** (his own photo, his own plate). That is his call for reference material; it still never ships in the public repo.
+
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.
