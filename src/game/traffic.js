@@ -26,6 +26,15 @@ const ARRIVE = 4;        // metres from the lane end point before we pick the ne
 const LOOK_MIN = 5;      // pure-pursuit look-ahead along the lane line, metres …
 const LOOK_MAX = 14;     // … clamped, and
 const LOOK_PER_MPS = 0.6; // … growing with speed (12 m/s → 12.2 m)
+// Turning at a junction is not the same manoeuvre as following a bend. Past
+// this much deviation, at a node where more than two streets meet, the
+// look-ahead is held on the lane we are still in until we are at the corner —
+// otherwise the rope reaches diagonally across the junction and the car sets
+// off into the oncoming lane a dozen metres before it gets there.
+const TURN_COS = 0.80;   // ~37 degrees
+const TURN_LOOK = ARRIVE; // how late the rope may reach across the junction
+const TURN_SLOW = 14;    // …and the approach is taken at
+const TURN_SPEED = 5.5;  // …this, because nobody turns left at 45 km/h
 const CULL = 420;        // beyond this from the player, teleport back into view
 const NEAR_MIN = 120;    // respawn ring around the player
 const NEAR_MAX = 300;
@@ -68,7 +77,7 @@ export class Traffic {
       if (i === undefined) {
         i = nodes.length;
         index.set(id, i);
-        nodes.push({ x, z, out: [], names: null, nbrs: null, stop: false });
+        nodes.push({ x, z, out: [], names: null, nbrs: null, deg: 0, stop: false });
       }
       return i;
     };
@@ -104,6 +113,10 @@ export class Traffic {
       }
     }
     for (const n of nodes) {
+      // How many streets actually meet here, direction ignored: 2 is a bend in
+      // one road, 3 or more is a junction. aimAt() needs it to tell "follow the
+      // curve" from "turn left across the oncoming lane".
+      n.deg = n.nbrs ? n.nbrs.size : 0;
       n.stop = !!n.nbrs && n.nbrs.size >= 3 && n.names.size >= 2;
       n.names = null; n.nbrs = null;
     }
@@ -230,6 +243,21 @@ export class Traffic {
     return out;
   }
 
+  /**
+   * Is the edge after `e` a turn at a junction rather than a bend in the same
+   * street? Three or more streets meet at the node, and the next edge deviates
+   * by more than TURN_COS. A left turn is the one manoeuvre that crosses the
+   * centreline of the road the car is still on, so the two places that care —
+   * where the look-ahead may reach, and how fast the approach is taken — both
+   * ask this.
+   */
+  turnsAtJunction(e, nextIdx) {
+    if (!(nextIdx >= 0)) return false;
+    if (this.nodes[e.b].deg < 3) return false;
+    const nx = this.edges[nextIdx];
+    return (e.dx * nx.dx + e.dz * nx.dz) < TURN_COS;
+  }
+
   // The pure-pursuit target: `LOOK` metres ahead of the car's own projection
   // onto the lane line, rolling into the next edge's lane past the end. The
   // look-ahead grows with speed so the turn-in starts earlier at 50 km/h than
@@ -239,10 +267,18 @@ export class Traffic {
     const A = this.nodes[e.a];
     const lane = c.lane || 0;
     const s = clamp((c.x - A.x) * e.dx + (c.z - A.z) * e.dz, 0, e.len);
-    const look = clamp(LOOK_MIN + c.speed * LOOK_PER_MPS, LOOK_MIN, LOOK_MAX);
+    let look = clamp(LOOK_MIN + c.speed * LOOK_PER_MPS, LOOK_MIN, LOOK_MAX);
+    const nx = c.next >= 0 ? this.edges[c.next] : null;
+    // Hold the lane up to the corner when the next edge is a turn at a real
+    // junction. Rolling the rope over early is right on a bend — it is the
+    // whole of the previous fix — but at a crossroads it makes a left-turner
+    // cut the corner from ten metres out, through the oncoming lane, which is
+    // what a player sees as traffic on the wrong side of the road.
+    if (this.turnsAtJunction(e, c.next)) {
+      look = Math.min(look, Math.max(TURN_LOOK, e.len - s));
+    }
     let s2 = s + look;
     if (s2 <= e.len) return this.laneAt(e, s2 / e.len, out, lane);
-    const nx = c.next >= 0 ? this.edges[c.next] : null;
     if (!nx) return this.laneAt(e, 1, out, lane);
     s2 -= e.len;
     return this.laneAt(nx, Math.min(1, s2 / nx.len), out, lane);
@@ -417,6 +453,7 @@ export class Traffic {
         dx = tgt[0] - c.x; dz = tgt[1] - c.z;
       }
       if (c.next === undefined || c.next < 0) c.next = this.nextEdge(c);
+      const turning = this.turnsAtJunction(e, c.next);
 
       // Where to point the nose. `tgt` is the end of the lane (the stop bar,
       // for the signals below); steering at it directly was the wrong-side
@@ -469,7 +506,12 @@ export class Traffic {
 
       // Slow into corners: the sharper the heading error, the slower we go.
       const corner = 1 - Math.min(0.75, Math.abs(err) * 0.9);
-      const target = c.want * corner * (1 - block);
+      let target = c.want * corner * (1 - block);
+      // …and slow *before* the corner, not in it. `corner` only reacts once the
+      // nose is already wrong, so a car arriving at a crossroads at 45 km/h had
+      // to swing through the oncoming lane to get round. Braking on the
+      // approach is what lets it hold its lane to the corner and turn there.
+      if (turning && Math.hypot(dx, dz) < TURN_SLOW) target = Math.min(target, TURN_SPEED);
       c.speed += clamp(target - c.speed, -14 * dt, 5 * dt);
       c.speed = Math.max(0, c.speed);
       c.x += fx * c.speed * dt;

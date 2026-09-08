@@ -68,13 +68,46 @@ Still open here: **`smoke_save.mjs` does not import `main.js`**, so the resume
 path is pinned by a source-regex assertion plus a real-browser check, not by
 node. That is the standing hole VERIFY.md §1 names, not a new one.
 
-## 2. Traffic drives on the wrong side
+## 2. Traffic drives on the wrong side — fixed (2026-09-08)
 
-Cars and buses are regularly on the wrong side of the road. `traffic.js`
-`laneAt` / `wantOn` pick a side; the vehicles agent added a lane offset and a
-speed cap for buses and cyclists at the same time. Suspect the offset sign is
-wrong for one direction of travel, or that a one-way / dual-carriageway way is
-being read as two-way.
+~~Cars and buses are regularly on the wrong side of the road. `traffic.js`
+`laneAt` / `wantOn` pick a side; suspect the offset sign is wrong for one
+direction of travel, or that a one-way / dual-carriageway way is being read as
+two-way.~~ None of the three suspects was it. Measured first
+(`tools/probe_traffic_side.mjs`: seven vantage points across Aylmer, Hull and
+Ottawa, signed lateral offset from the OSM centreline in the car's own
+direction of travel, distance-weighted so a dawdling car does not count twice):
+
+- **The offset sign is right and always was.** `laneAt`'s `(-dz, dx)` is the
+  right-hand side given `build_map.py`'s projection, where +x is east and +z is
+  *south* (`z = -(lat - LATC) * MZ`). Mid-road, two-way: **100.0 % right of
+  centre** (n = 26 711), before any change. Boulevards 12 m and wider: 100.0 %.
+  Cyclists and both buses: 100.0 %.
+- **One-way ways are not read as two-way.** 100.0 % of one-way samples travel
+  with the way's point order; a one-way road only ever gets its forward half
+  linked, and the respawn grid is built from that same directed set.
+- **What was actually left is the approach to a junction.** Pure pursuit hung
+  its rope on the *next* edge's lane the moment the look-ahead (up to 14 m)
+  outran the current edge, so a car about to turn left set off diagonally
+  across the oncoming lane from ten metres out — and swung so wide it missed
+  the 4 m arrival radius and carried on past the corner. On the approach to a
+  junction left turn: **57.1 % right of centre, 41.6 % of the distance more
+  than a metre into the oncoming lane, worst excursion −10.5 m.** That is what
+  a player sees as traffic on the wrong side, and PR #7 (which fixed bends) did
+  not touch it.
+
+Fixed by telling a turn at a junction from a bend in a street: nodes now carry
+`deg` (how many streets meet there), and `turnsAtJunction()` gates two things —
+the look-ahead is held on the lane the car is still in until it is at the
+corner, and the approach is taken at 5.5 m/s instead of 13. After:
+**72.0 % / 27.6 % / −3.1 m** on the same cohort, and −10.5 m → −4.5 m worst
+excursion anywhere. `tools/smoke_traffic.mjs` grew T6–T10 (junction approach,
+one-way direction, boulevards); T6, T7 and T8 fail on the pre-fix tree.
+
+**Still open here:** a left-turner still uses the last ~4 m of its lane to
+start turning, which is the arrival radius, not the rope. Whether a car should
+wait at the stop line for a gap in the oncoming traffic before turning left is
+a behaviour nobody has asked for yet.
 
 ## 3. Camera still jitters over bumps
 
