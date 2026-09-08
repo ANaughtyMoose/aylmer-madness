@@ -34,8 +34,10 @@ const FR = {
   'menu.pick': 'Choisis ton char',
   'menu.pickstart': 'Où tu pars?',
   // The picker arrives with your own driveway already picked, so the GO button
-  // is live the second the screen opens. Say so, or nobody presses it.
-  'menu.pickstart.hint': 'Ta cour est déjà choisie — clique GO pis t’es parti. Ou pitche-toi ailleurs: clique un point sur la carte.',
+  // is live the second the screen opens. Say so, or nobody presses it — and say
+  // the other half too (BACKLOG U9): a point you have already chosen starts the
+  // game when you click it again, so there is no confirm anywhere on here.
+  'menu.pickstart.hint': 'Ta cour est déjà choisie — clique GO pis t’es parti. Ou clique un autre point: une fois pour le voir sur la carte, une deuxième fois pour partir de là.',
   'menu.pickstart.back': 'Retour aux chars',
 
   // saves
@@ -252,7 +254,7 @@ const EN = {
   'menu.back': 'Return',
   'menu.pick': 'Choose your char',
   'menu.pickstart': 'Where you leave?',
-  'menu.pickstart.hint': 'Your yard is already chosen — click GO and you are parted. Or pitch yourself elsewhere: click a point on the card.',
+  'menu.pickstart.hint': 'Your yard is already chosen — click GO and you are parted. Or click another point: one time to see it on the card, a second time to leave from there.',
   'menu.pickstart.back': 'Return to the chars',
   'save.title': 'Safeguard',
   'save.slot': 'Case',

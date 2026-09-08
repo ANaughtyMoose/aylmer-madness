@@ -524,6 +524,25 @@ function drawStartPicker() {
   c._pickerTransform = { pts, sx, sz };
 }
 
+// What the GO bar calls the place it is about to put you in, said the way a
+// person says it: « GO ▸ Chez nous, 299 Chemin Fraser ».
+//
+// Two labels exist for every pin — the short one the map pins carry, and the
+// place's own. For the four houses neither half is enough on its own: « Chez
+// nous » does not say where and « 299 Chemin Fraser » does not say whose, so
+// those get both. Everywhere else the place's own label already IS the name
+// people use, and putting the map label in front of it only says the same thing
+// twice (« Musée de l'histoire, Musée canadien de l'histoire »). The trailing
+// « (Sayyad) » on a house label goes: the « Chez Sayyad » in front of it has
+// just said so.
+function startPointName(key) {
+  const short = START_MAP_LABELS[key];
+  const full = ((PLACES[key] && PLACES[key].label) || '').replace(/\s*\([^)]*\)\s*$/, '');
+  if (!short) return full || key;
+  if (!full) return short;
+  return /^Chez /.test(short) ? short + ', ' + full : full;
+}
+
 function selectStart(key) {
   // A locked point is not pickable by any route — the list button, the map
   // click and selectCharacter's own default all come through here, so this is
@@ -535,8 +554,34 @@ function selectStart(key) {
   // about to put you, so pressing it is not a leap of faith.
   const btn = $('startconfirm');
   btn.disabled = false;
-  btn.textContent = t('menu.go') + '  \u25b8  ' + (START_MAP_LABELS[key] || PLACES[key].label);
+  btn.textContent = t('menu.go') + '  \u25b8  ' + startPointName(key);
   drawStartPicker();
+}
+
+// The single action of the whole screen. BACKLOG U9: both playtests clicked a
+// start point, saw nothing happen, and stopped. Everything that can mean \u00ab this
+// one, go \u00bb \u2014 the GO bar, a second click on the point already chosen, a
+// double-click on any open point, the map pin you have already selected \u2014 lands
+// here, so nothing on this screen needs a confirm between choosing and driving.
+function goFromPicker(key = pickedStart) {
+  // A real double-click on a row that was not selected fires click (select),
+  // click (go) and then dblclick (go again) — three events, two starts, the
+  // second one over a world the first is already building. The picker being
+  // gone is the only proof needed that somebody already pressed go.
+  if ($('startpicker').classList.contains('hidden')) return false;
+  if (!key || !startOpen(key)) return false;
+  pickedStart = key;
+  openStartPicker(false);
+  startGame(null, key, pickedCharacter);
+  return true;
+}
+
+// One click on a start point picks it and previews it on the map; a click on the
+// one already picked is the go.
+function pickOrGo(key) {
+  if (!startOpen(key)) return;
+  if (key === pickedStart) goFromPicker(key);
+  else selectStart(key);
 }
 
 // index.html belongs to the shell agent, so the character strip is built here
@@ -582,12 +627,25 @@ function paintStartPoints() {
   const done = startDone();
   $('startpoints').innerHTML = availableStartPoints().map((key, i) => {
     const why = startLockReason(key, done);
-    return `<button class="startpoint${why ? ' locked' : ''}" data-key="${key}"`
+    // The row has to say which one is picked. selectStart() sets `.sel` on the
+    // live buttons, but selectCharacter() repaints the list AFTER calling it —
+    // so on a freshly opened picker nothing was highlighted at all, and « click
+    // the one you already chose to go » had no visible « the one you already
+    // chose ». Paint it here as well as there.
+    return `<button class="startpoint${why ? ' locked' : ''}`
+      + `${!why && key === pickedStart ? ' sel' : ''}" data-key="${key}"`
       + `${why ? ' disabled aria-disabled="true"' : ''}>`
       + `<b>${why ? '\u{1F512}' : i + 1}</b><span>${PLACES[key].label}`
       + `${why ? `<i class="lockwhy">${why}</i>` : ''}</span></button>`;
   }).join('');
-  for (const el of $('startpoints').children) el.onclick = () => selectStart(el.dataset.key);
+  // Click = pick and preview; click the one already picked, or double-click any
+  // of them, = go. `ondblclick` is not redundant with pickOrGo: the second half
+  // of a fast double-click on an unpicked row would otherwise arrive before the
+  // player has seen the first one land.
+  for (const el of $('startpoints').children) {
+    el.onclick = () => pickOrGo(el.dataset.key);
+    el.ondblclick = () => goFromPicker(el.dataset.key);
+  }
   return done;
 }
 
@@ -2725,7 +2783,7 @@ function toMenu() {
 
 $('start').onclick = () => openStartPicker(true);
 $('startback').onclick = () => openStartPicker(false);
-$('startconfirm').onclick = () => { if (pickedStart) { openStartPicker(false); startGame(null, pickedStart, pickedCharacter); } };
+$('startconfirm').onclick = () => goFromPicker();
 $('startmap').addEventListener('click', (e) => {
   const tr = $('startmap')._pickerTransform;
   if (!tr) return;
@@ -2737,7 +2795,9 @@ $('startmap').addEventListener('click', (e) => {
     const d = Math.hypot(x - tr.sx(p.x), y - tr.sz(p.z));
     if (d < distance) { best = p.key; distance = d; }
   }
-  if (best) selectStart(best);        // selectStart itself refuses a locked one
+  // Same rule as the list: the first click on a pin picks it, a click on the pin
+  // already picked starts the game. pickOrGo refuses a locked one.
+  if (best) pickOrGo(best);
 });
 $('btnContinue').onclick = () => {
   const slot = continueSlot();

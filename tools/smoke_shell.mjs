@@ -160,6 +160,64 @@ group('the start picker');
     'the picker only ever pre-selects an unlocked point');
   ok(/selectStart\(openKeys\.includes\(DEFAULT_START\)/.test(MAIN), 'opening the picker selects something');
   ok(/if \(!startOpen\(key\)\) return;/.test(MAIN), 'and selectStart refuses a locked one whatever asked');
+
+  // BACKLOG U9, Thomas 2026-09-08: « one click starts. » The picker stays as a
+  // screen — it is where the character and the start point are chosen — but
+  // nothing on it may need a second, differently-placed click to act on what
+  // was just chosen. These pin the new flow, not a looser version of the old
+  // one: the GO bar still exists, it still names the point, and it is still the
+  // only thing tools/headless.mjs presses.
+  ok(/function goFromPicker\(/.test(MAIN), 'one function starts the game from the picker');
+  ok(/\$\('startconfirm'\)\.onclick = \(\) => goFromPicker\(\);/.test(MAIN),
+    'the GO bar goes straight through it — no confirm step in between');
+  ok(/function pickOrGo\(key\)/.test(MAIN) && /if \(key === pickedStart\) goFromPicker\(key\);/.test(MAIN),
+    'a click on the point already picked is the go');
+  ok(/el\.onclick = \(\) => pickOrGo\(el\.dataset\.key\);/.test(MAIN),
+    'the list rows go through pickOrGo, so a second click on one starts');
+  ok(/el\.ondblclick = \(\) => goFromPicker\(el\.dataset\.key\);/.test(MAIN),
+    'and a double-click on any open row starts it whatever was picked before');
+  ok(/if \(best\) pickOrGo\(best\);/.test(MAIN), 'the map pins follow the same rule');
+  ok(!/openStartPicker\(false\); startGame\(null, pickedStart/.test(MAIN),
+    'nothing starts the game behind goFromPicker’s back');
+  ok(/if \(\$\('startpicker'\)\.classList\.contains\('hidden'\)\) return false;/.test(MAIN),
+    '…and a double-click cannot start the summer twice');
+  // « click the one you already chose » needs a visible « the one you already
+  // chose ». selectCharacter() repaints the list after selectStart() has set
+  // .sel on the old buttons, so the freshly opened picker highlighted nothing.
+  ok(/key === pickedStart \? ' sel' : ''/.test(MAIN),
+    'the list marks the picked start point when it is repainted');
+  // The button has to SAY where it is about to put you, or « GO » is a leap.
+  ok(/btn\.textContent = t\('menu\.go'\) \+ '  \\u25b8  ' \+ startPointName\(key\)/.test(MAIN),
+    'the GO bar names the chosen start point');
+  ok(/return \/\^Chez \/\.test\(short\) \? short \+ ', ' \+ full : full;/.test(MAIN),
+    '…by its name and its address — « Chez nous, 299 Chemin Fraser »');
+  // The rule the line above encodes, run against the real tables rather than
+  // trusted: a house says whose AND where; nowhere else says the same thing
+  // twice. main.js cannot be imported, so startPointName is re-read from it.
+  {
+    const labels = {};
+    const blk = /const START_MAP_LABELS = \{([\s\S]*?)\n\};/.exec(MAIN);
+    for (const m of blk[1].matchAll(/(\w+):\s*'([^']*)'/g)) labels[m[1]] = m[2];
+    // main.js merges Ottawa's own labels in at import time; so does this.
+    const { OTTAWA_START_LABELS } = await import('../src/game/ottawa.js');
+    Object.assign(labels, OTTAWA_START_LABELS);
+    const name = (key) => {
+      const short = labels[key];
+      const full = ((PLACES[key] && PLACES[key].label) || '').replace(/\s*\([^)]*\)\s*$/, '');
+      if (!short) return full || key;
+      if (!full) return short;
+      return /^Chez /.test(short) ? short + ', ' + full : full;
+    };
+    eq(name('home'), 'Chez nous, 299 Chemin Fraser', 'the driveway says whose and where');
+    eq(name('sayyad'), 'Chez Sayyad, 75 Denise-Friend', '…and so does 75 Denise-Friend');
+    for (const key of Object.keys(labels)) {
+      if (!PLACES[key]) continue;
+      const parts = name(key).split(', ');
+      ok(new Set(parts.map((s) => s.toLowerCase())).size === parts.length,
+        `« ${name(key)} » does not repeat itself`);
+      ok(!/\(/.test(name(key)), `« ${name(key)} » carries no parenthetical`);
+    }
+  }
 }
 
 group('the GO button');
