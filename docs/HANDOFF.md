@@ -88,7 +88,21 @@ the auto. The job in progress travels with the save.
 ## What is next (the plan's order)
 
 1. Thomas plays: the five characters in their own cars, and the driver's seat.
-2. **Wave 3 leftovers:** the seven missing places (Russell's 1 Arial, Abraham's 841 Wilfrid-Lavigne, the Petro-Canada as a place, the British Hotel, Galeries de Hull, Byward Market, Museum of Civilization) and the 18-job `campaign.json` mapping to place keys; rivals in the four scripted races still use table speeds (`G.rivalFrac` is read only by the ambush); race courses cannot resume mid-race.
+2. ~~**Wave 3 leftovers:** the seven missing places … the 18-job `campaign.json`
+   mapping … rivals in the four scripted races still use table speeds … race
+   courses cannot resume mid-race.~~ **Done** (`feat/wave3-places`). Four of the
+   seven places already existed under other keys — the list predates the Hull
+   and Ottawa sectors — so the real work was Russell's at 1 rue Arial (a new
+   hero site: the real OSM footprint, the gambrel roof, the detached two-bay
+   shop at the end of the driveway, the evergreen that has since been cut down),
+   the Petro-Canada, which had been a repair spot, a fuel spot and a mission
+   giver since Wave 2 with nothing there to see, and the museum, which was
+   carrying its 2013 name. `campaign.json` gains a `place` key per job.
+   `tools/smoke_places.mjs` is new (39 suites). Rivals cruise off
+   `cruiseFor(G, G.rivalFrac × pace)`; a race rebuilds itself out of the save
+   with the field back where it was. **What remains of it:** the early-90s
+   F-250 in Russell's driveway (NEXT.md §6) is not modelled, and the campaign's
+   18 jobs are still text — nothing builds a mission out of them yet.
 3. **Step 3 feel:** camera on kerbs/bumps, slope gravity (no g·sin(pitch) term in `cars.js`).
 4. **Wave 5, the look:** wire the converted models (trees are baked into chunks — read `docs/MODELS.md` for the two ways round it), the real-texture atlas, the facades from `gemini-inbox/look/facades/` on the hero houses, then sky/tone/shadows GLSL ports. Re-measure the four-point memory after.
 5. Wave 4: Russell's garage, avatar corrections, English Ottawa.

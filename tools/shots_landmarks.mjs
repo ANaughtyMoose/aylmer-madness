@@ -45,9 +45,18 @@ const VIEWS = [
   ['british',           -916,   -70,   -916,  -105, 0, 1],
   ['marina',           -1712,   -30,  -1780,   -38, 0, 0],
   ['symmesjr',          -318,   400,   -318,   382, 3, 0],
+  // Wave 3's two: from rue Arial across the front lawn (the house, the drive
+  // and the shop at the end of it in one frame), and from the boulevard de
+  // Lucerne into the Petro-Canada forecourt.
+  ['place-russell',     1011,   776,    998,   749, 0, 1],
+  ['place-petro',       2202,   861,   2203,   888, 0, 1],
 ];
 
-const list = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then((r) => r.json());
+// Every agent in a wave runs its own Chrome on its own port; tools/headless.mjs
+// has honoured CDP_PORT since Wave 2 and this had not caught up, so a second
+// agent's shots went to the first agent's browser.
+const CDP_PORT = Number(process.env.CDP_PORT || 9222);
+const list = await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?about:blank`, { method: 'PUT' }).then((r) => r.json());
 const ws = new WebSocket(list.webSocketDebuggerUrl);
 await new Promise((res) => (ws.onopen = res));
 let id = 0;

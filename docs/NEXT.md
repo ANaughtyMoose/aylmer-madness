@@ -128,16 +128,52 @@ something at the Canadian Tire, and said of the old one « reality is I never
 went to the poutine place so it just doesn't feel right ». The poutine run is
 fifth and reads as Sayyad's order. Still to do:
 
-- **The destinations repeat.** Poutine express and the dep run are effectively
-  the same errand twice. Each job should go somewhere it has not been.
+- ~~**The destinations repeat.**~~ For the 18-job campaign this is now pinned:
+  every `campaign.json` entry carries a `place` key (a real `PLACES` key beside
+  the descriptive French `to`), and `tools/smoke_places.mjs` fails if any two
+  consecutive jobs finish in the same spot, if a key does not resolve, or if a
+  leg is longer than the map. **Still open for the 22 shipped missions**, which
+  are a different list and are not mapped through `campaign.json`.
 - **The poutine place does not exist.** The job sends you to the Galeries food
   court and there is nothing there to see. Either build the casse-croûte or send
-  the job to one of the 120 real storefronts.
-- **Unlocks should vary**: cash, a car, a tool, access to a place, a person who
-  starts talking to you. Right now it is only ever a car.
+  the job to one of the 120 real storefronts. (`foodcourt` and the south-entrance
+  hero site exist; the casse-croûte itself does not.)
+- ~~**Unlocks should vary**~~ — `campaign.json` already spends seven kinds
+  (cash, character, discount, place, shortcut, tool, vehicle) and the suite
+  fails under four. What is missing is that **nothing builds a mission out of
+  campaign.json yet**: the 18 jobs are written, mapped and validated, and still
+  only text. That is the next piece of this section.
 - Written material already in `assets/text/` and unwired: `arc.json` (five-beat
   summer), `tutorial.json` (5 steps + 12 hints), `support.json` (50 lines of
   friends reacting to you being bad at it).
+
+### 4b. The places, and the racing (done 2026-09-08, `feat/wave3-places`)
+
+- ~~Seven places missing.~~ Four of the seven were already there under other
+  keys (`british` with its own hero site, `hullmall`, `byward`, `abraham`) — the
+  handoff list predates the Hull and Ottawa sectors. What was genuinely wrong:
+  **1 rue Arial did not exist**, the **Petro-Canada was a wrench icon on a grass
+  verge** (a repair spot, a fuel spot and a mission giver since Wave 2, with no
+  footprint and no forecourt), and the **museum was labelled « Musée canadien de
+  l'histoire »**, which is the 2013 rename — in 2004 it is the Musée canadien
+  des civilisations, opened 1989. Abraham's now pins its snap to boulevard
+  Wilfrid-Lavigne by name.
+- ~~Rivals in the scripted races use table speeds.~~ They cruise off
+  `cruiseFor(G, G.rivalFrac × pace)` now, where `pace` is the SKILL table's own
+  number as a fraction of the Ranger on normal — so the four races drive exactly
+  as they did in the Ranger and scale with anything else.
+- ~~Race courses cannot resume mid-race.~~ The run stage mirrors its state onto
+  the mission as flat scalars and rebuilds the course, the leg table and the
+  field out of them; `Rival.placeAlong()` puts each rival back where it was
+  rather than on the line. A save the course cannot honour fails the job with a
+  toast. The bug underneath was in `main.js` `resumeMission`, which assigned the
+  saved scalars **after** `applyStage()`, so no stage's `onEnter` could ever see
+  what it was resuming — `follow()` had the same latent fault.
+- **Still open here:** the early-90s Ford F-250 in Russell's driveway (§6) is
+  not modelled — the driveway is empty. Russell's repair bay, and the pizza-and-
+  a-case bill, are Wave 4. The facades in `gemini-inbox/look/facades/` are not
+  wired to any of this; `1-rue-arial-house` and `1-rue-arial-garage` are drawn
+  and waiting for the look agent.
 
 ## 5. Avatar corrections — they look like today, not 2004
 
@@ -161,6 +197,12 @@ older and rough inside, with a **wood stove in the middle of the floor**.
 - The house next door in the photos is modern and should NOT be copied; the
   street looked like this in 2004 but the neighbours did not.
 - **Put an early-90s Ford F-250 in the driveway**, not the current white pickup.
+
+The property itself landed on 2026-09-08: `PLACES.russell`, the real OSM
+footprint (way 460809162), the gambrel roof, the porch, the detached two-bay
+shop at the end of the long asphalt driveway with the stovepipe of the wood
+stove, and the evergreen. **The F-250 in the driveway is not there yet** and
+neither is the repair bay.
 
 **Russell** (photo 33 is 2020 — age him *down*): 16 in 2004, so make him
 **slimmer with no facial hair**. A skateboarder.
