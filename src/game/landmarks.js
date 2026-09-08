@@ -56,6 +56,8 @@ export const BUDGET = {
   mike:       { near: 7000,  far: 1000, site: 600 },
   lordaylmer: { near: 8000,  far: 1200, site: 800 },
   galeries:   { near: 8000,  far: 1400, site: 900 },
+  russell:    { near: 9000,  far: 1400, site: 700 },
+  petro:      { near: 7000,  far: 1200, site: 900 },
 };
 
 // ---------------------------------------------------------------- ring maths
@@ -1442,6 +1444,278 @@ function siteGaleries(K) {
   lightStandard(K, GA_FX + GA_NZ * 13 + GA_NX * 15, GA_FZ - GA_NX * 13 + GA_NZ * 15, 8, GA.yaw);
 }
 
+// --- J. Chez Russell, 1 rue Arial ------------------------------------------
+//
+// The cheap garage (docs/NEXT.md §6): Norm's is the proper one, this is the one
+// you go to when you have eleven dollars. What lands this wave is the PROPERTY
+// — the footprint, the driveway and the shop it stands at the end of. The
+// repair bay itself, and the pizza-and-a-case bill, are Wave 4.
+//
+// Everything below comes off the map or off a photograph, and nothing else:
+//   * the house is OSM way 460809162, « 1 Rue Arial », and its footprint is
+//     9.2 m of frontage by 11.1 m deep — which is exactly the 9.21 × 11.11 m
+//     Gemini measured off the rectified elevation. Two independent sources
+//     agree, so the mass here is the surveyed one and not a guess;
+//   * white siding, deep red trim, red-framed upper windows, a gambrel (Dutch
+//     barn) roof and a full-width covered porch (NEXT.md §6, photos 29/30/31);
+//   * the detached garage — white, two bays, gable roof — is to the RIGHT of
+//     the house as you face it from the street, at the end of a long asphalt
+//     driveway, and it is where the work happens. It is NOT in OpenStreetMap
+//     (Gemini's slug for it is `detached_garage_1_arial`, not a way id), so it
+//     is authored here, in the 18 m the map leaves clear between 1 and 3 rue
+//     Arial. The stovepipe is the wood stove in the middle of the floor;
+//   * the big evergreen on the front lawn is in the 2009 panorama and has since
+//     been cut down (NEXT.md §9). In 2004 it is there and it half-hides the
+//     house, which is the whole reason it is drawn.
+// The neighbouring house in the photographs is modern and is NOT copied: this
+// site stops at the property line and 3 rue Arial keeps its OSM massing.
+const RS = { id: 460809162, cx: 993.7, cz: 748.2, w: 9.2, d: 11.1, yaw: -0.092 };
+// Outward normal of the front wall: rue Arial runs east-west 20 m to the south,
+// so the house faces +Z. `t` runs along the frontage, east.
+const RS_NX = -Math.sin(RS.yaw), RS_NZ = Math.cos(RS.yaw);
+const RS_TX = Math.cos(RS.yaw), RS_TZ = Math.sin(RS.yaw);
+const RS_GAR = { cx: 1007.0, cz: 740.0, w: 7.0, d: 8.0, h: 2.85 };
+// Where the driveway meets rue Arial, and the apron in front of the two doors.
+const RS_DRIVE = { x: 1006.4, z: 755.4, w: 3.7, len: 22.5 };
+const RS_SPRUCE = { x: 988.4, z: 761.4, h: 11.2 };
+
+const RS_WHITE = 0xe9e6dd, RS_RED = 0x7d2b22, RS_SHINGLE = 0x494742;
+
+/**
+ * A gambrel (Dutch barn) roof: two steep lower slopes, two shallow upper ones,
+ * and a five-sided gable at each end. mb.roof() cannot do it — stacking two
+ * gables always leaves the lower ridge poking through the upper one, whatever
+ * the pitches — and mb.mansard() clips all four sides, which turns the barn end
+ * into a hip. So it is eight quads and six triangles, wound exactly the way
+ * mb.roof() winds its slopes and gable ends.
+ *
+ * `ry` is the map bearing of the RIDGE; `span` is the width across the slopes,
+ * `len` the length along the ridge.
+ */
+function gambrel(K, cx, cz, len, span, ry, eave, kneeOut, kneeUp, ridgeUp, roofCol, gableCol) {
+  const mb = K.mb;
+  const oh = 0.42;                                   // eaves and verges overhang
+  const Rx = Math.cos(ry), Rz = Math.sin(ry);        // along the ridge
+  const Ax = -Math.sin(ry), Az = Math.cos(ry);       // across the slopes
+  const P = (u, v, y) => [cx + Rx * u + Ax * v, y, cz + Rz * u + Az * v];
+  const hl = len / 2 + oh, hs = span / 2 + oh;
+  const knee = hs - kneeOut, kneeY = eave + kneeUp, ridgeY = kneeY + ridgeUp;
+  const rc = flat(roofCol), gc = flat(gableCol);
+  for (const s of [-1, 1]) {
+    // Lower slope, then the shallow one above it. Both are wound the way
+    // mb.roof() winds its -Z slope: low edge at +u first, then -u, then up.
+    const lo0 = P(-hl, s * hs, eave), lo1 = P(hl, s * hs, eave);
+    const kn0 = P(-hl, s * knee, kneeY), kn1 = P(hl, s * knee, kneeY);
+    const rg0 = P(-hl, 0, ridgeY), rg1 = P(hl, 0, ridgeY);
+    if (s < 0) { mb.quad(lo1, lo0, kn0, kn1, rc); mb.quad(kn1, kn0, rg0, rg1, rc); }
+    else { mb.quad(lo0, lo1, kn1, kn0, rc); mb.quad(kn0, kn1, rg1, rg0, rc); }
+  }
+  // The two gable ends, flush with the wall rather than out at the verge, in
+  // the siding colour: a gambrel's ends are boards, not shingle.
+  const hw = len / 2;
+  for (const e of [-1, 1]) {
+    const n = [Rx * e, 0, Rz * e];
+    const pt = (v, y) => P(hw * e, v, y);
+    const c = [pt(hs, eave), pt(knee, kneeY), pt(0, ridgeY), pt(-knee, kneeY), pt(-hs, eave)];
+    const order = e > 0 ? [[0, 4, 3], [0, 3, 2], [0, 2, 1]] : [[4, 0, 1], [4, 1, 2], [4, 2, 3]];
+    for (const [a, b, d] of order) {
+      const g = mb.vert(c[a][0], c[a][1], c[a][2], n[0], n[1], n[2], gc);
+      mb.vert(c[b][0], c[b][1], c[b][2], n[0], n[1], n[2], gc);
+      mb.vert(c[d][0], c[d][1], c[d][2], n[0], n[1], n[2], gc);
+      mb.tri(g, g + 1, g + 2);
+    }
+  }
+}
+
+/** A spruce: three stacked cones and a trunk. Cheap enough to keep in both bakes. */
+function spruce(K, x, z, h, segs) {
+  const mb = K.mb;
+  const dark = flat(0x24402c), mid = flat(0x2c4c33);
+  mb.cyl(x, h * 0.09, z, 0.22, h * 0.18, K.detail ? 6 : 4, flat(0x4a3a2c), 'y', false);
+  const tiers = [[0.14, h * 0.34, 0.46], [0.42, h * 0.30, 0.34], [0.68, h * 0.32, 0.20]];
+  for (let i = 0; i < tiers.length; i++) {
+    const [y0, th, r] = tiers[i];
+    taper(mb, x, z, [
+      { y: h * y0, r: h * r * 0.5, c: i ? mid : dark },
+      { y: h * y0 + th, r: 0.06, c: mid },
+    ], segs);
+  }
+}
+
+function buildRussell(K, ring, tris) {
+  const mb = K.mb;
+  const EAVE = 4.35;
+  const rows = [
+    { y0: 0.95, y1: 2.35, w: 1.05, gap: 1.55, margin: 1.0, mullions: 1, sill: 0.10 },
+    { y0: 2.85, y1: 4.05, w: 0.95, gap: 1.75, margin: 1.1, mullions: 1 },
+  ];
+  const spec = {
+    mat: 'vinyl_white', tint: tint(K, 'vinyl_white', 1.0), rows,
+    jamb: RS_RED, reveal: 0.18, bar: RS_WHITE,
+    glassLo: 0x1f2a31, glassHi: 0x445e6c,
+  };
+  walls(K, ring, 0, EAVE, spec, (i, L) => (L > 3 ? rows : null));
+  band(K, ring, tris, 0, 0.34, 0.08, 0x8f8879);                       // painted plinth
+  // The gambrel, ridge front-to-back so the barn end faces rue Arial — which is
+  // what the elevation shows and why the front is only 9.2 m wide.
+  gambrel(K, RS.cx, RS.cz, RS.d + 0.6, RS.w + 0.5, RS.yaw + Math.PI / 2,
+    EAVE, 2.25, 1.85, 1.25, RS_SHINGLE, RS_WHITE);
+
+  // ---- the porch: full width, deep red deck, white posts, red rail
+  const fx = RS.cx + RS_NX * (RS.d / 2), fz = RS.cz + RS_NZ * (RS.d / 2);
+  const px = fx + RS_NX * 1.25, pz = fz + RS_NZ * 1.25;
+  mb.tower(px, 0, pz, RS.w, 2.5, 0.55, flat(RS_RED, 0.82),
+    { yaw: -RS.yaw, noBottom: true, top: flat(RS_RED) });
+  for (const u of [-4.0, -1.35, 1.35, 4.0]) {
+    mb.cyl(px + RS_TX * u + RS_NX * 1.05, 1.85, pz + RS_TZ * u + RS_NZ * 1.05,
+      0.10, 2.6, K.detail ? 6 : 4, flat(RS_WHITE), 'y', false);
+  }
+  mb.box(px, 3.28, pz, RS.w + 0.5, 0.30, 2.9, flat(RS_WHITE), { yaw: -RS.yaw });
+  mb.capRect(px, pz, RS.w, 2.5, 3.10, -RS.yaw, flat(RS_WHITE, 0.84), true);
+  railing(K, px - RS_TX * 4.3 + RS_NX * 1.15, 0.58, pz - RS_TZ * 4.3 + RS_NZ * 1.15,
+    px + RS_TX * 4.3 + RS_NX * 1.15, pz + RS_TZ * 4.3 + RS_NZ * 1.15, 0.95, RS_RED);
+  mb.panel(fx + RS_TX * 1.1, 1.62, fz + RS_TZ * 1.1, 0.95, 2.05, RS_NX, RS_NZ,
+    flat(RS_RED, 0.9), null, 0.03);
+  steps(K, px + RS_NX * 1.3 - RS_TX * 1.1, pz + RS_NZ * 1.3 - RS_TZ * 1.1,
+    RS_NX, RS_NZ, 2.2, 3, 0.19, 0.32, 0x9c9488);
+
+  // ---- the shop. Two bays facing the driveway, and the stovepipe.
+  const gr = rectRing(RS_GAR.cx, RS_GAR.cz, RS_GAR.w, RS_GAR.d, RS.yaw);
+  walls(K, gr, 0, RS_GAR.h, {
+    mat: 'vinyl_white', tint: tint(K, 'vinyl_white', 0.97), rows: [],
+    jamb: RS_RED, reveal: 0.12, bar: RS_WHITE,
+  }, () => null);
+  mb.roof(RS_GAR.cx, RS_GAR.h, RS_GAR.cz, RS_GAR.w, RS_GAR.d, 1.55, flat(RS_SHINGLE),
+    -RS.yaw, 0.4, { gableCol: flat(RS_WHITE) });
+  const gx = RS_GAR.cx + RS_NX * (RS_GAR.d / 2), gz = RS_GAR.cz + RS_NZ * (RS_GAR.d / 2);
+  for (const u of [-1.65, 1.65]) {
+    mb.panel(gx + RS_TX * u, 1.15, gz + RS_TZ * u, 2.55, 2.30, RS_NX, RS_NZ,
+      flat(0xd7d2c6), null, 0.04);
+    if (K.detail) {
+      for (const y of [0.55, 1.15, 1.75]) {
+        mb.panel(gx + RS_TX * u, y, gz + RS_TZ * u, 2.55, 0.05, RS_NX, RS_NZ,
+          flat(0xa8a396), null, 0.06);
+      }
+    }
+  }
+  // Wood stove, middle of the floor, pipe straight up through the ridge.
+  mb.cyl(RS_GAR.cx, RS_GAR.h + 1.9, RS_GAR.cz, 0.10, 2.4, K.detail ? 6 : 4,
+    flat(0x2e2c2a), 'y', false);
+
+  // ---- the evergreen, and the cedars along the porch
+  spruce(K, RS_SPRUCE.x, RS_SPRUCE.z, RS_SPRUCE.h, K.detail ? 8 : 5);
+  if (!K.detail) return;
+  for (let i = -2; i <= 2; i++) {
+    const u = i * 1.9;
+    taper(K.mb, px + RS_TX * u + RS_NX * 2.15, pz + RS_TZ * u + RS_NZ * 2.15, [
+      { y: 0, r: 0.42, c: flat(0x33512f) },
+      { y: 1.35, r: 0.06, c: flat(0x3d5c37) },
+    ], 6);
+  }
+}
+
+function siteRussell(K) {
+  // The driveway is the point of the place: it runs the whole depth of the lot,
+  // past the house, to the doors of the shop.
+  K.mb.flatRot(RS_DRIVE.x, RS_DRIVE.z, RS_DRIVE.w, RS_DRIVE.len, 0.033, -RS.yaw, flat(ASPHALT, 1.05));
+  K.mb.flatRot(RS_GAR.cx + RS_NX * 6.2, RS_GAR.cz + RS_NZ * 6.2, 8.6, 5.4, 0.034, -RS.yaw,
+    flat(ASPHALT, 1.02));
+  walk(K, 1004.2, 756.6, 996.1, 755.9, 1.3, 0xb6b0a4);
+  walk(K, 986, 767.6, 1014, 765.0, 1.6, 0xb0aa9e);          // the sidewalk out front
+}
+
+// --- K. La station Petro-Canada, boulevard de Lucerne ----------------------
+//
+// It has been a repair spot and a fuel spot since Wave 1 (damage.js REPAIR_SPOTS,
+// fuel.js) and a mission giver since Wave 2, and it was never a BUILDING: the
+// place was one unsnapped coordinate on the OSM fuel POI at the Deschênes corner
+// of the boulevard de Lucerne, so « la station » was a wrench icon over an empty
+// verge. This is the forecourt that was missing — canopy, two pump islands,
+// bollards, the dépanneur behind, the pylon at the kerb.
+//
+// Where: the corner of boulevard de Lucerne and rue Jean-Paul-Poirier, which is
+// where MAP's fuel POI is. The pocket is tight — 15 boulevard de Lucerne is 14 m
+// west and 1 rue Jean-Paul-Poirier 22 m south — so every dimension below is
+// picked to keep the forecourt clear of both footprints and off the carriageway.
+// The brand is the game's own (damage.js has called it « Petro-Can » since Wave
+// 1, and « Le plein de Petro-Points » is job 10); OSM names the operator HETCO.
+const PT = { cx: 2202.0, cz: 884.0, yaw: -0.2716 };          // yaw: along Lucerne
+// Toward the boulevard, which is north of the lot.
+const PT_NX = Math.sin(PT.yaw), PT_NZ = -Math.cos(PT.yaw);
+const PT_TX = Math.cos(PT.yaw), PT_TZ = Math.sin(PT.yaw);
+const PT_RED = 0xb0201f, PT_WHITE = 0xeeeae0;
+
+function buildPetro(K) {
+  const mb = K.mb;
+  // The canopy: 4.7 m of clearance, a white deck, and the red band that is the
+  // only thing you actually see from the boulevard.
+  canopy(K, PT.cx, 4.7, PT.cz, 16, 10, PT.yaw, PT_WHITE, 4);
+  mb.tower(PT.cx, 4.36, PT.cz, 16.2, 10.2, 0.34, flat(PT_RED),
+    { yaw: -PT.yaw, noBottom: true, top: flat(PT_RED, 1.06) });
+
+  // Two islands under it, parallel to the road, two pumps on each.
+  for (const s of [-1, 1]) {
+    const ix = PT.cx + PT_NX * s * 2.9, iz = PT.cz + PT_NZ * s * 2.9;
+    mb.tower(ix, 0, iz, 7.2, 1.3, 0.18, flat(0xb9b3a6),
+      { yaw: -PT.yaw, noBottom: true, top: flat(0xc6c0b2) });
+    for (const u of [-1.9, 1.9]) {
+      const qx = ix + PT_TX * u, qz = iz + PT_TZ * u;
+      mb.tower(qx, 0.18, qz, 0.62, 1.05, 1.55, flat(PT_WHITE),
+        { yaw: -PT.yaw, noBottom: true, top: flat(0x8f8a80) });
+      mb.box(qx, 1.55, qz, 0.66, 0.34, 1.09, flat(PT_RED), { yaw: -PT.yaw });
+      if (!K.detail) continue;
+      for (const side of [-1, 1]) {
+        mb.panel(qx + PT_NX * side * 0.54, 1.10, qz + PT_NZ * side * 0.54,
+          0.42, 0.30, PT_NX * side, PT_NZ * side, flat(0x27313a), null, 0.02);
+      }
+    }
+    if (!K.detail) continue;
+    for (const u of [-3.3, 3.3]) {
+      mb.cyl(ix + PT_TX * u, 0.55, iz + PT_TZ * u, 0.11, 1.1, 6, flat(0xc9a227), 'y', false);
+    }
+  }
+
+  // The dépanneur behind the pumps: the only thing here with a collider.
+  const kr = rectRing(PT.cx + PT_TX * 4.5 - PT_NX * 12.5, PT.cz + PT_TZ * 4.5 - PT_NZ * 12.5,
+    9, 6, PT.yaw);
+  const krTris = fanTris(4);
+  const rows = [{ y0: 0.85, y1: 2.55, w: 1.9, gap: 0.55, margin: 0.8, mullions: 2, frost: 0.12 }];
+  walls(K, kr, 0, 3.3, {
+    mat: 'brick_buff', tint: tint(K, 'brick_buff', 1.03), rows,
+    jamb: 0xb6b0a4, reveal: 0.18, bar: 0x6b6f73,
+    frostHex: 0xa9b3ad, glassLo: GLASS_LO, glassHi: GLASS_HI,
+  }, (i, L) => (L > 7 ? rows : null));
+  band(K, kr, krTris, 3.3, 0.55, 0.24, PT_RED);
+  // 1 cm above the band's own cap: two coplanar quads at 3.85 z-fought into
+  // stripes across the roof, which the plan preview caught.
+  mb.capPoly(offsetRing(kr, 0.24), krTris, 3.87, flat(0x6b6963));
+  if (!K.detail) return;
+  dumpster(K, PT.cx + PT_TX * 9.6 - PT_NX * 11.5, PT.cz + PT_TZ * 9.6 - PT_NZ * 11.5,
+    PT.yaw, 0x44505a);
+  lightStandard(K, PT.cx - PT_TX * 9.5 - PT_NX * 9.5, PT.cz - PT_TZ * 9.5 - PT_NZ * 9.5, 7, PT.yaw);
+}
+
+function sitePetro(K) {
+  // The forecourt, its two crossovers onto the boulevard, and the painted lane
+  // through the middle of the pumps.
+  K.mb.flatRot(PT.cx - PT_NX * 2, PT.cz - PT_NZ * 2, 20, 22, 0.032, -PT.yaw, flat(ASPHALT, 1.04));
+  for (const s of [-1, 1]) {
+    crossing(K, PT.cx + PT_TX * s * 8 + PT_NX * 10.5, PT.cz + PT_TZ * s * 8 + PT_NZ * 10.5,
+      6, 2.6, PT.yaw + Math.PI / 2, 4);
+  }
+  K.mb.flatRot(PT.cx, PT.cz, 15, 0.16, 0.036, -PT.yaw, rgb(STRIPE));
+  // Three stalls for the dépanneur, on the WEST side and painted by hand:
+  // lot() lays a 5.2 m stall either side of its centre line, so a six-metre pad
+  // spills its paint ten metres onto the boulevard, and the east side is where
+  // the dépanneur itself stands. Both showed up in the plan preview.
+  const bx = PT.cx - PT_TX * 8.2 - PT_NX * 8.0, bz = PT.cz - PT_TZ * 8.2 - PT_NZ * 8.0;
+  K.mb.flatRot(bx, bz, 8, 5.4, 0.033, -PT.yaw, flat(ASPHALT, 1.02));
+  for (let i = -1; i <= 2; i++) {
+    K.mb.flatRot(bx + PT_TX * (i - 0.5) * 2.6, bz + PT_TZ * (i - 0.5) * 2.6,
+      0.12, 5.0, 0.036, -PT.yaw, rgb(STRIPE));
+  }
+}
+
 // ============================================================ registry
 //
 // Each site: where it is, how big a sphere it fills (LOD swap + frustum test),
@@ -1496,6 +1770,18 @@ export const SITES = [
       yaw: GA.yaw, w: 5.4, h: 1.35, y: 1.5,
       text: 'LES GALERIES D’AYLMER', sub: 'Entrée sud · Casse-croûte du food court',
       board: '#6a4a1c' } },
+  // A house gets no marquee, and the shop out back is a friend's shed, not a
+  // business — so no sign here either. The site is the driveway.
+  { key: 'russell', cx: 1000, cz: 752, r: 34, near: HERO_NEAR,
+    hide: [{ id: RS.id, at: [RS.cx, RS.cz], keepRing: true }],
+    build: buildRussell, site: siteRussell, sign: null },
+  // No `hide`: there is no footprint here to replace. OSM carries a fuel POI at
+  // this corner and nothing else, which is exactly why the station was invisible.
+  { key: 'petro', cx: PT.cx, cz: PT.cz, r: 30, near: HERO_NEAR,
+    build: buildPetro, site: sitePetro,
+    sign: { x: PT.cx - PT_TX * 7.5 + PT_NX * 9.5, z: PT.cz - PT_TZ * 7.5 + PT_NZ * 9.5,
+      yaw: PT.yaw, w: 2.8, h: 1.5, y: 5.2,
+      text: 'PETRO-CANADA', sub: 'Dépanneur · Petro-Points', board: '#b0201f' } },
 ];
 
 // --------------------------------------------------------- footprint removal
@@ -1547,6 +1833,13 @@ PLACES.symmesjr = {
 PLACES.british = {
   road: 'Rue Principale', x: BR.cx, z: BR.cz + 26,
   label: 'Hôtel British, Vieux-Aylmer', snap: true, lot: true, landmark: true,
+};
+// Chez Russell. The point is the driveway, not the front door: the mouth of it
+// on rue Arial is where you turn in, and `road` pins the snap to Arial itself
+// so the marker cannot wander onto chemin Cochrane one lot over.
+PLACES.russell = {
+  road: 'Rue Arial', x: RS_DRIVE.x, z: RS_DRIVE.z + RS_DRIVE.len / 2 - 2,
+  label: '1 rue Arial (Russell)', snap: true, landmark: true,
 };
 
 // ============================================================ the bake

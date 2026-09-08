@@ -38,7 +38,19 @@ export const PLACES = {
   dep:       { x: -786.8, z: -339.4, label: 'Dépanneur Palmyra', snap: true, lot: true },
   arena:     { x: -605.6, z: 79, label: 'Aréna Frank-Robinson', snap: true, lot: true },
   church:    { x: -924.1, z: -408.2, label: 'Paroisse Saint-Paul', snap: true, lot: true },
-  gas:       { poi: 'Petro-Canada', x: 2197.6, z: 887.4, label: 'La station', snap: true, lot: true },
+  // The Petro-Canada at the Deschênes corner of the boulevard de Lucerne. It
+  // has been the repair spot (damage.js « Petro-Can »), the fuel spot (fuel.js,
+  // 24 m of it) and a mission giver since Wave 2, and until landmarks.js grew a
+  // forecourt for it there was nothing there to see: no OSM footprint, one fuel
+  // POI on a grass verge, and « La station » as a label. The coordinate is the
+  // middle of the pump island now, so the snapped kerb point is the mouth of
+  // the forecourt and the pumps are inside the fill radius.
+  //
+  // The `poi: 'Petro-Canada'` refine is gone: there is no POI of that name
+  // within POI_SNAP of here — OSM names the operator at this corner HETCO — so
+  // it never did anything but risk dragging the station across town the day
+  // somebody adds one. The brand is the game's own and predates this wave.
+  gas:       { x: 2202, z: 884, label: 'Petro-Canada, boul. de Lucerne', snap: true, lot: true, landmark: true },
   principale:{ x: -877, z: -102, label: 'Vieux-Aylmer, rue Principale', snap: true },
   symmes:    { x: -1517.5, z: -61.1, label: 'Auberge Symmes', snap: true, lot: true },
   deschenes: { x: 2369.5, z: 1133.3, label: 'Hôtel Deschênes', snap: true, lot: true },
@@ -46,7 +58,11 @@ export const PLACES = {
   // and Heritage is a real destination beyond it.
   hullgate:  { x: 2734.8, z: -3245.4, label: 'Route 148 — entrée vers Hull' },
   heritage:  { poi: 'Heritage College', road: 'Boulevard de la Cité-des-Jeunes', x: 5521, z: -6836, label: 'Heritage College, secteur Hull', snap: true },
-  hullmuseum:{ poi: "Musée canadien de l'histoire", x: 9827, z: -4016, label: 'Musée canadien de l’histoire, Hull', snap: true, lot: true },
+  // Douglas Cardinal's building on the Hull bank, opened 1989. In 2004 it is
+  // the Musée canadien des CIVILISATIONS — « de l'histoire » is the 2013 rename
+  // and cannot be on a sign in this summer. `poi` keeps OSM's modern spelling
+  // because that is the string in the map data; only the label is player-facing.
+  hullmuseum:{ poi: "Musée canadien de l'histoire", x: 9827, z: -4016, label: 'Musée canadien des civilisations, Hull', snap: true, lot: true },
   hulldowntown:{ poi: 'La Place du Portage', road: 'Promenade du Portage', x: 9510, z: -3364, label: 'Centre-ville de Hull', snap: true },
   hullcasino:{ poi: 'Casino du Lac-Leamy', x: 8622, z: -5768, label: 'Casino du Lac-Leamy, Hull', snap: true, lot: true },
   hullmall:  { poi: 'Les Galeries de Hull', x: 8101, z: -5251, label: 'Les Galeries de Hull', snap: true, lot: true },
@@ -81,7 +97,11 @@ export const PLACES = {
   // side. `snap: true`, so the marker and the kerb land on the boulevard
   // whatever the setback turns out to be. The block is right; the driveway is
   // an estimate.
-  abraham:   { x: -182, z: -998, label: '841 Wilfrid-Lavigne (Abraham)', snap: true },
+  // `road` pins the snap to the boulevard itself. With a bare `snap: true` the
+  // nearest road to an already-approximate setback is whichever cul-de-sac
+  // happens to be closer, and the kerb Abraham stands at stops being his own
+  // street. The block is right; the driveway is still an estimate.
+  abraham:   { road: 'Boulevard Wilfrid-Lavigne', x: -182, z: -998, label: '841 Wilfrid-Lavigne (Abraham)', snap: true },
   // ~312 rue Samuel-Edey, where Tyler Yank lives with her aunt. UNCERTAIN:
   // PLAN says « ~312 » and nothing narrows it, so this is the 300 block by the
   // same interpolation as above — 312 m north of the street's south end at

@@ -343,7 +343,7 @@ const START_MAP_LABELS = {
   beach: 'Plage des Cèdres',
   marina: 'Marina', principale: 'Vieux-Aylmer', arena: 'Aréna Frank-Robinson',
   deschenes: 'Deschênes', golf: 'Club de golf', heritage: 'Heritage College',
-  hulldowntown: 'Vieux-Hull', hullmuseum: 'Musée de l’histoire',
+  hulldowntown: 'Vieux-Hull', hullmuseum: 'Musée des civilisations',
   hullcasino: 'Casino du Lac-Leamy', hullmall: 'Galeries de Hull',
   ottawa: 'Colline du Parlement', chelsea: 'Chelsea',
 };

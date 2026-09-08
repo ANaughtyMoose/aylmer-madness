@@ -121,6 +121,8 @@ const CAM = {
   marina:     { at: [-1785, 7, -40], from: [-1730, 16, 10], span: 90, plan: 110 },
   mike:       { at: [-424, 6, 55], from: [-378, 9, 53], span: 46, plan: 60 },
   lordaylmer: { at: [-362, 4, 60], from: [-430, 14, 60], span: 110, plan: 130 },
+  russell:    { at: [1000, 5, 748], from: [1000, 11, 800], span: 62, plan: 76 },
+  petro:      { at: [2202, 5, 886], from: [2196, 12, 848], span: 62, plan: 76 },
 };
 
 const SKY_T = [96, 132, 178], SKY_B = [178, 196, 206];
