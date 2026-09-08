@@ -559,9 +559,9 @@ function selectStart(key) {
 }
 
 // The single action of the whole screen. BACKLOG U9: both playtests clicked a
-// start point, saw nothing happen, and stopped. Everything that can mean \u00ab this
-// one, go \u00bb \u2014 the GO bar, a second click on the point already chosen, a
-// double-click on any open point, the map pin you have already selected \u2014 lands
+// start point, saw nothing happen, and stopped. Everything that can mean « this
+// one, go » — the GO bar, a second click on the point already chosen, a
+// double-click on any open point, the map pin you have already selected — lands
 // here, so nothing on this screen needs a confirm between choosing and driving.
 function goFromPicker(key = pickedStart) {
   // A real double-click on a row that was not selected fires click (select),
