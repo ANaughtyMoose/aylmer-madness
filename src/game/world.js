@@ -39,6 +39,7 @@ import { buildSignage } from './signage.js';
 import { buildHouse, makeStreetYawIndex } from './houses.js';
 import { buildTerrain } from './terrain.js';
 import { appendModel } from './models.js';
+import { FACADE_IDS } from './facades.js';
 import MATS from './materials_stub.js';
 
 const CHUNK = 200;      // world chunk size (metres)
@@ -952,13 +953,20 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
       const seed = (bi * 2654435761 + 0x9e3779b9) >>> 0;
       // Near: full detail, the real atlas, and the ONLY call that registers
       // colliders — the far copy is the same house, so it must not add them again.
-      const hr = buildHouse(hnAt(c[0], c[1]), b, b.hs || null, mats, mulberry32(seed), {
+      // A photographed elevation (facades.js) stands 6 cm proud of the street
+      // wall and covers it whole. The flat decals underneath — windows, doors,
+      // the base course — sit at 4.5 cm and simply stop being visible, but a
+      // PORCH is real geometry a metre and a half out, and it would stand in
+      // front of the picture. So the two photographed houses lose their
+      // procedural porch; the photograph has one.
+      const hs = FACADE_IDS.has(b.id) && b.hs ? { ...b.hs, p: 0 } : (b.hs || null);
+      const hr = buildHouse(hnAt(c[0], c[1]), b, hs, mats, mulberry32(seed), {
         lod: 0, index: bi, streetYaw: sy,
         addSegment: addWallSegment, // one call per footprint edge, same order as before
       });
       // Far: same seed, so recipe() draws the same tiles and the silhouette
       // wears the same brick; the stub provider keeps it vertex-coloured.
-      const fr = buildHouse(hfAt(c[0], c[1]), b, b.hs || null, MATS, mulberry32(seed), {
+      const fr = buildHouse(hfAt(c[0], c[1]), b, hs, MATS, mulberry32(seed), {
         lod: 2, index: bi, streetYaw: sy,
       });
       houseCount++; houseTris += hr.tris || 0; houseFarTris += fr.tris || 0;

@@ -63,6 +63,11 @@ export const FACADES = [
   },
 ];
 
+// The footprints a photograph covers. world.js reads this to leave the
+// PROCEDURAL porch off those houses: the photograph already has one, and two
+// porches with the picture behind the wooden one is worse than neither.
+export const FACADE_IDS = new Set(FACADES.map((f) => f.id));
+
 // ---------------------------------------------------------------- placement
 
 function pointInPoly(p, x, z) {
