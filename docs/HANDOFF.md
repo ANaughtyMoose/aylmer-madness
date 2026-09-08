@@ -72,6 +72,40 @@ fires (a job finished, a car bought or unlocked) with autosave on. « Continuer 
 loads the newest slot across every character, ties going to a real slot over
 the auto. The job in progress travels with the save.
 
+## 2026-09-08 — six branches cut off mid-flight, all pushed, none merged
+
+Thomas asked for a fan-out on everything open (« fan out agents to address all
+of these »), then for the story to feel like GTA. Six Opus agents ran at once;
+all six were killed by the API session limit (resets 12:10 PT) and, before
+that, they broke the one-Chrome rule between them (15 headless Chromes, load
+52). Everything each had was committed (uncommitted files as a `WIP:` commit,
+**not verified**) and pushed. Resume each one in its worktree: read its `git
+log`, run the suites, boot it, finish what its brief asked, PR, merge one at a
+time with suites + boot between merges (VERIFY.md « Merging parallel work »).
+
+| Branch / worktree | What is there | What remains |
+|---|---|---|
+| `fix/traffic-side` · `wt-traffic` | 1 commit: « hold your lane to the corner — a left turn is not a bend » with its suite and the NEXT.md §2 note. The agent said fix, suite and docs were done and it was waiting for a free Chrome. | Browser check with the right-side fraction, screenshot `traffic-side.jpg`, PR. |
+| `fix/camera-jitter` · `wt-jitter` | `tools/measure_camera.mjs` and a « WIP: camera damping (numbers to follow) » commit, plus a WIP of the measurer. It had a clean baseline and was re-measuring with the fix restored. | Finish the damping (`camdamp.js`), before/after numbers at 60/120 Hz, `smoke_camdamp.mjs`, screenshot, PR. |
+| `fix/playtest-small` · `wt-small` | 8 commits, the most complete: « Première période » timer (it asked 103 km/h), the golf clubhouse roof, the poutine counter, **one-click start (U9)**, merged with main. | Its PR was never opened. Re-run suites + `tools/headless.mjs` boot (the harness clicks `#start` then `#startconfirm`; check it still reaches drive), screenshot `start-one-click.jpg`, PR. |
+| `feat/wave3-places` · `wt-places` | 4 commits: the seven places (« two did not exist, one had the wrong name »), campaign.json mapped to real place keys, rivals scaled by `G.rivalFrac`, race resume after a save; merged with main; WIP of HANDOFF/NEXT/`shots_landmarks.mjs`. | The resume/rival tests it was writing, landmark screenshots, PR. |
+| `feat/wave5-look` · `wt-look` | 3 commits: models drawn, real-texture atlas at med/high, facades on 299 Fraser and 75 Denise-Friend (`assets/facades/` 288 KB); WIP of `facades.js`/`world.js`/`shots_look.mjs`. | Verify the WIP compiles and boots (« Ouch » menu = shader link failure), screenshots, the four-point memory re-measure, PR. Sky/tone/shadow ports not started. |
+| `feat/story-cold-open` · `wt-story` | 0 real commits; one WIP with `coldopen.js`, `phone.js`, `passed.js`, `support.js`, three suites, and edits to `story.js`/`heckle.js`/`hud.js`/`missions.js`/`main.js`. It was writing the support suite. | Everything is unverified. `node --check src/main.js` first, then suites; `G.story.hide()` must still skip the opening for the harness. |
+
+Merge order suggestion: `fix/playtest-small` (touches the start picker every
+harness run depends on), then `fix/traffic-side`, `fix/camera-jitter`,
+`feat/wave3-places`, `feat/wave5-look`, `feat/story-cold-open` last (it
+touches `main.js` in the most places).
+
+Lesson, for whoever runs the next fan-out: **three agents at once, not six**,
+on this laptop and this API plan; give each a port pair and check
+`pgrep -f headless=new | wc -l` yourself every few minutes — the agents did not
+honour the cap when told to.
+
+Also new: `docs/GEMINI_CINEMATIC_PROMPT.md` (PR #33) is ready for Thomas to
+paste into Antigravity — the undelivered look-pass Parts 5/6/8 plus the cold
+open storyboard, colour grade, beat timings and a sound sheet.
+
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.
