@@ -386,6 +386,77 @@ if (existsSync(join(MODELS, 'manifest.json'))) {
   console.log(`manifest: ${man.models.length} models, ${totalTris} tris total`);
 }
 
+// ------------------------------------------- 8. the wiring into the game
+// Wave 5. Nothing above this point proves a model ever reaches the screen: the
+// converter can be perfect and world.js still bake cones. These are the three
+// doors a model actually goes through, and each one has to work BOTH WAYS —
+// with a registry and with null, because 'low' quality and every other suite in
+// this directory run with null and must get the old geometry back untouched.
+if (existsSync(join(MODELS, 'manifest.json'))) {
+  const { MeshBuilder } = await import('../src/core/mesh.js');
+  const { appendModel } = await import('../src/game/models.js');
+  const { KINDS, setPropModels } = await import('../src/game/streetprops.js');
+  const { buildBigTree, MIKE_TREE } = await import('../src/game/props.js');
+
+  // A registry with the same surface loadModels() returns, filled from disk.
+  const man = JSON.parse(readFileSync(join(MODELS, 'manifest.json'), 'utf8'));
+  const models = new Map();
+  for (const e of man.models) {
+    const doc = JSON.parse(readFileSync(join(MODELS, `${e.slug}.json`), 'utf8'));
+    models.set(e.slug, await loadModelDoc(doc, () => { throw new Error('no bin'); }));
+  }
+  const reg = { get: (s) => models.get(s) || null, list: [...models.keys()] };
+  const tris = (b) => b.i.length / 3;
+  const topY = (b) => { let y = -1e9; for (let i = 1; i < b.v.length; i += 9) if (b.v[i] > y) y = b.v[i]; return y; };
+
+  // appendModel is the only door into baked geometry, so it has to be exact.
+  {
+    const m = reg.get('park-bench');
+    const b = new MeshBuilder();
+    const n = appendModel(b, m, { x: 10, y: 0, z: -4, yaw: 0.7, scale: 2 });
+    ok(n === m.tris && tris(b) === m.tris, 'appendModel: adds exactly the model\'s triangles');
+    ok(near(topY(b), m.max[1] * 2, 1e-3), 'appendModel: scale multiplies the height');
+  }
+
+  // --- streetprops. Three kinds carry a model now; the rest never did.
+  const emitted = (kind, y = 0) => { const b = new MeshBuilder(); KINDS[kind].emit(b, 0, y, 0, 0); return b; };
+  const WIRED = [['garbage', 'garbage-can', 1.02], ['bench', 'park-bench', 0.82], ['dumpster', 'dumpster', 1.05]];
+
+  setPropModels(null);
+  const flat = {};
+  for (const [kind] of WIRED) {
+    flat[kind] = tris(emitted(kind));
+    ok(flat[kind] > 0, `streetprops: ${kind} draws its own boxes with no registry`);
+  }
+  ok(tris(emitted('recyc')) === flat.garbage,
+    'streetprops: garbage and recyc are the same primitive bin without models');
+
+  setPropModels(reg);
+  for (const [kind, slug, h] of WIRED) {
+    const b = emitted(kind);
+    ok(tris(b) === reg.get(slug).tris, `streetprops: ${kind} emits ${slug} when the registry is set`);
+    ok(near(topY(b), h, 1e-3), `streetprops: ${kind} is scaled to ${h} m, so r/cy in the table stay true`);
+    // Every kind is also emitted once at y = -cy to build its debris mesh.
+    const d = emitted(kind, -KINDS[kind].cy);
+    ok(near(topY(d), h - KINDS[kind].cy, 1e-3), `streetprops: ${kind} emits correctly off the origin too`);
+  }
+  ok(tris(emitted('recyc')) === flat.garbage,
+    'streetprops: recyc keeps the primitive — the model\'s green is baked into its vertices');
+  setPropModels(null);
+
+  // --- props.js. Mike's maple is a real instance: one upload, drawn per copy.
+  {
+    const cones = buildBigTree(MIKE_TREE, null);
+    const maple = buildBigTree(MIKE_TREE, reg);
+    const limbs = 12 * 2;                       // the two box() limbs, both ways
+    ok(tris(maple) === reg.get('tree-sugar-maple').tris + limbs,
+      'props: the big tree is the borrowed maple plus the two couch limbs');
+    ok(tris(cones) !== tris(maple) && tris(cones) > 0, 'props: and the cones without a registry');
+    ok(near(topY(maple), MIKE_TREE.crownY + 3.9, 1e-3),
+      'props: the borrowed maple tops out where the cone crown did');
+  }
+}
+
 rmSync(TMP, { recursive: true, force: true });
 console.log(`${checks - fails.length}/${checks} checks passed`);
 if (fails.length) {

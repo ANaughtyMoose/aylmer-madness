@@ -19,6 +19,7 @@
 // Coordinates are metres, +X east, +Z south, +Y up, and yaw turns the prop to
 // face the road it stands beside.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
+import { appendModel } from './models.js';
 
 const CHUNK = 200;        // must match world.js so props line up with the town
 const CELL = 16;          // broadphase cell for hitBy()
@@ -33,7 +34,31 @@ const C = {
   cart: 0xb6bcc2, cartFrame: 0x8b9197, cartHandle: 0xa33029,
   wood: 0x9a7343, crate: 0xb08a55, awning: 0x2f7a4a, fruitA: 0xd06a20, fruitB: 0x8fae3a,
   bag: 0x25272c, can: 0x9fa8ad, paper: 0xd8d3c4,
+  benchSlat: 0x6a4a2e, benchFrame: 0x4a4f52,
+  dumpBody: 0x2f5b3a, dumpLid: 0x243f2b,
 };
+
+// ------------------------------------------------------- borrowed models
+// The CC0 models (docs/MODELS.md) are baked into the chunk exactly like the
+// hand-written primitives below — same builder, same index slice, so knocking
+// one over is still the one blankIndices() call. main.js sets this after
+// loadModels() and only for the med/high tiers; at 'low', and in every node
+// suite, it stays null and every emit() falls through to its own geometry.
+let MODELS = null;
+export function setPropModels(reg) { MODELS = reg || null; }
+export function propModels() { return MODELS; }
+
+// Append `slug` standing on (x, y, z), scaled so it is `h` metres tall — the
+// height of the primitive it replaces, so the collision radius and the centre
+// of mass in the table above stay true. Returns false when there is no model,
+// which is the caller's cue to draw its own boxes.
+function model(b, slug, h, x, y, z, yaw) {
+  if (!MODELS) return false;
+  const m = MODELS.get(slug);
+  if (!m || !(m.max[1] > 0.05)) return false;
+  appendModel(b, m, { x, y, z, yaw, scale: h / m.max[1] });
+  return true;
+}
 
 // yaw-aware local -> world, the same convention MeshBuilder.tower uses:
 // local +X maps to (cos yaw, -sin yaw), local +Z to (sin yaw, cos yaw).
@@ -77,8 +102,45 @@ export const KINDS = {
     emit(b, x, y, z, yaw) { bin(b, x, y, z, yaw, C.recyc); },
   },
   garbage: {
+    // The borrowed bin is 1.02 m to the lid, the same as the tower pair below,
+    // so r and cy are unchanged. `recyc` keeps the primitive: the model's green
+    // is baked into its vertices and a green recycling bin would be a lie.
     r: 0.42, cy: 0.52, kick: 1.25, snd: 'bin', spill: 4, dmg: 0.7,
-    emit(b, x, y, z, yaw) { bin(b, x, y, z, yaw, C.garbage); },
+    emit(b, x, y, z, yaw) {
+      if (model(b, 'garbage-can', 1.02, x, y, z, yaw)) return;
+      bin(b, x, y, z, yaw, C.garbage);
+    },
+  },
+  // A slatted park bench: the Marina, parc des Cèdres and the Principale
+  // storefronts. 1.76 m long, 0.82 m to the back rail — the model's own
+  // dimensions, which is where r and cy come from. Heavy: it barely moves.
+  bench: {
+    r: 0.75, cy: 0.41, kick: 0.30, snd: 'wood', spill: 0, dmg: 1.6,
+    emit(b, x, y, z, yaw) {
+      if (model(b, 'park-bench', 0.82, x, y, z, yaw)) return;
+      const f = frame(x, z, yaw);
+      b.box(x, y + 0.44, z, 1.76, 0.06, 0.50, rgb(C.benchSlat), { yaw, noBottom: true });
+      b.box(f.X(0, -0.22), y + 0.63, f.Z(0, -0.22), 1.76, 0.38, 0.06, rgb(C.benchSlat), { yaw, noBottom: true });
+      for (const lx of [-0.76, 0.76]) for (const lz of [-0.18, 0.18]) {
+        b.box(f.X(lx, lz), y + 0.21, f.Z(lx, lz), 0.07, 0.42, 0.07, rgb(C.benchFrame), { yaw, noBottom: true });
+      }
+    },
+  },
+  // The bin behind the Galeries and the dep. 1.86 m long, 1.05 m to the lid.
+  // Immovable by design — `kick` is small and `dmg` is large, because this is
+  // the one piece of street furniture that should cost you a panel.
+  dumpster: {
+    r: 0.95, cy: 0.52, kick: 0.10, snd: 'metal', spill: 3, dmg: 3.2,
+    emit(b, x, y, z, yaw) {
+      if (model(b, 'dumpster', 1.05, x, y, z, yaw)) return;
+      const f = frame(x, z, yaw);
+      b.tower(x, y + 0.20, z, 1.38, 1.86, 0.78, rgb(C.dumpBody),
+        { yaw, wTop: 1.44, dTop: 1.90, noBottom: true, top: rgb(C.dumpLid) });
+      b.tower(x, y + 0.98, z, 1.44, 1.90, 0.07, rgb(C.dumpLid), { yaw, noBottom: true });
+      for (const lx of [-0.55, 0.55]) for (const lz of [-0.74, 0.74]) {
+        b.cyl(f.X(lx, lz), y + 0.10, f.Z(lx, lz), 0.10, 0.20, 5, rgb(C.wheel), 'y', false);
+      }
+    },
   },
   newsbox: {
     r: 0.32, cy: 0.62, kick: 0.95, snd: 'metal', spill: 3, dmg: 0.9,
@@ -187,7 +249,10 @@ function bin(b, x, y, z, yaw, hex) {
 }
 
 // What a bin coughs up when it goes over.
-const SPILL_OF = { recyc: ['can', 'paper', 'can'], garbage: ['bag', 'bag', 'paper'], default: ['paper', 'can'] };
+const SPILL_OF = {
+  recyc: ['can', 'paper', 'can'], garbage: ['bag', 'bag', 'paper'],
+  dumpster: ['bag', 'bag', 'bag'], default: ['paper', 'can'],
+};
 
 // --------------------------------------------------------------- the bake
 

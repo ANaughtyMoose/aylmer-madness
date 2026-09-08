@@ -112,7 +112,10 @@ export function nearSectors(x, z, r) {
 // Same surface as buildWorld()'s return, so main.js, the physics closures,
 // landmarks.js (which wraps draw and querySegments) and the reactive world
 // cannot tell the difference. Queries fan out over the loaded slices.
-export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
+// `models` is the borrowed-model registry (src/game/models.js) or null. It is
+// passed straight down to every slice's bake: null means the cone trees, which
+// is what the low quality tier and every node suite get.
+export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }, models = null) {
   const loaded = new Map();               // id -> slice
   const fallen = [];                      // poles on their way down, all slices
   let houseNear = HOUSE_NEAR;
@@ -172,7 +175,7 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     if (loaded.has(id)) return loaded.get(id);
     const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     const w = buildWorld(renderer, mats, {
-      inside: insideOf(id), distant: !W.distant, signage: false, fallen,
+      inside: insideOf(id), distant: !W.distant, signage: false, fallen, models,
     });
     w.id = id;
     w.setHouseNear(houseNear);

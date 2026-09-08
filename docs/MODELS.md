@@ -7,9 +7,9 @@ already positions / normals / colours / indices in the engine's own layout.
 
 Twenty models: five trees, six pieces of street furniture, and nine vehicles.
 
-Nothing here is wired into the game yet. `world.js`, `props.js`,
-`streetprops.js` and `cars.js` are untouched on purpose — that integration is
-Wave 2's, and the wiring points are written down below so it is a small job.
+**Wave 5 wired the props.** `world.js` (street trees), `props.js` (the maple on
+Mike's lawn) and `streetprops.js` (the kerbside bin, the bench, the dumpster)
+all take a registry now; `cars.js` does not yet. See "What is wired" below.
 
 ---
 
@@ -166,6 +166,50 @@ about the *drawn* scene, not about this table: the whole town has to stay under
 450k triangles (`world.js`, `CAP`).
 
 ---
+
+## What is wired (Wave 5)
+
+One registry, loaded once in `main.js`'s `load.mats` stage with **no renderer**
+— `loadModels(null, {})`, geometry only, nothing uploaded — and handed down:
+
+| taker | what it draws | how |
+|---|---|---|
+| `buildSectors(r, mats, home, models)` → `buildWorld(…, {models})` | the 1,800 **street** trees | `appendModel` into the chunk builder |
+| `buildPropMeshes(r, models)` → `buildBigTree()` | Mike's maple | one upload, drawn per instance |
+| `setPropModels(reg)` in `streetprops.js` | `garbage`, `bench`, `dumpster` | `appendModel` into the chunk builder |
+
+**The registry is null at `quality: 'low'`, and null in every node suite.** That
+is the tier — low keeps the cone trees and the hand-written boxes — and it is
+also why the golden numbers in `tools/smoke_world.mjs` and
+`tools/smoke_react.mjs` still describe the bake they were written against: with
+no registry this code is the code that shipped. `tools/smoke_models.mjs` §8
+covers both ways round for all three doors.
+
+Measured on the Aylmer sector (`tools/smoke_world.mjs`'s own stub renderer):
+
+| | triangles | vertex+index bytes |
+|---|---:|---:|
+| cones (low, and every suite) | 1,404,169 | 123.3 MB |
+| borrowed street trees (med/high) | 1,678,628 | 160.9 MB |
+| **delta** | **+274,459 (+19.5 %)** | **+37.6 MB (+30 %)** |
+
+Bake time is unchanged at ~4.4 s: `appendModel` writes fewer vertices per tree
+than three `cone()` calls do triangles.
+
+Only **street** trees are offered a model. The 900 wood and 500 park trees keep
+their cones: a wood is a mass of silhouettes 100 m away, where the cone reads
+fine and 196 triangles apiece would be another 275k for nothing. The ceiling is
+`CAP_MODEL_TREES` in `world.js` — a triangle budget, not a taste.
+
+Each model is scaled so it is exactly as tall as the primitive it replaces
+(`TREE_H` in `world.js`; the `h` argument to `model()` in `streetprops.js`), so
+nothing downstream had to move: the collision radius and centre of mass in the
+`KINDS` table are still true, and `MIKE_TREE.crownY` still names the same
+branch the couch sits on.
+
+**`recyc` deliberately keeps its boxes.** The `garbage-can` model is repainted
+green in the vertex data — there is no texture to retint — and a green recycling
+bin would be a lie about a town where they are blue.
 
 ## Wiring points
 

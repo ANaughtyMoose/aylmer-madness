@@ -38,6 +38,7 @@ import { roadNodes, isJunction, planSignals, planStopSigns, LAMP_DY, HEAD_Y } fr
 import { buildSignage } from './signage.js';
 import { buildHouse, makeStreetYawIndex } from './houses.js';
 import { buildTerrain } from './terrain.js';
+import { appendModel } from './models.js';
 import MATS from './materials_stub.js';
 
 const CHUNK = 200;      // world chunk size (metres)
@@ -106,6 +107,16 @@ const PAVED = { trunk: 1, primary: 1, secondary: 1, tertiary: 1 };
 
 // Caps — the whole scene has to stay well under 450k triangles.
 const CAP = { woodTrees: 900, parkTrees: 500, roadTrees: 1800, shrubs: 950, poles: 2500 };
+// How many of those trees may be a BORROWED MODEL instead of the cone pair
+// (docs/MODELS.md). Baked geometry is not instanced, so this number is a
+// triangle budget, not a taste: a sugar maple is 196 triangles against the
+// cone tree's ~20, so 1,800 of them is +290k triangles on a 1.40 M sector.
+// Only street trees are ever offered one — you drive past those at 6.5 m,
+// while a wood is a mass of silhouettes 100 m away where the cones read fine.
+const CAP_MODEL_TREES = 1800;
+// Height, in metres at scale 1, of the cone tree each model stands in for.
+// The model is scaled to match it so no other part of the bake has to move.
+const TREE_H = { leaf: 7.7, conifer: 9.5 };
 
 // ---------------------------------------------------------------- small helpers
 
@@ -219,6 +230,12 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // up with a mesh from each side. With no `inside` (every smoke test, the lab
   // pages) this is the whole map, exactly as before.
   const inside = opts.inside || null;
+  // The borrowed-model registry (src/game/models.js), or null. Null is the
+  // normal state for every node suite and for the low quality tier, and it is
+  // what keeps the golden numbers in tools/smoke_world.mjs meaningful: with no
+  // registry this bake is byte-for-byte the one that shipped before.
+  const models = opts.models || null;
+  let modelTrees = 0;
   const roads = inside ? clipRoads(MAP.roads, inside) : MAP.roads;
   const bldgs = inside
     ? MAP.buildings.filter((b) => { const c = polyCentre(b.p); return inside(c[0], c[1]); })
@@ -1555,11 +1572,24 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
 
   // ------------------------------------------------------------ 6. trees
   const tr = mulberry32(0x7ee5);
-  function tree(x, z, scale, conifer) {
+  function tree(x, z, scale, conifer, allowModel) {
     const bd = bAt(x, z);
     const th = 3.0 * scale;
     const pick = tr();
     const leaf = conifer ? CONIFER[(pick * CONIFER.length) | 0] : LEAF[(pick * LEAF.length) | 0];
+    // A borrowed CC0 tree, appended straight into this chunk's builder — the
+    // trees are baked, not instanced (docs/MODELS.md), so this is the only door
+    // in. Scaled to the height of the cones it replaces, and yawed so a row of
+    // them down a street is not the same tree fifty times.
+    if (allowModel && models && modelTrees < CAP_MODEL_TREES) {
+      const m = models.get(conifer ? 'tree-white-pine' : 'tree-sugar-maple');
+      if (m && m.max[1] > 0.5) {
+        const target = (conifer ? TREE_H.conifer : TREE_H.leaf) * scale;
+        appendModel(bd, m, { x, y: 0, z, yaw: tr() * Math.PI * 2, scale: target / m.max[1] });
+        modelTrees++;
+        return;
+      }
+    }
     bd.cyl(x, th / 2, z, 0.34 * scale, th, 4, rgb(C.trunk), 'y', false);
     if (conifer) {
       // taller, narrower than the deciduous pair
@@ -1656,7 +1686,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     }
   }
   const streetSel = subsample(pairs(streetTrees), CAP.roadTrees);
-  for (const q of streetSel) tree(q[0], q[1], 0.9 + tr() * 0.5, tr() < 0.2);
+  for (const q of streetSel) tree(q[0], q[1], 0.9 + tr() * 0.5, tr() < 0.2, true);
 
   // Front-garden shrubs cluster around a subset of street trees, with loose
   // groups at parks. Offsets are deterministic and rejected if they stray onto
@@ -2048,6 +2078,9 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
           else if (p < 0.54) add(x, z, yaw, 'mailbox');
           else if (p < 0.78) add(x, z, yaw, 'hydrant');
           else if (p < 0.84 && !principale) add(x, z, yaw, 'garbage');
+          // A bench outside the storefronts. Commercial frontage only: nobody
+          // in Aylmer puts a park bench at the end of their own driveway.
+          else if (p < 0.90) add(x, z, yaw, 'bench');
           if (principale && rnd() < 0.34) {       // a terrasse, two chairs to a table
             add(x, z, yaw, 'cafetable');
             add(x + nx * 0.85 + dx * 0.10, z + nz * 0.85 + dz * 0.10, yaw + 2.7, 'cafechair');
@@ -2084,6 +2117,18 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         add(x, z, rnd() * 6.28, 'cart');
         n++;
       }
+    }
+    // Three bins round the back of the Galeries, off the service aisle the
+    // carts are loose in. Deterministic ring walk rather than a random scatter,
+    // so they end up against the building instead of mid-lot.
+    for (let n = 0, k = 0; n < 3 && k < 288; k++) {
+      const a = ((k % 72) / 72) * Math.PI * 2, rad = 22 + ((k / 72) | 0) * 12;
+      const x = mall.x + Math.cos(a) * rad, z = mall.z + Math.sin(a) * rad;
+      if (inside && !inside(x, z)) continue;
+      if (buildingAt(x, z, 1.4)) continue;
+      const before = propSpots.length;
+      add(x, z, a + Math.PI, 'dumpster');
+      if (propSpots.length > before) n++;
     }
     // The fruit stand outside Dépanneur Palmyra, on the nearest bit of pavement.
     const dep = pois.find((q) => /Palmyra/i.test(q.name || ''));
@@ -2232,7 +2277,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     + `${roads.length} roads (${interCount} intersections, ${cornerCount} kerb corners, `
     + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${wallsOffRoad} walls off the asphalt, ${stopLineCount} stop lines, `
     + `${furnDropped} pieces kept off the asphalt), `
-    + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${plantingCount} shrubs, ${poleCount} poles, `
+    + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees (${modelTrees} borrowed), ${plantingCount} shrubs, ${poleCount} poles, `
     + `${shoreCount} shore, ${rockCount} rocks, ${dockCount} docks, ${poolCount} lamp pools, `
     + `${segs.length >> 2} collider segments, ${signCount} boards, `
     + `${signage ? signage.names.length : 0} storefronts, ${winQuads} windows — ${dt} ms`);

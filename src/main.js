@@ -57,6 +57,8 @@ import { Signals } from './game/signals.js';
 // Side jobs: props, the canoe, and the extended stage model. Everything below
 // hooks in through G — main.js does not know what a doughnut is.
 import { Props, buildPropMeshes, ISLAND, MIKE_TREE } from './game/props.js';
+import { loadModels } from './game/models.js';
+import { setPropModels } from './game/streetprops.js';
 // The reactive world: pedestrians, knock-over street furniture, debris.
 import { Reactive } from './game/reactive.js';
 // Avatars agent: the friends who are real people. See the hook in render().
@@ -216,6 +218,7 @@ const G = {
   rivals: [], raceParked: {}, cops: null, ranRed: false,
   hud, audio, input,
   q: { ...QUALITY.med },      // live quality numbers; applySettings owns them
+  models: null,               // borrowed CC0 models, or null at 'low' quality
 };
 
 const legend = new Legend();
@@ -824,14 +827,29 @@ function worldStages() {
     // The atlas is one 2048² PNG off the network, so this stage is a promise —
     // Loading.run waits for it. If it does not turn up the houses fall back to
     // flat vertex colours and the game still runs.
-    [t('load.mats'), () => loadMaterials(r).then((m) => { G.mats = m; }).catch((e) => {
-      console.warn('materials: atlas failed to load, falling back to vertex colours —', e.message);
-      G.mats = MATS_STUB;
-    })],
+    [t('load.mats'), () => Promise.all([
+      loadMaterials(r).then((m) => { G.mats = m; }).catch((e) => {
+        console.warn('materials: atlas failed to load, falling back to vertex colours —', e.message);
+        G.mats = MATS_STUB;
+      }),
+      // The borrowed CC0 models (docs/MODELS.md). Geometry only — no renderer,
+      // so nothing is uploaded here: world.js and streetprops.js APPEND them
+      // into the chunk meshes they were already building, which is the only way
+      // in for baked geometry. 'low' skips the fetch entirely and keeps the
+      // cone trees and the hand-written boxes, which is the whole point of the
+      // tier: the sugar maple is 196 triangles against the cone pair's ~20.
+      (G.quality === 'low' ? Promise.resolve(null) : loadModels(null, {}))
+        .catch((e) => { console.warn('models: none loaded —', e.message); return null; })
+        .then((m) => {
+          G.models = m && m.list.length ? m : null;
+          setPropModels(G.models);
+          if (G.models) console.log(`models: ${G.models.list.length} loaded (${G.models.tris} tris of source geometry)`);
+        }),
+    ])],
     [t('load.world'), () => {
       // One sector — the one the start point is in — is baked here; the
       // others arrive as you drive (sectorTick below).
-      G.world = buildSectors(r, G.mats || MATS_STUB, G.homeXZ);
+      G.world = buildSectors(r, G.mats || MATS_STUB, G.homeXZ, G.models || null);
       // ---- landmarks hook (agent/landmarks) -------------------------------
       // The hero buildings — Philemon Wright, Heritage, the schools, the two
       // stone inns, the marina, 129 Frank-Robinson — are baked and hung off the
@@ -895,7 +913,7 @@ function worldStages() {
       G.fx = new DriveFx(r);
       // Hand-placed props (canoe, couch, Île Aylmer, Mike's maple...). Built and
       // uploaded once, here; nothing in props.js ever builds geometry per frame.
-      G.propMeshes = buildPropMeshes(r);
+      G.propMeshes = buildPropMeshes(r, G.models || null);
       G.props = new Props(r, G.propMeshes);
       G.reactive = new Reactive(r, G.world);
     }],

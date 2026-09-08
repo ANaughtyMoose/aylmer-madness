@@ -9,6 +9,7 @@
 //
 // Coordinates are the usual metres: +X east, +Z south, +Y up.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
+import { appendModel } from './models.js';
 import { m4 } from '../core/math.js';
 
 // ---------------------------------------------------------------- placements
@@ -214,16 +215,28 @@ function islandTree(b, x, y, z, scale, conifer) {
 
 // The maple on Mike's lawn. Same look as world.js's street trees, just bigger,
 // and it exists as its own mesh so the couch has something specific to aim at.
-export function buildBigTree(t = MIKE_TREE) {
+export function buildBigTree(t = MIKE_TREE, models = null) {
   const b = new MeshBuilder();
   const trunkH = t.crownY - 2.6;
-  b.cyl(0, trunkH / 2, 0, t.trunkR, trunkH, 6, rgb(C.trunk), 'y', false);
-  // two low limbs, so the couch has somewhere to sit
+  // The borrowed sugar maple, if it is loaded — this one is a PROP, uploaded
+  // once and drawn per instance, so it costs 196 triangles in total and not one
+  // byte more than the cones did per copy (docs/MODELS.md, "Memory").
+  const m = models && models.get('tree-sugar-maple');
+  if (m && m.max[1] > 0.5) {
+    // Match the cone crown's top (crownY + 1.5 + 2.4) so nothing that reads
+    // MIKE_TREE — the couch, the heckles, the camera — has to change.
+    appendModel(b, m, { scale: (t.crownY + 3.9) / m.max[1] });
+  } else {
+    b.cyl(0, trunkH / 2, 0, t.trunkR, trunkH, 6, rgb(C.trunk), 'y', false);
+    b.cone(0, t.crownY - 3.1, 0, t.crownR, 4.6, 7, rgb(C.leaf));
+    b.cone(0, t.crownY - 0.6, 0, t.crownR * 0.72, 3.6, 7, shade(C.leaf2, 1.06));
+    b.cone(0, t.crownY + 1.5, 0, t.crownR * 0.42, 2.4, 6, shade(C.leaf2, 1.14));
+  }
+  // Two low limbs, so the couch has somewhere to sit. These are gameplay, not
+  // decoration: the couch mission puts a sofa on them, so they are drawn either
+  // way and they stand proud of the borrowed crown on purpose.
   b.box(-0.9, trunkH * 0.82, 0, 1.9, 0.22, 0.22, rgb(C.trunk), { yaw: 0.4 });
   b.box(0.9, trunkH * 0.86, 0.2, 1.7, 0.20, 0.20, rgb(C.trunk), { yaw: -0.5 });
-  b.cone(0, t.crownY - 3.1, 0, t.crownR, 4.6, 7, rgb(C.leaf));
-  b.cone(0, t.crownY - 0.6, 0, t.crownR * 0.72, 3.6, 7, shade(C.leaf2, 1.06));
-  b.cone(0, t.crownY + 1.5, 0, t.crownR * 0.42, 2.4, 6, shade(C.leaf2, 1.14));
   return b;
 }
 
@@ -257,13 +270,13 @@ export function buildWake() {
 // ---------------------------------------------------------------- upload
 
 // Called once from main.js's loadWorld(). Nothing here is ever rebuilt.
-export function buildPropMeshes(renderer) {
+export function buildPropMeshes(renderer, models = null) {
   return {
     canoe: renderer.upload(buildCanoe()),
     couch: renderer.upload(buildCouch()),
     yardsale: renderer.upload(buildYardSale()),
     island: renderer.upload(buildIsland()),
-    bigtree: renderer.upload(buildBigTree()),
+    bigtree: renderer.upload(buildBigTree(MIKE_TREE, models)),
     litwin: renderer.upload(buildLitWindows()),
     wake: renderer.upload(buildWake()),
   };
