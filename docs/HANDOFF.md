@@ -137,6 +137,15 @@ Rules learned from this pass, for the next Gemini prompt:
 - **The truck is white.** It produced a dark green Ranger once; the canon is in `cars.js` (`body: 0xebe8dd`, black bumpers, no chrome). Put the canon in the prompt, not in the repo it is told to read.
 - **Likeness rule was overridden by Thomas himself** (his own photo, his own plate). That is his call for reference material; it still never ships in the public repo.
 
+**Radio, decided by Thomas 2026-09-08 (code change for Monday):** the station
+table in `src/game/radio.js` becomes CHEZ 106.1, 106.9 The Bear, Live 88.5,
+CHUM FM (no frequency shown), CBC Radio (he says 89.1; verify — CBO-FM was
+91.5 in 2004) and a French CBC (Radio-Canada Première, CBOF-FM 90.7). CKOI,
+CIMF, CKCU and CJRC go. Slogans, stings and formats per station are in the
+table today; the English ones read English. Gemini's `redo/RADIO_2004.md`
+will list real 2004 programmes for the cassette station; anything
+all-rights-reserved stays local in the gitignored `assets/radio/`.
+
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.

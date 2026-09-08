@@ -95,13 +95,19 @@ will draw:
 
 Deliverable: `gemini-inbox/redo/CORRECTIONS.md`.
 
-- **Radio.** The stations that exist are the `name` fields of the station
-  table in `src/game/radio.js` (CKOI 102.1, CIMF 94.9, CHEZ 106.1 and whatever
-  else that file lists) — nothing else. The seven bumper stickers in
-  `look/ui/radio/` name stations the game does not have (MAX 105.3, CHLL,
-  CJRC, CKUQ, CFRL, CKOT) and a wrong frequency for CKOI. Regenerate one
-  sticker per real station, 512², period type, as an image, and delete
-  nothing (Thomas decides what goes).
+- **Radio.** Thomas has decided the dial (2026-09-08). The stations are, and
+  only are: **CHEZ 106.1** (Ottawa's rock station), **106.9 The Bear** (CKQB,
+  the other rock station), **Live 88.5** (CILV, launched 2003 — confirm it was
+  on air by June 2004), **CHUM FM** (Toronto; « forget the frequency » — he
+  does not care that it did not reach Aylmer, it is a memory), **CBC Radio**
+  (Thomas says 89.1; in 2004 CBC Radio One Ottawa was CBO-FM 91.5 — report
+  both and which one 89.1 actually was in the region), and a **French CBC**
+  (Radio-Canada Première Chaîne Ottawa-Gatineau, CBOF-FM 90.7 — confirm).
+  For each: the exact 2004 call sign, frequency, format, slogan as printed
+  then, and one 512² bumper sticker generated as an image in period type. The
+  seven stickers in `look/ui/radio/` are discarded; the current station table
+  in `src/game/radio.js` (CKOI, CIMF, CHEZ, CKCU, CJRC) is what the engine
+  agent will replace on Monday — do not edit it.
 - **Sun.** For `cinema/grade/sun_angles.json`, show the check: NOAA's solar
   position for 45.40° N, 75.85° W on 2004-06-26 at 07:40 EDT, 12:00, 19:30,
   and 2004-09-06 07:40, next to your numbers, with the difference. Fix yours
@@ -115,6 +121,29 @@ Deliverable: `gemini-inbox/redo/CORRECTIONS.md`.
   `data/buildings.json` (the real pavilion polygon) and the water mask in
   `src/game/mapdata.js` (`waterMask`): the jetty must be over water and the
   pavilion on land. Report the coordinates you used and what the data says.
+
+# 5 — Contemporaneous radio as podcasts
+
+Deliverable: `gemini-inbox/redo/RADIO_2004.md` and `redo/radio/playlist.json`.
+
+The game's cassette station plays whatever is in `assets/radio/` (read the
+comment block at the top of `src/game/radio.js` and `assets/radio/README.md`
+for the playlist format). Find **real programmes from summer 2004** on the
+six stations above — or the closest thing that survives — that can be
+downloaded legally: CBC/Radio-Canada archive pages and their podcast feeds
+(episodes from 2004 of shows that existed then: As It Happens, Quirks &
+Quarks, Vinyl Café, Ideas, DNTO; on the French side Christiane Charette,
+Indicatif présent, Macadam tribus, Bande à part), archive.org captures of
+Ottawa rock-radio airchecks and station IDs, university archives, and any
+2004 podcast that was itself a radio show. For every item: title, station,
+original air date, URL, **licence or terms** (say plainly if it is
+all-rights-reserved and therefore local-only), file size, and the one-line
+reason it belongs in a truck in Aylmer that summer. Write `playlist.json` in
+the game's format pointing at local filenames under `assets/radio/` (that
+folder is gitignored; **download nothing into the repo** — list the URLs and
+a `curl` line per file in the .md). Twenty items is plenty; two hours of
+audio is plenty. Nothing generated, nothing sound-alike: real broadcasts or
+nothing.
 
 # When you are done
 
