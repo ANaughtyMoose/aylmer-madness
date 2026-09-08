@@ -63,35 +63,49 @@ const ROUTES = [
   },
 ];
 
-const list = await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?about:blank`, { method: 'PUT' }).then((r) => r.json());
-const ws = new WebSocket(list.webSocketDebuggerUrl);
-await new Promise((res) => (ws.onopen = res));
-let id = 0; const pending = new Map(); const logs = [];
-const send = (method, params = {}) => new Promise((res, rej) => {
-  const n = ++id; pending.set(n, { res, rej }); ws.send(JSON.stringify({ id: n, method, params }));
-});
-ws.onmessage = (ev) => {
-  const m = JSON.parse(ev.data);
-  if (m.id && pending.has(m.id)) {
-    const p = pending.get(m.id); pending.delete(m.id);
-    m.error ? p.rej(new Error(m.error.message)) : p.res(m.result);
-    return;
-  }
-  if (m.method === 'Runtime.exceptionThrown') {
-    logs.push('[EXCEPTION] ' + (m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text));
-  } else if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') {
-    logs.push('[error] ' + m.params.args.map((a) => a.value ?? a.description).join(' '));
-  }
-};
-await send('Runtime.enable'); await send('Page.enable');
-await send('Network.enable'); await send('Network.setCacheDisabled', { cacheDisabled: true });
-await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
-const evaluate = async (expression) => {
-  const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-  if (r.exceptionDetails) throw new Error('page: ' + (r.exceptionDetails.exception?.description || r.exceptionDetails.text));
-  return r.result.value;
-};
+const logs = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// A row gets its own TAB, not just its own navigation. Two routes in one page
+// share the traffic, the peds, the damage and the fuel, and the third route in
+// a block measured as a different drive from the third route in the other
+// block — one ended twenty metres short of the other, which reads as a
+// regression and is really the car having wandered onto the verge. Navigating
+// the same tab six times over does not fix that either: a 1.4-million-triangle
+// world per boot, on SwiftShader, and the third boot stops reaching `drive`
+// at all. One tab per row, closed on the way out.
+async function newTab() {
+  const list = await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?about:blank`, { method: 'PUT' }).then((r) => r.json());
+  const ws = new WebSocket(list.webSocketDebuggerUrl);
+  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
+  let id = 0; const pending = new Map();
+  const send = (method, params = {}) => new Promise((res, rej) => {
+    const n = ++id; pending.set(n, { res, rej }); ws.send(JSON.stringify({ id: n, method, params }));
+  });
+  ws.onmessage = (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.id && pending.has(m.id)) {
+      const p = pending.get(m.id); pending.delete(m.id);
+      m.error ? p.rej(new Error(m.error.message)) : p.res(m.result);
+      return;
+    }
+    if (m.method === 'Runtime.exceptionThrown') {
+      logs.push('[EXCEPTION] ' + (m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text));
+    } else if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') {
+      logs.push('[error] ' + m.params.args.map((a) => a.value ?? a.description).join(' '));
+    }
+  };
+  await send('Runtime.enable'); await send('Page.enable');
+  await send('Network.enable'); await send('Network.setCacheDisabled', { cacheDisabled: true });
+  await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  const evaluate = async (expression) => {
+    const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+    if (r.exceptionDetails) throw new Error('page: ' + (r.exceptionDetails.exception?.description || r.exceptionDetails.text));
+    return r.result.value;
+  };
+  const close = async () => { await send('Page.close').catch(() => {}); ws.close(); };
+  return { send, evaluate, close };
+}
 
 // ---------------------------------------------------------------- the numbers
 // Second difference / dt² is the acceleration of the signal. RMS says how rough
@@ -176,27 +190,27 @@ const runRoute = (route, hz) => `(async () => {
 
 let code = 0;
 const rows = [];
-// Every row is its own cold boot. Two routes in one page share the traffic, the
-// peds, the damage and the fuel, and the third route in a block was measurably
-// a different drive from the third route in the other block — one row ended
-// twenty metres short of the other and read as a regression that was really the
-// car having wandered onto the verge. A boot is ten seconds; a number nobody
-// can trust is worth more than that.
-const bootGame = async () => {
+const bootGame = async ({ send, evaluate }) => {
   await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
   await send('Page.navigate', { url });
-  await sleep(1500);
+  await sleep(2500);
+  // The waits are long on purpose. This runs alongside four other agents on a
+  // fanless laptop; the world build alone is 3.2 s idle and 20 s under load,
+  // and a boot that times out throws away the whole run. The measurement is
+  // deterministic (fixed dt), so waiting costs time and nothing else.
   const boot = await evaluate(`(async () => {
-    const b = document.getElementById('start'); if (!b) return 'no #start';
+    let b = null;
+    for (let i = 0; i < 100 && !b; i++) { await new Promise(r => setTimeout(r, 200)); b = document.getElementById('start'); }
+    if (!b) return 'no #start';
     b.click();
     let go = null;
-    for (let i = 0; i < 20 && !go; i++) {
-      await new Promise(r => setTimeout(r, 100));
+    for (let i = 0; i < 100 && !go; i++) {
+      await new Promise(r => setTimeout(r, 200));
       const c = document.getElementById('startconfirm');
       if (c && !c.disabled && c.getBoundingClientRect().width > 0) go = c;
     }
     if (go) go.click();
-    for (let i = 0; i < 300; i++) { await new Promise(r => setTimeout(r, 100)); if (window.AYLMER?.G?.mode === 'drive') return 'drive'; }
+    for (let i = 0; i < 900; i++) { await new Promise(r => setTimeout(r, 200)); if (window.AYLMER?.G?.mode === 'drive') return 'drive'; }
     return 'mode=' + window.AYLMER?.G?.mode;
   })()`);
   if (boot !== 'drive') throw new Error('did not reach drive: ' + boot);
@@ -210,8 +224,12 @@ try {
   console.log('# route   Hz  height RMS  height pk   pitch RMS  pitch pk | gnd hRMS  gnd pRMS   air%  km/h');
   for (const hz of RATES) {
     for (const route of ROUTES) {
-      await bootGame();
-      const raw = await evaluate(runRoute(route, hz));
+      const tab = await newTab();
+      let raw;
+      try {
+        await bootGame(tab);
+        raw = await tab.evaluate(runRoute(route, hz));
+      } finally { await tab.close(); }
       const d = JSON.parse(raw);
       const dt = 1 / hz;
       const hy = accelStats(d.y, dt), pp = accelStats(d.p, dt);
@@ -251,6 +269,4 @@ try {
   code = 1;
 }
 if (logs.length) { console.log(`--- console (${logs.length}) ---`); for (const l of logs) console.log(l); }
-await send('Page.close').catch(() => {});
-ws.close();
 process.exit(code || (logs.some((l) => l.startsWith('[EXCEPTION]') || l.startsWith('[error]')) ? 1 : 0));
