@@ -2,7 +2,7 @@
 //   node tools/smoke_atlas.mjs
 // No browser, no GL: loadMaterials() takes a stub renderer and the manifest
 // straight off disk, and MeshBuilder is pure arithmetic.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -188,6 +188,44 @@ for (const name of mats.list) {
   const bytes = mb.v.length * 4 + mb.uv.length * 4 + mb.rect.length * 4;
   console.log(`demo scene: ${SAMPLES.length} houses, ${mb.i.length / 3} tris, ${n} verts, `
     + `${(bytes / n).toFixed(0)} B/vertex (36 plain + 8 uv + 16 rect)`);
+}
+
+// ------------------------------------------- 5. the real-texture atlas
+// Wave 5 gave med/high quality `stem: 'atlas.real'`. That only works because
+// the two atlases have the SAME LAYOUT: every UV already baked into a house, a
+// road or a lawn is an absolute atlas coordinate, so a cell that moved by one
+// pixel between the drawn atlas and the photographed one would silently sample
+// the wrong material for the whole town. Nothing else in the tree can see that.
+{
+  const realPath = join(ROOT, 'assets/materials/atlas.real.json');
+  if (existsSync(realPath)) {
+    const real = JSON.parse(readFileSync(realPath, 'utf8'));
+    ok(real.size === manifest.size, 'atlas.real is the same size as atlas');
+    const a = Object.keys(manifest.tiles).sort(), b = Object.keys(real.tiles).sort();
+    ok(a.join(',') === b.join(','), 'atlas.real names exactly the same tiles');
+    let moved = 0, retiled = 0;
+    for (const name of a) {
+      const t = manifest.tiles[name], u = real.tiles[name] || {};
+      for (const k of ['u0', 'v0', 'u1', 'v1']) if (!near(t[k], u[k])) moved++;
+      if (t.tiled !== u.tiled) retiled++;
+    }
+    ok(moved === 0, `atlas.real puts every cell at the same rect (${moved} moved)`);
+    ok(retiled === 0, 'atlas.real agrees on which cells wrap and which are decals');
+    // The one thing that IS allowed to differ, and the reason it is allowed:
+    // a photographed brick course is coarser than the drawn one, so the same
+    // cell covers 1.2 m of wall instead of 0.6 m.
+    const scaled = a.filter((n) => !near(manifest.tiles[n].metres, real.tiles[n].metres));
+    ok(scaled.every((n) => /^brick_/.test(n)),
+      `only the brick cells change scale (got ${scaled.join(', ') || 'none'})`);
+    const realMats = await loadMaterials(null, { manifest: real, current: false });
+    ok(realMats.list.length === mats.list.length, 'loadMaterials reads the real manifest');
+    for (const name of mats.list) {
+      ok(realMats.rect(name).join(',') === mats.rect(name).join(','),
+        `${name}: the same rect either way, so a baked UV cannot miss`);
+    }
+    console.log(`atlas.real: ${a.length} tiles, layout identical, `
+      + `${scaled.length} rescaled (${scaled.join(', ') || 'none'})`);
+  }
 }
 
 console.log(`${checks - fails.length}/${checks} checks passed`);

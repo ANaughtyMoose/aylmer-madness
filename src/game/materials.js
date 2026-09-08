@@ -68,7 +68,15 @@ function loadImage(url) {
  *
  * @param {object} renderer  a core/gl.js Renderer (only .texture() is used)
  * @param {object} [opts]
- *   base      directory holding atlas.png / atlas.json (default ATLAS_DIR)
+ *   base      directory holding the atlas (default ATLAS_DIR)
+ *   stem      which atlas: 'atlas' (the procedural one, default) or
+ *             'atlas.real' (tools/make_atlas.py --from over the CC0
+ *             photographs in assets/textures/). The two have the SAME layout
+ *             to the pixel and the same 26 tile names, so nothing that samples
+ *             them has to know which one it got; the only difference in the
+ *             manifest is that the three brick cells declare metres 1.2
+ *             instead of 0.6, because a photographed brick course is coarser
+ *             than the drawn one.
  *   manifest  pre-parsed manifest (skips the fetch — used by the node smoke test)
  *   image     pre-loaded image (skips the fetch)
  *   aniso     anisotropy to request (default 16, clamped to the driver's max)
@@ -77,14 +85,15 @@ function loadImage(url) {
  */
 export async function loadMaterials(renderer, opts = {}) {
   const base = opts.base || ATLAS_DIR;
+  const stem = opts.stem || 'atlas';
   const manifest = opts.manifest
-    || await fetch(base + 'atlas.json').then((r) => {
-      if (!r.ok) throw new Error('cannot load ' + base + 'atlas.json');
+    || await fetch(`${base}${stem}.json`).then((r) => {
+      if (!r.ok) throw new Error(`cannot load ${base}${stem}.json`);
       return r.json();
     });
   let tex = null;
   if (renderer && renderer.texture) {
-    const image = opts.image || await loadImage(base + 'atlas.png');
+    const image = opts.image || await loadImage(`${base}${stem}.png`);
     tex = renderer.texture(image, {
       aniso: opts.aniso === undefined ? 16 : opts.aniso,
       // Cap the mip chain: the atlas cells only have 8 px of bleed, so from
@@ -95,6 +104,7 @@ export async function loadMaterials(renderer, opts = {}) {
     });
   }
   const mats = new Materials(manifest, tex);
+  mats.stem = stem;
   if (opts.current !== false) current = mats;
   return mats;
 }

@@ -828,10 +828,24 @@ function worldStages() {
     // Loading.run waits for it. If it does not turn up the houses fall back to
     // flat vertex colours and the game still runs.
     [t('load.mats'), () => Promise.all([
-      loadMaterials(r).then((m) => { G.mats = m; }).catch((e) => {
-        console.warn('materials: atlas failed to load, falling back to vertex colours —', e.message);
-        G.mats = MATS_STUB;
-      }),
+      // Which atlas. 'atlas.real' is tools/make_atlas.py --from over the six
+      // CC0 photographs in assets/textures/ — real brick, siding, shingle,
+      // asphalt, concrete and grass — in the SAME 2048² layout as the drawn
+      // one, so the UVs every house and every road already carries land on the
+      // same cells. 'low' keeps the flat atlas: it is the tier that is short of
+      // bandwidth and fill rate, and the drawn cells are flatter and cheaper to
+      // filter. A real atlas that does not turn up falls back to the drawn one
+      // before it falls back to vertex colours.
+      loadMaterials(r, { stem: G.quality === 'low' ? 'atlas' : 'atlas.real' })
+        .catch((e) => {
+          console.warn('materials: real atlas failed, falling back to the drawn one —', e.message);
+          return loadMaterials(r, { stem: 'atlas' });
+        })
+        .then((m) => { G.mats = m; console.log(`materials: ${m.stem} (${m.list.length} tiles)`); })
+        .catch((e) => {
+          console.warn('materials: atlas failed to load, falling back to vertex colours —', e.message);
+          G.mats = MATS_STUB;
+        }),
       // The borrowed CC0 models (docs/MODELS.md). Geometry only — no renderer,
       // so nothing is uploaded here: world.js and streetprops.js APPEND them
       // into the chunk meshes they were already building, which is the only way
