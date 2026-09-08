@@ -288,6 +288,47 @@ export function ingestHeckles(json) {
   return Object.keys(pools).length ? pools : null;
 }
 
+// ------------------------------------------------------- the people with you
+//
+// A heckle is the town. This is the opposite: assets/text/support.json is fifty
+// lines of your friends being kind about how badly you are driving, and the
+// only thing that makes them land is that they are only ever said by somebody
+// who is actually in the truck with you or whose errand you are running. Out of
+// that mouth « C'est rien qu'un poteau, mon chum! » is Sayyad; out of nobody's
+// it is a fortune cookie.
+//
+// Shape: { lines: [{ who, situation, fr }] }. Five people, ten situations each,
+// no English gloss (they are not slang — they are sentences).
+//
+// The limiter is the same one the heckles use. GAP still applies across both,
+// which is the point: the town and your passenger do not talk over each other.
+export const SUPPORT = {};
+
+/** Fold a parsed support.json into SUPPORT. Returns how many lines were taken. */
+export function ingestSupport(json) {
+  const rows = json && Array.isArray(json.lines) ? json.lines : (Array.isArray(json) ? json : null);
+  if (!rows) return 0;
+  let n = 0;
+  for (const r of rows) {
+    if (!r || typeof r.who !== 'string' || typeof r.situation !== 'string') continue;
+    if (typeof r.fr !== 'string' || r.fr.length < 6) continue;
+    const p = SUPPORT[r.who] || (SUPPORT[r.who] = {});
+    (p[r.situation] = p[r.situation] || []).push(r.fr);
+    n++;
+  }
+  return n;
+}
+
+/** Everything `who` has to say about `situation`, falling back to the catch-all. */
+export function supportPool(who, situation) {
+  const p = SUPPORT[who];
+  if (!p) return null;
+  // Nobody wrote Sayyad a « getting_lost » line, but he has a general one, and a
+  // general one in his voice beats silence.
+  const pool = (p[situation] && p[situation].length) ? p[situation] : p.general_failure;
+  return (pool && pool.length) ? pool : null;
+}
+
 // Where the G toggle is remembered. Its own key: the settings object in
 // store.js has a closed list of keys and drops anything it does not know.
 const GLOSS_KEY = 'aylmer.slang';
@@ -421,6 +462,54 @@ export class Heckle {
     this._remember(who || SPEAKER[key] || '', best);
     this._bubble(who || SPEAKER[key] || '', best);
     return best;
+  }
+
+  /**
+   * Somebody in the truck with you says something kind. Same limiter as say()
+   * — one line every GAP seconds across everything, no repeat inside COOLDOWN,
+   * off with « les gens gueulent » — but the speaker is a person, not a role,
+   * and the pool comes from assets/text/support.json.
+   *
+   * Returns the line, or null when the limiter or an empty pool ate it.
+   */
+  support(who, situation) {
+    const pool = supportPool(who, situation);
+    if (!pool) return null;
+    if (!this.enabled) return null;
+    if (this.t - this.lastAt < GAP) return null;
+    let best = null, bestAt = Infinity;
+    for (const line of pool) {
+      const at = this.said.has(line) ? this.said.get(line) : -1e9;
+      if (this.t - at < COOLDOWN) continue;
+      if (at < bestAt) { bestAt = at; best = line; }
+    }
+    if (!best) return null;
+    this.said.set(best, this.t);
+    this.lastAt = this.t;
+    this.count++;
+    this.last = best;
+    this.cleanT = 0; this.cleanMove = 0;
+    this._remember(who, best);
+    // A friend gets the story bubble, not the white heckle one: this is the
+    // same voice as FRIEND_LINES, and it should look like it.
+    this._bubble(who, '« ' + best + ' »', 3400, true);
+    return best;
+  }
+
+  /**
+   * Pull assets/text/support.json in. Same never-fail contract as load():
+   * without it nobody in the truck says anything and the game is unchanged.
+   */
+  async loadSupport(url = 'assets/text/support.json') {
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (!res.ok) return 0;
+      const n = ingestSupport(await res.json());
+      if (n) console.log(`support: ${n} lines, ${Object.keys(SUPPORT).length} people`);
+      return n;
+    } catch (e) {
+      return 0;
+    }
   }
 
   // The last six lines, newest first. Kept whether or not there is a document,

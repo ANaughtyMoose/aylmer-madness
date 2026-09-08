@@ -422,7 +422,9 @@ const CORE_MISSIONS = [
 // highest here is the one a fresh save is offered. That is this list's second
 // job, and the reason « L'alternateur » has to be at the top and not merely
 // early.
-const OPENING_ORDER = [
+// Exported (story agent): the phone has to know which job is next in the story
+// so it rings for that one and not for whatever pillar happens to be closest.
+export const OPENING_ORDER = [
   'alternateur',  // the errand that came with the keys — Canadian Tire and back
   'dep',          // 95 s, the dépanneur run
   'gang',         // pick the friends up — Margaret's Saturn

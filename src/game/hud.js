@@ -264,7 +264,11 @@ export class Hud {
    * game. One slot, one owner at a time, highest rank wins.
    */
   setPrompt(source, text) {
-    if (!this._prompts) this._prompts = { mission: null, repair: null, shop: null };
+    // `phone` is last on purpose (story agent). A call that has just come in
+    // wants to say where it is sending you, but standing on the pillar the
+    // mission runner is saying the same thing with the key on it — so the
+    // phone only ever gets the slot when nothing better is asking for it.
+    if (!this._prompts) this._prompts = { mission: null, repair: null, shop: null, phone: null };
     if (!(source in this._prompts)) return;
     const v = text || null;
     if (this._prompts[source] === v) return;
@@ -273,12 +277,18 @@ export class Hud {
   }
 
   _renderPrompt() {
-    const el = this.elPrompt;
-    if (!el) return;
+    // The winner is decided BEFORE the DOM check, not after it. It used to be
+    // computed inside `if (!el) return`, which meant the ranking — the whole
+    // point of the one-slot rule — could only ever be checked in a browser, and
+    // VERIFY.md §1 is the story of what green tests without a browser are worth.
+    // `_promptShown` is now the honest answer to "what does the slot say"
+    // whether or not there is a screen (tools/smoke_phone.mjs reads it).
     const p = this._prompts || {};
-    const best = p.mission || p.repair || p.shop || null;
+    const best = p.mission || p.repair || p.shop || p.phone || null;
     if (best === this._promptShown) return;
     this._promptShown = best;
+    const el = this.elPrompt;
+    if (!el) return;
     if (!best) { el.textContent = ''; el.classList.add('hidden'); return; }
     el.textContent = best;
     el.classList.remove('hidden');

@@ -76,9 +76,24 @@ import { Cops, installCopMeshes } from './game/cops.js';
 // steps anything of its own.
 import {
   StoryOpener, freeRoamLines, nearestJob, updateStuck, friendLines,
-  shortCarName, carArticle,
+  shortCarName, carArticle, nextOpeningJob,
 } from './game/story.js';
 import { heckle } from './game/heckle.js';
+// ...and the cold open (game/coldopen.js), which replaced the five cards a new
+// game used to start with. It borrows G.focus and G.cam for eight seconds and
+// puts both back; the chase-camera block below is untouched.
+import { coldOpen } from './game/coldopen.js';
+// ...and the phone (game/phone.js): the next job in the story rings you before
+// its yellow pillar is the only thing that ever asked.
+import { phone } from './game/phone.js';
+// ...and the friends' running commentary on your driving (game/support.js +
+// assets/text/support.json), which only ever speaks out of a mouth that is in
+// the truck with you or whose errand you are on.
+import { support } from './game/support.js';
+// ...and the beat at the end of a job (game/passed.js), which replaced the
+// four-line receipt toast with a second and a half of the money going into the
+// envelope. Over gameplay: it never stops the world.
+import { passed } from './game/passed.js';
 // Shell agent: the sky. weather.js owns the state machine, the rain overlay,
 // the wet road and the thunder; main.js owns the four hook lines that feed it
 // (tint the env, scale the spec, step it, silence it in a menu).
@@ -229,6 +244,18 @@ G.legend = legend;
 // by `body.modal` in style.css.
 onModal((name) => hud.setModalOpen(!!name));
 G.story = story;
+// tools/headless.mjs and several of the other agents' page scripts dismiss the
+// opener with `AYLMER.G.story.hide()` and then expect a drivable game. The
+// opener they are dismissing is the cold open now, so hide() has to end that
+// too — quietly, without firing the waypoint callback, because the harness is
+// throwing the intro away rather than watching it.
+const storyHide = story.hide.bind(story);
+story.hide = () => { coldOpen.end(true); return storyHide(); };
+G.coldOpen = coldOpen;
+G.phone = phone;
+phone.bind(hud, audio);
+G.support = support;
+passed.bind(audio);
 G.heckle = heckle;
 hud.setRange(G.mapPrefs.range);
 // Whose driveway each car lives in.
@@ -1037,6 +1064,8 @@ function enterDrive(save = null, startKey = null) {
   // four opening cards — once ever, then only from Options > Jeu.
   heckle.bind(G);
   heckle.reset();
+  phone.reset();
+  support.reset();
   story.hide();
   G.stuck = null;
   if (!save && !G.settings.storySeen) playStory();
@@ -1047,23 +1076,32 @@ function enterDrive(save = null, startKey = null) {
 
 // ---------------------------------------------------------------- story
 
-// The opener. It owns the keyboard while it is up (see handleKeys), and when it
-// is done it drops a waypoint on the nearest job so the very first thing the
-// player sees is a blue line going somewhere.
+// The opener. A new game gets the cold open (game/coldopen.js): the truck is
+// already idling in the driveway, the camera swings round it, and the father's
+// four lines arrive as bubbles ending on the alternator. The five cards are
+// still here and still correct — they are the fallback for a page with no car
+// to orbit, and the endings go through the same class — but nobody reads a
+// modal to start a summer any more.
+//
+// Either way it finishes the same: a waypoint on the nearest job, so the first
+// thing on screen after the words is a blue line going somewhere.
 function playStory() {
-  story.show(() => {
-    if (!G.settings.storySeen) onSettings(saveSettings({ ...G.settings, storySeen: true }));
-    const j = nearestJob(G);
-    // Only worth a waypoint if it is somewhere else; updateRoute() eats one you
-    // are already standing on, and the toast pair reads like a bug.
-    if (j && j.dist > 40) {
-      G.waypoint = { x: j.place.x, z: j.place.z };
-      G.routeKey = '';
-      hud.toast('Waypoint \u2014 ' + j.def.title + '\n' + j.place.label, 2600);
-      audio.blip(660, 0.1, 'triangle', 0.14);
-    }
-    refreshFreeRoam();
-  });
+  if (coldOpen.play({ G, heckle, cams: CAMS, onDone: openerDone })) return;
+  story.show(openerDone);
+}
+
+function openerDone() {
+  if (!G.settings.storySeen) onSettings(saveSettings({ ...G.settings, storySeen: true }));
+  const j = nearestJob(G);
+  // Only worth a waypoint if it is somewhere else; updateRoute() eats one you
+  // are already standing on, and the toast pair reads like a bug.
+  if (j && j.dist > 40) {
+    G.waypoint = { x: j.place.x, z: j.place.z };
+    G.routeKey = '';
+    hud.toast('Waypoint \u2014 ' + j.def.title + '\n' + j.place.label, 2600);
+    audio.blip(660, 0.1, 'triangle', 0.14);
+  }
+  refreshFreeRoam();
 }
 
 // GOAL A rule: the objective line is NEVER « Free roam ». Off a job it is the
@@ -1077,6 +1115,10 @@ function refreshFreeRoam(dt = 0) {
   freeRoamT = 0.3;
   const l = freeRoamLines(G, garage);
   hud.setObjective(l.text, l.sub);
+  // ...and if the job it is pointing at is the one the story is on and you are
+  // within earshot of it, its giver phones you (game/phone.js). Nothing about
+  // whether the job can be taken changes: the pillar is still the pillar.
+  if (l.kind === 'job') phone.consider(G, l.job, nextOpeningJob(G));
 }
 
 // Two or three lines from whoever's job this is, as bubbles so the name is in
@@ -1389,6 +1431,7 @@ function failMission(why) {
   const back = refundJob(G, m);
   hud.toast('RATÉ\n' + why + (back > 0 ? `\n(− ${Math.round(back)} $ — la paye s’en va avec)` : ''), 3000);
   audio.chime(false);
+  support.failed(G, heckle, m && m.def);
   if (m && (m.idx > 0 || m.elapsed > 45)) endOfJob();
   missionCleanup(G, G.mission, true);
   hud.prompt(null);
@@ -1510,8 +1553,10 @@ function updateMission(dt) {
     audio.chime(true);
     // Somebody may just have decided to lend you their car.
     garage.setProgress(G.done);
+    let unlocked = null;
     for (const u of garage.newlyUnlocked(G.done)) {
       if (u.toast) hud.toast(u.toast, 3600);
+      if (!unlocked) { try { unlocked = carById(u.id); } catch { unlocked = null; } }
       if (u.id !== G.carId && !G.parked[u.id]) {
         // Next free slot at that address (your own car counts if it lives there).
         const k = homeKey(u.id);
@@ -1526,9 +1571,20 @@ function updateMission(dt) {
     const style = missionStyleBonus(m.styleStart, G.stats, v.damage);
     if (style.money) style.money = Math.min(15, style.money);   // the budget table caps it
     if (style.money && G.wallet) G.wallet.add(style.money);
-    hud.toast('FINI — ' + def.title + '\n' + fmtTime(m.elapsed) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')')
-      + (style.money ? `\nSTYLE +${style.money} $  ·  ${style.text}` : '')
-      + '\n' + G.done.size + '/' + MISSIONS.length + ' jobs faites', 4600);
+    // The beat, not a receipt (game/passed.js): the pay slides up into the
+    // envelope, the date and the days left sit under it, and the horn is
+    // whichever car you have just been handed the keys to. A second and a half,
+    // over gameplay. The style bonus keeps its own toast because it is a
+    // separate thing that happened and it needs its own sentence.
+    passed.play({
+      title: def.title,
+      paid: (m.paid || 0) + (style.money || 0),
+      elapsed: m.elapsed, record, best: record ? null : prev,
+      day: calendar.envelopeText(G).day,
+      done: G.done.size, total: MISSIONS.length,
+      hornOf: unlocked,
+    });
+    if (style.money) hud.toast(`STYLE +${style.money} $  ·  ${style.text}`, 2600);
     missionCleanup(G, m, false);
     G.mission = null;
     G.introUntil = 0;
@@ -1537,6 +1593,8 @@ function updateMission(dt) {
     hud.setTimer(null);
     G.stuck = null;
     sayFriend(def, 'end');
+    // ...and if it took forever, whoever was waiting says so, kindly.
+    support.finished(G, heckle, m.elapsed, prev, def);
     refreshFreeRoam();
     endOfJob();        // the day is spent; Labour Day may have arrived
     G.lastDone = def.title;
@@ -1673,6 +1731,15 @@ function handleKeys() {
     else if (input.hit('Enter', 'KeyE', 'Space')) card.advance();
     G.wantStart = false;
     return;
+  }
+  // The cold open does NOT own the keyboard — that is the whole difference
+  // between it and the cards. Escape drops the rest of the lines, a hand on the
+  // wheel ends it on this same frame and then falls straight through to the
+  // driving code below, so W in the first second drives out of the shot.
+  if (coldOpen.active) {
+    if (input.hit('Escape')) { coldOpen.skip(); G.wantStart = false; return; }
+    if (input.down('KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space')
+      || input.hit('KeyE', 'Enter', 'Tab', 'KeyC')) coldOpen.skip();
   }
   if (input.hit('Escape')) { pause(true); return; }
   if (input.hit('Tab')) { openMap(true); return; }
@@ -1995,6 +2062,8 @@ function tick(dt) {
   ambush.tick(G, dt, hud);
   updateMission(dt);
   heckleTriggers(dt, v);
+  // ...and the other half of the town's voice: the friends aboard.
+  support.update(dt, G, v, heckle);
   // ---- hangout agent hook (the only lines this file owns for the porch) ----
   // Mike's place is not a job, so it runs after the mission runner and takes
   // the HUD prompt off it when you are actually in the driveway. It needs two
@@ -2009,6 +2078,11 @@ function tick(dt) {
   unlockArc(G);
   // ---- end hangout hook ---------------------------------------------------
   heckle.update(dt, G);
+  // The cold open, on the same clock as everything else: it turns the camera
+  // proxy, lets the father's lines out on cue, and hands the truck back.
+  coldOpen.update(dt);
+  phone.update(dt, G);
+  passed.update(dt);
   // The achievements out of assets/text/ui.json. `landEvent` is the one-shot
   // bag; everything else the rules need is already on G.
   flavour.update(dt, G, landEvent);
@@ -2797,6 +2871,9 @@ hud.setVisible(false);
 // loaders fail quietly and leave the built-in fallbacks in place, so the game
 // runs off a file:// URL or a checkout with assets/text/ missing.
 heckle.load().catch(() => {});
+// ...and the fifty lines your friends say about your driving. Same contract:
+// no file, no commentary, no difference to anything else.
+heckle.loadSupport().catch(() => {});
 // ...and if the loading screen is already up when ui.json lands, replace the
 // fallback tip it is showing with a real one.
 flavour.load().then(() => { if (tipTimer) flavour.showTip(heckle.showGloss); }).catch(() => {});

@@ -16,7 +16,7 @@
 // Nothing in here draws or steps anything. main.js owns the four hook lines.
 // The one exception is the opener's own card: it goes through ui.js's
 // setModal() so the HUD stops drawing behind it (U7).
-import { MISSIONS } from './missions.js';
+import { MISSIONS, OPENING_ORDER } from './missions.js';
 import { setModal } from './ui.js';
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
@@ -530,6 +530,70 @@ export const FRIEND_LINES = {
     end: [['Sayyad', '« Six sur six. T’as battu la ville. »']],
   },
 };
+
+// ------------------------------------------------------------- the phone
+//
+// It is 2004 and a job arrives because somebody phones you about it (see
+// game/phone.js). One line per job, in the giver's own voice — the same person
+// who says FRIEND_LINES[id].start when you actually turn up, saying the short
+// version of it down a phone line first.
+//
+// Two rules, both enforced by tools/smoke_phone.mjs:
+//
+//   * the speaker is somebody this file already knows. A call may not invent a
+//     person, and it may not invent a surname for one — the cast are real
+//     people (BACKLOG C6, docs/VERIFY.md §4).
+//   * 120 characters. It is a Nokia screen, not a letter.
+//
+// « L'alternateur » has no call and never will: it is the errand that came with
+// the keys, his father gives it in the driveway in the cold open, and a phone
+// ringing about it would undo the one job in the game that is handed over in
+// person.
+export const CALL_LINES = {
+  dep: ['Margaret', 'Si tu passes au dépanneur, quatre slush bleues. Pas de rouge. J\u2019ai l\u2019argent icitte.'],
+  gang: ['Margaret', 'On est trois dans l\u2019entrée pis personne a de char. Tu viens-tu nous chercher?'],
+  sayyad: ['Margaret', 'Sayyad répond pas depuis mardi. Va cogner, veux-tu? Sa mère trouve ça long.'],
+  poutine: ['Sayyad', 'Deux grosses, sauce à part. Moé j\u2019ai pas de char à midi. Toé oui.'],
+  curfew: ['Ton père', 'Minuit. Pas minuit et cinq. J\u2019attends pas debout, mais j\u2019attends.'],
+  cv: ['Ta mère', 'J\u2019en ai imprimé douze. Va les porter avant que les commerces ferment.'],
+  divan: ['Mike', 'O.K. mais écoute. Le divan. L\u2019arbre. Amène le truck, j\u2019explique en chemin.'],
+  school: ['Ta mère', 'Il est 8 h 52. Ton cours d\u2019anglais est à 9 h. Prends les clés pis pars.'],
+  tour: ['Margaret', 'Cinq spots avant que le soleil tombe. Je fais la liste, tu conduis.'],
+  canot: ['Sayyad', 'Y a un gars su\u2019l chemin qui vend un canot quarante-cinq piasses. Amène le truck.'],
+  highwayhull: ['Sayyad', 'La 148 jusqu\u2019à Hull, aller-retour. Amène ma cassette. Celle avec le gros solo.'],
+  chelsea: ['Adam', 'Monte la 105. Quand ça devient juste des arbres, t\u2019es presque rendu.'],
+  suis: ['Sayyad', 'Je pars dans six minutes. Colle-toé. Pis regarde-moé, pas la carte.'],
+  dames: ['Margaret', 'Le bingo commence à sept heures. J\u2019ai mon sac pis mes lunettes.'],
+  vitres: ['Norm', 'J\u2019ai une vitre à faire livrer pis mon gars est malade. Ça te tente-tu?'],
+  seme: ['Mike', 'Deux rues. Ma théorie c\u2019est deux rues. Viens me chercher, j\u2019explique.'],
+  sunfire: ['Adam', 'J\u2019ai laissé le Sunfire au bord de l\u2019eau. Ramène-le-moé avant le ticket.'],
+  quatre: ['Mike', 'Tout le monde veut embarquer. C\u2019est ton char, c\u2019est toi qui décides de l\u2019ordre.'],
+  racedave: ['Adam', 'Mon Sunfire est plus vite que ton truck. C\u2019est mathématique. Premier arrivé paye.'],
+  racecivic: ['Sayyad', 'J\u2019ai mis des jantes. Faut que le monde le sache. Rendez-vous dans le Vieux.'],
+  circuit: ['Margaret', 'Trois tours de stationnement, dimanche matin. Pis touche pas à ma Saturn.'],
+  blitz: ['Sayyad', 'Soixante secondes, six checkpoints. Le chrono arrête jamais. Moi non plus.'],
+  golfcart: ['Le kid du pro shop', 'Y a encore un cart des membres à l\u2019école. Le marshal passe dans dix minutes.'],
+};
+
+/** [who, text] for a job's call, or null when nobody phones about it. */
+export function callLine(id) {
+  const l = CALL_LINES[id];
+  return l ? l.slice() : null;
+}
+
+/**
+ * The job the story is actually on: the first one in the opening order you have
+ * not done. Null once the opening is finished — after that the phone stops
+ * leading and the pillars are on their own, which is the point at which the
+ * summer stops being a tutorial.
+ */
+export function nextOpeningJob(G) {
+  const done = (G && G.done) || null;
+  for (const id of OPENING_ORDER) {
+    if (!done || !done.has || !done.has(id)) return id;
+  }
+  return null;
+}
 
 // Four people stand on their own lawn now (avatars.js), so you can pull up to
 // them outside a job. These are what they say when you do: same bubbles, same
