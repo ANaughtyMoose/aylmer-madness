@@ -19,3 +19,15 @@ gemini-inbox/assets/src/
 # the originals are a build input, re-downloadable from the URLs in
 # assets/models/LICENSES.md, and there is no reason to carry them in git.
 assets/models/src/
+
+# Gemini's cinematic pass put Thomas's own photograph and his real Québec plate
+# into gemini-inbox/. The repo is public. These never ship, whatever else in
+# gemini-inbox/ is ever committed.
+gemini-inbox/look/ui/tom_*
+gemini-inbox/look/ui/title_key_art.png
+gemini-inbox/look/cars/ranger/plate_*
+gemini-inbox/**/media_*
+gemini-inbox/cinema/
+gemini-inbox/look/cars/
+gemini-inbox/look/ui/
+gemini-inbox/showcase.html
