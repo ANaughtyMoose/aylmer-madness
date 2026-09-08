@@ -146,6 +146,43 @@ table today; the English ones read English. Gemini's `redo/RADIO_2004.md`
 will list real 2004 programmes for the cassette station; anything
 all-rights-reserved stays local in the gitignored `assets/radio/`.
 
+## 2026-09-08, evening — Gemini's redo pass: facts good, links fake, no art (quota)
+
+`gemini-inbox/redo/` (uncommitted; `CORRECTIONS.md`, `sun_angles.json`,
+`cars/REPORT.md`, `RADIO_2004.md`, `radio/playlist.json`, `STATUS.md`).
+Gemini's image quota was exhausted, so **no images were made**; STATUS.md
+carries the exact prompts for each one, to run when the quota resets.
+
+**Facts worth keeping (Claude cross-checked the radio ones):**
+- **Live 88.5 (CILV-FM) did not exist in summer 2004** — licensed June 2005,
+  on air 26 Dec 2005. 88.5 was dead air. Keep it only as a knowing anachronism
+  like CHUM FM, or drop it. **Thomas to decide.**
+- **89.1 was CHUO-FM**, the University of Ottawa's bilingual campus station.
+  CBC Radio One Ottawa was **CBO-FM 91.5**; Radio Two was CBOX 102.5; Radio-
+  Canada Première was **CBOF-FM 90.7**. Thomas said 89.1 for CBC and « I
+  probably misremember » — so CBC goes on 91.5, and 89.1 is free to be CHUO
+  if a campus station is wanted (CKCU 93.1 already fills that slot).
+- CHEZ 106.1 « World Class Rock » (Rogers); 106.9 The Bear (CKQB, Corus).
+- **Sun angles in `cinema/grade/sun_angles.json` were wrong by 11-37°**;
+  `redo/sun_angles.json` is a full hourly table from the NOAA algorithm
+  (07:40 on 26 June: elevation 22.2°, azimuth 78.6°; solar noon is 13:06 EDT).
+  Use the redo file.
+- **The marina pavilion in `look/MARINA.md` was placed 140 m out in the lake.**
+  The real OSM footprint (way 68609113) sits at game coordinates
+  (-1753.8, -217.9), on land; the shoreline on that x is at z ≈ -176. Any
+  drop-in from MARINA.md must be re-based on those numbers.
+- FEEL.md line numbers are now current; the driver cam in `cockpit.js` must
+  not be table-pasted (Gemini agrees).
+- `cars/REPORT.md` explains why the old orthos « measured wide »: labels and
+  margins baked into the PNGs inflate the silhouette span in `carskin.js`.
+
+**Not worth keeping:** `RADIO_2004.md` and `radio/playlist.json`. Every
+archive.org URL Claude tested returns 404 (five of five), the « airchecks »
+are invented, and the licences are guessed. Gemini fabricated the podcast
+list. If real 2004 programmes are wanted, a human finds them on CBC's own
+archive pages and in the Radio-Canada archives; nothing all-rights-reserved
+ships in the public repo either way.
+
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.
