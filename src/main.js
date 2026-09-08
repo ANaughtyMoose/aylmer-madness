@@ -2172,24 +2172,20 @@ const black = new Float32Array([0, 0, 0]);
 const yellow = new Float32Array([1, 0.79, 0.3]);
 const white = new Float32Array([1, 1, 1]);
 
-function render(dt) {
-  const r = G.renderer, v = G.veh, cam = CAMS[G.cam];
-  // The camera follows whatever the current stage put in focus — the car, or the
-  // canoe. Anything with x/z/yaw/vLong/vLat/spec works.
+// Where the eye is and where it looks, for one frame. Everything that decides
+// the chase camera's pose lives here; render() below only reads the result.
+//
+// It is split out of render() for two reasons. It is the only part of the frame
+// that has to be right at a dt render() does not choose (a 120 Hz display steps
+// the physics twice and the camera once), and pulling it out lets
+// tools/measure_camera.mjs sample the camera thousands of times at a fixed dt
+// without paying for a SwiftShader frame per sample — which is the only way the
+// jitter number is a measurement rather than an opinion.
+const CAM = { pitch: 0, shakePitch: 0, shakeYaw: 0, fov: 1.15 };
+
+function updateCamera(dt) {
+  const v = G.veh, cam = CAMS[G.cam];
   const f = G.focus || v;
-
-  // The driver's seat (BACKLOG C6). It is only a camera when the thing in focus
-  // is the car you are sitting in and that car HAS a cab: a bicycle, the golf
-  // cart and the canoe fall back to the hood cam's framing rather than putting
-  // the eye inside a bicycle.
-  if (!G.cockpit) G.cockpit = new Cockpit(r);
-  const inCab = cam.name === 'driver' && f === v && hasCockpit(v.spec);
-  // (The head itself is stepped in tick(), on the fixed clock, with the physics
-  // it reads.)
-  // From the seat the radio is two paper door speakers and a cassette adapter,
-  // not a station. audio.setCabin only does work on a change.
-  audio.setCabin(inCab);
-
   // Chase camera: yaw eases toward the car, and a slide swings it wide.
   // D5: look where you're going. The flip is blended over REV_CAM_BLEND seconds
   // (feel agent) — snapping the hood cam through 180° was the jarring bit.
@@ -2237,7 +2233,7 @@ function render(dt) {
   // now 0.67 of it, so the fastest thing in the game gave the smallest cue.
   // Metres per second is what the eye is actually reading. Widening the frame is
   // the cheapest, calmest way to say "fast" — the edges stretch, nothing shakes.
-  const fov = G.q.fov + cam.fovAdd + G.settings.fov
+  CAM.fov = G.q.fov + cam.fovAdd + G.settings.fov
     + clamp((Math.abs(f.vLong) - 8) / 34, 0, 1) * 0.16;
   // In the air the chase cam leans with the nose, and every landing rattles the
   // hood cam for a moment. Both are small on purpose — they read, they don't spin.
@@ -2259,6 +2255,31 @@ function render(dt) {
     camPitch += shakePitch;
     G.camYaw += Math.sin(G.time * 9.1) * k * 0.5;
   }
+  CAM.pitch = camPitch;
+  CAM.shakePitch = shakePitch;
+  return CAM;
+}
+
+function render(dt) {
+  const r = G.renderer, v = G.veh, cam = CAMS[G.cam];
+  // The camera follows whatever the current stage put in focus — the car, or the
+  // canoe. Anything with x/z/yaw/vLong/vLat/spec works.
+  const f = G.focus || v;
+
+  // The driver's seat (BACKLOG C6). It is only a camera when the thing in focus
+  // is the car you are sitting in and that car HAS a cab: a bicycle, the golf
+  // cart and the canoe fall back to the hood cam's framing rather than putting
+  // the eye inside a bicycle.
+  if (!G.cockpit) G.cockpit = new Cockpit(r);
+  const inCab = cam.name === 'driver' && f === v && hasCockpit(v.spec);
+  // (The head itself is stepped in tick(), on the fixed clock, with the physics
+  // it reads.)
+  // From the seat the radio is two paper door speakers and a cassette adapter,
+  // not a station. audio.setCabin only does work on a change.
+  audio.setCabin(inCab);
+
+  updateCamera(dt);
+  const camPitch = CAM.pitch, shakePitch = CAM.shakePitch, fov = CAM.fov;
   r.setEnvironment(G.env);
   // The player's car, one matrix, before anything is drawn: the driver's camera
   // hangs off it and so do the cab and the mirrors.
@@ -2826,7 +2847,16 @@ requestAnimationFrame(frame);
 window.AYLMER = {
   G, hud, input, garage, radio,
   step(dt = STEP) { if (G.mode === 'drive') { input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } },
-  render() { if (G.mode === 'drive') render(STEP); },
+  render(dt = STEP) { if (G.mode === 'drive') render(dt); },
+  // The camera only, at whatever dt the caller wants, with no frame drawn. A
+  // 120 Hz display renders at 1/120 while the physics sub-steps at 1/60, so the
+  // camera is the one integrator whose dt is not STEP; tools/measure_camera.mjs
+  // drives this to sample the pose per frame without a SwiftShader frame each.
+  camera(dt = STEP) {
+    if (G.mode !== 'drive') return null;
+    const c = updateCamera(dt);
+    return { x: G.camPos[0], y: G.camPos[1], z: G.camPos[2], yaw: G.camYaw, pitch: c.pitch, fov: c.fov };
+  },
   teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw); },
   start: startMission,
   // Save-system hooks, so a test (or a console) can drive the slots without
