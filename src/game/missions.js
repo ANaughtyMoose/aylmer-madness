@@ -107,8 +107,21 @@ const CORE_MISSIONS = [
         at: 'heritage',
         radius: 24,
         // This is the first expansion drive: Aylmer, the highway seam, then
-        // Saint-Joseph in Hull. Five minutes leaves room for one wrong exit.
-        time: 420,
+        // Saint-Joseph in Hull. « Five minutes leaves room for one wrong exit »
+        // was written when the college was two kilometres away; over the real
+        // road graph it is 11 996 m (tools/timers.md, tools/smoke_timers.mjs),
+        // so 420 s demanded a 103 km/h DOOR-TO-DOOR average — lights, traffic,
+        // the seam card and the 24 m stage radius included — in a truck that
+        // tops out at 150. That is not a thin margin, it is a trap on the drive
+        // that is supposed to open the map.
+        //
+        // 1 320 s is the same 12 km at 32.7 km/h, which is what a player who
+        // has never seen Hull actually averages: he reads signs, he stops, and
+        // he takes one wrong exit off the 148. It still holds on hard
+        // (calendar.js timer 0.9 → 1 188 s, 36.4 km/h). Anyone who knows the
+        // road does it in seven minutes and never sees the clock, which is the
+        // point of a timer on a delivery.
+        time: 1320,
         toast: 'Arrivé. Personne a rien vu.',
         money: 20,
       }];

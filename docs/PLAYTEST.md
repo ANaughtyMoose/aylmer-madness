@@ -28,7 +28,7 @@ needs a call).
 | 3 | HUD, free roam | The objective line reads **“Free roam”** in the French build — `i18n.js:110`, the FR table has the English string. Every other line around it is French. (`playtest-01`, `playtest-07`) | annoying | story |
 | 4 | First job pillar | Prompt « ⏎ Première période · Q pour une autre job » appears inside 12 m and clears outside it. **Q** cycles the four jobs that share 299 Fraser. | — | ok |
 | 5 | Taking a job with E while rolling | Pressed at 8 km/h: the job started on the same frame. E and ⏎ both work, exactly as the legend says. | — | ok |
-| ~~6~~ | « Première période », driven — **stale: timer is now 420 s in `missions.js`** | Bot drove it in **99.4 s of the 130 s** timer, +$20. `tools/timers.md` puts the leg at 1 925 m — a 53 km/h door-to-door average in a 131 km/h truck. Fair, but it is the first thing a new player ever does and there is no margin for one wrong turn. | annoying | open |
+| ~~6~~ | ~~« Première période », driven~~ **fixed 2026-09-08: 1 320 s** | The 1 925 m in this row was a stale `tools/timers.md`. Over the real graph the college is **11 996 m** from the driveway, so the 420 s this row was re-pinned to demanded a **102.8 km/h door-to-door average** in a 150 km/h truck — a trap, not a thin margin. Now 1 320 s = 32.7 km/h, which holds on hard too (0.9 → 36.3). `tools/smoke_timers.mjs` asserts route ÷ timer ≤ 38 km/h on every difficulty. | annoying | fixed |
 | 7 | Intro card | 2 s of title / brief / clock / route preview, clock held. On a 17 m first leg the route preview is two dots on an empty canvas. | cosmetic | open |
 | 8 | Margaret's Saturn | It is **not there** until « Ramasser la gang » is finished — the car and the job that unlocks it are the same beat, so "take the Saturn, then start the gang job" is not a thing a new player can do in that order. Working as designed; noting it because the README reads the other way round. | cosmetic | open |
 | 9 | Taking the Saturn with E | « E — prendre le 1997 Saturn SL 4-door de Margaret ». Swaps, and the Ranger stays exactly where you stepped out of it. | — | ok |
@@ -88,7 +88,9 @@ needs a call).
 - The handbrake tutorial card does not say “while moving” (**story**).
 - Reverse feel, and no along-slope gravity for any car (**feel**).
 - Chase-camera distance does not scale with the car (**feel**).
-- « Première période »'s 130 s asks 53 km/h of a first-time driver (**open**).
+- ~~« Première période »'s 130 s asks 53 km/h of a first-time driver~~ — it was
+  worse than that (11 996 m in 420 s = 102.8 km/h); **fixed**, 1 320 s, pinned by
+  `tools/smoke_timers.mjs`.
 - Saving mid-job silently drops the job (**open** — the slot shape would have to
   carry `mission.def.id`, `idx`, `timeLeft` and the stage's own state).
 - The cassette step of **R** is invisible without `assets/radio/playlist.json`

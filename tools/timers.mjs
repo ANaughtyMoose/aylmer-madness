@@ -155,7 +155,12 @@ export function buildTimersTable() {
 }
 
 // CLI
-if (import.meta.url === `file://${process.argv[1]}`) {
+//
+// `file://${process.argv[1]}` is not the URL of a path with a space in it —
+// import.meta.url percent-encodes it — so this guard was false for every run
+// out of « Coding Projects » and the tool exited 0 having done nothing
+// (docs/HANDOFF.md, gotchas). pathToFileURL is the encoding both sides agree on.
+if (import.meta.url === (await import('node:url')).pathToFileURL(process.argv[1] || '').href) {
   const md = buildTimersTable();
   if (process.argv.includes('--print')) {
     process.stdout.write(md);
