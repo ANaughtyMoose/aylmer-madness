@@ -58,6 +58,7 @@ import { Signals } from './game/signals.js';
 // hooks in through G — main.js does not know what a doughnut is.
 import { Props, buildPropMeshes, ISLAND, MIKE_TREE } from './game/props.js';
 import { loadModels } from './game/models.js';
+import { loadFacades, installFacades } from './game/facades.js';
 import { setPropModels } from './game/streetprops.js';
 // The reactive world: pedestrians, knock-over street furniture, debris.
 import { Reactive } from './game/reactive.js';
@@ -874,6 +875,12 @@ function worldStages() {
       // fetch; buildWorld is synchronous, so signage bakes once with the
       // fallback names and this swaps the real atlas in a frame or two later.
       primeSignage(r, G.world.signage);
+      // Photographed elevations on the two hero HOUSES — 299 Chemin Fraser and
+      // 75 Denise-Friend. Two JPEGs off the network, so like the signage this
+      // arrives a frame or two after the world; installFacades wraps
+      // world.draw, so it has to run after installLandmarks did.
+      loadFacades(r).then((f) => { G.facades = f; installFacades(G.world, f); })
+        .catch((e) => console.warn('facades: not installed —', e.message));
       // ---- end landmarks hook ---------------------------------------------
       G.phys = {
         roadAt: (x, z) => G.world.roadAt(x, z),
