@@ -183,6 +183,36 @@ list. If real 2004 programmes are wanted, a human finds them on CBC's own
 archive pages and in the Radio-Canada archives; nothing all-rights-reserved
 ships in the public repo either way.
 
+## 2026-09-08, night — the redo art landed, and it is good
+
+After the image quota reset Gemini generated, one image at a time with no
+compositing (only a PIL resize/pad to the target size, which is fine):
+
+- `gemini-inbox/redo/title/title_key_art.png` (1920×1080) and
+  `title_key_art_portrait.png` — **good, ship-quality reference**: the white
+  Ranger on a gravel shoulder, river and hills behind, a painted teen in a
+  white polo holding the pulled head unit with the wire nuts, guitar on the
+  tyre, Québec plate « AYL 2004 ». No likeness, no text. Two variants (with
+  the red Civic; blue hour) still to generate — prompts in `redo/STATUS.md`.
+- `gemini-inbox/redo/cars/ranger/{side,top,front,rear}.png` — **to spec at
+  last**: one truck per image, white background, nose left, no labels.
+  Watch two things when `tools/car_views.mjs` is run on them FOR REAL on
+  Monday (copy into `assets/cars/ranger/` in a worktree; Gemini's « ran
+  car_views » measured the old assets, and its numbers in `cars/REPORT.md`
+  are its own bounding boxes): a faint floor shadow under the tyres in
+  `side.png` (the loader finds wheels where tyres meet the ground) and a
+  black bodyside rub strip the canon says the XL does not have (silhouette
+  only, so harmless to the loader; note it for the painter).
+- `gemini-inbox/redo/radio/sticker_*.png` (six) — generated as photographs
+  of stickers on concrete, 1024²; crop and matte before use as 512² logos.
+  `sticker_live885.png` exists even though Live 88.5 did not exist in 2004 —
+  Thomas's call whether it stays as a wink.
+- Not yet: the Civic and blue-hour title variants, the phone strip, the
+  envelope, three seam cards, the mission cards, and the Civic/Saturn/Sunfire
+  views. Gemini's image quota resets at **2026-09-09T04:18:32Z**; its session
+  is set to stop and report on 429 rather than loop. Prompts for all of it
+  are in `gemini-inbox/redo/STATUS.md`.
+
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.
