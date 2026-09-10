@@ -40,8 +40,9 @@ rests against the front tyre. Use `gemini-inbox/look/ui/tom_photo_2004.jpg`
 only as a reference for hair colour (strawberry blond), build and clothing —
 **paint the figure, do not cut the photograph out**; the face may be turned
 three-quarter away or in shadow. No text in the image: the title is typeset by
-the game. The plate on the bumper reads a plausible 2004 Québec plate that is
-NOT Thomas's real one — use `AYL 2004`.
+the game. The plate on the bumper reads Thomas's real plate, exactly as photographed in
+`gemini-inbox/look/cars/ranger/plate_photo.jpg`: **766 NBZ**, « Je me
+souviens », the 2004 Québec design. (His decision, 2026-09-08.)
 
 Variants: (a) the same scene with Sayyad's red 1988 Civic Si beside the Ranger,
 (b) blue hour with the headlights on.

@@ -213,6 +213,40 @@ compositing (only a PIL resize/pad to the target size, which is fine):
   is set to stop and report on 429 rather than loop. Prompts for all of it
   are in `gemini-inbox/redo/STATUS.md`.
 
+## 2026-09-08, night — Thomas played `main` in Safari: three reports, one reversal
+
+Record only; nothing fixed. Resume Monday 14 Sept with these FIRST, before the
+six branches, because they are on `main` now.
+
+1. **« Every time I complete a mission it kicks me out. »** Unverified
+   hypothesis, strong: he plays in Safari, and Safari's « reloaded because it
+   was using significant memory » banner was in his screenshot the day before.
+   A reload at the moment a job ends (autosave, `endOfJob`, the ambush offer,
+   `calendar.spendDay`) looks exactly like being thrown back to the menu.
+   First check: reproduce in Chrome (`tools/headless.mjs`, start
+   `alternateur`, complete both stages, watch `G.mode` and the console). If
+   Chrome is clean, it is the Safari memory problem, and the twenty-minute
+   Safari soak (VERIFY.md) with `tools/measure_memory.mjs` before it is the
+   fix path — the PRs since Wave 1 have never been measured.
+2. **« It stopped playing the engine noise for the Ranger. »** Same cause
+   fits: after a reload the AudioContext is suspended until a gesture, and
+   the game resumes it only on the first click. Also check the cockpit
+   branch's `audio.setCabin()` low-pass and `setEngineProfile` after a car
+   swap. If it is the resume, add a resume on the first keydown too.
+3. **« Use the better skins for the garage. »** `garage.html` shows the flat
+   lofted Ranger. The four views in `gemini-inbox/redo/cars/ranger/` are to
+   spec; copy them into `assets/cars/ranger/`, add `ranger` to
+   `assets/cars/manifest.json`, run `node tools/car_views.mjs` for real, and
+   look at the loft in `garage.html`. Watch the faint floor shadow and the
+   rub strip (« redo art » section above).
+4. **Reversal: the plate in the title art reads his real plate.** Thomas:
+   « Quebec plate should read exactly the plate I photographed and gave to
+   them — that's my literal real license plate from the Ranger. » So the
+   title key art gets 766 NBZ, not AYL 2004; the prompt in
+   `gemini-inbox/redo/STATUS.md` and `docs/GEMINI_REDO_PROMPT.md` §1 change
+   accordingly. Said once: that art will carry his real registration in a
+   public repo and on the public site. His call.
+
 ## Open decisions for Thomas
 
 - **The second start click** (BACKLOG U9): keep or remove. Recommendation: remove.
