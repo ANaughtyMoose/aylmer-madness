@@ -317,12 +317,12 @@ export class Weather {
     const dark = this.dark, haze = this.haze;
     for (let i = 0; i < 3; i++) {
       env.sky[i] = lerp(env.sky[i], STORM_SKY[i], dark * 0.94);
-      env.fog[i] = lerp(lerp(env.fog[i], HAZE_FOG[i], haze * 0.45), STORM_FOG[i], dark * 0.80);
+      env.fog[i] = lerp(lerp(env.fog[i], HAZE_FOG[i], haze * 0.25), STORM_FOG[i], dark * 0.80);
       env.sun[i] = lerp(env.sun[i], STORM_SUN[i], dark * 0.75);
       env.ground[i] = lerp(env.ground[i], env.ground[i] * 0.62, this.wet);   // wet asphalt is dark
     }
-    // Haze is thick air you can see through; rain is thick air you cannot.
-    env.fogDensity *= 1 + haze * 2.6 + this.cloud * 0.55 + this.rain * 2.2;
+    // Haze is warm air you can see through; rain is thick air you cannot.
+    env.fogDensity *= 1 + haze * 0.85 + this.cloud * 0.45 + this.rain * 1.8;
     return env;
   }
 

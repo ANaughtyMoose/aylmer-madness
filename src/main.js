@@ -2357,7 +2357,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
   // the rider, who pedals and leans. Nothing happens here for a car.
   drawVehicleExtras(G, spec, x, z, yaw, roll, spin, steer, y);
   const skin = G.meshes.skins[spec.id];
-  const opts = tint ? { colorMul: tint } : {};
+  const opts = tint ? { colorMul: tint, shine: 0.45 } : { shine: 0.45 };
   if (skin) opts.tex = skin.tex;
   m4.compose(mm, x, y, z, yaw, pitch, roll);
   r.draw(skin ? skin.mesh : G.meshes.cars[spec.id], mm, opts);
@@ -2365,7 +2365,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
   const hx = spec.track / 2;
   const wheelR = skin ? skin.wheelR : spec.wheelR;
-  const wopts = tint ? { colorMul: tint } : undefined;
+  const wopts = { shine: 0.30, ...(tint ? { colorMul: tint } : {}) };
   for (const sz of [1, -1]) for (const sx of [-1, 1]) {
     const lx = sx * hx, lz = skin ? (sz > 0 ? skin.wheelZ[0] : skin.wheelZ[1]) : sz * spec.axleZ;
     const wx = x + lx * cy + lz * sy;
@@ -2387,8 +2387,12 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
   // from it, which is most of what sells a jump.
   const lift = clamp(y - gy, 0, 4);
   const k = 1 + lift * 0.13;
+  if (lift < 0.7) {
+    m4.compose(mm, x, gy + 0.03, z, yaw, 0, 0, spec.wid * 0.88, 1, spec.len * 0.88);
+    r.draw(G.meshes.shadow, mm, { alpha: 0.45 * (1 - lift / 0.7), unlit: true, colorMul: black });
+  }
   m4.compose(mm, x, gy + 0.06, z, yaw, 0, 0, (spec.wid + 0.5) * k, 1, (spec.len + 0.4) * k);
-  r.draw(G.meshes.shadow, mm, { alpha: 0.3 * (1 - lift / 5), unlit: true, colorMul: black });
+  r.draw(G.meshes.shadow, mm, { alpha: 0.35 * (1 - lift / 5), unlit: true, colorMul: black });
 }
 
 function markerList() {

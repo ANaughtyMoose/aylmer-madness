@@ -41,7 +41,7 @@ precision highp float;   // must match the vertex shader: shared uniforms may no
 in vec3 vNor; in vec3 vCol; in float vDist; in highp vec2 vUV; in highp vec3 vRel;
 flat in highp vec4 vRect;
 uniform vec3 uLightDir, uSun, uSky, uGround, uFogColor, uColorMul, uSkyLo, uSkyHi, uEye;
-uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode;
+uniform float uFogDensity, uAlpha, uUnlit, uUseTex, uSkyMode, uShine;
 uniform highp float uTime, uWater;
 uniform sampler2D uTex;
 out vec4 outColor;
@@ -88,7 +88,11 @@ void main(){
     float r2 = sin(wp.x * 0.052 + wp.z * 0.061 - uTime * 0.42);
     base += vec3(0.035, 0.055, 0.075) * r1 + vec3(0.02, 0.03, 0.045) * r2;
   }
-  vec3 lit = base * uColorMul * (amb + uSun * d);
+  // Subtle Blinn-Phong specular glint for curved vehicle panels and glossy surfaces
+  highp vec3 viewDir = -normalize(vRel);
+  highp vec3 halfDir = normalize(uLightDir + viewDir);
+  float spec = pow(max(dot(n, halfDir), 0.0), 32.0) * uShine;
+  vec3 lit = base * uColorMul * (amb + uSun * d) + uSun * spec;
   vec3 col = mix(lit, base * uColorMul, uUnlit);
   float f = exp(-pow(vDist * uFogDensity, 2.0));
   col = mix(uFogColor, col, clamp(f, 0.0, 1.0));
@@ -123,12 +127,14 @@ export class Renderer {
     this.u = {};
     for (const n of ['uVP', 'uModel', 'uEye', 'uLightDir', 'uSun', 'uSky', 'uGround',
       'uFogColor', 'uFogDensity', 'uAlpha', 'uUnlit', 'uColorMul', 'uUseTex', 'uTex',
-      'uSkyLo', 'uSkyHi', 'uSkyMode', 'uTime', 'uWater']) {
+      'uSkyLo', 'uSkyHi', 'uSkyMode', 'uTime', 'uWater', 'uShine']) {
       this.u[n] = gl.getUniformLocation(p, n);
     }
     gl.uniform1i(this.u.uTex, 0);
     gl.uniform1f(this.u.uSkyMode, 0);
     gl.uniform1f(this.u.uWater, 0);
+    gl.uniform1f(this.u.uShine, 0);
+    this._shine = 0;
     this._clock = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     this.time = 0;
     // Default for meshes with no per-vertex rect: sample the UV as-is.
@@ -356,6 +362,8 @@ export class Renderer {
     if (mul !== this._mul) { gl.uniform3fv(this.u.uColorMul, mul); this._mul = mul; }
     const water = (opts && opts.water) ? 1 : 0;
     if (water !== this._water) { gl.uniform1f(this.u.uWater, water); this._water = water; }
+    const shine = (opts && opts.shine) || 0;
+    if (shine !== this._shine) { gl.uniform1f(this.u.uShine, shine); this._shine = shine; }
     const sky = (opts && opts.sky) ? 1 : 0;
     if (sky !== this._sky) { gl.uniform1f(this.u.uSkyMode, sky); this._sky = sky; }
     if (sky) {
