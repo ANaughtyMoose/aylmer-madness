@@ -1,3 +1,4 @@
+import { FRASER, fraserFootprint, buildFraser } from './fraser.js';
 // Turns mapdata.js (real OpenStreetMap Aylmer) into geometry and collision data.
 //
 // The map is baked once at load into:
@@ -904,7 +905,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   const HOUSEY = { house: 1, terrace: 1 };
   let houseCount = 0, houseTris = 0, houseFarTris = 0;
   let landmarkRoofs = 0;
-  const buildings = bldgs;
+  const buildings = bldgs.map(fraserFootprint);
   const gableCols = ROOF.map(rgb);
   const flatRoofCol = rgb(C.flatRoof);
   const winCol = rgb(C.win);
@@ -928,6 +929,11 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     const b = buildings[bi];
     const p = b.p, n = p.length, h = b.h, c = b.c;
     const rnd = mulberry32((bi * 2654435761 + 0x9e3779b9) >>> 0);
+    if (b.k === 'fraser') {
+      for (let i=0;i<p.length;i++) addWallSegment(p[i][0],p[i][1],p[(i+1)%p.length][0],p[(i+1)%p.length][1]);
+      if (b.id === FRASER.ids[0]) buildFraser(bAt(FRASER.x, FRASER.z));
+      continue;
+    }
     // Phase 1 gives 537 dwellings an `hs` blob while OSM still calls them
     // 'commercial' on footprint size alone, so the attributes decide too.
     if (HOUSEY[b.k] === 1 || b.hs) {

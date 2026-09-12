@@ -457,3 +457,14 @@ body.modal #pause{background:rgba(6,10,13,.9)}
   border:1px dashed currentColor;font-size:11px;letter-spacing:.06em;opacity:.8;transform:rotate(1.1deg)}
 /* the buttons still work — a photocopy of a button is a button */
 .photocopy button,.photocopy select,.photocopy input{filter:none}
+
+/* Readable, explicit controls toggle, reachable without knowing a shortcut. */
+#legend{right:20px;top:114px;bottom:auto;width:min(370px,calc(100vw - 40px));padding:12px;background:rgba(9,30,35,.96);font-size:14px;z-index:12;max-height:calc(100vh - 290px);overflow:auto}
+#legend.collapsed{padding:0;width:auto;max-height:none;background:rgba(9,30,35,.96)}
+#legendhead{display:block;width:100%;font-size:14px;line-height:1.3;letter-spacing:0;text-transform:none;opacity:1;padding:12px 16px;margin:0;border:1px solid #d5bc7d;color:#fff0d0;background:#163b41;border-radius:5px;min-height:44px}
+#legendhead:focus-visible{outline:3px solid #efc56f;outline-offset:3px}
+#legendrows{grid-template-columns:1fr;gap:9px;margin-top:14px}
+#legend .lrow{opacity:1;white-space:normal;overflow:visible;align-items:flex-start}
+#legend .lrow .lab{opacity:1;overflow:visible}
+#legend .lrow kbd{flex-shrink:0;min-width:24px}
+.photocopy #legend,.photocopy #legend .lrow .alt{filter:none;opacity:1}
