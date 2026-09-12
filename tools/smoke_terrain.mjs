@@ -231,7 +231,7 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
   ok('...with no NaN anywhere in the car', !r.nan);
 
   // The Galeries loading dock: west end of the south lot, up the north ramp.
-  const d = launch('sunfire', -168, -233.6, 1.5708, 16, 380, ctl({ throttle: 1 }));
+  const d = launch('sunfire', -168, -433.6, 1.5708, 16, 380, ctl({ throttle: 1 }));
   ok('the Galeries dock ramp gets you onto the deck and off the kicker',
     d.best > 0.6, `${r3(d.best)} s`);
   ok('...clearing the 1.6 m service fence at x = -92',
@@ -337,7 +337,8 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
   ok('the berm is gravel on top and grass down the sides',
     at(700, -368) === 'gravel' && at(700, -376) === 'grass',
     `${at(700, -368)} / ${at(700, -376)}`);
-  ok('the Galeries deck is concrete', at(-120, -230) === 'concrete');
+  ok('the Galeries rear deck is concrete', at(-120, -430) === 'concrete');
+  ok('Canadian Tire customer parking is asphalt', at(-157, -236) === 'asphalt');
   ok('the Symmes flight is stair', at(-1562, 12) === 'stair');
   ok('Parc des Cèdres has a path and a beach',
     at(-1880, -430) === 'path' && at(-1955, -428) === 'sand',

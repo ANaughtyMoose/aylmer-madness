@@ -122,7 +122,7 @@ export function checkReached(G, hud = G.hud) {
   if (G.wallet.value < (G.target || TARGET)) return false;
   G.reached = true;
   if (hud && hud.toast) {
-    hud.toast('Ton père a compté l’enveloppe sans rien dire.\n« Garde-la de même jusqu’à la fête du Travail. Pis touche pas à ça pour des jantes. »', 5200);
+    hud.toast('1 200 $ de côté pour le Ranger et les études.\nContinue à prévoir le gaz et les pièces : septembre approche.', 5200);
   }
   return true;
 }

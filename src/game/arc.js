@@ -55,13 +55,13 @@ const say = (G, text, ms) => G && G.hud && G.hud.toast(text, ms);
 
 // ---------------------------------------------------------------- the beats
 
-// 1 — Les clés du Ranger -----------------------------------------------------
+// 1 — Le Ranger rend service -----------------------------------------------------
 
 const keys = {
   id: 'arckeys',
   beat: 'prologue',
-  title: 'Les clés du Ranger',
-  brief: 'Ton père laisse les clés du Ranger pour l’été. Une condition: t’es le camion de la famille.',
+  title: 'Le Ranger rend service',
+  brief: 'Avec ton Ranger, tu peux rendre service à la famille et aux amis. Les mêmes détours, un peu de gaz, pis chacun fait sa part.',
   giver: 'home',
   timeOfDay: 'morning',
   build() {
@@ -368,7 +368,7 @@ const dernier = {
         hint: '299 Chemin Fraser. Entre les deux lignes de l’entrée, pour une fois.',
         at: 'home', radius: 13, hold: true, stopped: 4,
         holdText: 'E — mettre les clés sur le comptoir',
-        toast: 'Les clés à côté de la tasse de ton père.\nLa ville est encore là. Toi, t’es plus le même gars qu’en juin.',
+        toast: 'Tes clés dans ta poche.\nLa ville est encore là. Toi, t’es plus le même gars qu’en juin.',
         money: 20,
         onTick: (G) => noCops(G),
       },
@@ -389,7 +389,7 @@ export const ARC = [keys, bache, surchauffe, veillee, dernier];
  */
 export const GATES = {
   // One job first. The game opens with your father having left the keys in the
-  // change dish for a morning; « Les clés du Ranger » is him turning that into
+  // change dish for a morning; « Le Ranger rend service » is him turning that into
   // a deal with conditions, which only means something once you have driven it.
   arckeys: { jobs: 1, after: null },
   arcbache: { jobs: 3, after: 'arckeys' },
@@ -457,7 +457,7 @@ export const ARC_LINES = {
   arckeys: {
     start: [
       ['Ton père', '« Tu fais le transport de la famille, pis tu mets ton gaz dedans. »'],
-      ['Ton père', '« C\'est pas un cadeau. C\'est une entente. »'],
+      ['Ton père', '« Merci du coup de main. Ça compte. »'],
     ],
     end: [
       ['Sayyad', '« Deux mois. On a deux mois complets. »'],
@@ -501,7 +501,7 @@ export const ARC_LINES = {
     ],
     end: [
       ['Ton père', '« T\'as mis ton gaz dedans tout l\'été. »'],
-      ['Ton père', '« Les clés, laisse-les là. Elles sont autant à toi. »'],
+      ['Ton père', '« Garde tes économies pour la suite. Tu les as gagnées. »'],
     ],
   },
 };

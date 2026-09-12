@@ -1381,9 +1381,54 @@ export const GALERIES_DOOR = {
   a: GA_YAW + Math.PI / 2,
 };
 
-const GA_ORANGE = 0xd4762a, GA_TRIM = 0xf0ece2;
+const GA_ORANGE = 0x326267, GA_TRIM = 0xf0ece2;
+
+// 2004 reference photos supplied by Tom: Canadian Tire occupies the west
+// anchor, not the modern stand-alone store east of Wilfrid-Lavigne.
+export const HISTORIC_CT = { x: -157, z: -236, a: Math.PI / 2 };
+const MALL_SIGNS = [
+  {x:-155,z:-252.7,w:25,h:2,y:4.5,text:'CANADIAN TIRE',sub:'Pièces et accessoires',board:'#ad2825'},
+  {x:-184,z:-252.7,w:17,h:1.4,y:5.3,text:'AUTO SERVICE',sub:'CANADIAN TIRE',board:'#ad2825'},
+  {x:-103,z:-258.5,w:18,h:1.5,y:5.2,text:'St-Hubert',sub:'Rôtisserie',board:'#99422d',yaw:GA_YAW},
+  {x:-54,z:-272,w:16,h:2,y:6.4,text:'Zellers',sub:'',board:'#315e64',yaw:GA_YAW},
+  {x:23,z:-282.5,w:15,h:1.5,y:5.3,text:'Jean Coutu',sub:'Pharmacie',board:'#bd963b'},
+  {x:63,z:-275.8,w:26,h:2.2,y:5.5,text:'Super C',sub:'',board:'#b42e29'},
+  {x:-170,z:-177,w:7,h:3,y:4,text:'CANADIAN TIRE',sub:'Galeries d’Aylmer',board:'#ad2825'},
+  {x:-130,z:-175,w:7,h:5,y:2,text:'CINÉMA',sub:'BILLARD · SAQ',board:'#38657f'},
+].map(g=>({yaw:0,...g}));
+
+function historicMall(K) {
+  const mb=K.mb;
+  // Replace the modern residence with the low retail/service wing.
+  const ring=rectRing(-157,-290,76,74,0);
+  walls(K,ring,0,7.2,{mat:'brick_buff',tint:tint(K,'brick_buff',1.05),rows:[]});
+  mb.capPoly(ring,fanTris(4),7.2,flat(0x797c78));
+  mb.box(-157,6.2,-252.85,76,1.8,0.3,flat(0xd5d8d3));
+  // Horizontal silver siding and utilitarian service doors.
+  for(let i=0;i<5;i++) mb.box(-157,5.45+i*.33,-252.64,76,.035,.04,flat(0x9a9e9c));
+  for(const x of [-188,-180]) {
+    mb.panel(x,2,-252.6,6,4,0,1,flat(0x686f70));
+    for(let y=.5;y<4;y+=.65) mb.box(x,y,-252.54,6,.035,.035,flat(0xa4aaa7));
+  }
+  for(const x of [-161,-157,-153]) mb.panel(x,1.8,-252.6,3.7,3.6,0,1,flat(0x26383b));
+  // Seasonal enclosure beside the retail entrance, not across the access aisle.
+  for(let x=-144;x<=-122;x+=4) mb.box(x,1.3,-246,.07,2.6,.07,flat(0x454b48));
+  for(const y of [.2,1.3,2.5]) mb.box(-133,y,-246,22,.035,.035,flat(0x737c75));
+  for(let x=-143;x<-123;x+=1) mb.box(x,1.3,-246,.022,2.3,.022,flat(0x737c75));
+  // The photograph's mixed buff/red brick shopfront, teal entry towers,
+  // yellow St-Hubert surround and red Super C fascia at the east end.
+  for(const [x,z,w,colour] of [[-103,-258.8,19,0xb69775],[-77,-266,22,0xbd957a],[-54,-272.3,19,0x326267],[23,-282.8,16,0xbca176],[63,-276.1,29,0xb52c28]]) {
+    mb.panel(x,5,z,w,3,0,1,flat(colour));
+    mb.panel(x,1.9,z+.06,w*.65,3,0,1,flat(0x30434b));
+  }
+  mb.box(-103,2.9,-258.5,4.8,5.8,.2,flat(0xd4ae4d));
+  mb.panel(-103,1.6,-258.3,2.8,3.2,0,1,flat(0x27323a));
+  mb.box(-54,7.4,-272.5,16,2,.25,flat(0x326267));
+}
+
 
 function buildGaleries(K) {
+  historicMall(K);
   const mb = K.mb;
   const ring = rectRing(GA.cx, GA.cz, GA.w, GA.d, GA.yaw), tris = fanTris(4);
   // Full-height glazing across the front, brick on the returns: the front wall
@@ -1430,6 +1475,11 @@ function buildGaleries(K) {
 }
 
 function siteGaleries(K) {
+  lot(K,-147,-220,88,42,0,{rows:2});
+  lightStandard(K,-182,-221,9);
+  lightStandard(K,-115,-210,9);
+  walk(K,-194,-250,-121,-250,2.2,0xaaa799);
+
   // The apron in front of the doors, the walk along the wall, the crossing bars
   // over the drive, and two rows of stalls so the ring stands in a car park and
   // not on a lawn.
@@ -1488,7 +1538,9 @@ export const SITES = [
       board: '#243a4a' } },
   // No `hide`: the mall's own footprint stays exactly as it is and this bolts a
   // door onto it. See GALERIES_DOOR above for the point missions aim at.
-  { key: 'galeries', cx: GA.cx, cz: GA.cz, r: 46, near: HERO_NEAR,
+  { key: 'galeries', cx: GA.cx, cz: GA.cz, r: 235, near: HERO_NEAR,
+    hide: [{id:693895603, at:[-157,-290]}],
+    signs: MALL_SIGNS,
     build: buildGaleries, site: siteGaleries,
     // Off to one side of the doors, not in front of them: a board in the middle
     // of your own windscreen on the way in is a board you cannot read.
@@ -1524,6 +1576,10 @@ function hideFootprint(spec) {
   return false;
 }
 
+Object.assign(PLACES.ctire, HISTORIC_CT, {poi: null, snap: false, lot: false, label: 'Canadian Tire — Galeries d’Aylmer'});
+// Do not leave a duplicate modern Canadian Tire storefront/sign in the 2004 world.
+for (const b of MAP.buildings) if (b.name === 'Canadian Tire' && Math.hypot(b.c[0]-429.2,b.c[1]+242.8)<120) delete b.name;
+for (const p of MAP.pois) if (p.name === 'Canadian Tire' && Math.hypot(p.x-429.2,p.z+242.8)<120) { p.x=HISTORIC_CT.x; p.z=HISTORIC_CT.z; }
 export const HIDE_MISSES = [];
 for (const s of SITES) {
   for (const h of s.hide || []) if (!hideFootprint(h)) HIDE_MISSES.push(s.key + ':' + h.id);
@@ -1579,6 +1635,7 @@ export function bakeSite(s, mats) {
   const KS = kit(site, PLAIN, false, s.cx, s.cz);
   s.site(KS);
   if (s.sign) signFrame(KS, s.sign);
+  for (const g of s.signs || []) signFrame(KS,g);
   near.finish(); far.finish(); site.finish();
   return { near, far, site };
 }
@@ -1649,18 +1706,18 @@ function signFrame(K, g) {
   const nx = -Math.sin(g.yaw), nz = Math.cos(g.yaw);
   if (g.y > 3) {
     K.mb.box(g.x, g.y + g.h / 2, g.z, g.w + 0.12, g.h + 0.12, 0.09, flat(0x2b2f31),
-      { yaw: -g.yaw + Math.PI / 2 });
+      { yaw: -g.yaw });
     return;
   }
   K.mb.box(g.x, g.y + g.h / 2, g.z, g.w + 0.3, g.h + 0.3, 0.22, flat(0x8f8a80),
-    { yaw: -g.yaw + Math.PI / 2 });
+    { yaw: -g.yaw });
   K.mb.tower(g.x - nx * 0.02, 0, g.z - nz * 0.02, g.w + 0.9, 0.6, g.y, flat(0x9c9488),
-    { yaw: -g.yaw + Math.PI / 2, noBottom: true, top: flat(0x8a857b) });
+    { yaw: -g.yaw, noBottom: true, top: flat(0x8a857b) });
 }
 
 function buildSignMesh(renderer) {
   if (typeof document === 'undefined' || !document.createElement) return null;
-  const boards = SITES.filter((s) => s.sign);
+  const boards = SITES.flatMap(s => [s.sign, ...(s.signs || [])].filter(Boolean).map(sign=>({sign})));
   const cv = document.createElement('canvas');
   cv.width = SIGN_W; cv.height = SIGN_H * boards.length;
   const ctx = cv.getContext('2d');
@@ -1680,6 +1737,12 @@ function buildSignMesh(renderer) {
     ctx.fillStyle = '#cfc7b2';
     ctx.font = '500 32px "Helvetica Neue", Helvetica, Arial, sans-serif';
     ctx.fillText(g.sub, SIGN_W / 2, py + 106, SIGN_W - 60);
+    if (g.text === 'CANADIAN TIRE') {
+      // Small triangle emblem on the historical red fascia.
+      ctx.fillStyle = '#f3ead6';ctx.beginPath();
+      ctx.moveTo(26,py+20);ctx.lineTo(128,py+20);ctx.lineTo(77,py+107);ctx.closePath();ctx.fill();
+      ctx.fillStyle = '#348054';ctx.fillRect(65,py+10,25,14);
+    }
     const v0 = (py + 2) / cv.height, v1 = (py + SIGN_H - 2) / cv.height;
     const hw = g.w / 2;
     // Both faces, so a sign reads whichever way you drive past it.

@@ -187,9 +187,9 @@ ok('E1 both endings are three cards and say the number', () => {
   const yes = endingCards(1240, 1200, true), no = endingCards(910, 1200, false);
   assert.equal(yes.length, 3); assert.equal(no.length, 3);
   assert.ok(yes[0].body.includes('1240 $'));
-  assert.ok(yes[1].body.includes('Garde tes piasses'));
+  assert.ok(yes[1].body.includes('objectif est atteint'));
   assert.ok(no[0].body.includes('910 $ sur 1200'));
-  assert.ok(no[1].body.includes('La 40'));
+  assert.ok(no[1].body.includes('Ranger est toujours à toi'));
   for (const c of [...yes, ...no]) assert.ok(c.title && c.body.length > 40);
 });
 

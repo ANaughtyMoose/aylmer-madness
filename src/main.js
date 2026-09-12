@@ -1067,11 +1067,15 @@ function enterDrive(save = null, startKey = null) {
 // player sees is a blue line going somewhere.
 function playStory() {
   cinema.show({ title: 'Été 2004',
-    body: 'T’as dix-sept ans. Ton père a laissé les clés du Ranger dans le plat à monnaie. Un alternateur payé t’attend au Canadian Tire.\n\nD’ici septembre: 1 200 $ dans l’enveloppe pour garder le truck. Le gaz pis les réparations, c’est de ta poche.',
+    body: 'T’es Tom. Le Ranger est à toi, pis tu paies ton gaz et la plupart des pièces. Ton père aide quand il peut.\n\nObjectif pour septembre : mettre 1 200 $ de côté pour les réparations et les études. Première étape : ton alternateur, au Canadian Tire des Galeries d’Aylmer.',
     task: '299, chemin Fraser\nUne première commission. Tout un été devant toi.',
     art: 'home', button: G.settings.lang === 'en' ? 'Get in →' : 'Embarquer →',
     onDone: () => {
     if (!G.settings.storySeen) onSettings(saveSettings({ ...G.settings, storySeen: true }));
+    if (!G.mission && !G.done.has('alternateur')) {
+      startMission(ALL_MISSIONS.find(d => d.id === 'alternateur'));
+      return;
+    }
     const j = nearestJob(G);
     // Only worth a waypoint if it is somewhere else; updateRoute() eats one you
     // are already standing on, and the toast pair reads like a bug.
@@ -1399,11 +1403,10 @@ function runEnding() {
   endingCard.cards = endingCards(G.wallet.value, target, madeIt);
   endingCard.show(() => {
     if (madeIt) {
-      hud.toast('Le Ranger est à toi.\nLa ville aussi, tant qu’à ça.', 4200);
+      hud.toast('Objectif atteint. Ton argent pour les études et le Ranger est de côté.', 4200);
     } else {
-      hud.toast('Le Ranger est parti. La 40 passe au coin à 7 h 12.', 4200);
-      // The dealer took the truck; the Diamondback is what is left in the garage.
-      if (carById('dbike') && G.carId === 'ranger') swapCar('dbike');
+      hud.toast('Il manque encore des piasses pour septembre. Le Ranger reste à toi; les jobs restent disponibles.', 4200);
+      // Missing the savings target never changes ownership of Tom’s truck.
     }
     autosave('job');
   });
@@ -1574,7 +1577,7 @@ function updateMission(dt) {
       eyebrow: G.settings.lang === 'en' ? 'JOB COMPLETE' : 'JOB TERMINÉE',
       title: def.title,
       body: def.id === 'alternateur'
-        ? 'La boîte est sur l’établi. Ton père la posera à soir.\n\nUne commission de faite. Le reste de l’été commence ici.'
+        ? 'La boîte est sur l’établi. Reste à prévoir la réparation.\n\nUne commission de faite. Le reste de l’été commence ici.'
         : (st.toast || 'Une autre job de faite.'),
       task: `${fmtTime(m.elapsed)}  ·  ${G.done.size} jobs faites`
         + (m.paid ? `\nPaye : ${Math.round(m.paid)} $` : '')
@@ -1587,7 +1590,7 @@ function updateMission(dt) {
   applyStage();
   if (m.def.id === 'alternateur' && m.idx === 1) cinema.show({
     eyebrow: 'CANADIAN TIRE · COMMANDE RAMASSÉE', title: 'C’est dans la boîte.',
-    body: 'L’alternateur, le reçu, pis un peu d’argent Canadian Tire. Tout est là.\n\nReste à ramener la boîte au 299 Fraser. Ton père s’occupe de la poser.',
+    body: 'L’alternateur, le reçu, pis un peu d’argent Canadian Tire. Tout est là.\n\nReste à ramener la boîte au 299 Fraser. Tu prépares la prochaine réparation du Ranger.',
     task: m.stages[1].text, note: 'Aucun chrono. Prends ton temps.',
     art: 'alternateur', button: G.settings.lang === 'en' ? 'Head home →' : 'On rentre →',
   });

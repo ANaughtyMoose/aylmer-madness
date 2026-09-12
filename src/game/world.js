@@ -1547,7 +1547,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     // barrier in the bake that does so on purpose: the kicker at the east lip
     // of the dock exists to put you over it. Deliberately not run through the
     // asphalt gate the road-derived furniture below goes through.
-    for (let z = -244; z < -216; z += 2) {
+    for (let z = -444; z < -416; z += 2) {
       const bd = bAt(x, z);
       // Both faces: you look at this fence from the dock side on the way in and
       // from the lot side on the way down.
@@ -1555,7 +1555,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
       bd.quad([x, 0, z + 2], [x, 1.6, z + 2], [x, 1.6, z], [x, 0, z], fenceCol, [-1, 0, 0]);
       addSegment(x, z, x, z + 2);
       terrainStats.tris += 4; terrainStats.colliders++;
-      if (((z + 244) % 6) === 0) bd.post(x, 0, z, 0.12, 1.75, postCol);
+      if (((z + 444) % 6) === 0) bd.post(x, 0, z, 0.12, 1.75, postCol);
     }
   }
 

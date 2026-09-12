@@ -55,7 +55,7 @@ export const PLACES = {
 
   // ---- side jobs -------------------------------------------------------
   // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.
-  ctire:     { poi: 'Canadian Tire', x: 429.2, z: -242.8, label: 'Canadian Tire, chemin d’Aylmer', snap: true, lot: true },
+  ctire:     { x: -157, z: -236, a: Math.PI / 2, label: 'Canadian Tire — Galeries d’Aylmer', snap: false, lot: false },
   // Norm's is a real destination and needs its own pin. It used to borrow
   // PLACES.ctire, so the only garage in the game that charges money was
   // invisible on the map — you could only find it by driving past.

@@ -122,28 +122,30 @@ export const FEATURES = [
 
   // ---- Galeries d'Aylmer loading docks ---------------------------------
   // The mall's OSM footprint is the whole block (-125,-442 to 84,-256), so the
-  // dock runs along the south lot instead of through the building: in off the
+  // dock runs behind the north-west wing, clear of the customer parking: in off the
   // aisle at the west end, two ramps up onto a 1.35 m deck, along it, and off
   // the kicker at the east lip — which is the only way over the service fence
   // at x = -92. Everything here is oriented yaw = pi/2, so forward is +X (east)
   // and the pad's `hw` is the north-south half width.
   {
     id: 'mallDock', type: 'pad', kind: 'concrete', side: 'concrete',
-    cx: -120, cz: -230, yaw: 1.5708, hw: 6.5, hl: 16, H: 1.35,
+    cx: -120, cz: -430, yaw: 1.5708, hw: 6.5, hl: 16, H: 1.35,
     runs: [0, 0, 0, 0], wall: true,
   },
   {
     id: 'mallRampN', type: 'pad', kind: 'concrete', side: 'concrete',
-    cx: -142, cz: -233.6, yaw: 1.5708, hw: 3.4, hl: 6, H: 1.35, runs: [0, 0, 7, 0],
+    cx: -142, cz: -433.6, yaw: 1.5708, hw: 3.4, hl: 6, H: 1.35, runs: [0, 0, 7, 0],
   },
   {
     id: 'mallRampS', type: 'pad', kind: 'concrete', side: 'concrete',
-    cx: -142, cz: -226.4, yaw: 1.5708, hw: 3.4, hl: 6, H: 1.35, runs: [0, 0, 7, 0],
+    cx: -142, cz: -426.4, yaw: 1.5708, hw: 3.4, hl: 6, H: 1.35, runs: [0, 0, 7, 0],
   },
   {
     id: 'mallKick', type: 'pad', kind: 'concrete', side: 'concrete',
-    cx: -100, cz: -230, yaw: 1.5708, hw: 9, hl: 1.2, H: 2.05, runs: [0, 0, 9, 0],
+    cx: -100, cz: -430, yaw: 1.5708, hw: 9, hl: 1.2, H: 2.05, runs: [0, 0, 9, 0],
   },
+  { id:'canadianTireLot', type:'pad', kind:'asphalt', side:'asphalt',
+    cx:-147, cz:-220, yaw:0, hw:44, hl:25, H:0, runs:[0,0,0,0] },
 
   // ---- Les Galeries: the south entrance apron ---------------------------
   // landmarks.js builds a food-court doorway on the mall's south wall and

@@ -53,40 +53,29 @@ export const TIME_OF_DAY = {
 };
 
 const CORE_MISSIONS = [
-  // The first job of the summer, and the reason the keys are in the coin dish at
-  // all. Thomas, after the first playtest: « First mission for Tom should not be
-  // poutine — should be buying something at Canadian Tire. » The alternator does
-  // more work than the hockey stick would: it explains why a seventeen-year-old
-  // has his father's truck this morning, it is an errand a father really does
-  // send his kid on, it introduces the Canadian Tire — which damage.js already
-  // knows as the paid garage — and the chemin d'Aylmer, and the change out of
-  // the hundred is the first money in the envelope.
-  //
-  // No timer on either stage. It is the first two minutes: the player is still
-  // finding out that W goes and S stops, and a clock would teach him to panic
-  // instead of to drive.
+  // Tom owns the Ranger. The first errand doubles as an untimed driving lesson.
   {
     id: 'alternateur',
     title: 'L’alternateur',
-    brief: 'La lumière de batterie clignote depuis mardi. Ton père a laissé les clés, un cent piastres, pis un alternateur payé qui t’attend au comptoir du Canadian Tire.',
+    brief: 'La lumière de batterie clignote. Ton alternateur est commandé au Canadian Tire des Galeries d’Aylmer. Prends ton Ranger : on commence par une commission sans chrono pour apprendre à conduire.',
     giver: 'home',
     timeOfDay: 'morning',
     build(ctx) {
       return [
         {
           text: 'Canadian Tire — le comptoir des commandes',
-          sub: 'W pour partir, suis la ligne bleue du GPS, arrête-toi (S) dans le pilier jaune pis E — c’est payé, c’est au nom de ton père',
-          hint: 'Chemin d’Aylmer, vers l’ouest. La grosse enseigne rouge, à gauche. Tab ouvre la grande carte.',
+          sub: 'W pour partir, suis la ligne bleue du GPS, arrête-toi (S) dans le pilier jaune pis E pour ramasser ta commande. ? affiche les commandes',
+          hint: 'Vers les Galeries d’Aylmer : Canadian Tire est au bout ouest du centre, près de Wilfrid-Lavigne. Tab ouvre la carte.',
           at: 'ctire', radius: 18, time: null,
           hold: true, holdText: 'E — ramasser l’alternateur',
-          toast: 'Une boîte grise pis vingt-deux piasses de change.\nLe gars te demande même pas ton nom.',
+          toast: 'Ta commande est prête. La boîte, le reçu, pis ton argent Canadian Tire.',
         },
         {
           text: 'Ramène la boîte au 299 Chemin Fraser',
           sub: `GPS jusqu’au pilier jaune dans l’entrée, pis 40 km/h max en arrivant (S pour freiner) — la boîte est debout sur le banc du ${ctx.carName}`,
           hint: 'Chez vous, plein est: le chemin d’Aylmer, pis le chemin Fraser au bout.',
           at: 'home', radius: 14, time: null, maxSpeed: 40,
-          toast: 'La boîte sur l’établi. Ton père la posera à soir.',
+          toast: 'Ta pièce est rendue chez vous. Première commission réussie : bonus de formation, 22 $.',
           money: 22,
         },
       ];
