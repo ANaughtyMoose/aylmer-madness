@@ -11,6 +11,8 @@ import { MAP } from './mapdata.js';
 const POI_SNAP = 600;
 
 export const PLACES = {
+  stvincent: { poi:'Saint-Vincent Hospital',road:'Cambridge Street North',x:9906.8,z:-2136.2,label:'Hôpital St. Vincent',snap:true },
+  royalottawa: { poi:'Royal Ottawa Golf Club',x:5062.5,z:-2605.7,label:'Royal Ottawa Golf Club',snap:true,lot:true },
   // The four homes.
   home:      { x: 932.9, z: 143.9, label: '299 Chemin Fraser', snap: true },
   // The 'steph' key is historical; the person is Sayyad.

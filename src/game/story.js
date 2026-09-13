@@ -294,6 +294,14 @@ export function updateStuck(G, dt, hud = null) {
 // bubbles, not toasts, so the name is in bold and they do not fight the big
 // mission text for the middle of the screen.
 export const FRIEND_LINES = {
+  stvincent: {
+    start: [['Tom', '« Je stationne le Ranger, pis je rentre pour le repas. »']],
+    end: [['Une patiente', '« Merci d’avoir pris ton temps. »']],
+  },
+  russellroyal: {
+    start: [['Russell', '« Peux-tu venir au Royal Ottawa? Je vais t’expliquer dans le char. »']],
+    end: [['Russell', '« Garde ça pour le gaz. Pis si le club rappelle, je suis disponible. »']],
+  },
   // Wave 3 — the jobs that are not deliveries (game/verbjobs.js).
   suis: {
     start: [['Sayyad', '« Regarde pas la carte, regarde-moé. Pis si tu me perds, c’est pas moé qui t’attends. »']],

@@ -1,4 +1,5 @@
 import { fraserParking } from './game/homeparking.js';
+import { remainingRoute } from './game/routeprogress.js';
 import { Cinematic, missionClock } from './game/cinematic.js';
 // Aylmer Madness — boot, game loop, camera, mission runner.
 import { Renderer } from './core/gl.js';
@@ -883,8 +884,8 @@ function worldStages() {
       G.sky = buildSky(r);
       G.signals = new Signals().build(r);
       for (const c of CARS) {
-        G.meshes.cars[c.id] = r.upload(buildCarBody(c));
-        G.meshes.wheels[c.id] = r.upload(buildWheel(c));
+        G.meshes.cars[c.id] = r.upload((c.buildBody || buildCarBody)(c));
+        G.meshes.wheels[c.id] = r.upload((c.buildWheel || buildWheel)(c));
         G.meshes.cones[c.id] = buildHeadlights(r, c);
       }
       G.meshes.head = r.upload(buildHead());
@@ -1067,7 +1068,7 @@ function enterDrive(save = null, startKey = null) {
 // player sees is a blue line going somewhere.
 function playStory() {
   cinema.show({ title: 'Été 2004',
-    body: 'T’es Tom. Le Ranger est à toi, pis tu paies ton gaz et la plupart des pièces. Ton père aide quand il peut.\n\nObjectif pour septembre : mettre 1 200 $ de côté pour les réparations et les études. Première étape : ton alternateur, au Canadian Tire des Galeries d’Aylmer.',
+    body: 'T’es Tom. Le Ranger est à toi, pis tu paies ton gaz et la plupart des pièces.\n\nObjectif pour septembre : mettre 1 200 $ de côté pour les réparations et les études. Première étape : ton alternateur, au Canadian Tire des Galeries d’Aylmer.',
     task: '299, chemin Fraser\nUne première commission. Tout un été devant toi.',
     art: 'home', button: G.settings.lang === 'en' ? 'Get in →' : 'Embarquer →',
     onDone: () => {
@@ -1626,6 +1627,7 @@ function updateRoute(dt) {
     G.route = G.nav.route(v.x, v.z, tgt.x, tgt.z);
     G.routeKey = key; G.routeTimer = 1.5;
   }
+  G.route = remainingRoute(G.route, v.x, v.z);
 }
 
 function openMap(on) {
@@ -1693,6 +1695,20 @@ function frame(now) {
   if (G.seamHold || cinema.active) { input.endFrame(); return; }
 
   input.update(dt);
+  if (G.mealShift) {
+    if(input.hit('Escape')){G.mealShift.hide();pause(true);}
+    else if(input.hit('Backspace'))failMission('Service quitté.');
+    else {
+      audio.engine(0,0);audio.skid(0);audio.horn(false);
+      G.mealShift.state.step(dt, {
+        x:Number(input.down('KeyD','ArrowRight'))-Number(input.down('KeyA','ArrowLeft')),
+        y:Number(input.down('KeyS','ArrowDown'))-Number(input.down('KeyW','ArrowUp')),
+        feed:input.hit('Space','KeyE'),
+      });
+      G.mealShift.draw();updateMission(dt);
+    }
+    input.endFrame();return;
+  }
   handleKeys();
   if (G.mode !== 'drive' || cinema.active) { input.endFrame(); return; }
 
@@ -2417,7 +2433,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
   const hx = spec.track / 2;
   const wheelR = skin ? skin.wheelR : spec.wheelR;
   const wopts = tint ? { colorMul: tint } : undefined;
-  for (const sz of [1, -1]) for (const sx of [-1, 1]) {
+  for (const sz of [1, -1]) for (const sx of (spec.twoWheel ? [0] : [-1, 1])) {
     const lx = sx * hx, lz = skin ? (sz > 0 ? skin.wheelZ[0] : skin.wheelZ[1]) : sz * spec.axleZ;
     const wx = x + lx * cy + lz * sy;
     const wz = z - lx * sy + lz * cy;
@@ -2880,7 +2896,7 @@ window.AYLMER = {
   step(dt = STEP) { if (G.mode === 'drive' && !cinema.active) { input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } },
   render() { if (G.mode === 'drive') render(STEP); },
   teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw); },
-  start: startMission,
+  start: (def) => startMission(typeof def === 'string' ? ALL_MISSIONS.find(m=>m.id===def) : def),
   // Save-system hooks, so a test (or a console) can drive the slots without
   // reaching into the DOM. The buttons call exactly the same functions.
   save: (slot) => saveInto(slot),

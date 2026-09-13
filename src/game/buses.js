@@ -238,7 +238,7 @@ const SB_YELLOW = 0xf2bf0d, SB_BLACK = 0x16171a, SB_ROOF = 0xe6e6e2;
 const SCHOOL = {
   id: 'schoolbus',
   name: 'Autobus scolaire Blue Bird', who: 'La commission scolaire', whoDe: '',
-  body: SB_YELLOW, seats: 6, style: 'bus',
+  body: SB_YELLOW, seats: 71, places: 72, style: 'bus',
   park: 'building', noTraffic: true, duals: true,
   flavour: 'International 3800, 72 places, pis un été complet sans écoliers dedans. La clé est au-dessus du pare-soleil.',
   len: 11.60, wid: 2.44, h: 3.08, wheelbase: 6.93, overhangF: 1.22, track: 2.06, wheelR: 0.52,

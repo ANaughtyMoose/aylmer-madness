@@ -39,7 +39,7 @@ import { policeLine, line as textLine } from './racingtext.js';
 // A 1998 Crown Victoria, near enough. Same profile grammar as cars.js: `t` runs
 // 0 (rear bumper) to 1 (front bumper), y and half-width in metres.
 export const CRUISER = {
-  id: 'cruiser', name: 'Police d’Aylmer', who: 'Police', style: 'sedan',
+  id: 'police_cruiser', name: 'Police d’Aylmer', who: 'Police', style: 'sedan',
   body: 0xf2f4f6, seats: 3,
   flavour: 'Crown Victoria, moteur 4.6, gyrophare pis un projecteur sur le pilier.',
   len: 5.40, wid: 1.98, h: 1.45, wheelbase: 2.91, overhangF: 1.06, wheelR: 0.36,
