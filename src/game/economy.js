@@ -22,14 +22,9 @@ import {
 import { FAMOUS, JUMPS, OWNERS, RUMOURS, watchJumps, claimFamous, jumpsFound } from './famouscars.js';
 import * as kijiji from './kijiji.js';
 
-// Where Norm works. Both are places.js keys that damage.js already treats as
-// garages, so « U » and the repair E live on the same forecourt. The sign over
-// the bay on chemin d'Aylmer still says « & Fils »; the sons have not spoken to
-// him since 1996.
-const SHOPS = [
-  { place: 'norm', name: 'Garage Norm Lafleur & Fils', line: 'chemin d’Aylmer, la baie en arrière' },
-  { place: 'gas', name: 'Norm, en dépannage', line: 'à la Petro-Canada' },
-];
+// The historical repair garage supplied by Tom. The legacy 'norm' key keeps
+// existing missions and saves connected to the same mechanic destination.
+const SHOPS = [{place:'norm',name:'Garage Hugo Caumartin',line:'143 rue Principale'}];
 const SHOP_RADIUS = 30;
 
 const money = (n) => Math.round(n).toLocaleString('fr-CA') + ' $';
@@ -253,10 +248,10 @@ export function installEconomy(env) {
   // Norm's line for this repaint: whatever he just said about the work, or the
   // state of the thing you drove in on, or hello.
   function normBlock(damage, brokeFor) {
-    if (said) return `<div class="norm"><b>${NORM.name}</b>${said}</div>`;
-    if (brokeFor) return `<div class="norm bad"><b>${NORM.name}</b>${normSay('broke', visit + brokeFor.length)}</div>`;
-    if (damage >= 60) return `<div class="norm bad"><b>${NORM.name}</b>${normSay('wrecked', visit)}</div>`;
-    return `<div class="norm"><b>${NORM.name}</b>${normSay('greetings', visit)}</div>`;
+    if (said) return `<div class="norm"><b>Le mécano</b>${said}</div>`;
+    if (brokeFor) return `<div class="norm bad"><b>Le mécano</b>${normSay('broke', visit + brokeFor.length)}</div>`;
+    if (damage >= 60) return `<div class="norm bad"><b>Le mécano</b>${normSay('wrecked', visit)}</div>`;
+    return `<div class="norm"><b>Le mécano</b>${normSay('greetings', visit)}</div>`;
   }
 
   function paintShop() {
@@ -285,7 +280,9 @@ export function installEconomy(env) {
       <button data-fit="${p.id}" ${maxed || !r.ok ? 'disabled' : ''}>${maxed ? 'AU BOUTTE' : 'POSER'}</button></div>`;
     }).join('');
 
-    const bodyCost = bodyPrice(base, damage);
+    const bodyQuote = bodyPrice(base, damage);
+    const bodyExtra = damage > 0 ? Math.max(1, Math.round(bodyQuote*.1)) : 0;
+    const bodyCost = bodyQuote + bodyExtra;
     const canBody = damage > 0 && wallet.can(bodyCost);
     const paintCost = Math.round(PAINT_PRICE * partsMul(base) / 5) * 5;
     const nowHex = mods.paint == null ? base.body : mods.paint;
@@ -314,7 +311,7 @@ export function installEconomy(env) {
             <div class="lv" style="color:#8a939b">${damage > 0
               ? BODY_LABEL + '. ' + Math.round(damage) + ' % de dommage.'
               : 'Y a rien à débosseler. Ton char est droit.'}</div>
-          </div><div class="pr">${damage > 0 ? money(bodyCost) : ''}</div>
+          </div><div class="pr">${damage > 0 ? 'Devis '+money(bodyQuote)+' + '+money(bodyExtra)+' fournitures = '+money(bodyCost) : ''}</div>
           <button data-act="body" ${canBody ? '' : 'disabled'}>REDRESSER</button></div>
           <div class="row"><div class="txt">
             <div class="nm">Job de peinture</div>
@@ -324,7 +321,7 @@ export function installEconomy(env) {
         </div>
         <div class="sheet">${sheetHTML(now, before)}${earnHTML()}</div>
       </div>
-      <div class="board"><b>Norm fait ça aussi, demande-lui :</b> ${BOARD.join(' &middot; ')}.</div>
+      <div class="board"><b>Le garage fait ça aussi :</b> ${BOARD.join(' &middot; ')}.</div>
       <div class="board" style="opacity:.42">« ${RUMOURS[visit % RUMOURS.length]} »</div>
     </div>`;
     before = now;
@@ -349,14 +346,18 @@ export function installEconomy(env) {
       return;
     }
     if (b.dataset.act === 'body') {
-      const cost = bodyPrice(base, G.veh ? G.veh.damage : 0);
+      const damage = G.veh ? G.veh.damage : 0;
+      if (!(damage > 0)) return;
+      const quote = bodyPrice(base, damage);
+      const extra = Math.max(1, Math.round(quote*.1));
+      const cost = quote + extra;
       if (!G.wallet.spend(cost)) return;
       if (G.veh && G.veh.spec.id === id) { G.veh.repair(); G.health[id] = 0; }
       else G.health[id] = 0;
       G.repairHints.h25 = false; G.repairHints.h60 = false;
       hud.setRepairHint(null);
       said = normSay('work', visit, 'carrosserie');
-      hud.toast(`Redressé — ${money(cost)}\nDroit comme en 1988.`, 2400);
+      hud.toast(`Devis ${money(quote)} + ${money(extra)} fournitures.\nFacture payée : ${money(cost)}.`, 2400);
       paintShop();
       if (G.autosave) G.autosave('bodywork');
       return;
@@ -544,7 +545,7 @@ export function installEconomy(env) {
     if (e.code === 'KeyU') {
       const s = shopAt();
       if (s) openShop(s);
-      else hud.toast('Norm Lafleur est su’ l’chemin d’Aylmer,\nla baie en arrière du Canadian Tire. Stationne-toi là.', 2600);
+      else hud.toast('Garage Hugo Caumartin — 143 rue Principale. Stationne-toi devant les deux portes.', 2600);
       e.preventDefault();
     }
   });

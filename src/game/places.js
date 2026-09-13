@@ -11,6 +11,10 @@ import { MAP } from './mapdata.js';
 const POI_SNAP = 600;
 
 export const PLACES = {
+  sol: {x:67,z:-201,label:'Sol — aliments naturels, 195 Principale'},
+  morin: {x:-1107,z:-60,label:'Dr Morin — rue Principale'},
+  mocaloca: {x:-471,z:-118,label:'Moca-Loca — ancien café'},
+  oldlibrary: {x:-662,z:-72,label:'Ancienne bibliothèque — fermée (dégâts d’eau)'},
   stvincent: { poi:'Saint-Vincent Hospital',road:'Cambridge Street North',x:9906.8,z:-2136.2,label:'Hôpital St. Vincent',snap:true },
   royalottawa: { poi:'Royal Ottawa Golf Club',x:5062.5,z:-2605.7,label:'Royal Ottawa Golf Club',snap:true,lot:true },
   // The four homes.
@@ -58,10 +62,8 @@ export const PLACES = {
   // ---- side jobs -------------------------------------------------------
   // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.
   ctire:     { x: -157, z: -236, a: Math.PI / 2, label: 'Canadian Tire — Galeries d’Aylmer', snap: false, lot: false },
-  // Norm's is a real destination and needs its own pin. It used to borrow
-  // PLACES.ctire, so the only garage in the game that charges money was
-  // invisible on the map — you could only find it by driving past.
-  norm:      { x: 470, z: -212, label: 'Garage Norm Lafleur & Fils', snap: true, lot: true, landmark: true },
+  // The legacy key now points to Tom's pictured garage and its own map pin.
+  norm:      { x: -514, z: -137, label: 'Garage Hugo Caumartin — 143 Principale', landmark: true },
   // The used lot: a gravel corner on chemin d'Aylmer beside the Canadian Tire.
   // Four beaters nose-to-tail and a plywood sign — see game/garage.js.
   usedlot:   { road: "Chemin d'Aylmer", x: 520, z: -246, label: 'Lot d’occasion, chemin d’Aylmer', snap: true },

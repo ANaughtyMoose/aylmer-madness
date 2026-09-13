@@ -38,6 +38,7 @@ import { MAP } from './mapdata.js';
 import { PLACES } from './places.js';
 import { TILES } from './materials_stub.js';
 import { historicSites } from './historicstrip.js';
+import { oldAylmerSites } from './oldaylmer.js';
 
 // How far the detailed bake reaches, camera to building centre. Bigger than
 // HOUSE_NEAR (200 m) because a school is 90 m long: at 200 m it still fills a
@@ -1044,19 +1045,13 @@ function buildBritish(K, ring, tris) {
       { yaw: -BR.yaw, noBottom: true });
   }
 
-  // ---- the gallery: two storeys of verandah across the front
-  const gx = BR.cx + nx * 21.5, gz = BR.cz + nz * 21.5;
-  for (const [y, h] of [[3.9, 3.5], [7.3, 3.2]]) {
-    mb.tower(gx, y, gz, 28, 3.6, 0.24, flat(0xa08a6c), { yaw: -BR.yaw, top: flat(0xb59a78) });
-    mb.capRect(gx, gz, 28, 3.6, y - 0.002, -BR.yaw, flat(0x6d5c48), true);
-    if (!K.detail) continue;
-    for (let i = -5; i <= 5; i++) {
-      mb.cyl(gx + tx * i * 2.7 + nx * 1.5, y - h / 2, gz + tz * i * 2.7 + nz * 1.5,
-        0.11, h, 6, flat(TRIMC), 'y', false);
-    }
-    railing(K, gx - tx * 13.9 + nx * 1.72, y - 1.0, gz - tz * 13.9 + nz * 1.72,
-      gx + tx * 13.9 + nx * 1.72, gz + tz * 13.9 + nz * 1.72, 1.0, TRIMC);
-  }
+  // The old pub in Tom's photograph has a bare stone street wall and
+  // a dark recessed entry, without the later-style verandah.
+  mb.panel(BR.cx + nx * 19.95, 1.6, BR.cz + nz * 19.95, 3.1, 3.3, nx, nz, rgb(0x18201d));
+  const sx=BR.cx+tx*10+nx*20.5, sz=BR.cz+tz*10+nz*20.5;
+  mb.box(sx,5.3,sz,2.1,4.2,.22,rgb(0xa74734),{yaw:-BR.yaw+Math.PI/2});
+  mb.box(sx,5.3,sz,1.7,3.8,.25,rgb(0xc5a344),{yaw:-BR.yaw+Math.PI/2});
+  mb.box(sx,5.3,sz,.23,2.5,.3,rgb(0x375a72),{yaw:-BR.yaw+Math.PI/2});
   // The front door: a dressed stone surround, a transom over it and a pair of
   // leaves. A 2.2 x 3.0 slab of green paint is not a door.
   mb.panel(BR.cx + nx * 19.9, 1.66, BR.cz + nz * 19.9, 2.5, 3.4, nx, nz, flat(DRESS, 1.1), null, 0.02);
@@ -1182,7 +1177,7 @@ export const COUCH = {
 function buildMike(K, ring, tris) {
   const mb = K.mb;
   const brick = 'brick_red', bt = tint(K, brick, 1.0);
-  const TRIMC = 0xf2efe7, GREEN = 0x39463c, DECK = 0x7b5a44, LATTICE = 0x262b26;
+  const TRIMC = 0xf2efe7, GREEN = 0x918775, DECK = 0x7b5a44, LATTICE = 0x262b26;
   const EAVE = 3.55;                        // low: the roof does most of the work
   const rows = [
     { y0: 1.15, y1: 2.85, w: 1.15, gap: 1.45, margin: 1.0, mullions: 1, transom: 0.55, sill: 0.11 },
@@ -1551,7 +1546,7 @@ export const SITES = [
       board: '#6a4a1c' } },
 ];
 
-for (const site of historicSites({rectRing,walls,lot,lightStandard})) {
+for (const site of [...historicSites({rectRing,walls,lot,lightStandard}), ...oldAylmerSites({rectRing,walls,lot})]) {
   SITES.push(site);
   BUDGET[site.key] = {near:8000,far:4000,site:1800};
 }
@@ -1710,7 +1705,7 @@ const SIGN_W = 1024, SIGN_H = 128;
 // that swings over a sidewalk. In the site mesh, so it is there from the road.
 function signFrame(K, g) {
   const nx = -Math.sin(g.yaw), nz = Math.cos(g.yaw);
-  if (g.y > 3) {
+  if (g.y > 3 || g.mount === 'wall') {
     K.mb.box(g.x, g.y + g.h / 2, g.z, g.w + 0.12, g.h + 0.12, 0.09, flat(0x2b2f31),
       { yaw: -g.yaw });
     return;
@@ -1725,7 +1720,8 @@ function buildSignMesh(renderer) {
   if (typeof document === 'undefined' || !document.createElement) return null;
   const boards = SITES.flatMap(s => [s.sign, ...(s.signs || [])].filter(Boolean).map(sign=>({sign})));
   const cv = document.createElement('canvas');
-  cv.width = SIGN_W; cv.height = SIGN_H * boards.length;
+  const cols = Math.ceil(boards.length / 16), rows = Math.min(16, boards.length);
+  cv.width = SIGN_W * cols; cv.height = SIGN_H * rows;
   const ctx = cv.getContext('2d');
   if (!ctx) return null;
   const mb = new MeshBuilder();
@@ -1734,7 +1730,8 @@ function buildSignMesh(renderer) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   boards.forEach((s, i) => {
-    const g = s.sign, py = i * SIGN_H;
+    const g = s.sign, px = Math.floor(i / 16) * SIGN_W, py = (i % 16) * SIGN_H;
+    ctx.save();ctx.translate(px,0);
     ctx.fillStyle = g.board; ctx.fillRect(0, py, SIGN_W, SIGN_H);
     ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(0, py, SIGN_W, 4);
     ctx.fillStyle = '#f3ead6';
@@ -1743,12 +1740,22 @@ function buildSignMesh(renderer) {
     ctx.fillStyle = '#cfc7b2';
     ctx.font = '500 32px "Helvetica Neue", Helvetica, Arial, sans-serif';
     ctx.fillText(g.sub, SIGN_W / 2, py + 106, SIGN_W - 60);
+    if(g.text === 'SOL') {
+      ctx.fillStyle='#17462f';ctx.fillRect(0,py,SIGN_W,SIGN_H);
+      ctx.strokeStyle='#d6c385';ctx.lineWidth=3;ctx.strokeRect(12,py+6,1000,116);
+      ctx.fillStyle='#e4ce89';ctx.font='bold 100px Georgia';ctx.fillText('S',350,py+98);ctx.fillText('L',674,py+98);
+      ctx.beginPath();for(let j=0;j<32;j++){const a=j*Math.PI/16,r=j%2?36:59;const x=512+Math.cos(a)*r,y=py+63+Math.sin(a)*r;j?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.fill();
+      ctx.fillStyle='#bca16a';ctx.beginPath();ctx.ellipse(512,py+63,31,40,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#586553';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(493,py+53);ctx.lineTo(502,py+51);ctx.moveTo(522,py+51);ctx.lineTo(532,py+53);ctx.moveTo(513,py+55);ctx.lineTo(509,py+70);ctx.lineTo(516,py+70);ctx.moveTo(502,py+80);ctx.quadraticCurveTo(512,py+86,523,py+79);ctx.stroke();
+    }
     if (g.text === 'CANADIAN TIRE') {
       // Small triangle emblem on the historical red fascia.
       ctx.fillStyle = '#f3ead6';ctx.beginPath();
       ctx.moveTo(26,py+20);ctx.lineTo(128,py+20);ctx.lineTo(77,py+107);ctx.closePath();ctx.fill();
       ctx.fillStyle = '#348054';ctx.fillRect(65,py+10,25,14);
     }
+    ctx.restore();
+    const u0=(px+2)/cv.width,u1=(px+SIGN_W-2)/cv.width;
     const v0 = (py + 2) / cv.height, v1 = (py + SIGN_H - 2) / cv.height;
     const hw = g.w / 2;
     // Both faces, so a sign reads whichever way you drive past it.
@@ -1757,10 +1764,10 @@ function buildSignMesh(renderer) {
       const dx = Math.cos(g.yaw) * side, dz = Math.sin(g.yaw) * side;
       const ax = g.x - dx * hw + nx * 0.13, az = g.z - dz * hw + nz * 0.13;
       const bx = g.x + dx * hw + nx * 0.13, bz = g.z + dz * hw + nz * 0.13;
-      const b = mb.vert(ax, g.y, az, nx, 0, nz, white, 0.002, v1);
-      mb.vert(bx, g.y, bz, nx, 0, nz, white, 0.998, v1);
-      mb.vert(bx, g.y + g.h, bz, nx, 0, nz, white, 0.998, v0);
-      mb.vert(ax, g.y + g.h, az, nx, 0, nz, white, 0.002, v0);
+      const b = mb.vert(ax, g.y, az, nx, 0, nz, white, u0, v1);
+      mb.vert(bx, g.y, bz, nx, 0, nz, white, u1, v1);
+      mb.vert(bx, g.y + g.h, bz, nx, 0, nz, white, u1, v0);
+      mb.vert(ax, g.y + g.h, az, nx, 0, nz, white, u0, v0);
       mb.tri(b, b + 1, b + 2); mb.tri(b, b + 2, b + 3);
     }
   });

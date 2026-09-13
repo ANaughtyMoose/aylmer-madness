@@ -294,6 +294,8 @@ export function updateStuck(G, dt, hud = null) {
 // bubbles, not toasts, so the name is in bold and they do not fight the big
 // mission text for the middle of the screen.
 export const FRIEND_LINES = {
+  margaretdental: {start:[['Margaret','La boîte chez le Dr Morin, s’il te plaît. Je vais finir ça ici.']],end:[['Margaret','Merci ! Ça va me faire un petit extra ce soir.']]},
+  solerrand: {start:[['Sayyad','Passe chez Sol ! Zahra et moi, on adore ça.']],end:[['Zahra','Merci pour la commande. On y retourne bientôt !']]},
   stvincent: {
     start: [['Tom', '« Je stationne le Ranger, pis je rentre pour le repas. »']],
     end: [['Une patiente', '« Merci d’avoir pris ton temps. »']],

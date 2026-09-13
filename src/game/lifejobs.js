@@ -1,6 +1,20 @@
 import {openMealShift} from './mealshift.js';
 const close=(G)=>{G.mealShift?.close();G.mealShift=null;};
 export const LIFE_MISSIONS=[{
+  id:'margaretdental',title:'Les dents à finir',giver:'home',timeOfDay:'day',
+  brief:'Margaret travaille comme technicienne dentaire chez le Dr Morin, sur Principale. Va chercher la boîte de prothèses : elle peut finir le travail à la maison pour un petit extra.',
+  build(){return [
+    {text:'Récupère le travail chez Dr Morin',sub:'Stationne-toi devant le cabinet, puis E pour prendre la boîte.',hint:'Le cabinet gris sur Principale, près du British.',at:'morin',radius:16,hold:true,toast:'La boîte de prothèses est prête. Margaret t’attend au 299 Fraser.'},
+    {text:'Apporte la boîte à Margaret',sub:'Retour au 299 Fraser. E pour lui remettre le travail.',hint:'Margaret finit les prothèses à la maison.',at:'home',radius:20,hold:true,money:35,toast:'Margaret installe son travail à la maison. 35 $ de bonus pour la course !'}
+  ];}
+},{
+  id:'solerrand',title:'Un arrêt chez Sol',giver:'sayyad',timeOfDay:'day',
+  brief:'Sayyad et Zahra adorent Sol, le magasin d’aliments naturels à gauche du PFK. Va chercher leur commande au 195 Principale.',
+  build(){return [
+    {text:'La commande chez Sol',sub:'À gauche du PFK. Arrête-toi, puis E.',hint:'Cherche l’enseigne verte avec le soleil doré.',at:'sol',radius:18,hold:true,toast:'Le magasin est propre et accueillant. La commande de Sayyad et Zahra est prête.'},
+    {text:'Retour chez Sayyad et Zahra',sub:'Rapporte le sac au 75 Denise-Friend, puis E pour le remettre.',hint:'Leur maison verte, avec le porche rouge.',at:'sayyad',radius:18,hold:true,money:15,toast:'« On adore ce magasin ! » 15 $ pour la course.'}
+  ];}
+},{
   id:'stvincent',title:'Une bouchée à la fois',giver:'home',timeOfDay:'day',
   brief:'Le Ranger reste au stationnement de l’Hôpital St. Vincent, sur Cambridge. À l’intérieur, tu aides au repas en soins palliatifs : un corridor occupé, des fauteuils électriques et du monde qui prend son temps.',
   cleanup:close,
