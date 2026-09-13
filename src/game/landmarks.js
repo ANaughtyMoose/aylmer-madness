@@ -37,6 +37,7 @@ import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { MAP } from './mapdata.js';
 import { PLACES } from './places.js';
 import { TILES } from './materials_stub.js';
+import { historicSites } from './historicstrip.js';
 
 // How far the detailed bake reaches, camera to building centre. Bigger than
 // HOUSE_NEAR (200 m) because a school is 90 m long: at 200 m it still fills a
@@ -1549,6 +1550,11 @@ export const SITES = [
       text: 'LES GALERIES D’AYLMER', sub: 'Entrée sud · Casse-croûte du food court',
       board: '#6a4a1c' } },
 ];
+
+for (const site of historicSites({rectRing,walls,lot,lightStandard})) {
+  SITES.push(site);
+  BUDGET[site.key] = {near:8000,far:4000,site:1800};
+}
 
 // --------------------------------------------------------- footprint removal
 //

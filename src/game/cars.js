@@ -549,6 +549,7 @@ function defaults(c, src) {
  * import time, and it has to be able to finish it the same way these are.
  */
 export function finalizeCar(c) {
+  if (c.speedCap) c.topSpeed = Math.min(c.topSpeed, c.speedCap);
   c.axleZ = c.wheelbase / 2;
   // Track from the plan: the tyre's outer face stands just proud of the widest axle station.
   const rearOverhang = c.len - c.wheelbase - c.overhangF;
@@ -571,9 +572,10 @@ export function finalizeCar(c) {
   // enough that drag alone eats the whole engine, the clamp keeps vPow finite
   // and the car simply never quite gets there.
   const aero = c.aero != null ? c.aero : AERO;
-  const drag = ROLL + aero * c.topSpeed * c.topSpeed;
+  const powerTop = c.powerTopSpeed || c.topSpeed;
+  const drag = ROLL + aero * powerTop * powerTop;
   const x = clamp(1 - drag / Math.max(0.01, c.accel), 0.05, 0.999);
-  c.vPow = c.topSpeed / Math.pow(x, 1 / POW);
+  c.vPow = powerTop / Math.pow(x, 1 / POW);
   return c;
 }
 for (const c of CARS) finalizeCar(c);
@@ -1603,6 +1605,7 @@ export class Vehicle {
       }
     }
     vLong += a * dt;
+    if (s.speedCap) vLong = Math.min(vLong, s.speedCap);
     // The direction-change brake stops AT zero — it never shoves you backwards
     // in the tick it arrives, so the gear below is what turns you round.
     if (flip && vLong * rolling < 0) vLong = 0;
@@ -1637,7 +1640,7 @@ export class Vehicle {
     this.curb *= Math.exp(-9 * dt);
 
     // Steering: less lock the faster you go, so a keyboard tap can't spin you.
-    const speedFrac = clamp(Math.abs(vLong) / topSpeed, 0, 1);
+    const speedFrac = clamp(Math.abs(vLong) / (s.steeringTopSpeed || topSpeed), 0, 1);
     let lock = s.steerMax * (0.42 + 0.58 / (1 + Math.abs(vLong) / 14));
     if (this.assist) lock *= 1 - 0.28 * speedFrac;
     let target = ctl.steer * lock;

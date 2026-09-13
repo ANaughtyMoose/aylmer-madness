@@ -1,3 +1,6 @@
+import { speedFraction } from './game/speeds.js';
+import { FortierChase, installFortierMeshes, svxHome } from './game/fortier.js';
+const fortier = new FortierChase();
 import { fraserParking } from './game/homeparking.js';
 import { remainingRoute } from './game/routeprogress.js';
 import { Cinematic, missionClock } from './game/cinematic.js';
@@ -693,6 +696,7 @@ function buildMenu() {
   const cards = [];
   for (const c of CARS) {
     const owned = garage.has(c.id, G.done);
+    if (c.hidden && !owned) continue;
     const el = document.createElement('div');
     el.className = 'card' + (c.id === G.carId ? ' sel' : '') + (owned ? '' : ' locked');
     const hex = '#' + c.body.toString(16).padStart(6, '0');
@@ -712,7 +716,7 @@ function buildMenu() {
     el.innerHTML = art + lock +
       `<h3>${c.name}</h3><div class="who">${c.who} &middot; ${carPlaces(c)} `
       + `${t(carPlaces(c) === 1 ? 'menu.seat' : 'menu.seats')}</div>` +
-      bar('Speed', (c.topSpeed - 24) / 24) +
+      `<div class="who">${Math.round(c.topSpeed * 3.6)} km/h</div>` + bar('Vitesse', speedFraction(c)) +
       bar('Accel', (c.accel - 1.4) / 4.2) +
       bar('Grip', (c.grip - 0.60) / 0.52) +
       `<div class="flav">${c.flavour}</div>`;
@@ -897,7 +901,8 @@ function worldStages() {
         }).catch((e) => console.warn('skin failed', c.id, e));
       }
       G.meshes.shadow = r.upload(buildShadow());
-      installCopMeshes(r, G.meshes);          // the cruiser + its two light-bar pods
+      installCopMeshes(r, G.meshes);
+      installFortierMeshes(r, G.meshes);          // the cruiser + its two light-bar pods
       const mk = new MeshBuilder();
       mk.cyl(0, 0.5, 0, 1, 1, 14, rgb(0xffffff), 'y', false);
       G.meshes.marker = r.upload(mk);
@@ -920,6 +925,8 @@ function worldStages() {
 // Nothing else in the game decides where a car is — that is the whole point of
 // the save slots, and why the old aylmer.garage auto-restore is gone.
 function enterDrive(save = null, startKey = null) {
+  fortier.stop();
+  fortier.pending=true;
   if (save && save.character) G.character = save.character;
   if (!CHARACTER_IDS.includes(G.character)) G.character = DEFAULT_CHARACTER;
   const who = characterById(G.character);
@@ -1142,6 +1149,7 @@ function homeParked(currentId = G.carId) {
   const out = {}, slots = {};
   const ids = [currentId, ...CARS.map((c) => c.id).filter((id) => id !== currentId)];
   for (const id of ids) {
+    if (id === 'svx') { out[id] = svxHome(); continue; }
     if (!carById(id) || (!garage.has(id, G.done) && id !== 'saturn')) continue;
     const k = homeKey(id);
     const slot = (slots[k] = (slots[k] || 0) + 1) - 1;
@@ -1198,8 +1206,8 @@ function doTow() {
 }
 // A save can put the car inside a house (the autosave caught you on the lawn,
 // and the footprint under it is from the assessment roll). Move it out, free.
-function settleAfterPlacing() {
-  const s = tow.settleSpawn(G);
+function settleAfterPlacing(allowOffRoad = false) {
+  const s = tow.settleSpawn(G, {allowOffRoad});
   if (s.moved) hud.toast(s.reason === 'water' ? 'Le char était dans l’eau — remis sur la route, gratis.'
     : 'Le char était pogné — remis sur la route, gratis.', 3000);
 }
@@ -1217,13 +1225,14 @@ function swapCar(id) {
   G.veh.assist = G.assist;
   G.veh.reset(spot.x, spot.z, spot.yaw);
   restoreDamage(G.veh, G.health[id]);
-  settleAfterPlacing();
+  settleAfterPlacing(true);
   audio.setEngineProfile(spec.sound);
   G.gearbox = new Gearbox(spec.drive);
   G.repair.t = 0;
   hud.setCar(spec.name);
-  hud.toast(`${spec.who === 'Yours' ? 'Ton' : spec.who.replace("'s", '') + ' te passe son'} ${spec.name}`, 1800);
+  hud.toast(id === 'svx' ? 'Tu prends la SVX de Sara.' : `${spec.who === 'Yours' ? 'Ton' : spec.who.replace("'s", '') + ' te passe son'} ${spec.name}`, 1800);
   audio.blip(520, 0.12, 'triangle', 0.15);
+  if (id === 'svx') fortier.start(G);
 }
 // A job that has to put you in one particular car (golfjob.js) uses the same
 // swap the E-prompt does, so the car you arrived in stays exactly where it was.
@@ -1438,6 +1447,10 @@ function failMission(why) {
 G.failMission = failMission;
 
 function updateMission(dt) {
+  if (fortier.interact(G, garage)) {
+    if (G.carId !== 'svx') hud.setObjective('La SVX de Sara Fortier', 'E — prendre le char');
+    return;
+  }
   const m = G.mission;
   const v = G.veh;
   if (!m) {
@@ -1654,7 +1667,7 @@ function mapState() {
     x: v.x, z: v.z, yaw: v.yaw, route: G.route, waypoint: G.waypoint,
     target: G.mission ? G.mission.target : null,
     missions: G.mission ? [] : MISSIONS.map((d) => ({ x: PLACES[d.giver].x, z: PLACES[d.giver].z, title: d.title, place: PLACES[d.giver].label, done: G.done.has(d.id) })),
-    parked: Object.keys(G.parked).map((id) => ({ x: G.parked[id].x, z: G.parked[id].z, name: carById(id).name })),
+    parked: Object.keys(G.parked).filter(id => !carById(id).hidden || garage.has(id,G.done)).map((id) => ({ x: G.parked[id].x, z: G.parked[id].z, name: carById(id).name })),
     rivals: G.rivals.map((rv) => ({ x: rv.x, z: rv.z, name: rv.name })),
     cops: [...G.cops.units.map((u) => ({ x: u.x, z: u.z })), ...G.cops.blocks.map((b) => ({ x: b.x, z: b.z }))],
     places: [
@@ -2033,6 +2046,7 @@ function tick(dt) {
   // which read G.traffic.crash from the line above and G.ranRed from last tick.
   updateRivals(G, dt);
   G.cops.update(dt, G);
+  fortier.update(dt, G);
 
   if (v.drowning > 1.4) {
     v.recover();
@@ -2383,7 +2397,8 @@ function render(dt) {
     if (Math.hypot(c.x - v.x, c.z - v.z) > 400) continue;
     drawCar(rv.spec, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y);
   }
-  G.cops.draw(G, drawCar);                          // ...and the police
+  G.cops.draw(G, drawCar);
+  fortier.draw(G, drawCar);                          // ...and the police
   if (G.props) G.props.draw(r, f);
   if (G.reactive) G.reactive.draw(r, f, QUALITY[G.quality].drawDist);
   // --- avatars agent hook ------------------------------------------------
@@ -2467,7 +2482,7 @@ function markerList() {
       const p = PLACES[def.giver];
       out.push({ x: p.x, z: p.z, kind: 'mission' });
     }
-    for (const id of Object.keys(G.parked)) out.push({ x: G.parked[id].x, z: G.parked[id].z, kind: 'car' });
+    for (const id of Object.keys(G.parked).filter(id => !carById(id).hidden || garage.has(id,G.done))) out.push({ x: G.parked[id].x, z: G.parked[id].z, kind: 'car' });
   }
   if (G.waypoint) out.push({ x: G.waypoint.x, z: G.waypoint.z, kind: G.mission ? 'mission' : 'objective' });
   return out;
@@ -2751,6 +2766,8 @@ function applyPauseText() {
 
 function pause(on) {
   if (on) {
+    fortier.cancelVoice();
+    if (fortier.subtitle) fortier.subtitle.hidden=true;
     G.mode = 'paused';
     fillJobs();
     buildTabBar();
@@ -2772,6 +2789,7 @@ function pause(on) {
 }
 
 function toMenu() {
+  fortier.stop();
   pause(false);
   radio.suspend();
   weather.suspend();
@@ -2910,6 +2928,7 @@ window.AYLMER = {
   characters: () => CHARACTERS.map((c) => ({ ...c })),
   // Playtest #11, for the browser check: what job is running, and where in it.
   job: () => (G.mission ? { id: G.mission.def.id, stage: G.mission.idx, timeLeft: G.mission.timeLeft } : null),
+  fortier: () => ({active:!!fortier.unit, x:fortier.unit?.x, z:fortier.unit?.z, unseen:fortier.unseen}),
   resetCars: () => resetCarLocations(),
   settings: (patch) => { onSettings(saveSettings({ ...G.settings, ...(patch || {}) })); return G.settings; },
   // Debug/screenshot hooks: force a time of day, and read back what the last

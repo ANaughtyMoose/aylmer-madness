@@ -144,10 +144,13 @@ export function callTow(G) {
  * are) the inside of a house. Move a stuck car to the road, free, and make
  * lastSafe a road point regardless.
  */
-export function settleSpawn(G) {
+export function settleSpawn(G, {allowOffRoad = false} = {}) {
   const veh = G.veh, world = G.world;
   if (!veh || !world) return { moved: false, reason: null };
-  const reason = placementReason(world, veh, veh.spec) || stuckReason(world, veh.x, veh.z);
+  let reason = placementReason(world, veh, veh.spec) || stuckReason(world, veh.x, veh.z);
+  // A deliberately parked car can be well inside a parking lot. Distance to
+  // the road alone is not evidence that this known parking spot is stuck.
+  if (allowOffRoad && reason === 'far') reason = null;
   if (reason) {
     const spot = roadSpot(world, veh.x, veh.z, veh.spec);
     if (spot) { place(veh, spot, world); return { moved: true, reason, name: spot.name }; }
