@@ -216,7 +216,7 @@ group('the forty ads in assets/text/kijiji.json');
   const buyable = all.filter((a) => a.car);
   const phantoms = all.filter((a) => a.phantom);
   ok(all.length === K.ADS.length + raw.listings.length, `${all.length} ads on the page`);
-  ok(buyable.length === 4, 'four of them are cars this game can actually build');
+  ok(buyable.length === 5, 'five of them are cars this game can actually build');
   ok(phantoms.length === raw.listings.length, `${phantoms.length} are phantoms`);
   ok(phantoms.every((a) => !a.car), 'and not one phantom is buyable');
   ok(phantoms.every((a) => a.redFlag), 'every phantom knows what is wrong with itself');

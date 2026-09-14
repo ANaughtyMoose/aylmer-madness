@@ -258,6 +258,56 @@ export const CARS = [
     glassTop: [[0.955, 0.985, 1.90]], glassSide: [0.055, 0.94],
     cladding: { rocker: 0.30, bumper: 0.42, tRear: 0.012, tFront: 0.988, color: 0x2b6ea8 },
   },
+  {
+    // The W115. Roger Bouchard bought it new in Hull, drove it to Florida
+    // eleven summers running, and parked it in 1998 when his licence went.
+    // Ti-Guy has it on the gravel on consignment and the Kijiji ad is still
+    // Roger's own (game/kijiji.js).
+    //
+    // Everything about this car is the same joke told twice: it is the slowest
+    // thing in Aylmer with four doors and the only one with chrome on every
+    // edge of it. 4680 × 1770 × 1440 mm, 2750 mm wheelbase, 175R14 — within a
+    // few centimetres of the Cutlass Ciera above, so the profiles are authored
+    // against the same station layout and then stood upright: a taller roof, a
+    // longer flatter boot, a lower beltline, thinner pillars. There is no
+    // cladding anywhere (`rocker: 0`) because there was no plastic on a 1976
+    // Mercedes; every bright edge on it is a box in addDetails.
+    //
+    // `wear` is twenty-eight years, six of them outside: the boot lid, the
+    // doors and the front wings have each faded a different amount, and there
+    // is road film most of the way up the flanks. `smokes` is the tailpipe
+    // (game/reactive.js) and `restorable` is what makes it the one car in the
+    // Outaouais Grigori Volkov will take on (game/upgrades.js).
+    id: 'benz', name: '1976 Mercedes-Benz 240D', who: 'Le lot', lot: true,
+    body: 0xb9bd8e, seats: 4, style: 'sedan',
+    restorable: true, smokes: 1,
+    wear: { dirt: 0x8d906f, rise: 0.46, arch: 0.50, film: 0.40,
+            panels: [[0, 0.938], [0.268, 0.938], [0.282, 0.986], [0.695, 0.986], [0.709, 0.922], [1, 0.922]] },
+    flavour: 'Diesel 2,4 L, 65 chevaux, quatre vitesses automatiques. Zéro à cent en vingt-cinq secondes, pis c’est si la côte descend. Du chrome su’ chaque coin, de la cuirette su’ la banquette, pis un nuage de boucane noire à chaque fois que tu pèses dessus. Le char le plus lent en ville — pis le plus classe.',
+    len: 4.68, wid: 1.77, h: 1.44, wheelbase: 2.75, overhangF: 0.86, wheelR: 0.33,
+    topSpeed: 36.4, accel: 2.0, brake: 7.2, grip: 0.78, steerMax: 0.46, mass: 1450, aero: 0.000380,
+    seatY: 1.10, seatZ: 0.05, seatX: 0.42, clearance: 0.22,
+    // Upright three-box: a long flat boot lid, a steep backlight, a flat roof
+    // that is the highest thing on the car, an equally steep windshield, and a
+    // long flat hood that falls away to the chrome bumper.
+    top: [[0, 1.06], [0.02, 1.12], [0.05, 1.145], [0.24, 1.15], [0.275, 1.18], [0.315, 1.34],
+          [0.355, 1.43], [0.40, 1.44], [0.62, 1.44], [0.655, 1.435], [0.685, 1.33],
+          [0.735, 1.18], [0.765, 1.12], [0.80, 1.115], [0.93, 1.11], [0.965, 1.05],
+          [0.985, 0.92], [1, 0.66]],
+    // Deliberately ABOVE `top` over the boot lid and the hood: specRing clamps
+    // belt to top, the glass faces collapse, and the deck and the bonnet come
+    // out full width instead of tumbling inwards the way the Ciera's do.
+    belt: [[0, 1.10], [0.03, 1.16], [0.26, 1.16], [0.30, 1.06], [0.685, 1.06],
+           [0.73, 1.12], [0.78, 1.16], [1, 1.16]],
+    plan: [[0, 0.79], [0.03, 0.86], [0.09, 0.885], [0.88, 0.885], [0.945, 0.865], [0.978, 0.825], [1, 0.76]],
+    // 0.88: a W115's pillars are pencils and the roof is nearly as wide as the
+    // body. Nothing else in the game is this square in plan up at the glass.
+    roofK: 0.88, tuck: 0.03,
+    glassTop: [[0.28, 0.36], [0.655, 0.74]], glassSide: [0.31, 0.68],
+    // `color` is half a shade off the body so the valance under the chrome
+    // bumpers reads as painted steel, which is what it is.
+    cladding: { rocker: 0, bumper: 0.30, tRear: 0.028, tFront: 0.970, color: 0xa9ad80 },
+  },
 
   // ------------------------------------------------------------- the cart
   // Club de Golf Gatineau's fleet cart, parked on the apron in front of the
@@ -314,6 +364,12 @@ const HANDBRAKE = {
   cutlass: { hbGrip: 0.55, hbYaw: 1.20 },
   cavalier:{ hbGrip: 0.34, hbYaw: 1.58 },
   caravan: { hbGrip: 0.66, hbYaw: 1.08 },
+  // A tonne and a half on tall soft springs and 175-section tyres, with the
+  // weight spread further front-to-back than anything else here. The lever
+  // locks a rear axle that is barely loaded, so it lets go early — but the
+  // car is so long and so slow to answer that what you get is a lean, a
+  // drift and then a shrug, not a pivot.
+  benz:    { hbGrip: 0.68, hbYaw: 1.16 },
   bus:     { hbGrip: 0.88, hbYaw: 0.92 },
   // Four tiny turf tyres and no weight on them: the lever locks the back and it
   // just slides, but there is nothing there to swing.
@@ -334,6 +390,10 @@ const REVERSE = {
   cutlass: { revTop: 6.94, revEngage: 0.24 },
   cavalier:{ revTop: 6.94, revEngage: 0.21 },
   caravan: { revTop: 6.94, revEngage: 0.28 },
+  // A four-speed Mercedes automatic with a fluid coupling and no lock-up: you
+  // move the lever, you count to one, and THEN it takes. Slower into gear than
+  // anything except the bus's crash box.
+  benz:    { revTop: 6.94, revEngage: 0.29 },
   bus:     { revTop: 4.17, revEngage: 0.30 },
 };
 // C5 — the procedural engine, per car. These are the parameters core/audio.js's
@@ -450,6 +510,24 @@ const SOUND = {
              hissG: 0.12, raspG: 0.12, raspFrom: 4200, rasp: 0.28, raspK: 2.2,
              boomF: 120, boomQ: 5.0, boomDb: 9, tickF: 3100, tickG: 0.020,
              lumpy: 0.010, pop: 0.7, gain: 1.02, rattle: 0, rattleFrom: 0 },
+  // OM616: a 2.4 L indirect-injection diesel four with no turbo, no balance
+  // shafts and a prechamber that lights the charge in one hard slap. Everything
+  // in this row is the clatter. `tickG` at 0.075 is the loudest valvetrain in
+  // the table and it is not the valvetrain — it is injectors and pins, and it
+  // is what you actually hear standing beside one. `decay` 3.8 makes each pulse
+  // fat rather than sharp, `uneven` 0.26 is the lumpiness that never smooths
+  // out at any speed, and `tilt` 0.14 keeps the harmonics rolled off so it is
+  // dull and hard instead of brassy: a diesel never sings. It fires at rpm/30
+  // and stops at 4500, so wide open in third is 75 Hz, which you can count.
+  // `rattle: 0` — there is nothing loose in a Mercedes, only tired.
+  benz:    { cyl: 4, idle: 780, redline: 4500, limiter: 4600,
+             decay: 3.8, uneven: 0.26, tilt: 0.14, harm: 232,
+             exhQ: 0.74, exhG: 1.16, intF0: 460, intSpan: 900, intQ: 0.85, intG: 0.40,
+             hissG: 0.26, raspG: 0.30, raspFrom: 2400, rasp: 0.55, raspK: 3.2,
+             boomF: 104, boomQ: 4.4, boomDb: 10, tickF: 2700, tickG: 0.075,
+             lumpy: 0.026, pop: 0.35, gain: 1.10, rattle: 0, rattleFrom: 0,
+             toneLo: 560, toneHi: 3800, labour: 5.5, burble: 0.05,
+             whineK: 3.0, whineG: 0.018, gearThunk: 0.045 },
   // Diesel straight-six: slow, enormous pulses at rpm/20, and it clatters.
   bus:     { cyl: 6, idle: 620, redline: 2400, limiter: 2450,
              decay: 4.0, uneven: 0.28, tilt: 0.15, harm: 240,
@@ -512,6 +590,16 @@ const DRIVE = {
   caravan: { gears: [2.69, 1.55, 1.00], reverse: 2.10, final: 3.19, tyre: 0.640,
              idle: 730, redline: 5200, limiter: 5300,
              shiftUp: 4600, shiftUpLight: 2500, shiftDown: 1350, launch: 1900, shiftTime: 0.42 },
+  // The W4A 020 four-speed, 3.69 axle, 175R14 (0.653 m rolling). North American
+  // 240Ds were almost all automatics and this one is no exception. It starts in
+  // first, shifts at 4100 because there is nothing above that worth having, and
+  // takes half a second over every one of them — which is `shiftTime` for the
+  // engine note and `shiftCut` in the FEEL table for the shove in your back
+  // going away. 131 km/h in fourth is 3930 rpm, so it is flat out AND at the
+  // top of the band at the same moment, which is exactly the car.
+  benz:    { gears: [3.98, 2.39, 1.46, 1.00], reverse: 5.47, final: 3.69, tyre: 0.653,
+             idle: 780, redline: 4500, limiter: 4600,
+             shiftUp: 4100, shiftUpLight: 2200, shiftDown: 1250, launch: 1600, shiftTime: 0.50 },
   bus:     { gears: [3.45, 2.24, 1.41, 1.00], reverse: 5.00, final: 5.29, tyre: 1.050,
              idle: 620, redline: 2400, limiter: 2450,
              shiftUp: 2200, shiftUpLight: 1600, shiftDown: 900, launch: 1200, shiftTime: 0.55 },
@@ -625,6 +713,34 @@ const FEEL = {
     torque: [[0, 0.78], [0.25, 0.92], [0.45, 1], [1, 1]],
     shiftCut: 0.10, steerRate: 8, rackSpeed: 8, bite: 6.8, wallow: 0.55,
     counterSteer: 0.06,
+  },
+  // 1450 kg, 65 hp, a rear axle and a recirculating-ball box. Everything here
+  // is slow ON PURPOSE, and none of it is the same slowness as the Sienna's:
+  // the van is soft and numb, the 240D is soft and deliberate.
+  //
+  //   steerRate 8 / rackSpeed 8  the wheel is four turns lock to lock and the
+  //     rack has gone heavy by 30 km/h. You aim this car a corner early.
+  //   bite 7.5                   a 175-section tyre on a 14" rim with a tall
+  //     sidewall: it takes its time agreeing to the nose, and then it holds.
+  //   wallow 0.35                it leans, and only then does it turn. Half
+  //     the Sienna's, because a sedan on torsion bars is not a minivan.
+  //   torque                     a naturally aspirated IDI diesel: nothing at
+  //     all under 800 rpm, everything it is ever going to have by 1600, and
+  //     a flat shelf from there to the limiter. It MUST reach 1 inside the
+  //     band or the terminal speed moves — see the note over FEEL — and for
+  //     this engine that is not a compromise, it is the truth about it.
+  //   shiftCut 0.35              the fluid coupling and a band that takes half
+  //     a second to come on. You can count all three up-shifts.
+  //   powerYaw 0.15              rear-wheel drive, and the smallest number in
+  //     the table: 65 hp cannot push the tail anywhere. It exists so the layout
+  //     is honest, not so you can hang the back out. No `wheelspin` for the
+  //     same reason — there is no torque here to break a tyre loose with.
+  //   abs: false                 1976. Stand on the pedal and the fronts lock.
+  benz: {
+    layout: 'rwd', powerYaw: 0.15,
+    torque: [[0, 0.70], [0.16, 0.90], [0.34, 1], [1, 1]],
+    shiftCut: 0.35, steerRate: 8, rackSpeed: 8, bite: 7.5, wallow: 0.35,
+    abs: false, counterSteer: 0.050,
   },
 };
 
@@ -1082,6 +1198,98 @@ export function addDetails(mb, s, opts = {}) {
     mb.box(0, topAt(s, 0.64) - 0.02, z(0.64), hwAt(s, 0.64) * 1.62, 0.05, 0.10, shade(TRIM, 0.85));
   }
 
+  if (s.id === 'benz') {
+    // The whole car is the brightwork. A W115 in the flesh is a pale green
+    // slab with a bright edge on every line of it, and leaving any of it off
+    // is what makes a lofted Mercedes read as a lofted Volvo.
+    const rubber = shade(TRIM, 0.55);
+    const zH = z(0.983), yH = 0.92;
+
+    // Round sealed beams in chrome bezels. MeshBuilder.cyl only stands on X or
+    // Y — a disc facing down the road would need one standing on Z — so the
+    // lamp is three courses of box, widest across the middle, chorded off a
+    // 90 mm radius. At any distance you ever see the front of this car from,
+    // that is round, and it is eighteen triangles instead of a hundred.
+    const DISC = [[0, 0.170, 0.060], [0.053, 0.130, 0.046], [-0.053, 0.130, 0.046]];
+    both((sx) => {
+      for (const [dy, w, h] of DISC) {
+        mb.box(sx * 0.47, yH + dy, zH - 0.016, w + 0.038, h + 0.030, 0.05, chrome);
+        mb.box(sx * 0.47, yH + dy, zH, w, h, 0.05, lamp);
+      }
+      // US spec: an amber marker out on the corner of the wing, and the little
+      // one that wraps onto the side of it.
+      mb.box(sx * (hwAt(s, 0.972) - 0.055), yH - 0.10, zH - 0.028, 0.12, 0.09, 0.05, amber);
+      mb.box(sx * (hwAt(s, 0.966) + 0.004), yH - 0.10, z(0.963), 0.01, 0.09, 0.12, amber);
+    });
+
+    // The grille: a chrome frame standing proud of a black eggcrate, with the
+    // horizontal bars across it. It is nearly square and it is the only grille
+    // in the game that is taller than it is deep.
+    const yG = 0.98, zG = z(0.978), gw = 0.62, gh = 0.34;
+    mb.box(0, yG, zG - 0.014, gw, gh, 0.05, shade(TRIM, 0.62));
+    for (let k = -2; k <= 2; k++) mb.box(0, yG + k * 0.068, zG, gw - 0.03, 0.016, 0.05, chrome);
+    mb.box(0, yG + gh / 2, zG - 0.004, gw + 0.05, 0.030, 0.045, chrome);     // frame: top
+    mb.box(0, yG - gh / 2, zG - 0.004, gw + 0.05, 0.030, 0.045, chrome);     // ...bottom
+    both((sx) => mb.box(sx * (gw / 2 + 0.010), yG, zG - 0.004, 0.030, gh, 0.045, chrome));
+
+    // Chrome bumpers front and rear, each with the black rubber strip along
+    // its face. The strip is what dates the car to the bumper standards of the
+    // seventies, and it is the only black thing on the outside of it.
+    for (const [zz, w] of [[zF - 0.035, 0.96], [zR + 0.035, 0.94]]) {
+      const dir = zz > 0 ? 1 : -1;
+      mb.box(0, s.clearance + 0.15, zz, s.wid * w, 0.18, 0.14, chrome);
+      mb.box(0, s.clearance + 0.15, zz + dir * 0.055, s.wid * (w - 0.06), 0.06, 0.05, rubber);
+      both((sx) => mb.box(sx * s.wid * w * 0.5, s.clearance + 0.15, zz - dir * 0.10, 0.06, 0.18, 0.22, chrome));
+    }
+
+    // Full-width ribbed tail lamps, amber over red, wrapping the corners — the
+    // ribs are there so the lens cannot collect road dirt, which is the sort of
+    // thing this company put on a taxi in 1976 and the reason you can still
+    // recognise the back of one.
+    both((sx) => {
+      mb.box(sx * (hwR - 0.28), 0.93, zR + 0.012, 0.52, 0.10, 0.04, amber);
+      mb.box(sx * (hwR - 0.28), 0.815, zR + 0.012, 0.52, 0.13, 0.04, tail);
+      for (let k = 0; k < 4; k++) {
+        mb.box(sx * (hwR - 0.07 - k * 0.14), 0.875, zR + 0.020, 0.018, 0.22, 0.03, shade(TRIM, 0.85));
+      }
+      mb.box(sx * (hwR + 0.002), 0.875, z(0.016), 0.008, 0.22, 0.10, tail);   // round the corner
+    });
+    mb.box(0, 0.62, zR + 0.012, 0.34, 0.14, 0.03, rgb(PLATE));
+    mb.box(0, 1.14, zR + 0.010, hwR * 1.5, 0.020, 0.03, chrome);              // boot-lid edge trim
+    // « 240 D », chrome, on the right of the boot lid. Local −X is the car's
+    // right; every Mercedes of this era put the model on that corner and the
+    // engine badge under it, and Roger's has both.
+    mb.box(-(hwR - 0.32), 1.035, zR + 0.014, 0.16, 0.028, 0.012, chrome);
+
+    // The rubbing strip down both flanks — one thin chrome line at door-handle
+    // height, running the length of the doors and the wings.
+    both((sx) => mb.box(sx * (hwAt(s, 0.5) + 0.006), beltAt(s, 0.5) - 0.20, z(0.5),
+      0.012, 0.022, s.len * 0.62, chrome));
+    // ...and the drip rails over the doors, which is what makes the roof read
+    // as a separate panel rather than as the top of a bar of soap.
+    both((sx) => mb.box(sx * (hwAt(s, 0.5) * s.roofK + 0.008), topAt(s, 0.5) - 0.03, z(0.49),
+      0.014, 0.020, s.len * 0.26, shade(CHROME, 0.78)));
+
+    // The star. Behind `noAerial` for the same reason the Ranger's whip is: it
+    // stands proud of the body and tools/car_views.mjs measures the envelope.
+    // A three-pointed star inside a ring is a circle in the XY plane, and cyl()
+    // stands on X or Y and not on Z — so it is a stalk and a bright disc, which
+    // from behind the wheel is exactly what you see of one anyway.
+    if (!opts.noAerial) {
+      const tStar = 0.952, yStar = topAt(s, tStar);
+      mb.box(0, yStar + 0.042, z(tStar), 0.022, 0.084, 0.022, chrome);
+      mb.cyl(0, yStar + 0.092, z(tStar), 0.052, 0.016, 10, chrome, 'y');
+    }
+
+    // Twenty-eight years. The film up the flanks is in specPaint; this is the
+    // one thing a gradient cannot do — the rust coming out of the bottom of the
+    // driver's front wing, where a W115 always goes first, and out of the lip
+    // of the rear arch behind it. Driver's side only: wear is never symmetrical.
+    const rust = rgb(0x7a4526);
+    mb.box(hwAt(s, 0.78) + 0.004, s.clearance + 0.14, z(0.78), 0.010, 0.09, 0.30, rust);
+    mb.box(hwAt(s, 0.27) + 0.004, s.wheelR + 0.22, -s.axleZ + 0.34, 0.010, 0.05, 0.16, rust);
+  }
+
   if (s.id === 'cavalier') {
     // composite lamps with the bowtie bar, twin exhaust, lip spoiler
     const zH = z(0.978), yH = 0.75;
@@ -1232,6 +1440,16 @@ export function carLampBoxes(s) {
       head: [[0.30, 0.84, z(0.985), 0.24, 0.16], [0.58, 0.84, z(0.985), 0.24, 0.16]],
       tail: [[hwR - 0.24, 0.86, zR + 0.012, 0.42, 0.26]],
       rev:  [[hwR - 0.60, 0.86, zR + 0.012, 0.13, 0.15]],
+    };
+  }
+  if (s.id === 'benz') {
+    // One round lamp a side, so `head` is the square the disc is inscribed in;
+    // the tail box is the RED half of the lens, because the amber above it is
+    // a marker and does not come on with the brakes.
+    return {
+      head: [[0.47, 0.92, z(0.983), 0.18, 0.17]],
+      tail: [[hwR - 0.28, 0.815, zR + 0.012, 0.52, 0.13]],
+      rev:  [[hwR - 0.62, 0.815, zR + 0.012, 0.14, 0.12]],
     };
   }
   if (s.id === 'cavalier') {
@@ -1403,6 +1621,22 @@ export function buildWheel(s) {
       }
     }
     mb.cyl(0, 0, 0, rimR * 0.30, face * 2 + 0.01, 8, shade(rim, 0.3), 'x');
+  } else if (s.id === 'benz') {
+    // The full chrome cap: a bright dished disc with a raised rim, no slots and
+    // no spokes, and the star pressed into the middle of it. Three thin wedges
+    // off the hub ARE the star — the one place on this car where the badge is
+    // cheap enough to draw properly, because the wheel face is a flat polygon
+    // in the YZ plane and facePoly() will take any outline you hand it.
+    const rim = 0xd2d5d8;
+    mb.cyl(0, 0, 0, rimR, face * 2, 14, rgb(rim), 'x');
+    for (const dir of [1, -1]) {
+      facePoly(mb, dir * deco, dir, ellipse(0, 0, rimR * 0.80, rimR * 0.80, 0, 14), shade(rim, 0.86));
+      for (let k = 0; k < 3; k++) {
+        const a = (k / 3) * Math.PI * 2 + Math.PI / 2;
+        facePoly(mb, dir * (deco + 0.004), dir, spokeQuad(0, rimR * 0.36, a, rimR * 0.055), shade(rim, 0.42));
+      }
+    }
+    mb.cyl(0, 0, 0, rimR * 0.15, face * 2 + 0.02, 8, shade(rim, 1.08), 'x');
   } else if (s.id === 'cart') {
     // A turf tyre on a painted steel wheel: no spokes, no cover, one pale hub.
     const rim = 0xd7d4cb;
@@ -1594,6 +1828,11 @@ export class Vehicle {
     this.shiftCut = 0;        // seconds of nothing left in this up-shift
     this.tuck = 0;            // lift-off pulse, 1 at the release, decaying
     this.thrWas = 0;          // last frame's throttle, to see the release
+    // The pedal, kept on the vehicle for anything downstream of the integration
+    // that needs to know how hard it is being worked — game/reactive.js's
+    // tailpipe is the only reader today. Written every frame for every vehicle
+    // and read by nothing in the physics, so it changes no number anywhere.
+    this.throttle = 0;
     this.wspin = 0;           // how far past the traction cap the tyres are
     this.shiftsWas = 0;
     const s = this.spec;
@@ -1615,6 +1854,7 @@ export class Vehicle {
 
   update(dt, ctl, world) {
     const s = this.spec;
+    this.throttle = ctl.throttle;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
     const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
 

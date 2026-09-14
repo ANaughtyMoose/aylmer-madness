@@ -243,9 +243,10 @@ const OWNER = {
   // Tyler Yank's Z24, at her aunt's on Samuel-Edey. It used to be the fourth
   // beater on the lot; it is hers now, so it never moves to your driveway.
   cavalier: 'tyler',
-  // The three beaters live on the lot until somebody buys them, and after that
-  // they live in your driveway with everything else.
-  cutlass: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
+  // The four beaters live on the lot until somebody buys them, and after that
+  // they live in your driveway with everything else. Roger's 240D is on that
+  // gravel on consignment, which is why it is here and not at his house.
+  cutlass: 'usedlot', caravan: 'usedlot', bus: 'usedlot', benz: 'usedlot',
   // The Club's cart. It stays at the golf course whatever you do with it.
   cart: 'golf',
 };

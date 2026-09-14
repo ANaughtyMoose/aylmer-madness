@@ -42,10 +42,11 @@ const fresh = () => { localStorage.clear(); return new Garage(new Set()); };
 group('unlock rules');
 {
   const g = fresh();
-  // Fourteen: the nine this suite used to count, plus Wave 3's Forester and
+  // Fifteen: the nine this suite used to count, plus Wave 3's Forester and
   // Sienna, plus the two buses and the two bicycles game/vehicles.js registers
-  // — this suite now imports that, because Zahra starts on one of them.
-  ok(CARS.length === 14, `${CARS.length} cars in the game`);
+  // — this suite now imports that, because Zahra starts on one of them — plus
+  // Roger's 240D on Ti-Guy's gravel.
+  ok(CARS.length === 15, `${CARS.length} cars in the game`);
   // As Tom, on the first frame: your truck, and the four things nobody owns
   // (the Club's cart, the school bus in the yard at l'Aigle, Sayyad's cruiser
   // chained to nothing, and the Diamondback). Mike's Forester, Abraham's
@@ -84,18 +85,18 @@ group('the used lot');
   const d = Math.hypot(PLACES.usedlot.x - PLACES.ctire.x, PLACES.usedlot.z - PLACES.ctire.z);
   ok(d < 250, `the lot is ${d.toFixed(0)} m from the Canadian Tire`);
   ok((PLACES.usedlot.street || '').includes('Aylmer'), `and it is on ${PLACES.usedlot.street}`);
-  // Three, not four: the Z24 came off Ti-Guy's gravel when PLAN's cast table
-  // settled that it is Tyler Yank's and lives at her aunt's on Samuel-Edey.
-  // The assertion was the stale thing here, not the code — see the comment
-  // over UNLOCKS.cavalier.
-  ok(FOR_SALE.length === 3, `three cars for sale: ${FOR_SALE.join(', ')}`);
+  // Four. The Z24 came off Ti-Guy's gravel when PLAN's cast table settled that
+  // it is Tyler Yank's and lives at her aunt's on Samuel-Edey (see the comment
+  // over UNLOCKS.cavalier), and Roger Bouchard's 240D went on in its place —
+  // on consignment, with the Kijiji ad still in Roger's name.
+  ok(FOR_SALE.length === 4, `four cars for sale: ${FOR_SALE.join(', ')}`);
   ok(!FOR_SALE.includes('cavalier') && UNLOCKS.cavalier.who === 'Tyler',
     'and the Z24 is not one of them — it is Tyler\'s');
 
   const g = fresh();
   const w = new Wallet(null);
   w.set(1000);
-  const prices = { cutlass: 300, caravan: 250, bus: 1500 };
+  const prices = { cutlass: 300, caravan: 250, bus: 1500, benz: 650 };
   for (const id of FOR_SALE) ok(g.cost(id) === prices[id], `${id} costs $${g.cost(id)}`);
 
   // Too poor.
@@ -112,7 +113,7 @@ group('the used lot');
   ok(r.ok, 'three hundred and twenty does');
   ok(w.value === 20, `the wallet went 320 -> ${w.value}`);
   ok(g.has('cutlass'), 'and the Cutlass is yours');
-  ok(g.forSale().length === 2, 'two left on the lot');
+  ok(g.forSale().length === 3, 'three left on the lot');
 
   // Buying it twice is free and harmless.
   r = g.buy('cutlass', w, new Set());
