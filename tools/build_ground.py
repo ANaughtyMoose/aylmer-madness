@@ -76,8 +76,10 @@ MAXX, MAXZ = proj(LAT0, LON1)      #  2540.6,  1769.2
 
 CELL = 8.0
 SCALE = 0.05                       # quantisation step, metres
-DATUM_PCT = 2                      # the 2nd percentile is river-bank height
-DATUM_DROP = 1.0                   # ... and the banks should sit 1 m above y=0
+DATUM_PCT = 2                      # the 2nd percentile IS the river: LiDAR water-surface
+                                   # returns are classed as ground, a tight band at 58.5 m
+DATUM_LIFT = 0.6                   # ... and the river bed goes 0.6 m under the water quad
+                                   # at y 0.02, so the banks stand about a metre above it
 
 
 # ------------------------------------------------------------------ sampling
@@ -186,7 +188,7 @@ def main():
     elev = sample(raw, hd['x0'], hd['y0'], hd['cell'], E, N)
 
     emin = float(elev.min())
-    datum = float(np.percentile(elev, DATUM_PCT)) - DATUM_DROP
+    datum = float(np.percentile(elev, DATUM_PCT)) + DATUM_LIFT
     q = np.rint((elev - emin) / SCALE)
     if q.max() > 65535:
         sys.exit(f'{q.max() * SCALE:.1f} m of range will not fit in a uint16 at {SCALE} m')
