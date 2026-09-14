@@ -449,6 +449,336 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
     `${ns.toFixed(0)} ns/call (sink ${r2(sink)})`);
 }
 
+// ---------------------------------------------------------------- the hill
+//
+// Everything above this line is the flat town, and it has to keep being the
+// flat town — that is what `buildTerrain(FEATURES)` with no base still means.
+// This is the other half of the deal: the same features laid over a base
+// raster. The base here is synthetic, built in this file, so the suite still
+// imports nothing heavier than terrain.js and still runs in a second; the real
+// one is a 3.4 MB LiDAR grid and smoke_ground.mjs is what checks that.
+//
+// Two of them, both on the shipped grid (637 x 444 nodes, 8 m, from
+// -2540.6,-1769.2, covering x -2540.6..2547.4 and z -1769.2..1774.8):
+//
+//   plane  h = 0.03x + 0.01z, node gradients analytic. Bilinear interpolation
+//          reproduces a plane exactly, so this one pins the arithmetic: any
+//          drift in the weights shows up immediately and to the last digit.
+//   hill   h = 12 sin(x/300) cos(z/250), node gradients by central difference
+//          in the interior and one-sided at the edges, which is how
+//          build_ground.py bakes the real ones. Rolling, signed, 24 m from
+//          trough to crest and 4 to 5 % at its steepest: enough relief to move
+//          a normal and to put every feature on a slope.
+//
+// The claim under test throughout is that a feature is an OFFSET. Whatever the
+// base does underneath it, `groundAt(x,z).h - baseAt(x,z).h` has to come back
+// as exactly the number the flat town used to hand out, and the dig has to go
+// as far below the hillside as it used to go below zero.
+
+{
+  const GW = 637, GH = 444, GC = 8, GX0 = -2540.6, GZ0 = -1769.2;
+  const GX1 = GX0 + (GW - 1) * GC, GZ1 = GZ0 + (GH - 1) * GC;
+
+  const mkBase = (fh, fgx, fgz) => {
+    const hgt = new Float32Array(GW * GH);
+    const gx = new Float32Array(GW * GH), gz = new Float32Array(GW * GH);
+    for (let j = 0; j < GH; j++) {
+      for (let i = 0; i < GW; i++) hgt[j * GW + i] = fh(GX0 + i * GC, GZ0 + j * GC);
+    }
+    for (let j = 0; j < GH; j++) {
+      for (let i = 0; i < GW; i++) {
+        const k = j * GW + i;
+        if (fgx) { gx[k] = fgx(GX0 + i * GC, GZ0 + j * GC); gz[k] = fgz(GX0 + i * GC, GZ0 + j * GC); continue; }
+        const i0 = i > 0 ? i - 1 : i, i1 = i < GW - 1 ? i + 1 : i;
+        const j0 = j > 0 ? j - 1 : j, j1 = j < GH - 1 ? j + 1 : j;
+        gx[k] = (hgt[j * GW + i1] - hgt[j * GW + i0]) / ((i1 - i0) * GC);
+        gz[k] = (hgt[j1 * GW + i] - hgt[j0 * GW + i]) / ((j1 - j0) * GC);
+      }
+    }
+    return { x0: GX0, z0: GZ0, cell: GC, w: GW, h: GH, hgt, gx, gz };
+  };
+
+  const PH = (x, z) => 0.03 * x + 0.01 * z;
+  const planeBase = mkBase(PH, () => 0.03, () => 0.01);
+  const hillH = (x, z) => 12 * Math.sin(x / 300) * Math.cos(z / 250);
+  const hillBase = mkBase(hillH, null, null);
+
+  const planeT = buildTerrain(FEATURES, planeBase);
+  const hillT = buildTerrain(FEATURES, hillBase);
+
+  // An independent bilinear, written out the obvious way, to compare against.
+  const bil = (arr, x, z) => {
+    const cx = Math.min(Math.max(x, GX0), GX1), cz = Math.min(Math.max(z, GZ0), GZ1);
+    const fx = (cx - GX0) / GC, fz = (cz - GZ0) / GC;
+    const i = Math.min(Math.floor(fx), GW - 2), j = Math.min(Math.floor(fz), GH - 2);
+    const tx = fx - i, tz = fz - j, a = j * GW + i, c = a + GW;
+    return arr[a] * (1 - tx) * (1 - tz) + arr[a + 1] * tx * (1 - tz)
+      + arr[c] * (1 - tx) * tz + arr[c + 1] * tx * tz;
+  };
+
+  // ---- the plumbing the mesh builder needs -------------------------------
+  ok('a terrain with no base says so, and reads zero everywhere',
+    terrain.base === null && terrain.baseRect === null
+    && terrain.baseAt(123, 456).h === 0 && terrain.baseAt(123, 456).ny === 1);
+  const rect = hillT.baseRect;
+  ok('a terrain with a base hands world.js the rectangle and the fade band',
+    hillT.base === hillBase && rect.x0 === GX0 && rect.z0 === GZ0
+    && Math.abs(rect.x1 - GX1) < 1e-9 && Math.abs(rect.z1 - GZ1) < 1e-9 && rect.fade === 400,
+    `x ${r2(rect.x0)}..${r2(rect.x1)}, z ${r2(rect.z0)}..${r2(rect.z1)}, fade ${rect.fade} m`);
+  ok('baseAt is allocation-free too: the same record comes back every time',
+    hillT.baseAt(0, 0) === hillT.baseAt(700, -368));
+  ok('...and it is NOT the groundAt record, so world.js can ask for both at once',
+    hillT.baseAt(0, 0) !== hillT.groundAt(0, 0));
+  ok('groundAt is still allocation-free with a base under it',
+    hillT.groundAt(0, 0) === hillT.groundAt(700, -368));
+
+  // ---- an empty cell is the base, exactly --------------------------------
+  //
+  // Bilinear interpolation reproduces a plane, so on the plane base the answer
+  // off a feature is the plane itself — up to the float32 the raster is stored
+  // in, which is why the analytic check is 1e-4 and the one against our own
+  // bilinear is 1e-9.
+  {
+    const spots = [[1200.3, 1200.7], [-500.25, 900.125], [2000.9, -1200.4],
+      [0.5, 800.3], [-2200.1, 1500.6]];
+    let worstBil = 0, worstPlane = 0, worstN = 0, anyKind = false;
+    for (const [x, z] of spots) {
+      const g = planeT.groundAt(x, z);
+      if (g.kind !== '') anyKind = true;
+      worstBil = Math.max(worstBil, Math.abs(g.h - bil(planeBase.hgt, x, z)));
+      worstPlane = Math.max(worstPlane, Math.abs(g.h - PH(x, z)));
+      const l = Math.hypot(0.03, 1, 0.01);
+      worstN = Math.max(worstN, Math.abs(g.nx - -0.03 / l), Math.abs(g.ny - 1 / l),
+        Math.abs(g.nz - -0.01 / l));
+    }
+    ok('off a feature the ground IS the base, to the last digit of the bilinear',
+      worstBil < 1e-9 && !anyKind, `worst ${worstBil.toExponential(2)} m`);
+    ok('...and on a plane base that is the plane itself',
+      worstPlane < 1e-4, `worst ${worstPlane.toExponential(2)} m (float32 raster)`);
+    ok('...wearing the plane\'s normal, not a flat one',
+      worstN < 1e-7, `worst component drift ${worstN.toExponential(2)}`);
+  }
+
+  // ---- every feature is an offset, everywhere ----------------------------
+  //
+  // The whole field, swept feature by feature the way the normals section
+  // above sweeps it, against the flat town's answer for the same point.
+  {
+    let worst = 0, worstWhere = '', kindMismatch = 0, n = 0;
+    let worstN = 0, down = 0, raised = 0, dug = 0;
+    for (const [tag, T, step] of [['hill', hillT, 0.37], ['plane', planeT, 0.83]]) {
+      for (const f of FEATURES) {
+        const b = featureBounds(f, 3);
+        for (let x = b.x0; x <= b.x1; x += step) {
+          for (let z = b.z0; z <= b.z1; z += step) {
+            const g = T.groundAt(x, z);
+            const gh = g.h, gk = g.kind;
+            if (tag === 'hill') {
+              const l = Math.hypot(g.nx, g.ny, g.nz);
+              if (Math.abs(l - 1) > worstN) worstN = Math.abs(l - 1);
+              if (g.ny <= 0) down++;
+            }
+            const off = gh - T.baseAt(x, z).h;
+            const flatG = groundAt(x, z);
+            if (flatG.h > 0) raised++; else if (flatG.h < 0) dug++;
+            if (gk !== flatG.kind) kindMismatch++;
+            const d = Math.abs(off - flatG.h);
+            if (d > worst) { worst = d; worstWhere = `${tag}/${f.id}`; }
+            n++;
+          }
+        }
+      }
+    }
+    ok('a feature is an offset above the base, not an altitude',
+      worst < 1e-9, `${n} samples, worst ${worst.toExponential(2)} m on ${worstWhere}`);
+    ok('...and the sweep really did cover both the raised half and the dig',
+      raised > 1000 && dug > 100, `${raised} raised, ${dug} dug`);
+    ok('...and the surface a feature reports does not depend on the base',
+      kindMismatch === 0, `${kindMismatch} mismatches`);
+    ok('normals are unit length everywhere on every feature, on a hill',
+      worstN < 1e-12, `worst |n|-1 = ${worstN.toExponential(2)}`);
+    ok('...and every one of them still points up', down === 0);
+  }
+
+  // ---- the two places a player actually notices --------------------------
+  {
+    // The rail berm where Chemin Fraser crosses it: the crown carries 2.5 m of
+    // fill whether the ground under it is at 0, at 25 or on a slope.
+    const crown = [846.0, -393.0];
+    const bh = hillT.baseAt(crown[0], crown[1]).h;
+    const gh = hillT.groundAt(crown[0], crown[1]).h;
+    ok('the rail berm is 2.5 m of fill on top of whatever hill it crosses',
+      Math.abs((gh - bh) - groundAt(crown[0], crown[1]).h) < 1e-9
+      && Math.abs(groundAt(crown[0], crown[1]).h - 2.5) < 1e-9,
+      `base ${r3(bh)} m + ${r3(gh - bh)} m of berm = ${r3(gh)} m`);
+
+    // The slipway, which has to end UNDER the lake however high the lawn above
+    // it sits. Find the deepest point of the trench in the flat town, then ask
+    // for the same point on the hill.
+    const f = FEATURES.find((x) => x.id === 'launch');
+    const b = featureBounds(f, 1);
+    let deep = 0, dx = 0, dz = 0;
+    for (let x = b.x0; x <= b.x1; x += 0.25) {
+      for (let z = b.z0; z <= b.z1; z += 0.25) {
+        const h = groundAt(x, z).h;
+        if (h < deep) { deep = h; dx = x; dz = z; }
+      }
+    }
+    const hb = hillT.baseAt(dx, dz).h, hg = hillT.groundAt(dx, dz).h;
+    const pb = planeT.baseAt(dx, dz).h, pg = planeT.groundAt(dx, dz).h;
+    ok('the marina slipway digs the same trench below the hillside as below zero',
+      deep < -1.5 && Math.abs((hg - hb) - deep) < 1e-9 && Math.abs((pg - pb) - deep) < 1e-9,
+      `${r3(deep)} m at (${r2(dx)}, ${r2(dz)}), base ${r3(hb)} m -> ${r3(hg)} m`);
+  }
+
+  // ---- continuity across the 8 m cell lines ------------------------------
+  //
+  // The reason baseAt interpolates the node gradients instead of differencing
+  // the interpolated surface. Height was never going to step; the normal was,
+  // once per cell, and a normal that steps is a vertical kick the suspension
+  // reports as a bump on a road that is perfectly smooth to look at. Walked at
+  // 0.1 m, which is about 2 cm short of a frame at 180 km/h. Steps that touch a
+  // feature are skipped — pad walls are meant to be cliffs and have their own
+  // section above.
+  {
+    const STEP = 0.1;
+    let worstH = 0, worstNx = 0, worstNz = 0, n = 0;
+    const walk = (x0, z0, ux, uz, len) => {
+      let ph = null, pnx = 0, pnz = 0;
+      for (let t = 0; t <= len; t += STEP) {
+        const x = x0 + ux * t, z = z0 + uz * t;
+        const pure = groundAt(x, z).h === 0 && groundAt(x, z).kind === '';
+        const g = hillT.groundAt(x, z);
+        if (pure && ph !== null) {
+          worstH = Math.max(worstH, Math.abs(g.h - ph));
+          worstNx = Math.max(worstNx, Math.abs(g.nx - pnx));
+          worstNz = Math.max(worstNz, Math.abs(g.nz - pnz));
+          n++;
+        }
+        ph = pure ? g.h : null; pnx = g.nx; pnz = g.nz;
+      }
+    };
+    walk(-2000, 900, 1, 0, 4000);                       // straight across the cells
+    walk(2000, -1700, 0, 1, 3400);                      // straight down them
+    walk(-2400, -1700, 0.81602, 0.57801, 5883);         // and through the corners
+    ok('the base is C0 in height across every cell line',
+      worstH < 0.5, `${n} steps, worst ${r3(worstH)} m per 0.1 m`);
+    ok('...and C0 in the normal too, which is the part you can feel',
+      worstNx < 0.02 && worstNz < 0.02,
+      `worst dnx ${worstNx.toExponential(2)}, dnz ${worstNz.toExponential(2)}`);
+  }
+
+  // ---- the fade out of the raster ----------------------------------------
+  //
+  // The raster stops at the edge of the Aylmer clip; the world does not. The
+  // edge height is taken out over 400 m of smoothstep, so 148, Hull and the
+  // long run east are the flat ground they always were, reached down a 6 %
+  // ramp rather than off a 10 m wall.
+  {
+    const edgeH = hillT.baseAt(GX1, 0).h;
+    const in399 = hillT.baseAt(GX1 + 399, 0).h;
+    const g401 = hillT.groundAt(GX1 + 401, 0);
+    ok('the edge of the raster is real ground to fade out of',
+      Math.abs(edgeH) > 1, `${r3(edgeH)} m at x ${r2(GX1)}`);
+    ok('399 m outside, the base is still there but barely',
+      in399 !== 0 && Math.abs(in399) < 0.01,
+      `${in399.toExponential(2)} m (edge was ${r3(edgeH)} m)`);
+    ok('401 m outside it is exactly zero and exactly level — 148 is untouched',
+      g401.h === 0 && g401.nx === 0 && g401.ny === 1 && g401.nz === 0 && g401.kind === '');
+
+    // Both seams, walked at 0.1 m. The far one, where the fade reaches zero, is
+    // the easy one: the smoothstep arrives there with zero slope, so the ramp
+    // itself contributes almost nothing and a step would stand alone.
+    //
+    // The near one, where the raster ends and the fade begins, is a CREASE and
+    // is meant to be. Outside, the height is the clamped edge value taken out
+    // by a smoothstep whose slope at d = 0 is zero; inside, it is the hillside
+    // still running at its own gradient. Those cannot meet smoothly — no single
+    // fade curve matches an edge slope that varies all the way round the
+    // rectangle — so the ground goes over the boundary the way it goes over the
+    // crest of a hill. What is not allowed is a STEP in the height, and what is
+    // bounded is the size of the crease: no worse than the slope the hillside
+    // arrives with, which here is 0.024 m/m of nx.
+    const walkSeam = (lo, hi) => {
+      let wh = 0, wn = 0, ph = null, pn = 0;
+      for (let d = lo; d <= hi; d += 0.1) {
+        const g = hillT.baseAt(GX1 + d, 0);
+        if (ph !== null) { wh = Math.max(wh, Math.abs(g.h - ph)); wn = Math.max(wn, Math.abs(g.nx - pn)); }
+        ph = g.h; pn = g.nx;
+      }
+      return { wh, wn };
+    };
+    const far = walkSeam(395, 405), near = walkSeam(-5, 5);
+    const edgeSlope = Math.abs(hillT.baseAt(GX1 - 0.05, 0).nx);
+    ok('...and crossing the 400 m line is a step in nothing at all',
+      far.wh < 1e-3 && far.wn < 1e-3,
+      `worst dh ${far.wh.toExponential(2)} m, dnx ${far.wn.toExponential(2)} per 0.1 m`);
+    ok('...and leaving the raster is a crease no sharper than the hillside itself',
+      near.wh < 0.01 && near.wn <= edgeSlope + 1e-9,
+      `worst dh ${near.wh.toExponential(2)} m, dnx ${r3(near.wn)} against an edge nx of ${r3(edgeSlope)}`);
+
+    // The fade has to carry its own product-rule term or the normal stops
+    // describing the height it is attached to: the mesh would slope one way
+    // and the car would be pushed the other.
+    let worstG = 0;
+    for (let d = 5; d < 395; d += 7.3) {
+      const x = GX1 + d;
+      const h0 = hillT.baseAt(x - 0.01, 0).h, h1 = hillT.baseAt(x + 0.01, 0).h;
+      const g = hillT.baseAt(x, 0);
+      worstG = Math.max(worstG, Math.abs((h1 - h0) / 0.02 - -g.nx / g.ny));
+    }
+    ok('...with a normal that still agrees with the height it belongs to',
+      worstG < 1e-4, `worst dh/dx drift ${worstG.toExponential(2)}`);
+  }
+
+  // ---- and it still has to be fast ---------------------------------------
+  //
+  // The same 4096 points as the budget section above, half on the berm and half
+  // scattered, but run against BOTH fields, alternately, and scored on the best
+  // of seven. The flat number is measured here rather than reused from above
+  // for one reason: this machine is not quiet, and an absolute nanosecond
+  // budget measured while something else is compiling swings 220 to 380 on
+  // identical code. What does not swing is the ratio between two loops timed
+  // twenty milliseconds apart, so that is what is pinned.
+  //
+  // The claim: sampling a 3.4 MB raster — twelve float reads, four weights and
+  // a smoothstep test — costs less than the feature lookup it sits underneath.
+  // Measured over a dozen runs it comes out between 1.66x and 1.89x, so 2.5x is
+  // the line: comfortably clear of the spread, and still tight enough to catch
+  // the sampler doubling in cost. The absolute 400 ns is the tripwire for
+  // something structurally wrong (an allocation, a deopt, a lost inline).
+  //
+  // What is NOT claimed is the flat field's own 200 ns. Twelve reads scattered
+  // over 3.4 MB cannot be free, and on this machine they are not: the flat path
+  // measures about 135 ns and the hill about 230. Whether that clears 200 in
+  // absolute terms depends on what else the box is doing, which is exactly the
+  // thing a test must not depend on.
+  {
+    const pts = [];
+    for (let i = 0; i < 4096; i++) {
+      pts.push(i & 1 ? 700 + ((i * 7) % 60) - 30 : ((i * 137) % 5000) - 2500,
+        i & 1 ? -368 + ((i * 11) % 40) - 20 : ((i * 61) % 3500) - 1750);
+    }
+    let sink = 0;
+    const time = (G) => {
+      const t0 = process.hrtime.bigint();
+      for (let r = 0; r < 60; r++) for (let i = 0; i < pts.length; i += 2) sink += G(pts[i], pts[i + 1]).h;
+      return Number(process.hrtime.bigint() - t0) / (60 * pts.length / 2);
+    };
+    const hillG = hillT.groundAt;
+    for (let r = 0; r < 4; r++) { time(groundAt); time(hillG); }
+    let flatNs = Infinity, hillNs = Infinity;
+    for (let r = 0; r < 9; r++) {
+      flatNs = Math.min(flatNs, time(groundAt));
+      hillNs = Math.min(hillNs, time(hillG));
+    }
+    ok('a bilinear of the raster costs less than the features on top of it',
+      hillNs < 2.5 * flatNs && hillNs < 400,
+      `${hillNs.toFixed(0)} ns/call with the hill against ${flatNs.toFixed(0)} flat, `
+      + `${(hillNs / flatNs).toFixed(2)}x (sink ${r2(sink)})`);
+  }
+}
+
 console.log(out.join('\n'));
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
