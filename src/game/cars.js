@@ -645,6 +645,12 @@ const DRIVE = {
 //               the nose tucks in for a beat. A pulse on the release, decaying
 //               over about a quarter second, scaling the same yaw rate.
 //               Default 0.
+//   torqueSteer Rad/s of yaw the engine puts into the wheel whether you asked
+//               for it or not: a front-driver with unequal half-shafts pulls
+//               one way under hard throttle and you hold it straight yourself.
+//               Signed — positive pulls the nose left — and it needs no steer
+//               input, which is exactly what makes it different from
+//               `powerYaw`. Full at rest, gone by TSTEER_V. Default exact 0.
 //   wheelspin   The traction cap, in g. Ask for more thrust than
 //               wheelspin · grip · 9.81 from low speed and the tyres break
 //               loose: you get LESS drive than the cap, not more, and less
@@ -672,11 +678,16 @@ const DRIVE = {
 //   counterSteer  How hard the assist catches a slide. 0.045 is the old global;
 //               a car that expects you to do it yourself gets less.
 //
-// TODO — the rest of the roster is the next task and is deliberately not here
-// yet. Still owed a block: saturn, sunfire, tempo, cavalier (torque steer),
-// cutlass (no ABS), caravan (no ABS), forester (awd, wallow), leone (awd, turbo
-// curve), crownvic, cruiser, sicivic, bus. The Ranger, the bikes and the cart
-// stay blank by design.
+// WHO IS NOT IN HERE, AND WHY. The Ranger, the two bicycles and the golf cart
+// declare nothing, by design: the Ranger because it is the reference car and
+// the bikes and the cart because a `feel` block describes an engine, a rack and
+// a pair of driven tyres and they have at most one of the three. Two vehicles
+// that DO have blocks keep them in their own files rather than here — the
+// school bus in game/buses.js, next to the drive ratios and the diesel it
+// already declares inline, and the police Crown Victoria in game/cops.js,
+// which is not in CARS at all and whose id (`cruiser`) is already taken in this
+// table's key space by the Schwinn in game/bikes.js. A row called `cruiser`
+// here would land on the bicycle, which is precisely what must not happen.
 const FEEL = {
   // 1987 Si: 940 kg, a 1.5 that does nothing until the cam wakes up, and a rack
   // quicker than anything else in town. It is the car this whole table is for:
@@ -698,8 +709,16 @@ const FEEL = {
   // lump in the middle where the TPI runs out of plenum, it will not put any of
   // that down from a standstill, and the recirculating-ball box is half a turn
   // behind your hands. Open it mid-corner and the back comes round.
+  //   `wheelspin` is 0.42 and not the 0.33 it shipped at. The cap and WSPIN_V
+  // are one number between them, and the pair has to satisfy two things at
+  // once: the floor must still be slower off the line than a feathered
+  // launch, and the car must still be a Trans Am. With the cap at 0.33 the
+  // tyres were pulling 1.4 m/s² of the engine's 4.8 away from a standstill and
+  // the GTA did 0-100 in 11.90 s — slower than a Caravan. 0.42 puts the cap at
+  // 3.71 m/s² against 4.83 asked for, which is 2.81 on the floor and 3.38 at
+  // seven tenths, so feathering still wins and 0-100 is 8.23 s.
   firebird: {
-    layout: 'rwd', powerYaw: 0.95, wheelspin: 0.33,
+    layout: 'rwd', powerYaw: 0.95, wheelspin: 0.42,
     torque: [[0, 0.86], [0.18, 0.98], [0.38, 0.92], [0.55, 1], [1, 1]],
     shiftCut: 0.16, steerRate: 9, rackSpeed: 9, bite: 8.4, wallow: 0.18,
     counterSteer: 0.016,
@@ -742,6 +761,155 @@ const FEEL = {
     shiftCut: 0.35, steerRate: 8, rackSpeed: 8, bite: 7.5, wallow: 0.35,
     abs: false, counterSteer: 0.050,
   },
+
+  // ---- the ordinary front-drivers -------------------------------------
+  // Three nineties econoboxes and a Z24. None of them is a bad car and none of
+  // them is an interesting one: the nose washes wide when you ask for both
+  // grip and drive out of the same axle, the body takes a beat to settle, and
+  // that is the whole story. They are here so the Civic has something to be
+  // sharper THAN.
+
+  // Margaret's SL: a 1.9 that pulls from anywhere, a rack with no weight in it,
+  // and enough roll to tell you when you have asked for too much.
+  saturn: {
+    layout: 'fwd', powerYaw: -0.22, liftTuck: 0.12,
+    torque: [[0, 0.72], [0.30, 0.86], [0.55, 1], [1, 1]],
+    // The same argument the Civic's `bite` note makes, from the other end.
+    // « Soft-to-medium » wanted bite 9.0 and wallow 0.14, and that combination
+    // is 7.74 of effective sidewall against the Civic's 9.59: under the lever
+    // the Saturn then slipped 1.98 to the Civic's 1.81 and smoke_driving's D2
+    // ordering (ranger < saturn < civic) came out the wrong way round. The
+    // softness is in the wallow and the rack, where you feel it in an ordinary
+    // corner; 9.8 keeps the SL on the right side of the lever at 1.74.
+    shiftCut: 0.05, steerRate: 12, rackSpeed: 13, bite: 9.8, wallow: 0.10,
+    counterSteer: 0.045,
+  },
+  // The Tempo is the numb one: a slow rack, a three-speed that takes its time,
+  // an HSC four with nothing at the top, and no ABS. Point it early.
+  tempo: {
+    layout: 'fwd', powerYaw: -0.28, liftTuck: 0.10,
+    torque: [[0, 0.74], [0.28, 0.90], [0.50, 1], [1, 1]],
+    shiftCut: 0.14, steerRate: 10, rackSpeed: 11, bite: 8.2, wallow: 0.30,
+    abs: false, counterSteer: 0.055,
+  },
+  // Adam's Sunfire: quick in a straight line, lazy in the bends — the 2.2 OHV
+  // is flat by 3000 and the front end gives up before the rear ever does.
+  sunfire: {
+    layout: 'fwd', powerYaw: -0.26, liftTuck: 0.14,
+    torque: [[0, 0.70], [0.26, 0.88], [0.52, 1], [1, 1]],
+    shiftCut: 0.05, steerRate: 13, rackSpeed: 13, bite: 8.8, wallow: 0.18,
+    counterSteer: 0.045,
+  },
+  // Tyler's Z24: a 3.1 V6 and two half-shafts of different lengths, which is
+  // the whole reason `torqueSteer` exists. Stand on it out of a light and the
+  // car goes left on its own until you take it back. It is the only one in
+  // town that does this, and it is 1991, so nobody fixed it.
+  cavalier: {
+    layout: 'fwd', powerYaw: -0.34, liftTuck: 0.18, torqueSteer: 0.06, wheelspin: 0.40,
+    torque: [[0, 0.66], [0.22, 0.84], [0.48, 1], [1, 1]],
+    shiftCut: 0.07, steerRate: 13, rackSpeed: 12, bite: 9.0, wallow: 0.16,
+    counterSteer: 0.045,
+  },
+
+  // ---- the boats -------------------------------------------------------
+  // Both are three-speed automatics on soft springs with the steering box of a
+  // much older car and no ABS at either end. They lean, then they turn, and if
+  // you brake and turn at the same time they do neither.
+
+  // Le lot's Ciera: it rolls onto its outside shoulder and waits there.
+  cutlass: {
+    layout: 'fwd', powerYaw: -0.32, liftTuck: 0.08,
+    torque: [[0, 0.76], [0.24, 0.92], [0.46, 1], [1, 1]],
+    shiftCut: 0.26, steerRate: 8.5, rackSpeed: 9, bite: 7.2, wallow: 0.45,
+    abs: false, counterSteer: 0.055,
+  },
+  // The Caravan is the Ciera with another foot of roof on it. Nothing about it
+  // is quick and the brake pedal is a suggestion.
+  caravan: {
+    layout: 'fwd', powerYaw: -0.30, liftTuck: 0.06,
+    torque: [[0, 0.72], [0.26, 0.90], [0.48, 1], [1, 1]],
+    shiftCut: 0.28, steerRate: 8, rackSpeed: 8.5, bite: 6.6, wallow: 0.60,
+    abs: false, counterSteer: 0.060,
+  },
+
+  // ---- four driven wheels ----------------------------------------------
+
+  // Mike's Forester: genuinely neutral, which in this table means the smallest
+  // positive `powerYaw` in it — smaller even than the 240D's 0.15, because four
+  // driven wheels settle a car rather than pushing either end of it. What it
+  // does instead is lean: a tall wagon on soft springs, and you feel the body
+  // go over before the tyres answer.
+  forester: {
+    layout: 'awd', powerYaw: 0.10,
+    torque: [[0, 0.68], [0.28, 0.90], [0.52, 1], [1, 1]],
+    shiftCut: 0.08, steerRate: 11, rackSpeed: 12, bite: 8.6, wallow: 0.40,
+    counterSteer: 0.045,
+  },
+  // Henderson's Leone: a 1987 turbo, which means a curve that does nothing and
+  // then everything. At 1800 rpm there is 46 % of an engine here; it is all in
+  // by 3500, and every up-shift drops you back down the hole — the shift points
+  // put it at 0.53 of the redline in second, which is still short of the knee.
+  // Short-shift it and it is slower than the Tempo; keep it above 3500 and it is
+  // the only four-wheel-drive thing in town that goes anywhere. The hole costs
+  // it 1.7 s to 100 km/h (10.65 against 8.97 on a flat curve), which is the trade.
+  leone: {
+    layout: 'awd', powerYaw: 0.18,
+    torque: [[0, 0.40], [0.30, 0.46], [0.42, 0.66], [0.52, 0.96], [0.58, 1], [1, 1]],
+    shiftCut: 0.10, steerRate: 13, rackSpeed: 12, bite: 9.2, wallow: 0.22,
+    abs: false, counterSteer: 0.040,
+  },
+
+  // ---- rear drive -------------------------------------------------------
+
+  // The ex-municipal Crown Victoria. Body-on-frame, a 5.0 that is flat from
+  // idle, and a recirculating-ball box with half a turn of nothing in the
+  // middle of it. It floats. Open the throttle in a bend and the tail eases out
+  // — nothing like the Firebird, just enough that you have to mean it.
+  crownvic: {
+    layout: 'rwd', powerYaw: 0.42, wheelspin: 0.44,
+    torque: [[0, 0.84], [0.16, 0.96], [0.34, 1], [1, 1]],
+    shiftCut: 0.18, steerRate: 8, rackSpeed: 9, bite: 7.4, wallow: 0.42,
+    counterSteer: 0.050,
+  },
+
+  // ---- the hot one ------------------------------------------------------
+
+  // « La Si ». The same car as `civic` with everything a notch further: a
+  // quicker rack, a stiffer sidewall, less assist, a sharper lift, and a B16
+  // that is genuinely dead until the second cam lobe comes in around 4700.
+  // Everything the Civic teaches you, this one insists on.
+  sicivic: {
+    layout: 'fwd', powerYaw: -0.62, liftTuck: 0.52, wheelspin: 0.36,
+    torque: [[0, 0.58], [0.30, 0.66], [0.52, 0.84], [0.62, 1], [1, 1]],
+    shiftCut: 0.05, steerRate: 20, rackSpeed: 20, bite: 11.0, wallow: 0.04,
+    abs: false, counterSteer: 0.018,
+  },
+
+  // ---- twelve tonnes ----------------------------------------------------
+
+  // The New Look. Two turns of wheel before anything happens, a body that
+  // leans over the top of its outside tyres and stays there, drum brakes with
+  // nothing electronic behind them, and a blown two-stroke Detroit that takes
+  // most of a second to pick the drive back up at every up-shift — which is
+  // exactly the point: you can count all three of them.
+  //
+  // `torque` is written out flat at exactly 1 on purpose, and it is not an
+  // oversight. A 6V71 geared for 92 km/h IS flat everywhere this bus ever runs:
+  // it never leaves the top half of a 2400 rpm band except off the line. Writing
+  // that truth out as [[0, 1], [1, 1]] makes the term a multiplicative identity
+  // to the bit, so the terminal speed is 92.016000000 km/h before and after —
+  // which is what the SPEED section of smoke_driving.mjs is entitled to demand.
+  // `shiftCut` is the one thing here that DOES move a number: the bus is still
+  // accelerating at 40 s, so smoke_vehicles' flat-out asphalt figure drops from
+  // 87.3 to 86.5 km/h. The 1e-9 pin next to it compares grunt against no grunt
+  // with the same block on both sides, so it is untouched. No `powerYaw`:
+  // twelve tonnes does not rotate because you pressed something.
+  bus: {
+    layout: 'rwd',
+    torque: [[0, 1], [1, 1]],
+    shiftCut: 0.45, steerRate: 6, rackSpeed: 6, bite: 5.8, wallow: 0.70,
+    abs: false, counterSteer: 0.070,
+  },
 };
 
 // The globals the terms above replace, written down once so a car with no block
@@ -751,10 +919,18 @@ const RACK_V = 14;          // where the rack has tightened halfway, m/s
 const BITE_K = 9.5;         // lateral catch-up rate per unit grip, /s
 const COUNTER = 0.045;      // assist counter-steer gain
 // ...and the shared shape of the terms that have no global to replace.
-const WSPIN_V = 24;         // wheelspin has hooked up by here, m/s
+//
+// WSPIN_V was 24 m/s (86 km/h) when the Firebird was the only car with any real
+// power in the table, and at that number a full-throttle launch was still
+// spinning its tyres at highway speed: the GTA took 11.90 s to 100 km/h against
+// 6.7 s for the same car with no block at all, which is not "hard to launch",
+// it is broken. A street tyre on dry asphalt has hooked up by 50 km/h, so it is
+// 14 now, and the Firebird's own cap moved with it (see FEEL.firebird).
+const WSPIN_V = 14;         // wheelspin has hooked up by here, m/s
 const WSPIN_LOSS = 0.80;    // what breaking traction costs off the cap
 const WSPIN_BITE = 0.55;    // ...and how much lateral bite goes with it
 const TUCK_FADE = 4.2;      // lift-off tuck decay, /s (≈ a quarter second)
+const TSTEER_V = 18;        // torque steer is gone by here, m/s
 const NOABS_FROM = 0.30;    // brake pedal past which a car with no ABS goes light
 const NOABS_K = 0.55;       // ...and the steering it loses at the pedal on the floor
 
@@ -2108,6 +2284,16 @@ export class Vehicle {
         this.yawRate *= 1 + pw;
       }
       this.thrWas = ctl.throttle;
+      // Torque steer. Unlike everything above it this is ADDED, not scaled:
+      // the pull is there with the wheel dead straight, which is the whole
+      // character of it — you are holding the car straight against the engine
+      // rather than being given more or less of a corner you asked for. It
+      // only exists going forwards and it is gone by TSTEER_V, because a
+      // half-shaft cannot pull what it is no longer driving hard.
+      if (feel.torqueSteer && vLong > 0) {
+        this.yawRate += feel.torqueSteer * ctl.throttle
+          * (1 - Math.min(1, vLong / TSTEER_V));
+      }
       // Power through a corner is grip you are not cornering with, whichever
       // end is doing the work; spinning tyres are worse again.
       biteK = Math.max(0.25, 1 - Math.min(0.5, Math.abs(pw) * 0.5) - WSPIN_BITE * this.wspin);

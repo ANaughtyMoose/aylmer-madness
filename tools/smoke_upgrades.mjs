@@ -6,7 +6,7 @@
 //
 // The before/after driving numbers here are the SAME measurements the shop puts
 // on its work order — upgrades.js measure() drives a Vehicle round a flat empty
-// world — so if this file says the Civic's 0-100 drops from 7,7 s to 6,2 s, that
+// world — so if this file says the Civic's 0-100 drops from 7,3 s to 5,2 s, that
 // is what the car does in the browser.
 
 class FakeStorage {
