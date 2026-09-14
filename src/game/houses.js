@@ -845,13 +845,14 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   mb.capPoly(b.p, b.t, y0 + (wallRect ? garageEave : eave), roofCol);
 
   // ---- roofs, one per rect, on the real footprint's oriented rectangles
-  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol, mt);
+  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol, mt, eave);
   if (wing && wing !== garageRect) {
-    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol, mt);
+    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol, mt, eave);
   }
   if (garageRect) {
     roofOn(mb, garageRect, L2M, yaw, y0 + garageEave, Math.max(0.7, roofRise * 0.65),
-      carport ? 'flat' : (attrs.roof === 'flat' ? 'gable' : attrs.roof), spec, roofCol, mt);
+      carport ? 'flat' : (attrs.roof === 'flat' ? 'gable' : attrs.roof), spec, roofCol, mt,
+      garageEave);
   }
   mt.off();
 
@@ -1122,7 +1123,14 @@ function residentialFence(mb, ext, L2M, front, y0, era, mats) {
 // Roof on one rect of the decomposition, in the requested form. `mt` arms the
 // shingle before the slopes and swaps back to the wall material for the gable
 // ends (which are siding or brick on a real house, not roofing).
-function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt) {
+// `eaveH` is the eave height ABOVE THE HOUSE'S OWN GROUND, which stopped being
+// the same number as `baseY` the day opts.y became something other than zero.
+// The soffit test below is a question about how far the eave is over the
+// driver's head; asked of the absolute height in a town with thirty metres of
+// relief, it comes back yes for every bungalow in Aylmer and ten thousand of
+// them grow an underside nobody can get beneath. Defaulted, so a caller that
+// still works in absolute heights gets the old answer.
+function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt, eaveH = baseY) {
   const w = r.u1 - r.u0, d = r.v1 - r.v0;
   const cm = L2M((r.u0 + r.u1) / 2, (r.v0 + r.v1) / 2);
   const ov = spec.overhang;
@@ -1133,7 +1141,7 @@ function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt) {
   // wall top and the ridge. Two triangles of dark underside close it.
   // (only where you can actually get under it — below ~4.6 m the wall hides the
   // slope from anyone sitting in a car, and 10 000 bungalows do not need it.)
-  if (form !== 'flat' && baseY > 4.6) {
+  if (form !== 'flat' && eaveH > 4.6) {
     mb.capRect(cm[0], cm[1], w + ov * 2, d + ov * 2, baseY + 0.02, yaw, roofCol, true);
   }
   switch (form) {

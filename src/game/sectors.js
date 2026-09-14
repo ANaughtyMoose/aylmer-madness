@@ -19,7 +19,7 @@
 // the river centreline and Chelsea everything north of CHELSEA_Z; the seam at
 // SEAM_X is the Aylmer extract's own east edge (lon -75.803).
 import { MAP } from './mapdata.js';
-import { buildWorld, HOUSE_NEAR } from './world.js';
+import { buildWorld, HOUSE_NEAR, baseHeightAt } from './world.js';
 import { buildSignage } from './signage.js';
 
 export const SEAM_X = 2540.6;
@@ -126,7 +126,10 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     walkStep: 5,
     fallen,
     distant: null,
-    signage: buildSignage(renderer),
+    // Baked once for the whole town, before any slice exists, so it takes the
+    // shared base height field rather than a world's: a storefront board hangs
+    // on a wall that is now up a hill.
+    signage: buildSignage(renderer, baseHeightAt),
     signals: null, stopSigns: null,
     terrain: null, terrainStats: null, furniture: null,
     intersections: 0, poleCount: 0, landmarkRoofs: 0,
@@ -245,6 +248,10 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
   W.waterAt = (x, z) => { const w = any(); return w ? w.waterAt(x, z) : false; };
   const flat = { h: 0, nx: 0, ny: 1, nz: 0, kind: 'grass' };
   W.groundAt = (x, z) => { const w = any(); return w ? w.groundAt(x, z) : flat; };
+  // The LiDAR base with no features on it — the same raster in every slice, and
+  // what world.js drapes its roads and lawns on.
+  const flatBase = { h: 0, nx: 0, ny: 1, nz: 0 };
+  W.baseAt = (x, z) => { const w = any(); return w ? w.baseAt(x, z) : flatBase; };
   const walkOut = [];
   W.queryWalks = (x, z, r) => {
     walkOut.length = 0;

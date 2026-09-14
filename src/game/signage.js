@@ -360,7 +360,12 @@ export function primeSignage(renderer, existing, base = '') {
   }).catch(() => existing);
 }
 
-export function buildSignage(renderer) {
+// `yAt(x, z)` is the ground under a point, if the caller has a height field to
+// ask. A storefront board hangs on the wall of the building it names, and those
+// buildings stand on a hill now: without this the whole strip on Principale
+// would hover at its old sea-level height while the shops climb away from it.
+// Omitted (the sign lab, the smoke tests), it is zero and nothing moves.
+export function buildSignage(renderer, yAt = null) {
   const plan = planSigns();
   if (!plan.length) return null;
   if (typeof document === 'undefined' || !document.createElement) return null;
@@ -393,7 +398,8 @@ export function buildSignage(renderer) {
 
     const u0 = (px + 1) / ATLAS_W, u1 = (px + CW - 1) / ATLAS_W;
     const v0 = (py + 1) / ATLAS_H, v1 = (py + CH - 1) / ATLAS_H;
-    const hw = s.w / 2, y0 = s.y, y1 = s.y + s.h;
+    const gy = yAt ? yAt(s.x, s.z) : 0;
+    const hw = s.w / 2, y0 = gy + s.y, y1 = gy + s.y + s.h;
     const ax = s.x - s.dx * hw, az = s.z - s.dz * hw;
     const bx = s.x + s.dx * hw, bz = s.z + s.dz * hw;
     const i0 = mb.vert(ax, y0, az, s.nx, 0, s.nz, white, u0, v1);
