@@ -510,7 +510,8 @@ export function startCourse(G, course) {
   if (G.mission && G.failMission) G.failMission('Abandonné.');
   const p = at(course.start);
   if (G.veh && p) {
-    G.veh.reset(p.x, p.z, p.a != null ? p.a : (p.yaw || 0));
+    G.veh.reset(p.x, p.z, p.a != null ? p.a : (p.yaw || 0),
+      G.phys && G.phys.groundY ? G.phys.groundY(p.x, p.z) : 0);
     // reset() does not touch `onRoad`, and a stale one fires cars.js's kerb kick
     // on the first tick after the move — which on a start line reads as the
     // truck hopping into the air before the countdown has even started.

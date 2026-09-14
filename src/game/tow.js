@@ -75,8 +75,11 @@ export function resetSpot(world, veh) {
   return roadSpot(world, veh.x, veh.z);
 }
 
-function place(veh, spot) {
-  veh.reset(spot.x, spot.z, spot.yaw);
+// A spot is a flat (x, z, yaw) and the terrain says how high that is, so put
+// the car down ON the road rather than at sea level underneath it.
+function place(world, veh, spot) {
+  veh.reset(spot.x, spot.z, spot.yaw,
+    world && world.groundAt ? world.groundAt(spot.x, spot.z).h : 0);
   veh.lastSafe = { x: spot.x, z: spot.z, yaw: spot.yaw };
 }
 
@@ -86,7 +89,7 @@ export function freeReset(G) {
   if (!veh) return { ok: false };
   const spot = resetSpot(world, veh);
   if (!spot) { veh.recover(); return { ok: true, name: '', cost: 0 }; }
-  place(veh, spot);
+  place(world, veh, spot);
   return { ok: true, name: spot.name, cost: 0 };
 }
 
@@ -98,7 +101,7 @@ export function callTow(G) {
   if (wallet && !wallet.can(cost)) return { ok: false, cost, broke: true };
   if (wallet) wallet.spend(cost);
   const spot = roadSpot(world, veh.x, veh.z);
-  if (spot) place(veh, spot);
+  if (spot) place(world, veh, spot);
   veh.repair();
   if (G.health) G.health[veh.spec.id] = 0;
   if (G.repair) { G.repair.t = 0; G.repair.key = null; }
@@ -118,7 +121,7 @@ export function settleSpawn(G) {
   const reason = stuckReason(world, veh.x, veh.z);
   if (reason) {
     const spot = roadSpot(world, veh.x, veh.z);
-    if (spot) { place(veh, spot); return { moved: true, reason, name: spot.name }; }
+    if (spot) { place(world, veh, spot); return { moved: true, reason, name: spot.name }; }
   }
   const safe = roadSpot(world, veh.x, veh.z);
   if (safe) veh.lastSafe = { x: safe.x, z: safe.z, yaw: safe.yaw };

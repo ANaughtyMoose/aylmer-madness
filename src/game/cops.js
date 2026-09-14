@@ -261,7 +261,9 @@ export class Cops {
   spawn(G) {
     const p = this.spawnPoint(G);
     const v = G.veh;
-    const u = new Rival(CRUISER, { id: 'cop' + this.units.length, name: 'Police', skill: SKILL.cop });
+    const u = new Rival(CRUISER, {
+      id: 'cop' + this.units.length, name: 'Police', skill: SKILL.cop, phys: G.phys,
+    });
     u.place(p.x, p.z, Math.atan2(v.x - p.x, v.z - p.z));
     u.active = true;
     u.routeT = 0.2 * this.units.length;

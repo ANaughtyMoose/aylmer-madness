@@ -947,7 +947,7 @@ function enterDrive(save = null, startKey = null) {
   const doorstep = !save && PLACES[who.home] && curbSpot(PLACES[who.home], 0);
   const start = chosen || (save && save.parked && save.parked[spec.id]) || doorstep
     || home[spec.id] || homeSpot(spec.id);
-  G.veh.reset(start.x, start.z, start.yaw);
+  G.veh.reset(start.x, start.z, start.yaw, spawnY(start.x, start.z));
   G.health = save ? { ...save.health } : {};
   restoreDamage(G.veh, G.health[spec.id] || 0);
   G.repair.t = 0; G.towed = false;
@@ -1130,6 +1130,12 @@ function homeParked(currentId = G.carId) {
 }
 function homeSpot(id) { return homeParked()[id] || curbSpot(PLACES.home, 0); }
 
+// The ground under a parking spot. Every one of the tables above is a flat
+// (x, z, yaw) — the terrain is what says how high that is — so every place that
+// puts a car down feeds this to `reset`. Before the load step that builds
+// G.phys there is no height field yet, and 0 is what the old flat town was.
+function spawnY(x, z) { return G.phys && G.phys.groundY ? G.phys.groundY(x, z) : 0; }
+
 // « Remettre les chars chez eux ». Every car goes back to its owner's curb and
 // gets repaired; jobs, money, records and the clock are untouched. This is the
 // undo for a night of leaving the Civic in the river.
@@ -1143,7 +1149,7 @@ function resetCarLocations(quiet = false) {
   G.health = {};
   if (G.veh) {
     const h = home[G.veh.spec.id] || homeSpot(G.veh.spec.id);
-    G.veh.reset(h.x, h.z, h.yaw);
+    G.veh.reset(h.x, h.z, h.yaw, spawnY(h.x, h.z));
     G.veh.repair();
     G.repair.t = 0; G.towed = false;
   }
@@ -1188,7 +1194,7 @@ function swapCar(id) {
   G.carId = id;
   G.veh = new Vehicle(spec);
   G.veh.assist = G.assist;
-  G.veh.reset(spot.x, spot.z, spot.yaw);
+  G.veh.reset(spot.x, spot.z, spot.yaw, spawnY(spot.x, spot.z));
   restoreDamage(G.veh, G.health[id]);
   settleAfterPlacing();
   audio.setEngineProfile(spec.sound);
@@ -1766,7 +1772,7 @@ function driveHooks(dt, v) {
         + (paid ? ', pis réparé' : ' — t’es cassé, on te le passe'), 3200);
       audio.chime(false);
     }
-    v.reset(home.x, home.z, home.a);
+    v.reset(home.x, home.z, home.a, spawnY(home.x, home.z));
     v.repair();
     G.health[v.spec.id] = 0;
     G.repair.t = 0; G.repair.key = null;
@@ -2829,7 +2835,7 @@ window.AYLMER = {
   G, hud, input, garage, radio,
   step(dt = STEP) { if (G.mode === 'drive') { input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } },
   render() { if (G.mode === 'drive') render(STEP); },
-  teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw); },
+  teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw, spawnY(x, z)); },
   start: startMission,
   // Save-system hooks, so a test (or a console) can drive the slots without
   // reaching into the DOM. The buttons call exactly the same functions.

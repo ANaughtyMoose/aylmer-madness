@@ -30,7 +30,9 @@ export class Reactive {
     this.r = renderer;
     this.world = world;
     this.props = buildStreetProps(renderer, world);
-    this.debris = new Debris(renderer, this.props.meshes);
+    // The world goes to debris.js too: bins and glass land on the ground, and
+    // the ground is not at zero any more.
+    this.debris = new Debris(renderer, this.props.meshes, world);
     this.peds = new Peds(renderer, world);
     this.peds.onDive = (p, car, player) => this.onDive(p, car, player);
     this.peds.onGraze = (p, car, player) => this.onGraze(p, car, player);
@@ -142,7 +144,8 @@ export class Reactive {
       }
     }
     if (K.water) {
-      for (let i = 0; i < 5; i++) this.debris.puff(it.x, 0.5, it.z, 0, 0, true);
+      const wy = this.debris.groundY(it.x, it.z) + 0.5;
+      for (let i = 0; i < 5; i++) this.debris.puff(it.x, wy, it.z, 0, 0, true);
     }
     // A little damage and a shove of the nose — enough to feel, never enough to
     // end a job on its own.

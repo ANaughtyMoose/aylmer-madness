@@ -136,6 +136,15 @@ export class Rival {
     this.done = 0;              // checkpoints passed (the race code owns this)
     this.progress = 0;
     this.tint = opts.tint || null;
+    // main.js's G.phys, remembered off the first update(): `place` and
+    // `unstick` both put the car down at a route point, and a route point is a
+    // flat (x, z) that the terrain has to give a height to.
+    this.phys = opts.phys || null;
+  }
+
+  // Ground under a route point, or zero before anyone has stepped us.
+  groundY(x, z) {
+    return this.phys && this.phys.groundY ? this.phys.groundY(x, z) : 0;
   }
 
   // The collide.js / minimap contract, so a rival can stand in for a traffic car.
@@ -146,7 +155,7 @@ export class Rival {
   get speedKmh() { return this.veh.speedKmh; }
 
   place(x, z, yaw) {
-    this.veh.reset(x, z, yaw);
+    this.veh.reset(x, z, yaw, this.groundY(x, z));
     this.stuckT = 0;
     // Moving the car invalidates the segment index, and _advance() only ever
     // walks forward, so re-find it here rather than leave the car chasing the
@@ -285,6 +294,7 @@ export class Rival {
    */
   update(dt, world, ctx) {
     const v = this.veh, s = this.skill;
+    if (world && world.groundY) this.phys = world;
     if (!this.active || this.n < 2) {
       this.ctl.steer = 0; this.ctl.throttle = 0; this.ctl.brake = 1;
       this.ctl.handbrake = true;
@@ -412,7 +422,7 @@ export class Rival {
     this.lookAhead(hop + 14, PB);
     const dx = PB[0] - PA[0], dz = PB[1] - PA[1];
     const yaw = (dx || dz) ? Math.atan2(dx, dz) : this.veh.yaw;
-    this.veh.reset(PA[0], PA[1], yaw);
+    this.veh.reset(PA[0], PA[1], yaw, this.groundY(PA[0], PA[1]));
     this.veh.vLong = 4;
     this.veh.vx = Math.sin(yaw) * 4;
     this.veh.vz = Math.cos(yaw) * 4;

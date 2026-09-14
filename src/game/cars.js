@@ -1421,7 +1421,12 @@ export class Vehicle {
   get wid() { return this.spec.wid; }
   get mass() { return this.spec.mass; }
 
-  reset(x, z, yaw) {
+  // `y` is the ground under (x, z). It defaults to 0 — the town used to be
+  // flat and a caller with no height field to ask still gets the old numbers,
+  // to the bit — but anything placing a car on the real terrain must pass it,
+  // or the car starts tens of metres underground and snaps up on the first
+  // tick with a landing event nobody asked for.
+  reset(x, z, yaw, y = 0) {
     this.x = x; this.z = z; this.yaw = yaw;
     this.vx = 0; this.vz = 0;
     this.vLong = 0; this.vLat = 0;
@@ -1431,8 +1436,8 @@ export class Vehicle {
     // Vertical state. `y` is where the wheels are — the ground height under the
     // car, or wherever the ballistic arc has got to. `susp` is the body on top
     // of that, which is what the renderer should draw (see `bodyY`).
-    this.y = 0; this.vy = 0;
-    this.gh = 0;                         // ground height under the car right now
+    this.y = y; this.vy = 0;
+    this.gh = y;                         // ground height under the car right now
     this.air = false;                    // integrating ballistically
     this.inAir = false;                  // ...and far enough up to have lost the tyres
     this.airT = 0;                       // seconds into the current flight

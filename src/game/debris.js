@@ -44,13 +44,17 @@ class Pool {
 }
 
 export class Debris {
-  constructor(renderer, kindMeshes) {
+  constructor(renderer, kindMeshes, world) {
     this.r = renderer;
     this.kindMeshes = kindMeshes || {};
+    // The deck all of this lands on. Sampled once per thrown thing, never per
+    // frame: a bin does not roll far enough to change what is under it, and a
+    // spark lives a third of a second. Without a world it is the flat town.
+    this.world = world || null;
     this.bodies = [];
     for (let i = 0; i < MAX_BODIES; i++) {
       this.bodies.push({
-        live: false, kind: '', mesh: null, cy: 0.4, rest: 0.3,
+        live: false, kind: '', mesh: null, cy: 0.4, rest: 0.3, g: 0,
         x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
         rx: 0, ry: 0, rz: 0, wx: 0, wy: 0, wz: 0,
         bounced: 0, settled: false, age: 0,
@@ -58,8 +62,8 @@ export class Debris {
     }
     this.nextBody = 0;
     this.smokePool = new Pool(SMOKE, { life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0, water: 0 });
-    this.sparkPool = new Pool(SPARKS, { life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
-    this.glassPool = new Pool(GLASS, { life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
+    this.sparkPool = new Pool(SPARKS, { life: 0, x: 0, y: 0, z: 0, g: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
+    this.glassPool = new Pool(GLASS, { life: 0, x: 0, y: 0, z: 0, g: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
     this.puffMesh = renderer.upload(unitBox(0.5, 0xffffff));
     this.sparkMesh = renderer.upload(unitBox(0.5, 0xffffff));
     this.glassMesh = renderer.upload(unitBox(0.5, 0xffffff));
@@ -67,6 +71,12 @@ export class Debris {
   }
 
   // --------------------------------------------------------------- spawning
+
+  /** How high the ground is here, or zero if nobody handed us a world. */
+  groundY(x, z) {
+    const w = this.world;
+    return w && w.groundAt ? w.groundAt(x, z).h : 0;
+  }
 
   /**
    * A prop has just left the baked mesh. (vx, vz) is the car's velocity; the
@@ -83,7 +93,11 @@ export class Debris {
     const k = K.kick;
     b.live = true; b.kind = kind; b.mesh = this.kindMeshes[kind] || null;
     b.cy = K.cy; b.rest = Math.min(K.cy, K.r);
-    b.x = x; b.y = y + K.cy; b.z = z;
+    b.g = this.groundY(x, z);
+    // It leaves at the height of whatever hit it, but never below the ground it
+    // was standing on — a caller with no `y` to give used to mean "y is zero",
+    // which on a hillside is forty metres of rock.
+    b.x = x; b.y = Math.max(y, b.g) + K.cy; b.z = z;
     b.vx = vx * k + (Math.random() - 0.5) * 1.4;
     b.vz = vz * k + (Math.random() - 0.5) * 1.4;
     b.vy = 1.6 + Math.min(5.5, speed * 0.30);
@@ -113,7 +127,7 @@ export class Debris {
   spark(x, y, z, vx, vz) {
     const q = this.sparkPool.take();
     q.life = 1;
-    q.x = x; q.y = y; q.z = z;
+    q.x = x; q.y = y; q.z = z; q.g = this.groundY(x, z);
     const sp = 2.5 + Math.random() * 4;
     const a = Math.atan2(-vx, -vz) + (Math.random() - 0.5) * 1.1;
     q.vx = Math.sin(a) * sp; q.vz = Math.cos(a) * sp;
@@ -124,10 +138,11 @@ export class Debris {
 
   /** Broken glass off a hard impact: falls, does not bounce, fades on the road. */
   glassBurst(x, y, z, vx, vz, n = 6) {
+    const g = this.groundY(x, z);
     for (let i = 0; i < n; i++) {
       const q = this.glassPool.take();
       q.life = 1;
-      q.x = x; q.y = y; q.z = z;
+      q.x = x; q.y = y; q.z = z; q.g = g;
       q.vx = vx * 0.25 + (Math.random() - 0.5) * 5;
       q.vz = vz * 0.25 + (Math.random() - 0.5) * 5;
       q.vy = 1.8 + Math.random() * 2.6;
@@ -151,13 +166,13 @@ export class Debris {
         const want = b.rx >= 0 ? Math.PI / 2 : -Math.PI / 2;
         b.rx += (want - b.rx) * t;
         b.rz += (0 - b.rz) * t;
-        b.y += (b.rest - b.y) * t;
+        b.y += (b.g + b.rest - b.y) * t;
         continue;
       }
       b.vy -= GRAV * dt;
       b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
       b.rx += b.wx * dt; b.ry += b.wy * dt; b.rz += b.wz * dt;
-      const floor = b.cy;
+      const floor = b.g + b.cy;
       if (b.y <= floor) {
         b.y = floor;
         if (b.vy < -1.6 && b.bounced < 1) {
@@ -198,7 +213,7 @@ export class Debris {
       q.life -= dt * 3.4;
       q.vy -= 22 * dt;
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
-      if (q.y < 0.03) { q.y = 0.03; q.vy = -q.vy * 0.3; q.vx *= 0.5; q.vz *= 0.5; }
+      if (q.y < q.g + 0.03) { q.y = q.g + 0.03; q.vy = -q.vy * 0.3; q.vx *= 0.5; q.vz *= 0.5; }
     }
     const GL = this.glassPool.p;
     for (let i = 0; i < GLASS; i++) {
@@ -208,8 +223,8 @@ export class Debris {
       q.life -= dt * 0.5;
       q.vy -= GRAV * dt;
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
-      if (q.y < 0.04) {
-        q.y = 0.04; q.vy = 0;
+      if (q.y < q.g + 0.04) {
+        q.y = q.g + 0.04; q.vy = 0;
         q.vx *= Math.exp(-6 * dt); q.vz *= Math.exp(-6 * dt);
       }
     }

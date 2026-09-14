@@ -26,7 +26,10 @@ export function spawnRival(G, carId, opts = {}) {
   const base = (who && who.skill) || SKILL[opts.skill] || SKILL.sayyad;
   const skill = { ...base, ...(opts.skill && typeof opts.skill === 'object' ? opts.skill : {}) };
   if (opts.cruise) skill.cruise = opts.cruise;
-  const rv = new Rival(spec, { id: 'verb-' + carId, name: opts.name || (who && who.name) || spec.who || spec.name, skill });
+  const rv = new Rival(spec, {
+    id: 'verb-' + carId, name: opts.name || (who && who.name) || spec.who || spec.name,
+    skill, phys: G.phys,
+  });
   G.raceParked = G.raceParked || {};
   if (G.parked && G.parked[carId] && !G.raceParked[carId]) { G.raceParked[carId] = G.parked[carId]; delete G.parked[carId]; }
   rv.place(opts.x, opts.z, opts.yaw || 0);

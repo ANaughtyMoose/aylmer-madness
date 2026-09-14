@@ -115,7 +115,7 @@ function spawnRivals(G, cfg) {
     // whole tuning object for a rival off the roster in game/rivals.js, whose
     // driving style is written down per person rather than per archetype.
     const sk = (typeof r.skill === 'string' ? SKILL[r.skill] : r.skill) || SKILL.dave;
-    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: sk });
+    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: sk, phys: G.phys });
     const spot = gridSpot(start, i + 1);
     rv.place(spot.x, spot.z, spot.yaw);
     if (path) rv.setPath(path);
