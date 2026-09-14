@@ -1949,7 +1949,9 @@ function tick(dt) {
     if (v.landed > G.stats.hardest) G.stats.hardest = v.landed;
     audio.land(v.landed);
     G.camShake = Math.min(1, G.camShake + v.landed * 0.09);
-    if (v.lastAir > 0.8) {
+    // jumps.js owns what counts as a jump. This used to be its own 0.8, which
+    // meant the stats counter and the money disagreed about what had happened.
+    if (v.lastAir > AIR.minAir) {
       G.stats.jumps++;
       if (v.lastAir > G.stats.bigAir) G.stats.bigAir = v.lastAir;
       hud.toast(`${v.lastAir.toFixed(1)} s dans les airs!`, 1500);
@@ -2886,7 +2888,7 @@ window.AYLMER = {
 //
 // installJumps() must run BEFORE buildWorld(), which it does — this is module
 // scope and the world is not built until somebody presses EMBARQUE.
-import { installJumps, JUMPS, resetJumps } from './game/jumps.js';
+import { installJumps, JUMPS, resetJumps, AIR } from './game/jumps.js';
 import { installModes, openModes, startCourse, COURSES, MODES } from './game/modes.js';
 import { loadRacingText, TEXT } from './game/racingtext.js';
 installJumps();

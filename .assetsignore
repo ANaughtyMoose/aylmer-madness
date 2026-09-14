@@ -1,0 +1,20 @@
+# Same format as .gitignore. Everything here stays out of the deploy.
+#
+# Nothing in this list is fetched at runtime: no .js or .html file in src/ or at
+# the root references r.xml, and the only runtime fetches in the whole game are
+# assets/cars/manifest.json, assets/materials/atlas.json, assets/radio/playlist.json
+# and the per-car skin.json files.
+.git
+.gitignore
+.gitattributes
+.assetsignore
+wrangler.toml
+package.json
+node_modules
+tools/
+docs/
+gemini-inbox/
+r.xml
+*.md
+*.sh
+*.py

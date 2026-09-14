@@ -1,0 +1,22 @@
+# Everything in this repo is text and is stored with LF.
+#
+# Without this line, a checkout on Windows writes CRLF into the working tree and
+# every one of the 276 files reads as modified with no content change in any of
+# them: 3,927,051 lines inserted, 3,927,051 deleted, all of it \r. That happened
+# on 2026-09-11 and it hid the real diff until 2026-09-14.
+#
+# eol=lf, not just text=auto, because serve.sh has to stay executable as a shell
+# script and the tools/*.py all run under python3 on whatever machine opens them.
+* text=auto eol=lf
+
+# Anything git's own heuristic might get wrong, said out loud.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
