@@ -675,6 +675,10 @@ function installSkin() {
   document.head.appendChild(el);
 }
 
+// The three words for which wheels a car drives, in the language the rest of
+// the card is written in.
+const DRIVETRAIN = { fwd: 'Traction', rwd: 'Propulsion', awd: 'Intégrale' };
+
 function buildMenu() {
   const wrap = $('cars');
   wrap.innerHTML = '';
@@ -689,6 +693,12 @@ function buildMenu() {
       const w = Math.round(Math.max(0.04, Math.min(1, v)) * 100);
       return `<div class="bar"><b>${label}</b><u><i style="width:${w}%"></i></u></div>`;
     };
+    // Which wheels it drives, for the cars that have declared it (cars.js FEEL).
+    // A word, not a bar: it is not more or less of anything, it is a different
+    // thing to drive, and it belongs on the card for the same reason the seat
+    // count does. Cars with no `feel` block say nothing rather than guess.
+    const drivetrain = c.feel && DRIVETRAIN[c.feel.layout]
+      ? `<div class="bar"><b>Roues</b><span>${DRIVETRAIN[c.feel.layout]}</span></div>` : '';
     // The turntable canvas replaces the paint swatch when WebGL is available;
     // the body colour stays as a thin stripe so the car is still identifiable.
     const art = turntable.ok
@@ -703,6 +713,7 @@ function buildMenu() {
       bar('Speed', (c.topSpeed - 24) / 24) +
       bar('Accel', (c.accel - 1.4) / 4.2) +
       bar('Grip', (c.grip - 0.60) / 0.52) +
+      drivetrain +
       `<div class="flav">${c.flavour}</div>`;
     el.onclick = () => { if (!owned) return; G.carId = c.id; buildMenu(); };
     wrap.appendChild(el);

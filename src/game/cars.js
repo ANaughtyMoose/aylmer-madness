@@ -4,6 +4,12 @@ import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { clamp, segCross } from '../core/math.js';
 import { CONTACT } from '../core/audio.js';
 import { SURF, FLAT } from './terrain.js';
+// Pure arithmetic, no imports of its own: the FEEL block needs an rpm to read
+// its torque curve at, and a gear to hang `shiftCut` off. This is a SECOND box
+// from the one cockpit.js runs for the engine note — that one exists to make a
+// noise and is free to lag a frame; this one is in the physics and only ever
+// built for a vehicle that declares a `feel` block.
+import { Gearbox } from './gearbox.js';
 
 const TIRE = 0x17181a, GLASS = 0x26313b, CHROME = 0xd4d6d8;
 const LAMP = 0xfff3c4, TAIL = 0xc0332a, AMBER = 0xf0a030, PLATE = 0xe8e6dc, TRIM = 0x2e3033;
@@ -68,9 +74,9 @@ export const CARS = [
     cladding: { rocker: 0.10, bumper: 0.42, tRear: 0.03, tFront: 0.962, color: 0x50545a },
   },
   {
-    id: 'civic', name: '1988 Honda Civic Si', who: "Sayyad's",
+    id: 'civic', name: '1987 Honda Civic Si', who: "Sayyad's",
     body: 0xa8322b, seats: 3, style: 'hatch',
-    flavour: 'Two thousand pounds of nothing, a 1.6 that begs for 7000, and a hatch you could sleep in.',
+    flavour: 'Two thousand pounds of nothing, a 1.5 that begs for 6500, and a hatch you could sleep in.',
     len: 3.99, wid: 1.67, h: 1.33, wheelbase: 2.50, overhangF: 0.83, track: 1.61, wheelR: 0.29,
     topSpeed: 49.44, accel: 5.3, brake: 9.6, grip: 1.04, steerMax: 0.63, mass: 940, aero: 0.000402,
     seatY: 0.98, seatZ: 0.0, seatX: 0.38, clearance: 0.20,
@@ -379,8 +385,10 @@ const SOUND = {
              hissG: 0.18, raspG: 0.24, raspFrom: 4000, rasp: 0.55, raspK: 3.0,
              boomF: 165, boomQ: 7.0, boomDb: 10, tickF: 3800, tickG: 0.030,
              lumpy: 0.010, pop: 0.9, gain: 1.00, rattle: 0, rattleFrom: 0 },
-  // D16 1.6. Little exhaust, huge buzzy induction, spins to 7200.
-  civic:   { cyl: 4, idle: 850, redline: 7200, limiter: 7300,
+  // D15A2 1.5, twelve valves. Little exhaust, huge buzzy induction, and the
+  // third-gen Si stops at 6500 — it is a 91 hp 1.5, not the 1.6 the game used
+  // to claim, and the note has to run out where the tachometer does.
+  civic:   { cyl: 4, idle: 850, redline: 6500, limiter: 6500,
              decay: 9.0, uneven: 0.10, tilt: 0.55, harm: 176,
              exhQ: 1.00, exhG: 0.85, intF0: 1100, intSpan: 3200, intQ: 1.4, intG: 0.90,
              hissG: 0.26, raspG: 0.16, raspFrom: 5200, rasp: 0.35, raspK: 2.4,
@@ -476,9 +484,12 @@ const DRIVE = {
   saturn:  { gears: [3.25, 1.96, 1.30, 0.94, 0.72], reverse: 3.14, final: 3.55, tyre: 0.601,
              idle: 800, redline: 6300, limiter: 6400,
              shiftUp: 5800, shiftUpLight: 2800, shiftDown: 1800, launch: 2300, shiftTime: 0.22 },
+  // The real AH five-speed behind the 1.5, 4.25 axle, 175/70R13. Ratios are
+  // off the sheet already; the rev limits are the 1987 car's, not the 1988
+  // 1.6's the table used to describe.
   civic:   { gears: [3.25, 1.89, 1.25, 0.90, 0.71], reverse: 3.15, final: 4.25, tyre: 0.577,
-             idle: 850, redline: 7200, limiter: 7300,
-             shiftUp: 6800, shiftUpLight: 3600, shiftDown: 2100, launch: 2800, shiftTime: 0.18 },
+             idle: 850, redline: 6500, limiter: 6500,
+             shiftUp: 6200, shiftUpLight: 3600, shiftDown: 2100, launch: 2800, shiftTime: 0.18 },
   sunfire: { gears: [3.50, 2.05, 1.38, 1.03, 0.72], reverse: 3.42, final: 3.63, tyre: 0.629,
              idle: 720, redline: 5800, limiter: 5900,
              shiftUp: 5200, shiftUpLight: 2900, shiftDown: 1700, launch: 2200, shiftTime: 0.24 },
@@ -511,6 +522,126 @@ const DRIVE = {
              idle: 0, redline: 4200, limiter: 4400,
              shiftUp: 99999, shiftUpLight: 99999, shiftDown: 0, launch: 0, shiftTime: 0.05 },
 };
+
+// FEEL — how a car drives, as opposed to how fast it is.
+//
+// Everything above this line is a number a brochure would print. Until now the
+// driving model read only those, so the Civic was the Ranger with bigger ones:
+// one yaw equation, one lateral catch-up rate, one steering rack, one thrust
+// scalar for every vehicle in town. Nothing asked you to drive them
+// differently. This table is the other half — the levers a driver feels in the
+// seat rather than reads off a spec sheet.
+//
+// THE RULE THAT MAKES IT SAFE. Every term below is optional, and a vehicle with
+// no entry here takes a numerically identical path through Vehicle.update to
+// the one it took before any of this existed — not "close", identical, which is
+// why the blocks are guarded with `if (feel)` rather than written as `x * 1`.
+// The Ranger declares nothing on purpose: it is the reference car, the one
+// whose handling was signed off, and tools/smoke_feel.mjs pins its 5 s run to
+// the last digit of the table in smoke_terrain.mjs. If that ever moves, the
+// feel work has leaked; put it back behind the guard.
+//
+// The terms, and what each one does to the driver:
+//
+//   layout      'fwd' / 'rwd' / 'awd'. A tag. It picks nothing on its own — it
+//               is the word on the garage card and the shorthand for why the
+//               two terms below are signed the way they are. Default: absent.
+//   powerYaw    What the throttle does to the nose mid-corner. RWD is positive:
+//               open it and the tail comes round, lift and it catches. FWD is
+//               negative: open it and it washes wide. It scales the geometric
+//               yaw rate by 1 + powerYaw · throttle · |steer| · speedFrac, and
+//               takes a little lateral bite with it whichever way it is signed,
+//               because power through a corner is grip you are not cornering
+//               with. Default 0 — no throttle/yaw coupling at all.
+//   liftTuck    The FWD answer to the above: shut the throttle mid-corner and
+//               the nose tucks in for a beat. A pulse on the release, decaying
+//               over about a quarter second, scaling the same yaw rate.
+//               Default 0.
+//   wheelspin   The traction cap, in g. Ask for more thrust than
+//               wheelspin · grip · 9.81 from low speed and the tyres break
+//               loose: you get LESS drive than the cap, not more, and less
+//               lateral bite with it, fading out by WSPIN_V. Feather it.
+//               Default absent — the tyres take whatever the engine has.
+//   torque      [[rpmFrac, mult], ...] — the shape of the engine, read at the
+//               rpm the car's own `drive` ratios put it at (a gearbox of its
+//               own, below, separate from the audio one). Clamped at 1, so the
+//               curve can only ever take thrust away: it MUST be 1.0 through
+//               the top of the band or the terminal speed moves and the SPEED
+//               section of smoke_driving.mjs is right to fail. Default: flat 1.
+//   shiftCut    Seconds of nothing between gears, on up-shifts only. Default 0.
+//   steerRate   How fast the wheel itself moves, per second. 12 is the old
+//               global; the Civic is 18 and the Sienna 8. Default 12.
+//   rackSpeed   How fast the rack tightens up with speed: the lock is
+//               0.42 + 0.58/(1 + v/rackSpeed), so a small number is a rack that
+//               has gone heavy by 30 km/h. Default 14.
+//   bite        The tyre sidewall: the rate the travel direction catches the
+//               nose up, per unit grip. 9.5 is the old global. Default 9.5.
+//   wallow      Tall soft things lean before they turn: bite is scaled by
+//               1 − wallow · |roll| / 0.13, off the cosmetic roll that already
+//               exists. Default 0.
+//   abs         `false` for a car old enough to lock a wheel: past NOABS_FROM
+//               on the brake pedal the steering goes light. Default true.
+//   counterSteer  How hard the assist catches a slide. 0.045 is the old global;
+//               a car that expects you to do it yourself gets less.
+//
+// TODO — the rest of the roster is the next task and is deliberately not here
+// yet. Still owed a block: saturn, sunfire, tempo, cavalier (torque steer),
+// cutlass (no ABS), caravan (no ABS), forester (awd, wallow), leone (awd, turbo
+// curve), crownvic, cruiser, sicivic, bus. The Ranger, the bikes and the cart
+// stay blank by design.
+const FEEL = {
+  // 1987 Si: 940 kg, a 1.5 that does nothing until the cam wakes up, and a rack
+  // quicker than anything else in town. It is the car this whole table is for:
+  // keep it above 4000, use the lift to turn it, and do your own counter-steer,
+  // because there is no ABS and not much assist.
+  civic: {
+    layout: 'fwd', powerYaw: -0.55, liftTuck: 0.45, wheelspin: 0.42,
+    torque: [[0, 0.62], [0.34, 0.70], [0.50, 0.86], [0.64, 1], [1, 1]],
+    // `bite` wanted to be 11 — a 175-section tyre on a 13" rim is the stiffest
+    // sidewall in the table. At 11 it was stiff enough to CATCH the car in a
+    // handbrake turn: the nose came round further than anything else and the
+    // slip angle closed behind it, and smoke_driving's D2 ordering (ranger <
+    // saturn < civic) went the wrong way round. 10.2 keeps it the stiffest
+    // thing here and leaves the lever doing what D2 says it does.
+    shiftCut: 0.06, steerRate: 18, rackSpeed: 18, bite: 10.2, wallow: 0.06,
+    abs: false, counterSteer: 0.022,
+  },
+  // 5.7 TPI, 1580 kg, and the rear tyres of 1988. It shoves from idle with a
+  // lump in the middle where the TPI runs out of plenum, it will not put any of
+  // that down from a standstill, and the recirculating-ball box is half a turn
+  // behind your hands. Open it mid-corner and the back comes round.
+  firebird: {
+    layout: 'rwd', powerYaw: 0.95, wheelspin: 0.33,
+    torque: [[0, 0.86], [0.18, 0.98], [0.38, 0.92], [0.55, 1], [1, 1]],
+    shiftCut: 0.16, steerRate: 9, rackSpeed: 9, bite: 8.4, wallow: 0.18,
+    counterSteer: 0.016,
+  },
+  // Two tonnes of van on soft springs. The wheel is slow, the body leans first
+  // and turns second, and the V6 is the same everywhere above 2500. Nothing
+  // quick happens in a Sienna — the handbrake table already said so; this is
+  // what it feels like with the lever down.
+  sienna: {
+    layout: 'fwd', powerYaw: -0.30, liftTuck: 0.10,
+    torque: [[0, 0.78], [0.25, 0.92], [0.45, 1], [1, 1]],
+    shiftCut: 0.10, steerRate: 8, rackSpeed: 8, bite: 6.8, wallow: 0.55,
+    counterSteer: 0.06,
+  },
+};
+
+// The globals the terms above replace, written down once so a car with no block
+// gets the literal it always got and the two paths cannot drift apart.
+const STEER_RATE = 12;      // how fast the wheel itself moves, /s
+const RACK_V = 14;          // where the rack has tightened halfway, m/s
+const BITE_K = 9.5;         // lateral catch-up rate per unit grip, /s
+const COUNTER = 0.045;      // assist counter-steer gain
+// ...and the shared shape of the terms that have no global to replace.
+const WSPIN_V = 24;         // wheelspin has hooked up by here, m/s
+const WSPIN_LOSS = 0.80;    // what breaking traction costs off the cap
+const WSPIN_BITE = 0.55;    // ...and how much lateral bite goes with it
+const TUCK_FADE = 4.2;      // lift-off tuck decay, /s (≈ a quarter second)
+const NOABS_FROM = 0.30;    // brake pedal past which a car with no ABS goes light
+const NOABS_K = 0.55;       // ...and the steering it loses at the pedal on the floor
+
 const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24
   : s.style === 'cart' ? 0.14 : 0.20);
 const WHEEL_PROUD = 0.07;   // tyre outer face this far outside the body at the axle
@@ -567,6 +698,11 @@ export function finalizeCar(c) {
   defaults(c, REVERSE[c.id]);                 // a car with no entry takes the defaults
   if (c.sound === undefined) c.sound = SOUND[c.id];
   if (c.drive === undefined) c.drive = DRIVE[c.id];
+  // The same fill-in, never overwrite. A tuned copy is Object.create(stock), so
+  // `c.feel` is already answered through the prototype and the shop's work is
+  // not stamped over — and a vehicle with no row here keeps `feel` undefined,
+  // which is what the whole guard in Vehicle.update turns on.
+  if (c.feel === undefined) c.feel = FEEL[c.id];
   // Solve the thrust curve for the stated terminal speed. If a spec is greedy
   // enough that drag alone eats the whole engine, the clamp keeps vPow finite
   // and the car simply never quite gets there.
@@ -1453,6 +1589,18 @@ export class Vehicle {
     this.lastHit = 0;
     this.misfireT = 0;
     this.lastSafe = { x, z, yaw };
+    // FEEL state. All of it is dead weight on a vehicle with no `feel` block —
+    // the box is never built, and nothing below is ever read.
+    this.shiftCut = 0;        // seconds of nothing left in this up-shift
+    this.tuck = 0;            // lift-off pulse, 1 at the release, decaying
+    this.thrWas = 0;          // last frame's throttle, to see the release
+    this.wspin = 0;           // how far past the traction cap the tyres are
+    this.shiftsWas = 0;
+    const s = this.spec;
+    if (s && s.feel) {
+      if (!this.box) this.box = new Gearbox(s.drive);
+      this.box.reset();
+    } else this.box = null;
   }
 
   get speedKmh() { return Math.abs(this.vLong) * 3.6; }
@@ -1544,6 +1692,28 @@ export class Vehicle {
       }
     }
 
+    // ---- FEEL: the engine's own shape, and the beat between gears ---------
+    // `feel` is undefined for every vehicle with no row in the FEEL table, and
+    // everything from here to the end of update() that reads it is behind a
+    // guard for exactly that reason: no block, no branch, no arithmetic, and
+    // the old numbers come out to the bit. See the note over FEEL.
+    const feel = s.feel;
+    let torque = 1, cutting = false;
+    if (feel) {
+      this.wspin = 0;
+      if (this.box) {
+        this.box.update(dt, Math.abs(vLong) * 3.6, ctl.throttle, this.dir < 0);
+        if (this.box.shifts !== this.shiftsWas) {
+          // Up-shifts only: dropping a gear is a blip, not a gap.
+          if (feel.shiftCut && this.box.toGear > this.box.gear) this.shiftCut = feel.shiftCut;
+          this.shiftsWas = this.box.shifts;
+        }
+        if (feel.torque) torque = Math.min(1, pl(feel.torque, this.box.rpm / this.box.d.redline));
+      }
+      cutting = this.shiftCut > 0;
+      if (cutting) this.shiftCut = Math.max(0, this.shiftCut - dt);
+    }
+
     let a = 0;
     if (!inAir) {
       if (flip) {
@@ -1566,7 +1736,29 @@ export class Vehicle {
         if (ctl.throttle > 0 && vLong > -0.02) a += ctl.throttle * s.accel * surface;
       } else {
         if (ctl.throttle > 0) {
-          a += ctl.throttle * s.accel * grunt * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+          if (feel) {
+            // Same expression, then the three things an engine and a pair of
+            // driven tyres do to it: the torque curve, the gap between gears,
+            // and the tyres letting go when you ask for more than they hold.
+            let th = ctl.throttle * s.accel * grunt * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+            th *= torque;
+            if (cutting) th = 0;
+            if (feel.wheelspin && th > 0) {
+              const fade = 1 - Math.min(1, Math.abs(vLong) / WSPIN_V);
+              const cap = feel.wheelspin * s.grip * gripSurf * 9.81;
+              if (fade > 0 && cap > 0 && th > cap) {
+                // Past the cap the tyres are turning faster than the road, and
+                // a spinning tyre pulls LESS than a gripping one — which is why
+                // mashing it is slower than feathering it away from a light.
+                const over = Math.min(1, th / cap - 1);
+                this.wspin = fade * over;
+                th += (cap * (1 - WSPIN_LOSS * over) - th) * fade;
+              }
+            }
+            a += th;
+          } else {
+            a += ctl.throttle * s.accel * grunt * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+          }
         }
         // The brakes bring you to rest; they never push you out the other side.
         if (ctl.brake > 0 && vLong > 0.02) a -= Math.min(ctl.brake * s.brake * surface, vLong / dt);
@@ -1638,12 +1830,18 @@ export class Vehicle {
 
     // Steering: less lock the faster you go, so a keyboard tap can't spin you.
     const speedFrac = clamp(Math.abs(vLong) / topSpeed, 0, 1);
-    let lock = s.steerMax * (0.42 + 0.58 / (1 + Math.abs(vLong) / 14));
+    const rackV = feel && feel.rackSpeed != null ? feel.rackSpeed : RACK_V;
+    let lock = s.steerMax * (0.42 + 0.58 / (1 + Math.abs(vLong) / rackV));
     if (this.assist) lock *= 1 - 0.28 * speedFrac;
+    // FEEL: no ABS. Stand on the pedal in something old enough to lock a wheel
+    // and the fronts stop steering — which is the whole argument for braking in
+    // a straight line, and for trailing off the pedal as you turn in.
+    if (feel && feel.abs === false && ctl.brake > NOABS_FROM) lock *= 1 - NOABS_K * ctl.brake;
     let target = ctl.steer * lock;
     // R4: a bent car pulls. Enough to notice, not enough to be unplayable.
     if (this.hurt) target += this.pull * lock * 0.20 * clamp((this.damage - DAMAGE.PERF) / 40, 0, 1);
-    this.steer += (target - this.steer) * Math.min(1, 12 * dt);
+    const steerRate = feel && feel.steerRate != null ? feel.steerRate : STEER_RATE;
+    this.steer += (target - this.steer) * Math.min(1, steerRate * dt);
 
     // Bicycle model yaw. Handbrake lets the back end come around — how far is
     // a per-car number now (D2): the Ranger keeps most of its grip and ploughs.
@@ -1651,12 +1849,36 @@ export class Vehicle {
     const grip = s.grip * gripSurf * (ctl.handbrake ? hbGrip : 1) * (inWater ? 0.3 : 1);
     // Negative: positive yaw swings the nose toward local +X, which is left.
     this.yawRate = -(vLong / s.wheelbase) * Math.tan(this.steer);
+    // FEEL: what the right foot does to the nose. `powerYaw` is signed by
+    // drivetrain — a rear axle pushing the car round, or a front axle being
+    // asked to steer and pull at once and doing neither — and `liftTuck` is
+    // the beat after you close it, when the weight goes forward and a FWD car
+    // finally turns in. Both ride on the same geometric yaw, so a car pointing
+    // straight still goes straight.
+    let biteK = 1;
+    if (feel) {
+      const pw = (feel.powerYaw || 0) * ctl.throttle * Math.abs(this.steer) * speedFrac;
+      if (feel.liftTuck) {
+        if (this.thrWas > 0.5 && ctl.throttle < 0.1
+          && Math.abs(this.steer) > 0.02 && Math.abs(vLong) > 5) this.tuck = 1;
+        this.tuck *= Math.exp(-TUCK_FADE * dt);
+        if (this.tuck < 0.01) this.tuck = 0;
+        this.yawRate *= 1 + pw + feel.liftTuck * this.tuck;
+      } else {
+        this.yawRate *= 1 + pw;
+      }
+      this.thrWas = ctl.throttle;
+      // Power through a corner is grip you are not cornering with, whichever
+      // end is doing the work; spinning tyres are worse again.
+      biteK = Math.max(0.25, 1 - Math.min(0.5, Math.abs(pw) * 0.5) - WSPIN_BITE * this.wspin);
+    }
     if (ctl.handbrake) this.yawRate *= (s.hbYaw != null ? s.hbYaw : 1.55);
     if (this.assist) {
       // Gentle counter-steer: pull the heading toward the direction of travel.
       // Backwards that is the other way round — the same term unsigned would
       // fight the wheel and make reversing feel like it was on ice.
-      this.yawRate += vLat * 0.045 * (1 - speedFrac * 0.5) * (vLong < 0 ? -1 : 1);
+      const counter = feel && feel.counterSteer != null ? feel.counterSteer : COUNTER;
+      this.yawRate += vLat * counter * (1 - speedFrac * 0.5) * (vLong < 0 ? -1 : 1);
     }
     // Nothing to steer against once the wheels are off the ground: the heading
     // freezes and the stick only leans the body, Midtown Madness style.
@@ -1670,7 +1892,18 @@ export class Vehicle {
     }
 
     // Lateral grip pulls the car's travel direction toward where it points.
-    const bite = 1 - Math.exp(-9.5 * grip * dt);
+    // FEEL: the sidewall. `bite` is how fast the travel direction catches the
+    // nose up, and `wallow` is the tall soft thing leaning onto its outside
+    // shoulder before it agrees to turn — off the cosmetic roll, which is one
+    // frame old here and is meant to be: the lean leads the loss of grip.
+    let bite;
+    if (feel) {
+      let g = grip * biteK;
+      if (feel.wallow) g *= 1 - feel.wallow * Math.min(1, Math.abs(this.roll) / 0.13);
+      bite = 1 - Math.exp(-(feel.bite != null ? feel.bite : BITE_K) * g * dt);
+    } else {
+      bite = 1 - Math.exp(-9.5 * grip * dt);
+    }
     const slipBefore = vLat;
     vLat -= vLat * bite;
     this.skid = clamp((Math.abs(slipBefore) - 1.2) / 7, 0, 1) * clamp(Math.abs(vLong) / 8, 0, 1);
