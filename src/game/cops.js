@@ -295,9 +295,14 @@ export class Cops {
     for (const [, s] of near) {
       const back = (s.ext || 12) + 7;
       const cx = s.x - fx * back, cz = s.z - fz * back;
+      // `y` because the barricade is parked, not driven: nothing steps these
+      // two, so the height of the road under them is sampled once, here, or
+      // they sit at sea level under the hill the lights are on.
+      const gy = (G.phys && G.phys.groundY) ? G.phys.groundY : null;
       const spots = [-1, 1].map((side) => ({
         x: cx + rx * side * 2.3, z: cz + rz * side * 2.3,
         yaw: Math.atan2(rx, rz), spin: 0,
+        y: gy ? gy(cx + rx * side * 2.3, cz + rz * side * 2.3) : 0,
       }));
       if (onRoad && !spots.every((q) => onRoad(q.x, q.z))) continue;
       for (const q of spots) { asBody(q, CRUISER); this.blocks.push(q); }
@@ -468,11 +473,11 @@ export class Cops {
     for (const u of this.units) {
       if (Math.hypot(u.x - v.x, u.z - v.z) > 400) continue;
       const c = u.veh;
-      drawCar(CRUISER, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y);
+      drawCar(CRUISER, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y, c.gh);
     }
     for (const b of this.blocks) {
       if (Math.hypot(b.x - v.x, b.z - v.z) > 400) continue;
-      drawCar(CRUISER, b.x, b.z, b.yaw, 0, 0, 0, 0, null, 1, 0);
+      drawCar(CRUISER, b.x, b.z, b.yaw, 0, 0, 0, 0, null, 1, b.y || 0, b.y || 0);
     }
     const r = G.renderer, mesh = G.meshes;
     if (!r || !mesh || !mesh.copPodL) return;
@@ -482,7 +487,7 @@ export class Cops {
       for (const u of list) {
         const x = u.x, z = u.z, yaw = u.yaw;
         if (Math.hypot(x - v.x, z - v.z) > 400) continue;
-        m4.compose(MM, x, u.veh ? u.veh.y : 0, z, yaw, 0, 0);
+        m4.compose(MM, x, u.veh ? u.veh.y : (u.y || 0), z, yaw, 0, 0);
         r.draw(mesh.copPodL, MM, red ? OPT_RED : OPT_DIM);
         r.draw(mesh.copPodR, MM, red ? OPT_DIM : OPT_BLUE);
       }

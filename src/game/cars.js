@@ -1457,7 +1457,12 @@ export class Vehicle {
     this.curb = 0;
     this.lastHit = 0;
     this.misfireT = 0;
-    this.lastSafe = { x, z, yaw };
+    // Where a free reset puts you back — and how high that is. recover() used to
+    // hand reset() three arguments and drop the car at sea level, which on the
+    // hill is up to thirty metres under the road it was driving on. `y` is the
+    // same 0 this signature already defaults to, so a flat world and a caller
+    // with no height field get exactly the numbers they got before.
+    this.lastSafe = { x, z, yaw, y };
   }
 
   get speedKmh() { return Math.abs(this.vLong) * 3.6; }
@@ -1801,7 +1806,10 @@ export class Vehicle {
     } else {
       this.drowning = 0;
       if (onRoad && !this.inAir && Math.abs(vLong) > 2) {
-        this.lastSafe = { x: this.x, z: this.z, yaw: this.yaw };
+        // `gh` and not `y`: this fires with the wheels on the deck, so the two
+        // agree to the suspension, and gh is the one that means "the road was
+        // here" if a later frame catches the car a hand's breadth off it.
+        this.lastSafe = { x: this.x, z: this.z, yaw: this.yaw, y: this.gh };
       }
     }
     // Keep everyone inside the map.
@@ -2002,7 +2010,7 @@ export class Vehicle {
 
   recover() {
     const p = this.lastSafe;
-    this.reset(p.x, p.z, p.yaw);
+    this.reset(p.x, p.z, p.yaw, p.y || 0);
   }
 
   // Seat positions in local space, for drawing the friends you picked up.

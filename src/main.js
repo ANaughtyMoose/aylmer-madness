@@ -2322,7 +2322,7 @@ function render(dt) {
   for (const rv of G.rivals) {                     // race agent: the friends
     const c = rv.veh;
     if (Math.hypot(c.x - v.x, c.z - v.z) > 400) continue;
-    drawCar(rv.spec, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y);
+    drawCar(rv.spec, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y, c.gh);
   }
   G.cops.draw(G, drawCar);                          // ...and the police
   if (G.props) G.props.draw(r, f);

@@ -25,6 +25,13 @@
 // is flat, it is cheap, and seeing the lot from the road is how you know where
 // to turn in.
 //
+// HEIGHT. Every builder below measures y from the pavement — the ground under
+// the site is 0, a sill is 1.15, a cornice 11.4. That was an absolute height
+// while the town was flat; the town is on a LiDAR hillside now, so bakeSite()
+// carries the finished vertex buffer up to the ground under the site and
+// nothing between here and there had to change. The nine sites sit between
+// -0.4 m at the marina and 26.7 m at Les Galeries. See bakeSite / siteHeights.
+//
 // OWNERSHIP NOTE. world.js, places.js and cars.js belong to other agents this
 // wave, so nothing here edits them:
 //   * hero footprints already in OSM are collapsed in MAP at import time
@@ -33,7 +40,7 @@
 //   * colliders and the draw call are wrapped onto the object buildWorld
 //     returns (`installLandmarks`).
 // See the fold-back list at the bottom of the file.
-import { MeshBuilder, rgb, shade } from '../core/mesh.js';
+import { MeshBuilder, STRIDE, rgb, shade } from '../core/mesh.js';
 import { MAP } from './mapdata.js';
 import { PLACES } from './places.js';
 import { TILES } from './materials_stub.js';
@@ -1173,7 +1180,10 @@ const MK = { id: 473653319, cx: -428.3, cz: 58.3, yaw: -0.096, fz: 53.7, mz: 56.
 export const MIKE_MAPLE = { x: -417.5, z: 57.0, crownY: 6.4 };
 // Wedged in the fork between the two lowest limbs and pushed far enough out
 // along them that a good third of it clears the foliage — the whole point is
-// that you can see it from the road if you look up.
+// that you can see it from the road if you look up. `y` is 5.62 m up the TREE,
+// not 5.62 m above the river: how high a couch is lodged in a maple is a fact
+// about the maple, and Frank-Robinson happens to be nineteen metres up a hill.
+// installLandmarks adds the lawn; world.landmarks.couch.y is the absolute one.
 export const COUCH = {
   x: MIKE_MAPLE.x + 2.95, y: 5.62, z: MIKE_MAPLE.z + 0.44, yaw: -0.55, roll: 0.17, pitch: 0.09,
 };
@@ -1262,17 +1272,20 @@ function tintOrFlat(K, mat, t) { on(K, mat); return t; }
 
 // The couch, in its own builder so it can be lifted in and out. Reuses the same
 // 1977 plaid brown as props.js rather than inventing a second chesterfield.
-function buildCouchMesh() {
+// `y0` is the lawn at 129 Frank-Robinson, the same metres the mike bake is
+// carried up: the limbs it rests on are part of that bake, and a couch that did
+// not go up with them would be a couch hanging in the air over Aylmer.
+function buildCouchMesh(y0 = 0) {
   const mb = new MeshBuilder();
   const base = rgb(0x8a5f3a), dark = rgb(0x6d4a2c), cush = rgb(0xa0764a), leg = rgb(0x3b2a1c);
-  const c = COUCH;
+  const c = COUCH, cyy = c.y + y0;
   const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw);
   // Yaw is a real rotation; roll and pitch are applied as a shear on the box
   // CENTRES — MeshBuilder.box only turns about Y, and for something this small,
   // wedged in a fork and seen from thirty metres below, a shear reads as a tilt.
   const kr = Math.tan(c.roll), kp = Math.tan(c.pitch);
   const put = (lx, ly, lz, w, h, d, col) => {
-    mb.box(c.x + lx * cy - lz * sy, c.y + ly + lx * kr - lz * kp, c.z + lx * sy + lz * cy,
+    mb.box(c.x + lx * cy - lz * sy, cyy + ly + lx * kr - lz * kp, c.z + lx * sy + lz * cy,
       w, h, d, col, { yaw: -c.yaw });
   };
   put(0, 0.0, 0, 1.95, 0.34, 0.86, base);                       // frame
@@ -1291,7 +1304,7 @@ function buildCouchMesh() {
 export const LANDMARK_FLAGS = { couchInTree: true };
 
 /** The couch mesh, unuploaded — for tools/preview_landmarks.mjs and the tests. */
-export function buildCouchPreview() { const b = buildCouchMesh(); b.finish(); return b; }
+export function buildCouchPreview(y0 = 0) { const b = buildCouchMesh(y0); b.finish(); return b; }
 
 function siteMike(K) {
   // gravel drive on the Smiley side, the corner sidewalk, and the street-name
@@ -1488,7 +1501,10 @@ export const SITES = [
       board: '#243a4a' } },
   // No `hide`: the mall's own footprint stays exactly as it is and this bolts a
   // door onto it. See GALERIES_DOOR above for the point missions aim at.
-  { key: 'galeries', cx: GA.cx, cz: GA.cz, r: 46, near: HERO_NEAR,
+  // `ground: true` — the doorway opens onto terrain.js's `galeriesApron`, so
+  // this one site stands on the feature and not on the raster under it. See
+  // siteHeights().
+  { key: 'galeries', cx: GA.cx, cz: GA.cz, r: 46, near: HERO_NEAR, ground: true,
     build: buildGaleries, site: siteGaleries,
     // Off to one side of the doors, not in front of them: a board in the middle
     // of your own windscreen on the way in is a board you cannot read.
@@ -1570,9 +1586,27 @@ function runBuild(s, K) {
   else s.build(K);
 }
 
-// Build one site into three MeshBuilders. Pure: no GL, no DOM — the smoke test
-// calls it with materials_stub and counts triangles.
-export function bakeSite(s, mats) {
+// Every builder above measures y from the pavement: a sill is at 1.15 m, a
+// cornice at 11.4, the couch 5.62 m up a maple. That was an absolute height for
+// as long as the town was flat and it is a height ABOVE THE GROUND now that it
+// is not, so a site is baked exactly as it always was and then carried, whole,
+// up the hill it stands on. One pass over the vertex buffer, no allocation, and
+// nothing above has to know what the ground is doing — which is the only reason
+// nine hand-written buildings did not have to be rewritten.
+//
+// The bounds go up with it. `Renderer.visible` frustum-tests min/max, and a
+// school whose box still claims to be at sea level is a school that vanishes
+// when you look up the hill at it.
+function lift(b, dy) {
+  const v = b.v;
+  for (let i = 1; i < v.length; i += STRIDE) v[i] += dy;
+  if (v.length) { b.min[1] += dy; b.max[1] += dy; }
+}
+
+// Build one site into three MeshBuilders, `y0` metres up. Pure: no GL, no DOM —
+// the smoke test calls it with materials_stub and counts triangles, and the
+// preview tool calls it at y0 = 0 to draw the building on its own.
+export function bakeSite(s, mats, y0 = 0) {
   const near = new MeshBuilder(), far = new MeshBuilder(), site = new MeshBuilder();
   runBuild(s, kit(near, mats, true, s.cx, s.cz));
   runBuild(s, kit(far, PLAIN, false, s.cx, s.cz));
@@ -1580,7 +1614,29 @@ export function bakeSite(s, mats) {
   s.site(KS);
   if (s.sign) signFrame(KS, s.sign);
   near.finish(); far.finish(); site.finish();
+  if (y0) for (const b of [near, far, site]) lift(b, y0);
   return { near, far, site };
+}
+
+// The height a site's y = 0 sits at, per site.
+//
+// `baseAt` is the LiDAR raster on its own and is what world.js drapes every
+// other building, road and tree on: terrain.js's features are separate meshes
+// drawn ON the raster, so a building that read `groundAt` next to the rail berm
+// would climb the berm the berm's own geometry already covers. A site whose
+// ground genuinely IS a feature is the exception, and says so with `ground:
+// true` — Les Galeries stands on the south apron, which is concrete the driving
+// model knows about rather than lawn. The apron is H = 0 today, so the two
+// fields agree at all nine sites to the millimetre; the flag is there so that
+// stops being luck the day somebody gives the apron a lip.
+function siteHeights(world) {
+  const m = new Map();
+  for (const s of SITES) {
+    const f = s.ground ? (world && world.groundAt) : (world && world.baseAt);
+    const h = f ? f(s.cx, s.cz).h : 0;
+    m.set(s.key, Number.isFinite(h) ? h : 0);
+  }
+  return m;
 }
 
 // Colliders. buildWorld keeps `addSegment` to itself, so hero walls register
@@ -1658,7 +1714,10 @@ function signFrame(K, g) {
     { yaw: -g.yaw + Math.PI / 2, noBottom: true, top: flat(0x8a857b) });
 }
 
-function buildSignMesh(renderer) {
+// `ground` is the Map siteHeights() built: one mesh for every board, but each
+// board is pinned to its own site's patch of hillside, and two of them are
+// twenty metres apart vertically.
+function buildSignMesh(renderer, ground) {
   if (typeof document === 'undefined' || !document.createElement) return null;
   const boards = SITES.filter((s) => s.sign);
   const cv = document.createElement('canvas');
@@ -1682,16 +1741,17 @@ function buildSignMesh(renderer) {
     ctx.fillText(g.sub, SIGN_W / 2, py + 106, SIGN_W - 60);
     const v0 = (py + 2) / cv.height, v1 = (py + SIGN_H - 2) / cv.height;
     const hw = g.w / 2;
+    const y = g.y + ((ground && ground.get(s.key)) || 0);
     // Both faces, so a sign reads whichever way you drive past it.
     for (const side of [1, -1]) {
       const nx = -Math.sin(g.yaw) * side, nz = Math.cos(g.yaw) * side;
       const dx = Math.cos(g.yaw) * side, dz = Math.sin(g.yaw) * side;
       const ax = g.x - dx * hw + nx * 0.13, az = g.z - dz * hw + nz * 0.13;
       const bx = g.x + dx * hw + nx * 0.13, bz = g.z + dz * hw + nz * 0.13;
-      const b = mb.vert(ax, g.y, az, nx, 0, nz, white, 0.002, v1);
-      mb.vert(bx, g.y, bz, nx, 0, nz, white, 0.998, v1);
-      mb.vert(bx, g.y + g.h, bz, nx, 0, nz, white, 0.998, v0);
-      mb.vert(ax, g.y + g.h, az, nx, 0, nz, white, 0.002, v0);
+      const b = mb.vert(ax, y, az, nx, 0, nz, white, 0.002, v1);
+      mb.vert(bx, y, bz, nx, 0, nz, white, 0.998, v1);
+      mb.vert(bx, y + g.h, bz, nx, 0, nz, white, 0.998, v0);
+      mb.vert(ax, y + g.h, az, nx, 0, nz, white, 0.002, v0);
       mb.tri(b, b + 1, b + 2); mb.tri(b, b + 2, b + 3);
     }
   });
@@ -1712,20 +1772,26 @@ function buildSignMesh(renderer) {
 export function installLandmarks(world, renderer, mats, opts = {}) {
   const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const built = [];
+  // The nine patches of hillside these things stand on. Read once, before the
+  // bake, so a site and its marquee board cannot end up on two different
+  // answers if anything ever makes the field stateful.
+  const ground = siteHeights(world);
   let nearT = 0, farT = 0, siteT = 0;
   for (const s of SITES) {
-    const b = bakeSite(s, mats);
+    const y0 = ground.get(s.key) || 0;
+    const b = bakeSite(s, mats, y0);
     nearT += b.near.i.length / 3; farT += b.far.i.length / 3; siteT += b.site.i.length / 3;
     built.push({
-      key: s.key, cx: s.cx, cz: s.cz, r: s.r, near2: s.near * s.near,
+      key: s.key, cx: s.cx, cz: s.cz, cy: y0, r: s.r, near2: s.near * s.near,
       nearMesh: b.near.empty ? null : renderer.upload(b.near),
       farMesh: b.far.empty ? null : renderer.upload(b.far),
       siteMesh: b.site.empty ? null : renderer.upload(b.site),
       col: bakeColliders(s),
     });
   }
-  const signs = buildSignMesh(renderer);
-  const couchB = buildCouchMesh();
+  const signs = buildSignMesh(renderer, ground);
+  const couchY = COUCH.y + (ground.get('mike') || 0);
+  const couchB = buildCouchMesh(ground.get('mike') || 0);
   couchB.finish();
   const couchMesh = renderer.upload(couchB);
   const couchTris = couchB.i.length / 3;
@@ -1735,7 +1801,7 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
   // is close enough that you have stopped to look and far enough that you can
   // still see the whole tree.
   const couch = {
-    x: COUCH.x, z: COUCH.z, y: COUCH.y, radius: 26, found: false,
+    x: COUCH.x, z: COUCH.z, y: couchY, radius: 26, found: false,
     line: 'LE DIVAN EST ENCORE LÀ-HAUT\n129 Frank-Robinson — personne l’a jamais descendu',
   };
 
@@ -1806,11 +1872,14 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
   // The handle the couch side job should reach for at merge time: flip
   // world.landmarks.flags.couchInTree, and read world.landmarks.couch for where
   // it came to rest.
-  world.landmarks = { sites: built, stats, signs, flags: LANDMARK_FLAGS, couch };
+  world.landmarks = { sites: built, stats, signs, flags: LANDMARK_FLAGS, couch, ground };
+  const ys = [...ground.values()];
   console.log(`landmarks: ${SITES.length} hero sites, ${nearT | 0} near + ${farT | 0} far `
     + `+ ${siteT | 0} paving + ${couchTris} couch tris, ${colliders} colliders — ${ms} ms`);
+  console.log(`landmarks: standing on ground ${Math.min(...ys).toFixed(1)} to `
+    + `${Math.max(...ys).toFixed(1)} m; the couch is ${couchY.toFixed(2)} m up`);
   return { tris: nearT + farT + siteT + couchTris, near: nearT, far: farT, site: siteT,
-    ms, colliders };
+    ms, colliders, couchY };
 }
 
 // ---------------------------------------------------------------------------

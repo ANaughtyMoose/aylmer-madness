@@ -78,9 +78,15 @@ export function resetSpot(world, veh) {
 // A spot is a flat (x, z, yaw) and the terrain says how high that is, so put
 // the car down ON the road rather than at sea level underneath it.
 function place(world, veh, spot) {
-  veh.reset(spot.x, spot.z, spot.yaw,
-    world && world.groundAt ? world.groundAt(spot.x, spot.z).h : 0);
-  veh.lastSafe = { x: spot.x, z: spot.z, yaw: spot.yaw };
+  const y = groundY(world, spot.x, spot.z);
+  veh.reset(spot.x, spot.z, spot.yaw, y);
+  // The height goes into lastSafe too: the next T reads it back through
+  // Vehicle.recover(), and a road point without a height is a hole in the hill.
+  veh.lastSafe = { x: spot.x, z: spot.z, yaw: spot.yaw, y };
+}
+
+function groundY(world, x, z) {
+  return world && world.groundAt ? world.groundAt(x, z).h : 0;
 }
 
 /** T. Back on the road, damage and all, for nothing. */
@@ -124,7 +130,7 @@ export function settleSpawn(G) {
     if (spot) { place(world, veh, spot); return { moved: true, reason, name: spot.name }; }
   }
   const safe = roadSpot(world, veh.x, veh.z);
-  if (safe) veh.lastSafe = { x: safe.x, z: safe.z, yaw: safe.yaw };
+  if (safe) veh.lastSafe = { x: safe.x, z: safe.z, yaw: safe.yaw, y: groundY(world, safe.x, safe.z) };
   return { moved: false, reason: null };
 }
 
