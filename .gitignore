@@ -1,4 +1,6 @@
 .DS_Store
+public/
+dist/
 data/raw/
 __pycache__/
 
