@@ -1,9 +1,12 @@
 # Topography: putting Aylmer on a real hill
 
-Version 0.1, 14 September 2026. Status: proposal, nothing built.
+Version 0.2, 14 September 2026. Status: the spike is built, nobody has run it.
 
 ## Changelog
 
+* 0.2 (2026-09-14) The ground raster already exists inside `tools/lidar_roof.py`
+  and was being discarded. Piece 1 is now mostly written, and the spike is one
+  command instead of a day.
 * 0.1 (2026-09-14) First draft. Scope, the five pieces of work, the go/no-go spike.
 
 ## What the ground is today
@@ -123,19 +126,29 @@ Three or four days, and this is where the frame budget gets spent.
 
 ## The data
 
-The national source is the High Resolution Digital Elevation Model in the
-CanElevation series, LiDAR-derived, 1 m and 2 m, published under the Open
-Government Licence. The HRDEM Mosaic is distributed as cloud-optimised GeoTIFF
-on the AWS Open Data registry, which means a windowed read of the Aylmer clip
-rather than a download of the whole province.
+You already have it, and you have had it the whole time.
 
-Check the tile index for the clip before planning around it. HRDEM coverage is
-built up survey by survey and the Gatineau side needs confirming, not assuming.
-`tools/fetch_lidar.py` already exists in the repo, so some of this road has been
-walked before. Read it before writing anything new.
+`tools/fetch_lidar.py` pulls the Quebec classified LiDAR covering the clip from
+the Ministere des Ressources naturelles et des Forets: project
+2020_Outaouaisgatineau, 10 points per square metre, class 2 tagged as ground,
+30 tiles of about 2.2 GB, no login. `tools/lidar_roof.py` then rasterises class
+2 across the entire clip at 2 m into a grid it calls `gnd`, fills the holes,
+takes one median per building footprint to measure roof heights above ground,
+and throws the rest away at line 348.
 
-The fallback is the Medium Resolution DEM of Canada at roughly 20 m, which is
-too coarse for a ramp and entirely good enough for a town-scale slope.
+That discarded raster is the base height field. Piece 1 above is not a
+pipeline to build, it is an output to stop deleting.
+
+As of version 0.2, `lidar_roof.py` writes it: `data/raw/ground_8m.npy` plus a
+JSON header, downsampled from 2 m to 8 m by block mean, which doubles as the
+low-pass the physics needs.
+
+The national HRDEM in the CanElevation series is the fallback if the Quebec
+tiles ever go away. It is LiDAR-derived at 1 m and 2 m under the Open
+Government Licence, and the HRDEM Mosaic is cloud-optimised GeoTIFF on the AWS
+Open Data registry, so a windowed read of the Aylmer clip is possible without
+downloading the province. Check its tile index covers Gatineau before planning
+around it.
 
 ## What it does to the money
 
@@ -150,25 +163,41 @@ of that safely. It could not have landed on top of the old one.
 
 ## The spike, before any of this
 
-Half a day, and it answers the only question that matters.
+Two commands, and the download is most of the wall clock.
 
-1. Pull an HRDEM window over the 2 km square containing Vieux-Aylmer, the
-   marina and the chemin d'Aylmer straight.
-2. Smooth it to 8 m and print the numbers: total relief across the square, the
-   steepest sustained 100 m grade, the grade along chemin d'Aylmer itself.
-3. If the relief is under about 10 m and no sustained grade beats 3%, stop. The
-   ground under the part of Aylmer people drive is flat, and a height field that
-   nobody can feel is a megabyte and a fortnight for nothing.
-4. If it clears that bar, build piece 1 and piece 2 only, leave the roads flat,
-   and drive it. Roads floating slightly above or below the terrain looks broken
-   and tells you within five minutes whether the hills are worth the week that
-   piece 3 costs.
+```sh
+python3 tools/fetch_lidar.py --venv     # once, builds data/raw/venv with laspy
+python3 tools/fetch_lidar.py --core     # the 4 dense-Aylmer tiles, not all 30
+python3 tools/lidar_roof.py --ground-only
+```
+
+The last one prints four numbers and a verdict: the elevation range, the relief
+across the clip from the 2nd to the 98th percentile, the steepest grade
+sustained over 100 m at the 99.5th percentile, and whether that clears the bar.
+
+The bar is relief of 10 m and a sustained grade of 3%. Under both, stop, because
+the ground under the part of Aylmer people drive is flat and a height field
+nobody can feel is a megabyte and a fortnight for nothing.
+
+Over the bar, build piece 1 and piece 2 only, leave the roads flat, and drive
+it. Roads floating slightly above or below the terrain looks broken, and it
+tells you within five minutes whether the hills are worth the week that piece 3
+costs.
+
+One thing the spike does not do is put the raster in the game's coordinate
+frame. It comes out on the MTM9 grid the LiDAR ships in (EPSG:32189), and the
+game's frame is metres from a lat/lon origin at 45.394, -75.8355 (see
+`tools/build_map.py` lines 37 to 47). At this latitude the two grids are within
+about half a degree of rotation of each other, so the resample is a bilinear
+pass and not a reprojection, but it is still piece 1's remaining work.
 
 ## Verdict
 
-Not too difficult. `groundAt` is already the right shape for this and the
-feature system already blends to grade. Roads are the whole problem, and they
-are a week of work that has to be done properly or the town reads as a bad
-approximation of itself.
+Not too difficult, and cheaper than it looked. `groundAt` is already the right
+shape for this, the feature system already blends to grade, and the height field
+itself has been getting built and deleted on every LiDAR run. Roads are the
+whole problem, and they are a week of work that has to be done properly or the
+town reads as a bad approximation of itself.
 
-Do the spike first. Aylmer being flat is a real possible answer.
+Run the spike first. Aylmer being flat is a real possible answer, and it is now
+three commands away instead of a day.

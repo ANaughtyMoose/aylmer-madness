@@ -23,6 +23,10 @@ then, per OSM footprint, slices the roof raster, subtracts the local ground,
 and derives:
 
     eave      25th percentile of roof height above ground
+
+Every run also writes data/raw/ground_8m.npy, the whole-clip ground raster the
+roof pass builds anyway, and prints the relief numbers docs/TOPOGRAPHY.md needs
+to decide whether topography is worth building.  --ground-only stops there.
     ridge     95th percentile
     form      flat / shed / mansard / hip / gable
     ridgeYaw  direction of the ridge line, in the *map* frame — the same
@@ -267,6 +271,63 @@ def garage_wing(mask, hz_grid, eave, ridge):
     return int(er.sum()) * ROOF_CELL * ROOF_CELL >= 8
 
 
+# ---------------------------------------------------------------- the ground
+
+# The ground raster below is the base height field docs/TOPOGRAPHY.md piece 1
+# asks for, and it has been built and thrown away on every run of this script
+# since the day it was written: the roof pass needs a local ground median under
+# each footprint, so it rasterises class 2 across the whole clip at 2 m, uses
+# one median per building, and drops the rest on the floor.
+#
+# GROUND_CELL is 8 m because that is the number docs/TOPOGRAPHY.md costs out:
+# 1250 x 625 samples over the clip, 1.6 MB as Uint16 at 5 cm, and finer than
+# any real slope in Aylmer. Downsampling 2 m -> 8 m is a block mean, which is
+# also the low-pass the physics needs — cars.js forces vy = slope * speed on
+# rising ground, so metre-scale LiDAR noise would be a trampoline.
+GROUND_CELL = 8.0
+GROUND_OUT = os.path.join(ROOT, 'data', 'raw', 'ground_8m')
+
+
+def write_ground(gnd):
+    """Downsample the 2 m ground raster to 8 m, write it, and print the relief.
+
+    The numbers printed here are the go/no-go in docs/TOPOGRAPHY.md: if the
+    relief is under about 10 m and no sustained 100 m grade beats 3%, the
+    ground under the part of Aylmer people drive is flat and the rest of the
+    topography work is a megabyte and a fortnight for nothing.
+    """
+    k = int(round(GROUND_CELL / GND_CELL))
+    h, w = gnd.a.shape
+    a = gnd.a[:h // k * k, :w // k * k].reshape(h // k, k, w // k, k).mean((1, 3))
+
+    lo, hi = np.percentile(a, (2, 98))
+    span = int(round(100 / GROUND_CELL))          # 100 m in cells
+    gx = np.abs(a[:, span:] - a[:, :-span]) / 100
+    gy = np.abs(a[span:, :] - a[:-span, :]) / 100
+    steep = float(np.percentile(np.concatenate([gx.ravel(), gy.ravel()]), 99.5))
+
+    np.save(GROUND_OUT + '.npy', a.astype(np.float32))
+    with open(GROUND_OUT + '.json', 'w') as f:
+        json.dump({'cell': GROUND_CELL, 'w': int(a.shape[1]), 'h': int(a.shape[0]),
+                   'x0': gnd.x0, 'y0': gnd.y0, 'crs': 'EPSG:32189',
+                   'min': float(a.min()), 'max': float(a.max())}, f, indent=1)
+
+    print('', file=sys.stderr)
+    print(f'ground field  {a.shape[1]} x {a.shape[0]} @ {GROUND_CELL:g} m '
+          f'= {a.size * 2 / 1e6:.1f} MB as Uint16', file=sys.stderr)
+    print(f'  elevation     {a.min():.1f} to {a.max():.1f} m '
+          f'(river is about 59)', file=sys.stderr)
+    print(f'  relief        {hi - lo:.1f} m across the clip (2nd to 98th pct)',
+          file=sys.stderr)
+    print(f'  steepest      {steep * 100:.1f}% sustained over 100 m '
+          f'(99.5th pct)', file=sys.stderr)
+    verdict = ('FLAT: stop here, the height field is not worth building'
+               if (hi - lo) < 10 and steep < 0.03 else
+               'WORTH IT: build pieces 1 and 2, leave the roads flat, drive it')
+    print(f'  verdict       {verdict}', file=sys.stderr)
+    print(f'wrote {os.path.relpath(GROUND_OUT, ROOT)}.npy / .json', file=sys.stderr)
+
+
 # ---------------------------------------------------------------- main
 
 def main():
@@ -313,6 +374,10 @@ def main():
     gnd.a[gnd.a > 1e8] = NODATA
     gnd.a = fill_holes(gnd.a, NODATA)
     gnd.a[gnd.a == NODATA] = float(np.median(gnd.a[gnd.a != NODATA]))
+
+    write_ground(gnd)
+    if '--ground-only' in sys.argv:
+        return 0
 
     out = {}
     fps = load_footprints()
