@@ -20,7 +20,7 @@ Everything lands in data/raw/lidar/ which is gitignored.
 Reading LAZ needs laspy + lazrs; there is no pure-python path.  --venv builds
 one at data/raw/venv rather than touching the system python.
 
-Usage:
+Usage (write `python` for `python3` on Windows, or `py -3`):
     python3 tools/fetch_lidar.py --venv       # create data/raw/venv + laspy
     python3 tools/fetch_lidar.py              # download the tiles
     python3 tools/fetch_lidar.py --core       # just the 4 dense-Aylmer tiles
@@ -91,13 +91,28 @@ def fetch(e, n):
         return f'HTTP {ex.code}'          # 404 = tile is all water / out of project
 
 
+# A venv puts its interpreter in bin/ on everything except Windows, where it is
+# Scripts/ and carries the .exe. Hardcoding bin/python3 made --venv rebuild the
+# venv on every run on a PC and then print a path that was not there.
+VENV_BIN = 'Scripts' if os.name == 'nt' else 'bin'
+VENV_PY = 'python.exe' if os.name == 'nt' else 'python3'
+VENV_PIP = 'pip.exe' if os.name == 'nt' else 'pip'
+
+
+def venv_python():
+    """The interpreter to run tools/lidar_roof.py with, once --venv has run."""
+    return os.path.join(VENV, VENV_BIN, VENV_PY)
+
+
 def make_venv():
-    if not os.path.exists(os.path.join(VENV, 'bin', 'python3')):
+    if not os.path.exists(venv_python()):
         subprocess.check_call([sys.executable, '-m', 'venv', VENV])
-    pip = os.path.join(VENV, 'bin', 'pip')
+    pip = os.path.join(VENV, VENV_BIN, VENV_PIP)
     subprocess.check_call([pip, 'install', '-q', '--upgrade', 'pip'])
     subprocess.check_call([pip, 'install', '-q', 'numpy', 'laspy[lazrs]'])
-    print(f'venv ready: {os.path.relpath(VENV, ROOT)}/bin/python3', file=sys.stderr)
+    print(f'venv ready. Run the roof pass with:\n'
+          f'  {os.path.relpath(venv_python(), ROOT)} tools/lidar_roof.py',
+          file=sys.stderr)
 
 
 def main():

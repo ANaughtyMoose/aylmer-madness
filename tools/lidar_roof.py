@@ -4,7 +4,8 @@
 Run with the venv python built by `tools/fetch_lidar.py --venv` (it needs
 laspy + lazrs + numpy):
 
-    data/raw/venv/bin/python3 tools/lidar_roof.py
+    data/raw/venv/bin/python3 tools/lidar_roof.py        # macOS, Linux
+    data\\raw\\venv\\Scripts\\python.exe tools\\lidar_roof.py   # Windows
 
 Reads every 1 km LAZ tile in data/raw/lidar/, burns two rasters over the whole
 map clip in MTM9 (EPSG:32189) metres:

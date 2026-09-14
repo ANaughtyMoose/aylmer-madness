@@ -7,11 +7,17 @@ this project — no Three.js, no npm, no build step, no assets to download.
 ## Run it
 
 ```sh
-./serve.sh          # http://localhost:8123
+./serve.sh          # macOS, Linux     http://localhost:8123
+npm run serve       # anywhere node is http://localhost:8123
 ```
 
 ES modules refuse to load over `file://`, so double-clicking `index.html` will
-not work. Any static server does; `serve.sh` just wraps `python3 -m http.server`.
+not work. Any static server does. `serve.sh` wraps `python3 -m http.server`,
+which is not on the PATH on a Windows box, so `npm run serve` runs
+`tools/serve.mjs` instead: the same thing in 40 lines of node, no dependencies.
+
+The python in `tools/*.py` is spelled `python3` throughout. On Windows that is
+`python` or `py -3`.
 
 ## Controls
 
