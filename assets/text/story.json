@@ -19,7 +19,7 @@
       "cargo": "Canot de cèdre 16 pieds, 2 pagaies en frêne, veste de flottaison orange."
     },
     {
-      "vehicle": "Honda Civic 1993 (Sayyad)",
+      "vehicle": "Honda Civic Si 1987 (Sayyad)",
       "job": "La course contre la montre pour les billets",
       "why": "Le Ranger est trop lourd et lent pour traverser le boulevard des Allumettières en moins de quatre minutes avant la fermeture du guichet : la Civic abaissée de Sayyad avec son swap de moteur permet de se faufiler dans le trafic dense de Hull.",
       "cargo": "Enveloppe scellée de laissez-passer VIP pour le festival de montgolfières."
@@ -256,7 +256,7 @@
       "giver": "Zahra",
       "from": "l'Hôtel British",
       "to": "Heritage College",
-      "vehicle": "Honda Civic 1993 (Sayyad)",
+      "vehicle": "Honda Civic Si 1987 (Sayyad)",
       "what": "Première grande virée intersectorielle à haute vitesse sur le boulevard des Allumettières.",
       "complication": "Radars de la police de Gatineau embusqués sur les longues lignes droites; garder un œil sur le speedomètre.",
       "reward": {

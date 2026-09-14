@@ -33,7 +33,7 @@ and the files themselves where the licence allows, so nobody has to search again
 ## What to find, in priority order
 
 **Vehicles (closest CC0 shape to each; exact model not required, silhouette is)**
-1993 Ford Ranger regular-cab pickup · 1997 Saturn SL sedan · 1988 Honda Civic Si hatchback ·
+1993 Ford Ranger regular-cab pickup · 1997 Saturn SL sedan · 1987 Honda Civic Si hatchback ·
 1997 Pontiac Sunfire coupe · 1998 Subaru Forester wagon · 1999 Toyota Sienna minivan · 1991 Chevy
 Cavalier Z24 · 1987 Oldsmobile Cutlass Ciera · 1988 Dodge Caravan · early-90s Ford F-250 ·
 Orion I city bus · GM New Look "fishbowl" bus · Blue Bird school bus · a police cruiser (Crown

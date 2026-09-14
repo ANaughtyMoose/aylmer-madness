@@ -67,7 +67,7 @@ You start with one. The rest you earn or buy, and they do not drive alike.
   passengers**. The "pick up the gang" job re-plans itself into two trips.
 - **1997 Saturn SL, 4-door** (blue) — Margaret's, parked next to yours at
   299 Fraser. She lends it after « Ramasser la gang ». Average at everything.
-- **1988 Honda Civic Si** (red) — Sayyad's, 75 Denise-Friend. His after
+- **1987 Honda Civic Si** (red) — Sayyad's, 75 Denise-Friend. His after
   « Poutine express ». Light, revvy, best grip and turn-in.
 - **1997 Pontiac Sunfire** (teal) — Adam's, out in Deschênes. After « Avant
   minuit ». Quick in a straight line, lazier in corners.

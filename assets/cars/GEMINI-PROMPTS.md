@@ -53,22 +53,31 @@ Vehicle description to append to each view:
 - **front.png**: "…Exact front elevation, straight on at bumper height."
 - **rear.png**: "…Exact rear elevation, straight on."
 
-## 1988 Honda Civic Si — `assets/cars/civic/`
+## 1987 Honda Civic Si — `assets/cars/civic/`
 
-> 1988 Honda Civic Si three-door hatchback (fourth generation EF, 1988–1991),
-> in Rio Red. Low sloping hood, thin black grille slot between the flush
-> rectangular headlamps, body-coloured bumpers with the black lower valance,
-> black door handles and mirrors, factory 14-inch Si alloy wheels (the
-> 5-spoke-ish flat-face alloy) on 185/60 tyres, sunroof, the long glass hatch
-> with the small black rear spoiler at the top of the hatch, single exhaust.
+> 1987 Honda Civic Si three-door hatchback (**third generation, AH chassis,
+> 1984–1987 — not the rounder fourth-generation EF**), in Rio Red. The angular
+> wedge: a long flat hood dropping to a very low nose, a near-vertical
+> windscreen base, an upright tail, and the deep glass hatch that runs the full
+> width. Flush composite headlamps of the 1986–87 facelift — one-piece wrapped
+> lenses set into the nose, no separate round sealed beams — with a thin black
+> grille slot between them and small amber corner lamps outboard. Black lower
+> body band running the length of the sills and around both bumpers, dividing
+> the red above from black below; black door handles and mirrors; black
+> B-pillar and window surrounds. Factory power sunroof, closed, its panel seam
+> visible in the roof. Factory 13-inch Si alloys on 175/70 tyres, small black
+> lip spoiler at the top of the hatch, single exhaust, **"Si" badge low on the
+> hatch beside the Honda badge**. Stock ride height.
 
 - **side.png**: "…Exact left-side profile (driver's side), perpendicular,
-  vehicle facing LEFT, tyres at the bottom of the silhouette."
+  vehicle facing LEFT, tyres at the bottom of the silhouette. The wedge: flat
+  hood, low nose, upright tail."
 - **top.png**: "…Exact plan view from directly above, vehicle facing LEFT.
-  Show the sunroof and the glass hatch."
-- **front.png**: "…Exact front elevation, straight on at bumper height."
-- **rear.png**: "…Exact rear elevation, straight on, showing the hatch, wide
-  tail lamps and the Si badge."
+  Show the sunroof panel and the glass hatch."
+- **front.png**: "…Exact front elevation, straight on at bumper height,
+  showing the flush one-piece headlamps and the black lower band."
+- **rear.png**: "…Exact rear elevation, straight on, showing the deep glass
+  hatch, the tall narrow tail lamps and the Si badge."
 
 ## 1997 Pontiac Sunfire coupe — `assets/cars/sunfire/`
 
