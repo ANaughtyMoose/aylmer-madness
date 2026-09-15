@@ -357,17 +357,47 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
 // own; these numbers come from the merged code. They pin the whole path —
 // the ramp target, the drag normalisation, the lateral grip, the thrust curve
 // — to nine decimals, so none of it can drift again without somebody choosing.
+//
+// Rebaselined a SECOND time, and for two rows only. cars.js gained a per-car
+// `feel` block (see the long note over the FEEL table there): a torque curve
+// read off the car's own gear ratios, a traction limit at low speed, a gap
+// between gears, and its own steering rack, tyre and counter-steer numbers.
+// Every one of those terms is optional and resolves to an exact 1 or an exact 0
+// when a vehicle does not declare it, so the ranger, saturn and sunfire rows
+// below are UNCHANGED to the last digit and that is the point of them — the
+// Ranger is the reference car whose handling was signed off, and
+// tools/smoke_feel.mjs exists to keep proving it. The Civic declares a block,
+// so both its rows moved: it is now a 1.5 with a 6500 limit that is soft under
+// 4000 and loses 0.06 s at every up-shift, which is why 5 s of full throttle
+// leaves it 13.5 m short of where it used to be on tarmac (46.07 m, was 59.58)
+// and pointing less far round on grass. Nothing else in the table moved,
+// because nothing else has a block yet.
+//
+// Rebaselined a THIRD time, for three of the four rows, when the rest of the
+// roster got its blocks. The Saturn and the Sunfire now declare one — a soft
+// torque curve, a slower rack, a little wallow — so both of their rows moved in
+// the direction you would expect: 5 s of full throttle is 42.67 m of tarmac
+// instead of 47.33 for the Saturn and 47.63 instead of 50.76 for the Sunfire,
+// because neither engine has all of itself below 3000 rpm any more, and both
+// come round less on grass because a body that leans loses bite while it is
+// leaning. The Civic's two rows moved again for a different reason: WSPIN_V,
+// the speed at which wheelspin has hooked up, went from 24 m/s to 14 (see the
+// note over it in cars.js — at 24 the Firebird was still spinning its tyres at
+// highway speed and took 11.9 s to 100 km/h), and the Civic shares that
+// constant, so it now stops scrabbling sooner and covers 47.40 m instead of
+// 46.07. THE RANGER ROW IS UNTOUCHED TO THE LAST DIGIT, again, and that is
+// still the whole point: it declares no block, so none of this reaches it.
 
 {
   const REF = {
     'road/ranger': [0, 39.086020339, 0, 15.10366738, 0, 1, 0, -0.034946719, 0],
-    'road/civic': [0, 59.577325276, 0, 22.631436178, 0, 1, 0, -0.032448215, 0],
-    'road/saturn': [0, 47.334885078, 0, 18.234917409, 0, 1, 0, -0.033161676, 0],
-    'road/sunfire': [0, 50.755311354, 0, 19.491940415, 0, 1, 0, -0.038449011, 0],
+    'road/civic': [0, 47.403041051, 0, 19.606611227, 0, 1, 0, -0.034845976, 0],
+    'road/saturn': [0, 42.672258933, 0, 16.928490268, 0, 1, 0, -0.032794667, 0],
+    'road/sunfire': [0, 47.628785187, 0, 18.658972425, 0, 1, 0, -0.039140525, 0],
     'grass/ranger': [-8.906805509, 16.796348942, -1.011796229, 7.236878419, 0.372345805, 0.81, 0, -0.017148101, -0.048907851],
-    'grass/civic': [-26.6387035, 12.327437047, -2.275756135, 12.790750407, 1.079114168, 0.81, 0, -0.021578374, -0.122227628],
-    'grass/saturn': [-16.523605086, 17.444892476, -1.547517147, 9.582057321, 0.658363374, 0.81, 0, -0.018751291, -0.077393361],
-    'grass/sunfire': [-19.22275782, 17.698844441, -1.678903329, 10.561247584, 0.764035109, 0.81, 0, -0.022817953, -0.100751201],
+    'grass/civic': [-13.949619298, 14.052830887, -1.594292575, 8.562245876, 0.565141584, 0.81, 0, -0.017768968, -0.06399078],
+    'grass/saturn': [-11.475750528, 16.015632114, -1.274411492, 7.845229255, 0.459056741, 0.81, 0, -0.017328463, -0.053506701],
+    'grass/sunfire': [-15.657218949, 17.651077416, -1.485889648, 9.666992295, 0.77171989, 0.81, 0, -0.023205926, -0.08368666],
   };
   let worst = 0, worstKey = '';
   for (const [name, world] of [['road', flat], ['grass', flatGrass]]) {
@@ -395,8 +425,11 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
   const v = new Vehicle(carById('civic'));
   v.reset(0, 0, 0);
   for (let i = 0; i < 120; i++) v.update(1 / 60, ctl({ throttle: 1 }), flat);
+  // The threshold was 8 m and is 6 m: this asks « did the car move and stay on
+  // the deck », not « how quick is the Civic », and the 1987 Si covers 7.1 m in
+  // its first two seconds where the old 1.6 covered nine. See the note over REF.
   ok('a world with no groundAt at all (smoke.mjs, the mission bots) still drives',
-    v.z > 8 && v.y === 0 && v.gh === 0 && !v.air, `z ${r2(v.z)}`);
+    v.z > 6 && v.y === 0 && v.gh === 0 && !v.air, `z ${r2(v.z)}`);
 }
 
 // -------------------------------------------------- the path, actually driven

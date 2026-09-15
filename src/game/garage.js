@@ -83,6 +83,13 @@ export const UNLOCKS = {
               need: 'Le Z24 est à Tyler — 312 Samuel-Edey',
               needEn: 'Tyler’s Z24 — 312 Samuel-Edey' },
   caravan:  { kind: 'buy', cost: 250,  need: '250 $ au lot d’occasion',   needEn: '$250 at the used lot' },
+  // Roger Bouchard's 240D. The ad is his (game/kijiji.js) and the car is on
+  // Ti-Guy's gravel on consignment, which is the same arrangement the Caravan
+  // already has. $650 is the whole joke: the restoration in Deschênes is a flat
+  // $800, so putting the thing right costs more than the thing.
+  benz:     { kind: 'buy', cost: 650,
+              need: '650 $ — l’annonce de Roger sur Kijiji',
+              needEn: '$650 — Roger’s ad on Kijiji' },
   bus:      { kind: 'buy', cost: 1500, jobs: 10,
               need: '1 500 $ au lot — après 10 jobs',
               needEn: '$1,500 at the used lot — after 10 jobs' },

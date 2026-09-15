@@ -17,6 +17,16 @@ const STREAK_HOLD = 4.0;      // seconds before a run of smashed props lapses
 const STREAK_AT = [5, 10, 20, 35];
 const SMOKE_EVERY = 0.045;    // seconds between tyre puffs while sliding
 const SCRAPE_EVERY = 3;       // frames between wall-scrape probes
+// The tailpipe. `SOOT_IDLE` is the interval between wisps off a diesel sitting
+// at a light, `SOOT_LOAD` the interval under full load, and both are divided by
+// the car's own `smokes` rate — so a restored 240D at 0.15 puffs at a seventh
+// of the rate without this file knowing the restoration exists. `SOOT_TIP` is
+// how far the pedal has to move in one frame to count as a tip-in, which is the
+// black cloud everybody remembers these cars by: the fuel arrives before the
+// air does and what does not burn goes out the back.
+const SOOT_IDLE = 0.60;
+const SOOT_LOAD = 0.085;
+const SOOT_TIP = 0.30;
 
 const NOUN = {
   garbage: 'poubelles', recyc: 'bacs bleus', mailbox: 'boîtes aux lettres',
@@ -42,6 +52,8 @@ export class Reactive {
     this.streakKind = '';
     this.streakStep = 0;
     this.smokeT = 0;
+    this.sootT = 0;
+    this.sootThr = 0;
     this.prevDamage = 0;
     this.frame = 0;
     this.hudT = 0;
@@ -89,6 +101,7 @@ export class Reactive {
 
     this.hitProps(dt, G, v);
     this.tyres(dt, v);
+    this.exhaust(dt, v);
     this.scrapes(dt, G, v);
     this.peds.update(dt, G);
     this.debris.update(dt);
@@ -185,6 +198,51 @@ export class Reactive {
       const lx = k * s.track * 0.5;
       this.debris.puff(v.x + lx * cy + lz * sy, (v.y || 0) + 0.12, v.z - lx * sy + lz * cy,
         v.vx * 0.3, v.vz * 0.3, false);
+    }
+  }
+
+  // The tailpipe, and the only thing in this file that is about one car.
+  //
+  // `spec.smokes` is a rate, 0..1, and no other vehicle declares one — so for
+  // everything else this is a property read and a return, every frame, the same
+  // cost the tyre check above already pays. The 240D declares 1: an OM616 with
+  // three hundred thousand kilometres on it and the rings it left the factory
+  // with. Three behaviours, and each of them is something a real one does:
+  //
+  //   the wisp    it never stops. A diesel at idle hazes, and a tired one
+  //               hazes visibly, which is why you can find a W115 in a parking
+  //               lot by looking for the blue-grey.
+  //   the plume   under load. `load` is the pedal weighted DOWN with speed,
+  //               because black smoke is unburnt fuel and the engine makes far
+  //               more of it hauling 1450 kg away from a light than it does at
+  //               a cruise, where the same pedal is asking for much less.
+  //   the cloud   the tip-in. Open the throttle and the pump delivers before
+  //               the air catches up: three puffs at once, immediately.
+  //
+  // `v.throttle` is the pedal this frame (cars.js Vehicle.update writes it for
+  // every vehicle and the physics never reads it), and `this.sootThr` is the
+  // pedal last frame — the difference between the two IS the tip-in.
+  exhaust(dt, v) {
+    const rate = v.spec.smokes || 0;
+    if (!(rate > 0)) { this.sootT = 0; this.sootThr = 0; return; }
+    const thr = v.throttle || 0;
+    const tipIn = thr > 0.25 && thr - this.sootThr > SOOT_TIP;
+    this.sootThr = thr;
+    const load = thr * (1 - 0.55 * Math.min(1, Math.abs(v.vLong) / 22));
+    const every = (load > 0.05 ? SOOT_LOAD / (0.35 + load) : SOOT_IDLE) / rate;
+    this.sootT -= dt;
+    if (tipIn) this.sootT = 0;
+    if (this.sootT > 0) return;
+    this.sootT = every;
+    const s = v.spec;
+    const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw);
+    // Under the rear valance and out to the car's RIGHT: local +X is the
+    // driver's left, so the single pipe a W115 has is at negative x.
+    const lz = -(s.len * 0.5 - 0.08), lx = -(s.wid * 0.5 - 0.32);
+    const x = v.x + lx * cy + lz * sy, z = v.z - lx * sy + lz * cy;
+    const n = tipIn ? 3 : 1;
+    for (let i = 0; i < n; i++) {
+      this.debris.puff(x, (v.y || 0) + 0.26, z, v.vx * 0.6, v.vz * 0.6, false, true);
     }
   }
 

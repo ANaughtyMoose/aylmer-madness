@@ -160,11 +160,23 @@ export const PAINT = [
 
 // ---------------------------------------------------------------- the layer
 
+// The restoration. Not a part and not a level: Grigori Volkov does one job and
+// he does it once, and what comes back is the whole car in 1976 condition. It
+// is a mod rather than a flag on the save because it has to ride in the same
+// record a camshaft and a paint colour already ride in — see Garage.setMods.
+export const RESTORE_PRICE = 800;
+// A restored 240D still smokes. An OM616 with a fresh set of rings is a CLEAN
+// indirect-injection diesel, not a petrol engine, and a W115 that puffs nothing
+// at all is not the car anybody remembers. A seventh of the rate, then, which
+// is a wisp at a light and a small haze when you lean on it.
+export const RESTORED_SMOKE = 0.15;
+
 // Empty mods, and the shape everything below is allowed to assume.
 export function emptyMods() {
   const m = {};
   for (const p of PARTS) m[p.id] = 0;
   m.paint = null;
+  m.restored = false;
   return m;
 }
 
@@ -181,10 +193,14 @@ export function normalizeMods(raw) {
   if (typeof paint === 'number' && isFinite(paint) && paint >= 0 && paint <= 0xffffff) {
     out.paint = Math.floor(paint);
   }
+  // Strictly `=== true`: a hand-edited save that says "oui" does not get a
+  // free eight-hundred-dollar restoration.
+  out.restored = raw.restored === true;
   return out;
 }
 
-export const isStock = (mods) => PARTS.every((p) => !(mods && mods[p.id])) && !(mods && mods.paint != null);
+export const isStock = (mods) => PARTS.every((p) => !(mods && mods[p.id]))
+  && !(mods && mods.paint != null) && !(mods && mods.restored);
 
 /**
  * The car you actually drive. `spec` is the one out of CARS; the return is a
@@ -207,6 +223,21 @@ export function tuned(spec, mods) {
   for (const k of Object.keys(mul)) out[k] = spec[k] * mul[k];
   for (const k of Object.keys(set)) out[k] = set[k];
   if (m.paint != null) out.body = m.paint;
+  // The restoration buys nothing the driving model reads — a rebuilt 240D is
+  // exactly as slow as a tired one, which is the joke — and everything the eye
+  // and the ear do. `wear` is what specPaint()'s weather() bakes into the
+  // vertex colours, so dropping it IS the new paint and the straight panels;
+  // `smokes` is the rate reactive.js's tailpipe reads. Both are own-properties
+  // on the derived object, so the shared spec in CARS is untouched and the
+  // ambient traffic keeps whatever it had.
+  // `spec.restorable` is checked again here and not only in canRestore(): a
+  // hand-edited save can put `restored: true` on any car in the table, and the
+  // answer to that is that it does nothing, not that the Ranger quietly loses
+  // nine years of gravel dust.
+  if (m.restored && spec.restorable) {
+    out.wear = null;
+    out.smokes = RESTORED_SMOKE;
+  }
   // Once cars.js lands finalizeCar(), a car's terminal speed is SOLVED from its
   // drag rather than written down, so a tuned copy has to be re-solved or the
   // engine work would be thrown away. If it moves the number, the engine
@@ -484,4 +515,119 @@ export function normSay(kind, seed = 0, partId = null) {
   const tag = WORK_TAG[partId];
   const matching = NORM.work.filter((w) => w.part === tag);
   return pick(matching.length ? matching : NORM.work, seed);
+}
+
+// ---------------------------------------------------------------- Grigori
+
+// Grigori « Grisha » Volkov, 61 ans, Carrosserie Volkov — a Quonset hut and
+// four hectares of nettles off chemin Vanier in Deschênes (places.js `grisha`).
+// He is four foot eleven and nearly as wide, with a nose you could hang a coat
+// on and eyebrows going in four directions at once, and he arrived from
+// Leningrad in 1979 with a toolbox and no English. He has a little French now
+// and no patience for any of it, so when a bolt rounds off he reverts.
+//
+// He does ONE job. He does not fit parts, he does not do brakes, he does not
+// quote by the hour: he takes the car apart, puts it back together the way it
+// left Sindelfingen, and charges eight hundred dollars, and he only takes a car
+// worth doing — `spec.restorable`, which today is Roger's 240D and nothing
+// else. The lines live in assets/text/grisha.json; what is below is the
+// fallback, so the shop still runs with the file missing.
+export const RESTORER_URL = 'assets/text/grisha.json';
+export const GRISHA = {
+  name: 'Grigori « Grisha » Volkov',
+  shop: 'Carrosserie Volkov',
+  where: 'chemin Vanier, Deschênes',
+  greetings: [
+    'Ferme la porte. Le vent rentre pis mon chat est vieux.',
+    'Tu me montres le char, pas la photo du char. Recule-le dans la baie.',
+  ],
+  // What he says while he is walking round it, before he names the price.
+  quote: [
+    'Huit cents. Pas sept cent cinquante. Huit cents.',
+    'Je la fais comme elle est sortie de l’usine. Après ça, tu la gâches tout seul.',
+  ],
+  // ...and after. `Ёшкин кот` is roughly « cat's whiskers » and `Ёлки-палки`
+  // is « fir trees and sticks »; both are what a Russian says instead of the
+  // word he means, which is exactly the register this character is written in.
+  done: [
+    'Ёшкин кот! Trente-deux boulons cassés dans l’aile. TRENTE-DEUX. Prends tes clés.',
+    'Fini. J’ai tout sorti, tout décapé, tout remonté. Elle fume encore un peu — c’est un diesel, pas une théière.',
+    'Ёлки-палки, quel char. Ils faisaient ça pour durer cent ans pis le monde les laisse dehors.',
+  ],
+  broke: [
+    'Тьфу! Huit cents. Je marchande pas, je compte pas, je fais pas de crédit. Reviens avec l’argent.',
+    'Pas d’argent, pas de char. C’est simple. Même en russe c’est simple.',
+  ],
+  // Anything that is not worth taking apart, which is everything else in town.
+  refuse: [
+    'Зараза… Non. Ça, c’est de la tôle de canne de soupe. Va voir Norm.',
+    'Je touche pas à ça. Ramène-moi quelque chose qu’un homme a dessiné.',
+  ],
+};
+
+let restLoaded = null;
+/**
+ * Merge assets/text/grisha.json over the fallback. Same contract as
+ * loadMechanic(): idempotent, and it never rejects — with no file, no fetch and
+ * no network, Grisha still swears.
+ */
+export function loadRestorer(fetchFn) {
+  if (restLoaded) return restLoaded;
+  const f = fetchFn || (typeof fetch === 'function' ? fetch : null);
+  if (!f) return Promise.resolve(GRISHA);
+  restLoaded = f(RESTORER_URL, { cache: 'force-cache' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((j) => {
+      const m = j && j.restorer;
+      if (!m) return GRISHA;
+      // The writers' files use typewriter apostrophes; everything the player
+      // reads in this game uses the curly one.
+      const fix = (t) => String(t).replace(/'/g, '\u2019');
+      if (typeof m.name === 'string') {
+        GRISHA.name = fix(m.name).replace(/\u2019([^\u2019]+)\u2019/, '\u00ab\u00a0$1\u00a0\u00bb');
+      }
+      for (const k of ['shop', 'where']) if (typeof m[k] === 'string') GRISHA[k] = fix(m[k]);
+      for (const k of ['greetings', 'quote', 'done', 'broke', 'refuse']) {
+        if (Array.isArray(m[k]) && m[k].length) GRISHA[k] = m[k].map(fix);
+      }
+      return GRISHA;
+    })
+    .catch(() => GRISHA);
+  return restLoaded;
+}
+
+/** One of Grisha's lines. `kind` is any of the arrays above. */
+export function grishaSay(kind, seed = 0) { return pick(GRISHA[kind], seed); }
+
+/**
+ * Would he take this car today? Returns { ok, why, price } and spends nothing,
+ * so the button in the pane is built out of exactly this. Three ways to be
+ * told no, and each of them is a different line out of him.
+ */
+export function canRestore(spec, mods, wallet) {
+  const m = normalizeMods(mods);
+  if (!spec || !spec.restorable) {
+    return { ok: false, why: 'Il fait pas ça sur ce char-là', price: 0, refused: true };
+  }
+  if (m.restored) return { ok: false, why: 'C’est déjà fait. Va la conduire.', price: 0, done: true };
+  if (!wallet || !wallet.can(RESTORE_PRICE)) {
+    const short = Math.max(0, RESTORE_PRICE - (wallet ? wallet.value : 0));
+    return { ok: false, why: `il te manque ${Math.round(short)} $`, price: RESTORE_PRICE, broke: true };
+  }
+  return { ok: true, why: null, price: RESTORE_PRICE };
+}
+
+/**
+ * Do it. Same answer as canRestore(), except that when it says yes the wallet
+ * is eight hundred dollars lighter and `mods` carries the restoration — which
+ * is all this function does. Rebuilding the mesh, repairing the bodywork and
+ * putting the toast on the screen belong to whoever owns a renderer; see
+ * game/economy.js.
+ */
+export function restore(spec, mods, wallet) {
+  const r = canRestore(spec, mods, wallet);
+  if (!r.ok) return r;
+  wallet.spend(r.price);
+  mods.restored = true;
+  return r;
 }

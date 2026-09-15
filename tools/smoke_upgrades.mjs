@@ -6,7 +6,7 @@
 //
 // The before/after driving numbers here are the SAME measurements the shop puts
 // on its work order — upgrades.js measure() drives a Vehicle round a flat empty
-// world — so if this file says the Civic's 0-100 drops from 7,7 s to 6,2 s, that
+// world — so if this file says the Civic's 0-100 drops from 7,3 s to 5,2 s, that
 // is what the car does in the browser.
 
 class FakeStorage {
@@ -216,7 +216,7 @@ group('the forty ads in assets/text/kijiji.json');
   const buyable = all.filter((a) => a.car);
   const phantoms = all.filter((a) => a.phantom);
   ok(all.length === K.ADS.length + raw.listings.length, `${all.length} ads on the page`);
-  ok(buyable.length === 4, 'four of them are cars this game can actually build');
+  ok(buyable.length === 5, 'five of them are cars this game can actually build');
   ok(phantoms.length === raw.listings.length, `${phantoms.length} are phantoms`);
   ok(phantoms.every((a) => !a.car), 'and not one phantom is buyable');
   ok(phantoms.every((a) => a.redFlag), 'every phantom knows what is wrong with itself');

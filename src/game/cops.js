@@ -58,6 +58,32 @@ export const CRUISER = {
   hbGrip: 0.44, hbYaw: 1.36,
   sound: { f0: 40, span: 190, sub: 0.5, o2g: 0.5, cut0: 320, cutSpan: 2000, gain: 1.05,
            type1: 'sawtooth', type2: 'square', rattle: 0, rattleFrom: 0 },
+  // The 4.6 modular and the AOD-E behind it. Nothing in the audio path reads
+  // this — the cruiser is still on the two-oscillator synth above, not the
+  // pulse-train one the cars use — but the FEEL block below needs a gearbox of
+  // its own to read an rpm off, and leaving it out would have handed a police
+  // Crown Victoria the Ranger's five-speed and a 2.3 Lima's shift points.
+  // 169 km/h is 2894 rpm in fourth, which is what an overdriven P71 does.
+  drive: { gears: [2.84, 1.55, 1.00, 0.70], reverse: 2.32, final: 3.27, tyre: 0.710,
+           idle: 600, redline: 5000, limiter: 5100,
+           shiftUp: 4600, shiftUpLight: 2300, shiftDown: 1300, launch: 1800, shiftTime: 0.28 },
+  // How it drives, in the grammar of the FEEL table in cars.js — declared here
+  // and not there because this car is not in CARS at all (you never get to buy
+  // it) and because the key `cruiser` in that table is already spoken for by the
+  // Schwinn in game/bikes.js, which must stay blank.
+  //
+  // It is the Crown Vic on the used lot (FEEL.crownvic) with the municipal
+  // package on it: the same flat 5.0 torque, the same body-on-frame float, but
+  // a quicker box, a firmer bar and tyres somebody bought to be driven on. It
+  // still steps out under power — further than the civilian car, because it has
+  // more of everything to step out with — it just does not wallow about
+  // afterwards. That is the difference you are meant to feel in a chase.
+  feel: {
+    layout: 'rwd', powerYaw: 0.48, wheelspin: 0.46,
+    torque: [[0, 0.84], [0.16, 0.96], [0.34, 1], [1, 1]],
+    shiftCut: 0.14, steerRate: 10, rackSpeed: 11, bite: 8.4, wallow: 0.28,
+    counterSteer: 0.042,
+  },
 };
 {
   const c = CRUISER;
