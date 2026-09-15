@@ -40,6 +40,10 @@ Music is synthesized, rather than commercial song recordings. The cassette playl
 
 ## Local validation
 
-Final results and synchronization details are recorded below when verification completes.
+`npm test`: **49/49 suites passed**. The new radio-resume regression and affected audio/story checks passed afterward. Real-terrain paving checks also passed after their final optimization. `smoke_react.mjs`: **48 assertions passed**, with **31 ms streetprops bake** against its **60 ms** budget on this machine. The 69 ms VM result is not reproduced here; this measurement alone does not prove why the VM was slower.
+
+Live music signal: RMS up to 0.0130 playing, zero paused, 0.0114 resumed, zero with radio volume muted, and 0.0119 restored. No browser warning or error was recorded during the opening check.
+
+The combined two-parent merge is `7472e66` on `codex/complete-aylmer`. It is prepared as one PR against main, without merging main. The original GitHub Clone checkout is synchronized to that PR branch; the interrupted newer checkout remains available for recovery.
 
 For a practical playtest: start a new Tom game; back out of Fraser; follow GPS to Canadian Tire; inspect the historic mall and loading docks; try Margaret's dental and Sol errands; test St. Vincent and Russell pickups; discover the SVX at Heritage; switch radio stations and pause/resume; buy and restore the 240D.
