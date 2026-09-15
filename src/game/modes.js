@@ -1,3 +1,4 @@
+import { settleSpawn } from './tow.js';
 // The three modes.
 //
 // Midtown Madness shipped with three, and they are three because each one asks
@@ -510,11 +511,12 @@ export function startCourse(G, course) {
   if (G.mission && G.failMission) G.failMission('Abandonné.');
   const p = at(course.start);
   if (G.veh && p) {
-    G.veh.reset(p.x, p.z, p.a != null ? p.a : (p.yaw || 0));
+    G.veh.reset(p.x, p.z, p.a != null ? p.a : (p.yaw || 0),
+      G.phys && G.phys.groundY ? G.phys.groundY(p.x, p.z) : 0);
     // reset() does not touch `onRoad`, and a stale one fires cars.js's kerb kick
     // on the first tick after the move — which on a start line reads as the
     // truck hopping into the air before the countdown has even started.
-    if (G.world && G.world.roadAt) G.veh.onRoad = G.world.roadAt(p.x, p.z);
+    if (G.world && G.world.roadAt) G.veh.onRoad = G.world.roadAt(G.veh.x, G.veh.z);
   }
   G.modeNow = course.kind;
   G.routeKey = '';

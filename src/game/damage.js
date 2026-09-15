@@ -45,11 +45,8 @@ export const repairLeft = (state, secs = REPAIR_SECONDS) => Math.max(0, secs - s
 
 // ---------------------------------------------------------------- FEEL: where you get it fixed
 //
-// The complaint was that nobody could find the one garage in town, so there are
-// three now and the HUD points at them. `place` is a key into game/places.js.
-//
-//   home        your own driveway. Free, and slow, because you are doing it.
-//   gas/ctire   somebody else does it in four seconds and charges you for it.
+// `place` is a key into game/places.js. Home DIY is free and slow; the garage
+// at 143 Principale quotes a price and adds a small supplies charge.
 //
 // Everything here is pure arithmetic against a places table and a wallet-shaped
 // object, so tools/smoke_repair.mjs runs it in node with no browser at all.
@@ -66,10 +63,8 @@ export const REPAIR = {
 export const REPAIR_SPOTS = [
   { key: 'home',  place: 'home',  radius: REPAIR.HOME_RADIUS, seconds: REPAIR.HOME_SECONDS,
     free: true,  short: 'chez vous',      label: 'ton entrée' },
-  { key: 'gas',   place: 'gas',   radius: REPAIR.SHOP_RADIUS, seconds: REPAIR.SHOP_SECONDS,
-    free: false, short: 'Petro-Can',      label: 'la Petro-Canada' },
-  { key: 'ctire', place: 'ctire', radius: REPAIR.SHOP_RADIUS, seconds: REPAIR.SHOP_SECONDS,
-    free: false, short: 'Canadian Tire',  label: 'le Canadian Tire' },
+  { key: 'norm', place: 'norm', radius: 12, seconds: REPAIR.SHOP_SECONDS,
+    free: false, short: 'Garage Caumartin', label: 'le garage au 143 Principale' },
 ];
 
 /** 20 % of the damage in dollars, never under $5, always a round number. */
@@ -112,49 +107,36 @@ export function nearestRepair(veh, places) {
  * Returns a plain record — no DOM, no audio — and main.js turns it into a
  * prompt, a toast and the wrench taps.
  */
+export function repairInvoice(damage) {
+  const quote = repairCost(damage);
+  const extra = quote ? Math.max(1, Math.round(quote * .10)) : 0;
+  return {quote, extra, total:quote + extra};
+}
+
 export function updateRepairs(state, dt, veh, opts = {}) {
-  const res = { spot: null, prompt: null, toast: null, done: false, cost: 0, working: false, left: 0 };
-  const places = opts.places;
-  if (!veh || !(veh.damage > 0)) { state.t = 0; state.key = null; return res; }
-  const spot = repairSpotAt(veh, places);
-  if (!spot) { state.t = 0; state.key = null; return res; }
-  res.spot = spot;
-
-  const wallet = opts.wallet || null;
-  const cost = spot.free ? 0 : repairCost(veh.damage);
-  res.cost = cost;
-
-  // Already under way here.
-  if (state.key === spot.key) {
-    state.t += dt;
-    res.working = true;
-    res.left = Math.max(0, spot.seconds - state.t);
-    res.prompt = `Réparation…  ${Math.ceil(res.left)} s`;
-    if (state.t >= spot.seconds) {
-      const paid = cost > 0 && wallet ? (wallet.spend(cost) ? cost : 0) : 0;
-      state.t = 0; state.key = null;
-      res.working = false; res.done = true; res.prompt = null; res.cost = paid;
-      res.toast = spot.free
-        ? 'Comme neuf.\nTon père a rien vu.'
-        : `Comme neuf.\n${paid} $ — fais attention à c’t’heure`;
+  const res = {spot:null,prompt:null,toast:null,done:false,cost:0,working:false,left:0};
+  const reset=()=>{state.t=0;state.key=null;state.invoice=null;state.vehicle=null;};
+  const spot=repairSpotAt(veh,opts.places);
+  if(!spot){reset();return res;}
+  res.spot=spot;
+  if(state.vehicle && state.vehicle!==veh)reset();
+  const bill=state.key===spot.key && state.invoice ? state.invoice : spot.free ? {quote:0,extra:0,total:0}:repairInvoice(veh.damage);
+  res.cost=bill.total;
+  const afford=()=>spot.free || !!opts.wallet?.can(bill.total);
+  if(state.key===spot.key){
+    state.t+=dt;res.working=true;res.left=Math.max(0,spot.seconds-state.t);
+    res.prompt='Réparation… '+Math.ceil(res.left)+' s';
+    if(state.t>=spot.seconds){
+      reset();res.working=false;res.prompt=null;
+      if(!spot.free && (!afford() || !opts.wallet.spend(bill.total))){res.toast='Fonds insuffisants pour la facture. Aucun paiement, aucune réparation.';return res;}
+      res.done=true;res.cost=bill.total;
+      res.toast=spot.free ? 'Réparé dans ton entrée.' : 'Devis : '+bill.quote+' $ · Petit extra : '+bill.extra+' $\nFacture payée : '+bill.total+' $. « Ah oui, les fournitures… »';
     }
     return res;
   }
-
-  // Not started. Broke? Say so, and point at the driveway.
-  if (cost > 0 && wallet && !wallet.can(cost)) {
-    res.prompt = `${cost} $ pour réparer — t’as pas l’argent. Chez vous c’est gratuit (E)`;
-    return res;
-  }
-  res.prompt = spot.free
-    ? `E  —  réparer dans l’entrée (gratuit, ${spot.seconds} s)`
-    : `E  —  réparer (${cost} $)`;
-  if (opts.press) {
-    state.key = spot.key; state.t = 0;
-    res.working = true;
-    res.left = spot.seconds;
-    res.prompt = `Réparation…  ${spot.seconds} s`;
-  }
+  if(!afford()){res.prompt='Facture '+bill.total+' $ — fonds insuffisants. Ton entrée reste gratuite.';return res;}
+  res.prompt=spot.free ? 'E — réparer dans ton entrée (gratuit, '+spot.seconds+' s)' : 'E — devis '+bill.quote+' $ (+ '+bill.extra+' $ fournitures; total '+bill.total+' $)';
+  if(opts.press){state.key=spot.key;state.t=0;state.invoice=bill;state.vehicle=veh;res.working=true;res.left=spot.seconds;res.toast=spot.free?null:'« Ça va être '+bill.quote+' piasses… à peu près. »';}
   return res;
 }
 
@@ -169,13 +151,13 @@ export function repairHint(state, damage) {
   if (!(damage > 0)) { state.h25 = false; state.h60 = false; return out; }
   if (damage >= DAMAGE.COSMETIC && !state.h25) {
     state.h25 = true;
-    out.toast = 'Ton char est magané — Petro-Can, Canadian Tire, ou ton entrée (E)';
+    out.toast = 'Ton char est magané — Garage Caumartin, 143 Principale, ou ton entrée (E)';
   }
   if (damage >= DAMAGE.PERF && !state.h60) {
     state.h60 = true;
     out.toast = 'Ça tire à gauche pis ça pétarade — va le faire réparer';
   }
-  if (damage >= DAMAGE.COSMETIC) out.hint = 'réparer: Petro-Can · Canadian Tire · chez vous';
+  if (damage >= DAMAGE.COSMETIC) out.hint = 'réparer : 143 Principale · chez vous';
   return out;
 }
 

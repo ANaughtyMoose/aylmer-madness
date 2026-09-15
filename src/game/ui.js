@@ -2,7 +2,7 @@
 // tutorial, the pause tabs (jobs / controls / settings), the loading screen and
 // the mission intro card. All plain DOM — no framework, no templating.
 
-import { t, KEYMAP, languages } from './i18n.js';
+import { t, KEYMAP, languages, getLang } from './i18n.js';
 import { MAP } from './mapdata.js';
 import { KEYS, readFlag, writeFlag } from './store.js';
 import { fmtWhen, fmtPlaytime, carName, slotNumber } from './save.js';
@@ -31,6 +31,7 @@ const MODALS = [
   ['options', 'options'],
   ['load', 'loadscr'],
   ['modes', 'modepick'],
+  ['cinematic', 'cinematic'],
   ['story', 'story'],
   ['intro', 'intro'],
 ];
@@ -115,7 +116,12 @@ export class Legend {
     this.rows = $('legendrows');
     // Absent means "never touched it": a fresh player gets the full list.
     this.open = legendOpenPref();
-    if (this.head) this.head.onclick = () => this.toggle();
+    if (this.head) {
+      this.head.onclick = () => this.toggle();
+      this.head.addEventListener?.('keydown', e => {
+        if (['Enter', 'Space'].includes(e.code)) e.stopPropagation();
+      });
+    }
     this.render();
   }
 
@@ -129,7 +135,12 @@ export class Legend {
   render() {
     if (!this.root) return;
     this.root.classList.toggle('collapsed', !this.open);
-    if (this.head) this.head.textContent = this.open ? t('k.title') + '   ' + t('k.hide') : t('k.show');
+    if (this.head) {
+      this.head.textContent = getLang() === 'en'
+        ? (this.open ? '? — Hide controls' : '? — Show controls')
+        : (this.open ? '? — Masquer les commandes' : '? — Afficher les commandes');
+      this.head.setAttribute?.('aria-expanded', String(this.open));
+    }
     if (!this.rows) return;
     this.rows.innerHTML = KEYMAP.map((k) =>
       `<div class="lrow">${k.caps.map((c) => `<kbd>${esc(c)}</kbd>`).join('')}` +

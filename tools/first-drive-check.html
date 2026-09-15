@@ -1,0 +1,63 @@
+<!doctype html><meta charset="utf-8"><title>First drive integration check</title>
+<style>body{background:#102b30;color:#fff0d0;font:16px Arial;margin:20px}button{padding:12px;margin:6px}iframe{display:block;border:0;width:1280px;height:800px;margin-top:16px}pre{white-space:pre-wrap}</style>
+<h1>First drive integration check</h1>
+<p>Development fixture. Exercises real mission code using simulated arrivals; this does not assess driving feel.</p>
+<button id="run">Run first-job checks</button><button id="opening">Opening</button><button id="house">House exterior</button><button id="brief">Briefing</button><button id="mall">Mall exterior</button>
+<button data-width="1024" data-height="768">1024 × 768</button><button data-width="1280" data-height="800">1280 × 800</button><button data-width="1920" data-height="1080">1920 × 1080</button>
+<pre id="results">Ready. Uses the preview origin only.</pre><iframe id="game" src="../index.html" title="Game under test"></iframe>
+<script type="module">
+import { missionById } from '../src/game/missions.js';
+const frame=document.querySelector('iframe'), out=document.querySelector('pre');
+const until=async fn=>{const end=Date.now()+90000;while(!fn()){if(Date.now()>end)throw Error('Game readiness timed out');await new Promise(r=>setTimeout(r,100));}};
+const check=(value,label)=>{if(!value)throw Error(label);out.textContent+='\nPASS '+label;};
+const api=()=>frame.contentWindow.AYLMER;
+document.querySelector('#run').onclick=async()=>{
+ out.textContent='Running…';
+ try{
+ await until(()=>api());
+ const doc=frame.contentDocument;
+ doc.querySelector('#start').click();doc.querySelector('#startconfirm').click();
+ await until(()=>api().cinema.active);
+ const a=api(), g=a.G;
+ const x=g.veh.x,z=g.veh.z,time=g.time,fuel=g.fuel;
+ for(let i=0;i<120;i++)a.step(1/60);
+ check(g.veh.x===x&&g.veh.z===z&&g.time===time&&g.fuel===fuel,'Opening freezes vehicle, simulation and fuel');
+ a.cinema.finish();
+ check(g.mission?.def.id==='alternateur','Opening automatically starts alternator training without E');
+ check(g.bigmap.static.width<=2048&&g.bigmap.static.height<=2048,'Map background bounded to 2048 pixels');
+ out.textContent+=`\nMap raster: ${g.bigmap.static.width} × ${g.bigmap.static.height}; built in ${Math.round(g.bigmap.buildMs)} ms`;
+ check(a.cinema.active&&g.mission.timeLeft===null,'First-job brief waits with no timer');
+ const before=g.mission.elapsed;
+ for(let i=0;i<120;i++)a.step(1/60);
+ check(g.mission.elapsed===before,'Brief holds mission elapsed time');
+ a.cinema.finish();
+ let target=g.mission.target;
+ a.teleport(target.x,target.z);a.input.pressed.add('KeyE');a.step(1/60);
+ check(g.mission?.idx===1&&a.cinema.active,'Pickup advances to return stage and shows its card');
+ const pickup=g.mission.elapsed;a.step(1);
+ check(g.mission.elapsed===pickup,'Pickup card holds return-stage clock');
+ a.cinema.finish();
+ const money=g.wallet.value,day=g.day;
+ target=g.mission.target;a.teleport(target.x,target.z);a.step(1/60);
+ check(!g.mission&&g.done.has('alternateur')&&a.cinema.active,'Return completes mission and opens result');
+ const paid=g.wallet.value,spent=g.day;
+ check(paid>money&&spent===day+1,'Reward and one calendar day settled');
+ const saved=a.slots().some(row=>row.saveId||row.id||row.slot);
+ check(a.slots().length>0,'Completion produced an autosave slot');
+ a.cinema.finish();a.cinema.finish();
+ check(g.wallet.value===paid&&g.day===spent,'Repeated Continue cannot repay or spend another day');
+ out.textContent+='\nALL CHECKS PASSED';
+ }catch(e){out.textContent+='\nFAIL '+e.stack;}
+};
+document.querySelector('#house').onclick=()=>{
+ const a=api();a.cinema.hide();frame.contentDocument.querySelector('#resume').click();
+ a.teleport(904,149,1.67219);a.G.cam=1;a.render();
+};
+document.querySelector('#mall').onclick=()=>{
+ const a=api();a.cinema.hide();frame.contentDocument.querySelector('#resume').click();
+ a.env('day');a.weather('clear');a.teleport(-150,-209,Math.PI);a.G.cam=1;a.render();
+};
+document.querySelector('#opening').onclick=()=>api().playStory();
+document.querySelector('#brief').onclick=()=>api().start(missionById('alternateur'));
+for(const b of document.querySelectorAll('[data-width]'))b.onclick=()=>{frame.style.width=b.dataset.width+'px';frame.style.height=b.dataset.height+'px';};
+</script>

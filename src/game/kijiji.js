@@ -66,6 +66,27 @@ export const ADS = [
       + 'PAS DANS LE PRIX. LA SUSPENSION EST MOLLE MAIS C\'EST DE MEME QUE C\'EST FAIT.\n'
       + 'PREMIER ARRIVE PREMIER SERVI. PAS DE NEGO.\nJE REPONDS PAS AUX COURRIELS.',
   },
+  {
+    // Roger Bouchard, 84, chemin Vanier. He bought it new at Mercedes-Benz de
+    // Hull, drove it to Hollywood (Floride) eleven summers running, and parked
+    // it in 1998 when the SAAQ took his licence. The ad has been up since then
+    // and he has typed it out again every August. This is the only ad on the
+    // page where the flaw is the whole car — nothing on it is broken and
+    // everything on it is tired, which is why the man in Deschênes who will put
+    // it right (upgrades.js, $800) charges more than Roger is asking.
+    car: 'benz', seller: 'Roger', where: 'Aylmer (Deschênes, chemin Vanier)',
+    posted: 'le 6 août 2004', calls: 1,
+    flaw: { text: 'Bas de portes pis plancher côté chauffeur mangés par le calcium. Le moteur, lui, est éternel.', damage: 26 },
+    title: 'MERCEDES 240D 1976 DIESEL — VERT — 4 PORTES — TRES PROPRE',
+    body: 'MERCEDES BENZ 240 D 1976. DIESEL. AUTOMATIQUE 4 VITESSES. VERT PALE D\'ORIGINE '
+      + 'AVEC LES ENJOLIVEURS CHROMES. 318 000 KM PIS C\'EST RIEN POUR UN DIESEL, DEMANDEZ '
+      + 'A N\'IMPORTE QUI.\nELLE PART A TOUS LES COUPS MEME A MOINS TRENTE SI TU ATTENDS '
+      + 'LA P\'TITE LUMIERE. ELLE FUME NOIR QUAND TU PESES DESSUS. C\'EST NORMAL. C\'EST '
+      + 'UN DIESEL. ARRETEZ DE ME TELEPHONER POUR CA.\nJE CONDUIS PU. ELLE EST SU\' LE '
+      + 'LOT A TI-GUY SU\' LE CHEMIN D\'AYLMER, IL LA GARDE POUR MOI.\n'
+      + 'JE VEUX QUE CA TOMBE SUR QUELQU\'UN QUI VA S\'EN OCCUPER.',
+    footer: 'Ça fait six ans que la même annonce remonte chaque mois d’août.',
+  },
   // The Z24 used to be here, at $450, as Ti-Guy's fourth beater. PLAN's cast
   // table settled that it is Tyler Yank's and it sits at her aunt's on
   // Samuel-Edey (garage.js UNLOCKS.cavalier, kind 'owned'), so the ad had to

@@ -225,7 +225,11 @@ const canot = {
           G.props.removePrefix(P + 'wake');
           G.boat = null;
           G.focus = null;
-          if (m && m.carSpot) G.veh.reset(m.carSpot.x, m.carSpot.z, m.carSpot.yaw);
+          if (m && m.carSpot) {
+            const c = m.carSpot;
+            G.veh.reset(c.x, c.z, c.yaw,
+              G.phys && G.phys.groundY ? G.phys.groundY(c.x, c.z) : 0);
+          }
           G.hud && G.hud.prompt(null);
         },
       },

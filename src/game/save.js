@@ -94,7 +94,7 @@ export const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 
   // is Tyler's and sits at her aunt's on Samuel-Edey — it is not on the lot any
   // more, so unlike the beaters it never comes home with you.
   forester: 'mike', sienna: 'abraham', cavalier: 'tyler',
-  cutlass: 'home', caravan: 'home', bus: 'home',
+  cutlass: 'home', caravan: 'home', bus: 'home', benz: 'home',
   // The cart never leaves the golf course; it lives on the clubhouse apron.
   cart: 'golf' };
 

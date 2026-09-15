@@ -275,7 +275,7 @@ const RECIPES = [
     + '5.02 m against the spec’s 4.49 — see docs/MODELS.md.'),
   carKit('hatch-civic', 'Hatchback (Civic Si)', 'hatchback-sports', P.civicRed,
     1.2846, 1.2091, 1.5432, 0,
-    '1988 Honda Civic Si, Sayyad’s. Wheelbase 2.50 m, body 4.40 m against 3.99.'),
+    '1987 Honda Civic Si, Sayyad’s. Wheelbase 2.50 m, body 4.40 m against 3.99.'),
   carKit('coupe-sunfire', 'Coupé (Sunfire)', 'sedan-sports', P.sunfireTeal,
     1.3231, 1.2273, 2.0000, 0,
     '1997 Pontiac Sunfire, Adam’s — and the same shell serves the Cavalier. '

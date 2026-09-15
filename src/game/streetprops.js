@@ -218,9 +218,15 @@ export function buildStreetProps(renderer, world) {
     let b = builders.get(key);
     if (!b) { b = new MeshBuilder(); builders.set(key, b); }
     const i0 = b.i.length;
-    K.emit(b, sp.x, 0, sp.z, sp.yaw);
+    // `sp.y` is the ground world.js sampled under the spot. Every KINDS.emit()
+    // already measures its own boxes up from the y it is handed — the debris
+    // meshes have been passing -K.cy through the same argument since this file
+    // was written — so a bin on a hillside needs nothing more than this. A spot
+    // list with no `y` (a stubbed world in a test) falls back to zero and comes
+    // out exactly as it always did.
+    K.emit(b, sp.x, sp.y || 0, sp.z, sp.yaw);
     const it = {
-      x: sp.x, z: sp.z, yaw: sp.yaw, kind: sp.kind,
+      x: sp.x, z: sp.z, y: sp.y || 0, yaw: sp.yaw, kind: sp.kind,
       k: key, i0, n: b.i.length - i0, mesh: null, dead: false,
     };
     items.push(it);

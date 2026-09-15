@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>Aylmer repair review</title>
+<style>body{margin:0;background:#15212a;color:#fff;font:13px system-ui}nav{height:42px;display:flex;align-items:center;gap:8px;padding:0 10px}button{padding:6px 12px}iframe{display:block;border:0;width:100%;height:calc(100vh - 42px)}#report{position:fixed;right:10px;top:48px;max-width:460px;max-height:45vh;overflow:auto;background:#101820ee;white-space:pre-wrap;pointer-events:none;padding:8px}#report:empty{display:none}</style>
+<nav><button data-go="start">New test game</button><button data-go="fraser">Fraser</button><button data-go="cemetery">Saint-Paul</button><button data-go="glenwood">Glenwood</button><button data-go="pause">Pause checks</button><button data-go="resume">Resume</button><button data-go="report">Report</button><button data-go="clear">Hide report</button></nav>
+<iframe id="game" src="../index.html" title="Running Aylmer Madness"></iframe><pre id="report"></pre>
+<script type="module">
+const f=document.querySelector('iframe'),out=document.querySelector('#report');
+let saved;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+for(const btn of document.querySelectorAll('button'))btn.onclick=async()=>{
+try{
+ const w=f.contentWindow,a=w.AYLMER,g=a?.G,d=w.document;
+ if(btn.dataset.go==='clear'){out.textContent='';return;}
+ if(btn.dataset.go==='start'){
+  d.querySelector('#start').click();d.querySelector('#startconfirm').click();
+  for(let i=0;i<180;i++){await wait(500);if(a.cinema.active){a.cinema.finish();if(g.mission){a.cinema.finish();break;}}}
+  f.focus();out.textContent='';return;
+ }
+ if(!g?.veh){out.textContent='Start the test game first.';return;}
+ if(btn.dataset.go==='pause'){
+  g.audio.siren(true);saved={time:g.time,mission:a.job(),position:[g.veh.x,g.veh.z]};
+  a.pause(true);await wait(300);
+  out.textContent=JSON.stringify({paused:g.mode,audioGain:g.audio.master.gain.value,sirenExists:!!g.audio._siren,
+    missionUnchanged:JSON.stringify(a.job())===JSON.stringify(saved.mission),timeFrozen:g.time===saved.time,
+    pauseBounds:d.querySelector('#pause .panel').getBoundingClientRect().toJSON()},null,2);return;
+ }
+ if(btn.dataset.go==='resume'){a.pause(false);g.audio.siren(false);out.textContent='';f.focus();return;}
+ if(btn.dataset.go==='report'){out.textContent=JSON.stringify({mode:g.mode,job:a.job(),position:[g.veh.x,g.veh.y,g.veh.z],world:g.world?.stats,
+    audioPaused:g.audio.paused,gain:g.audio.master?.gain.value},null,2);return;}
+ const p={fraser:[932.9,143.9,Math.PI],cemetery:[622,-370,3.05],glenwood:[733,357,1.5]}[btn.dataset.go];
+ if(p){a.pause(false);a.cinema.hide();const r=g.world.nearestRoad(p[0],p[1]);a.teleport(r.x,r.z,r.yaw); a.env('day');a.weather('clear');out.textContent='';f.focus();}
+}catch(e){out.textContent=e.stack;}
+};
+</script>

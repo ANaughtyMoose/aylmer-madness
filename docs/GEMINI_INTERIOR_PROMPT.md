@@ -40,7 +40,7 @@ colours) before painting anything.
   cassette. The **headliner sags** and is held up with two thumbtacks. A **stone chip** low on the
   passenger side. A cassette adapter cord running to a Discman on the bench. A Canadian Tire
   air freshener that stopped smelling of anything in 2002. The Galeries parking stub in the visor.
-- `civic` 1988 Honda Civic Si (Sayyad's): the red-lit cluster, a **Hawaiian-shirt seat cover** on
+- `civic` 1987 Honda Civic Si (Sayyad's): the red-lit cluster, a **Hawaiian-shirt seat cover** on
   the driver's seat, a chrome shift knob, a Bluesfest wristband on the mirror.
 - `saturn` 1997 Saturn SL (Margaret's): immaculate, a box of Kleenex in the back window, a
   Caisse populaire calendar magnet, a rosary that is not hers.

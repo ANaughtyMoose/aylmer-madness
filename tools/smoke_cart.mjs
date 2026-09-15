@@ -18,6 +18,7 @@ import { Garage, UNLOCKS, FOR_SALE } from '../src/game/garage.js';
 import * as save from '../src/game/save.js';
 import { Nav } from '../src/game/nav.js';
 import { stageTarget, resolveAt } from '../src/game/missionkit.js';
+import { LIFE_MISSIONS } from '../src/game/lifejobs.js';
 
 let pass = 0, fail = 0;
 const ok = (cond, name, extra) => {
@@ -181,8 +182,8 @@ group('« Le cart du Club »');
   // progress and get pushed onto this same array as they are earned, so the
   // pause menu grows over a save; ALL_MISSIONS is the whole set, gates ignored.
   // Was 23 / 28 until « L'alternateur » was added as the first job of the summer.
-  ok(MISSIONS.length === 24, `${MISSIONS.length} jobs in the pause menu on a brand-new save`);   // 18 + the six Wave 3 verbs
-  ok(ALL_MISSIONS.length === 29, `${ALL_MISSIONS.length} jobs once the whole summer is open`);
+  ok(MISSIONS.length === 24 + LIFE_MISSIONS.length, `${MISSIONS.length} jobs in the pause menu on a brand-new save`);
+  ok(ALL_MISSIONS.length === 29 + LIFE_MISSIONS.length, `${ALL_MISSIONS.length} jobs once the whole summer is open`);
   ok(MISSIONS.filter((m) => ARC.includes(m)).length === 0,
     'none of the summer\'s five beats are open before you have driven anything');
 

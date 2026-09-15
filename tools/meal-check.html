@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><title>St. Vincent meal challenge</title><script type="module">
+import {openMealShift} from '../src/game/mealshift.js?v=vehicle-life-17';
+const m=openMealShift(),keys=new Set();let feed=false,last=performance.now();
+addEventListener('keydown',e=>{keys.add(e.code);if(e.code==='Space'&&!e.repeat)feed=true;e.preventDefault();});addEventListener('keyup',e=>keys.delete(e.code));
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;m.state.step(dt,{x:Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft')),y:Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp')),feed});feed=false;m.draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
+</script>

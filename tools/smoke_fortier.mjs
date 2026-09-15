@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import '../src/game/speeds.js';
+import {speedFraction,TOP_KMH} from '../src/game/speeds.js';
+import {CARS,carById,Vehicle} from '../src/game/cars.js';
+import {FortierChase,SVX,NSX} from '../src/game/fortier.js';
+import {FLAT} from '../src/game/terrain.js';
+import {tuned} from '../src/game/upgrades.js';
+import {settleSpawn} from '../src/game/tow.js';
+const road={minX:-1e6,maxX:1e6,minZ:-1e6,maxZ:1e6,waterAt:()=>false,roadAt:()=>true,querySegments:()=>[],surfaceAt:()=>FLAT,heightAt:()=>0};
+road.bounds=road;
+assert.equal(speedFraction(carById('ranger')),.4);
+assert(CARS.filter(c=>!c.twoWheel&&c.style!=='bus'&&c.style!=='cart'&&c.id!=='ranger').every(c=>c.topSpeed>carById('ranger').topSpeed));
+assert(CARS.every(c=>c.id==='svx'||c.topSpeed<SVX.topSpeed));
+const lotWorld={...road,buildingAt:()=>false,nearestRoad:()=>({x:0,z:0,dist:50,yaw:0})};
+const parked=new Vehicle(SVX);parked.reset(50,0,0);
+assert.equal(settleSpawn({veh:parked,world:lotWorld},{allowOffRoad:true}).moved,false);
+assert.equal(parked.x,50,'taking a car in a lot must not teleport it');
+lotWorld.buildingAt=(x)=>x>40;
+assert.equal(settleSpawn({veh:parked,world:lotWorld},{allowOffRoad:true}).moved,true,'building checks retained');
+for(const spec of [carById('ranger'),SVX,NSX]){
+  const v=new Vehicle(spec);v.reset(0,0,0);
+  for(let i=0;i<240*60;i++)v.update(1/60,{throttle:1,brake:0,steer:0,handbrake:false},road);
+  console.log(spec.id, v.speedKmh);assert(Math.abs(v.speedKmh-spec.topSpeed*3.6)<1.5,spec.id+' terminal speed');
+}
+for(const s of [SVX,NSX])assert(s.buildBody().v.every(Number.isFinite));
+const chase=new FortierChase();let earned=false,swapped=false;
+const G={veh:new Vehicle(carById('ranger')),parked:{svx:{x:0,z:0,yaw:0}},wantStart:true,hud:{prompt(){},toast(){}},swapCar(id){swapped=id;this.veh=new Vehicle(SVX);chase.start(this);},phys:road,settings:{audio:false},nav:{nearest:(x,z)=>({x,z}),route:(x,z,a,b)=>[[x,z],[a,b]]}};
+chase.interact(G,{earn(){earned=true;}});assert(earned&&swapped==='svx'&&chase.unit);
+const initial=chase.unit.z;for(let i=0;i<120;i++)chase.update(1/60,G);assert(Math.abs(chase.unit.z-initial)>1,'NSX travels');
+G.veh.x=2000;for(let i=0;i<800&&chase.unit;i++)chase.update(1/60,G);assert(!chase.unit,'escape ends chase');
+console.log('PASS speed scale, terminal speeds, model geometry, discovery, chase movement and escape');

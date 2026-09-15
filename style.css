@@ -113,6 +113,8 @@ button:hover{background:#ffd979}
 #jobs .job .t{font-weight:700}
 #jobs .job .w{opacity:.6;font-size:11px}
 #jobs .job .b{font-variant-numeric:tabular-nums;opacity:.8}
+
+
 .panel .row button{display:inline-block;width:auto;padding:10px 18px;margin:6px 4px;font-size:13px}
 .panel .keys{max-width:560px;margin:16px auto 0;line-height:1.6}
 
@@ -457,3 +459,36 @@ body.modal #pause{background:rgba(6,10,13,.9)}
   border:1px dashed currentColor;font-size:11px;letter-spacing:.06em;opacity:.8;transform:rotate(1.1deg)}
 /* the buttons still work — a photocopy of a button is a button */
 .photocopy button,.photocopy select,.photocopy input{filter:none}
+
+.title-scene{display:grid;grid-template-columns:minmax(260px,.7fr) 1.3fr;align-items:center;gap:28px;margin-bottom:28px;border-bottom:1px solid rgba(239,197,111,.3);padding-bottom:24px}
+.title-copy h1{text-align:left;font-size:clamp(38px,4.6vw,64px);margin-bottom:12px}
+.title-copy .tag{text-align:left;line-height:1.6;margin:0;max-width:320px}
+.title-art{display:block;width:100%;height:clamp(190px,22vw,300px);object-fit:cover;object-position:center;border-radius:10px;border:1px solid rgba(239,197,111,.3)}
+@media(max-width:700px){.title-scene{grid-template-columns:1fr;gap:16px}.title-copy h1{text-align:center}.title-copy .tag{max-width:none;text-align:center}.title-art{height:200px}}
+
+/* Readable, explicit controls toggle, reachable without knowing a shortcut. */
+#legend{right:20px;top:114px;bottom:auto;width:min(370px,calc(100vw - 40px));padding:12px;background:rgba(9,30,35,.96);font-size:14px;z-index:12;max-height:calc(100vh - 290px);overflow:auto}
+#legend.collapsed{padding:0;width:auto;max-height:none;background:rgba(9,30,35,.96)}
+#legendhead{display:block;width:100%;font-size:14px;line-height:1.3;letter-spacing:0;text-transform:none;opacity:1;padding:12px 16px;margin:0;border:1px solid #d5bc7d;color:#fff0d0;background:#163b41;border-radius:5px;min-height:44px}
+#legendhead:focus-visible{outline:3px solid #efc56f;outline-offset:3px}
+#legendrows{grid-template-columns:1fr;gap:9px;margin-top:14px}
+#legend .lrow{opacity:1;white-space:normal;overflow:visible;align-items:flex-start}
+#legend .lrow .lab{opacity:1;overflow:visible}
+#legend .lrow kbd{flex-shrink:0;min-width:24px}
+.photocopy #legend,.photocopy #legend .lrow .alt{filter:none;opacity:1}
+
+/* A quiet mission briefing, with actions always reachable. */
+body.modal #pause{background:linear-gradient(90deg,rgba(7,14,18,.94),rgba(7,14,18,.72)),var(--pause-art) center/cover no-repeat}
+#pause .panel{width:min(850px,100%);height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;text-align:left;margin:0;padding:24px}
+#pause .panel h2{font-size:22px;margin:0 0 8px}
+#pausemission{font-size:28px;margin:0 0 10px}
+#pausebrief{font-size:15px;line-height:1.5;max-width:65ch;margin:0 0 16px;max-height:22vh;overflow:auto}
+#pause .ptab{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+#pause #jobs{max-width:none}
+#pause #jobs .job{display:flex;flex-direction:column;align-items:flex-start;text-align:left;width:100%;padding:12px;margin:5px 0;color:inherit;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+#pause #jobs .job.locked{opacity:.55;cursor:default}
+#pause #jobs .job .w{font-size:12px;opacity:.85}
+#pause #jobs summary{padding:14px 0;cursor:pointer}
+#pause .panel>.row{flex-shrink:0;padding-top:12px;border-top:1px solid rgba(255,255,255,.2)}
+#pause .panel button[hidden]{display:none}
+@media(max-width:600px){#pause .panel{padding:16px}#pausemission{font-size:22px}#pausebrief{font-size:13px}#pause .panel>.row button{padding:9px;margin:3px;font-size:12px}}

@@ -13,7 +13,7 @@
 //   * the heckle pool is big and the limiter is mean
 //
 // No browser, no DOM: story.js and heckle.js both work without one.
-import { MISSIONS } from '../src/game/missions.js';
+import { ALL_MISSIONS, MISSIONS } from '../src/game/missions.js';
 import { PLACES, resolvePlaces } from '../src/game/places.js';
 import { MAP } from '../src/game/mapdata.js';
 import { CARS } from '../src/game/cars.js';
@@ -158,12 +158,12 @@ group('GOAL A — free roam names the nearest job, its distance and the key');
   // Sunfire waits in the marina lot instead.)
   const marina = PLACES.marina;
   const G3 = fakeG(marina.x + 15, marina.z);
-  ok(nearestJob(G3).place === marina, 'out at the marina it points at the marina job');
+  ok(nearestJob(G3).def.id === 'alternateur', 'location cannot bypass the next campaign job');
 }
 
 group('GOAL A — every job done, and the line says so');
 {
-  const G = fakeG(PLACES.home.x, PLACES.home.z, MISSIONS.map((m) => m.id));
+  const G = fakeG(PLACES.home.x, PLACES.home.z, ALL_MISSIONS.map((m) => m.id));
   const l = freeRoamLines(G);
   ok(l.kind === 'done', 'nothing left to do');
   ok(l.text === 'T’as tout fait. Roule.', 'and it says so', l.text);
@@ -251,7 +251,7 @@ group('the new-game opener');
   }
   const all = STORY_CARDS.map((c) => c.body).join(' ');
   ok(/Ranger XL 1993/.test(all), 'it says what you are driving');
-  ok(/dix-sept/.test(all) && /2004|Aylmer/.test(all), 'and who and when you are');
+  ok(/Tom/.test(all) && /2004|Aylmer/.test(all), 'and who and where you are, without assuming Tom’s age');
   for (const who of ['Margaret', 'Sayyad', 'Adam', 'Mike']) {
     ok(all.includes(who), `it introduces ${who}`);
   }

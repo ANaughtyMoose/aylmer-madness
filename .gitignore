@@ -1,4 +1,6 @@
 .DS_Store
+public/
+dist/
 data/raw/
 __pycache__/
 
@@ -31,3 +33,7 @@ gemini-inbox/cinema/
 gemini-inbox/look/cars/
 gemini-inbox/look/ui/
 gemini-inbox/showcase.html
+out/
+
+spike-log.txt
+data/raw/

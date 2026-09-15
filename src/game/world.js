@@ -1,3 +1,6 @@
+import { buildCemeteryFences } from './cemetery.js';
+import { makeSurface, clipHalf } from './surface.js';
+import { FRASER, fraserFootprint, buildFraser } from './fraser.js';
 // Turns mapdata.js (real OpenStreetMap Aylmer) into geometry and collision data.
 //
 // The map is baked once at load into:
@@ -28,16 +31,30 @@
 // Also exported: nightAmount(env) (0 by day, 1 at night) and
 // buildHeadlights(renderer, spec) (the player's night light cones).
 //
-// Coordinates are metres: +X east, +Z south, +Y up. Everything sits at y=0; the
-// only vertical ordering that matters is the small ladder of decal heights below,
-// which keeps coplanar quads from z-fighting.
+// Coordinates are metres: +X east, +Z south, +Y up.
+//
+// Nothing sits at y = 0 any more. Under old Aylmer there is a LiDAR height
+// raster (ground_data.js, 8 m, 33 m of relief between the river and the high
+// ground north of chemin d'Aylmer), and every quad this file lays — lawn,
+// asphalt, kerb, house, hydro pole — is DRAPED on it: the absolute `y` it used
+// to be given is now a height ABOVE the ground under that vertex. The small
+// ladder of decal heights below is what that offset is measured in, and it
+// still does the only job it ever did, which is to keep coplanar quads from
+// z-fighting.
+//
+// Outside the raster (Hull, Ottawa, the 148 corridor) the base is exactly zero,
+// and everything below gates on that: a piece of geometry with no hill under it
+// takes the same code path it always took and comes out vertex for vertex the
+// same as it did when the whole town was flat.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { mulberry32, clamp, lerp } from '../core/math.js';
 import { MAP } from './mapdata.js';
 import { roadNodes, isJunction, planSignals, planStopSigns, LAMP_DY, HEAD_Y } from './signals.js';
 import { buildSignage } from './signage.js';
 import { buildHouse, makeStreetYawIndex } from './houses.js';
-import { buildTerrain } from './terrain.js';
+import { buildTerrain, FEATURES } from './terrain.js';
+import { GROUND } from './ground_data.js';
+import { decodeGround } from './ground.js';
 import MATS from './materials_stub.js';
 
 const CHUNK = 200;      // world chunk size (metres)
@@ -190,6 +207,28 @@ function cut(road, run) {
   const r = { ...road, pts: road.pts.slice(run.from, run.to + 1) };
   if (road.ids) r.ids = road.ids.slice(run.from, run.to + 1);
   return r;
+}
+
+// The decoded LiDAR grid, one copy for the whole process. sectors.js calls
+// buildWorld() once per slice and each call would otherwise spend 16 ms and
+// 3.4 MB of typed array decoding the same 283k nodes. Lazy, so a page that
+// never builds a world never pays for it.
+let GROUND_GRID = null;
+function groundGrid() {
+  if (GROUND_GRID === null) GROUND_GRID = decodeGround(GROUND);
+  return GROUND_GRID;
+}
+
+// The base height at a point, for anything that has to know where the ground is
+// without having a world to ask. sectors.js bakes the storefront signage ONCE
+// for the whole town, before any slice exists, and a sign board hangs off a wall
+// that is now thirty metres up a hill. Featureless on purpose: this is the
+// raster, not the terrain, and it costs one small closure the first time it is
+// called and nothing after.
+let BASE_FIELD = null;
+export function baseHeightAt(x, z) {
+  if (BASE_FIELD === null) BASE_FIELD = buildTerrain([], groundGrid());
+  return BASE_FIELD.baseAt(x, z).h;
 }
 
 function subsample(list, cap) {
@@ -350,18 +389,140 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     }
   }
 
-  // ------------------------------------------------------------ 1. ground
-  const gr = mulberry32(0x51ee7);
-  for (let cz = 0; cz < NZ; cz++) {
-    for (let cx = 0; cx < NX; cx++) {
-      const x0 = B.minX + cx * CHUNK, x1 = Math.min(x0 + CHUNK, B.maxX);
-      const z0 = B.minZ + cz * CHUNK, z1 = Math.min(z0 + CHUNK, B.maxZ);
-      if (x1 <= x0 || z1 <= z0) continue;
-      if (inside && !inside((x0 + x1) / 2, (z0 + z1) / 2)) continue;
-      const g = shade(C.grassLo, 1 + gr() * 0.16);
-      bAt((x0 + x1) / 2, (z0 + z1) / 2).flat(x0, z0, x1, z1, Y.grass, g);
+  // ------------------------------------------------------ 0. the height field
+  // Built HERE, before the first quad, because from this line down every piece
+  // of geometry in the file has to ask how high the ground is under it.
+  //
+  // Two layers (terrain.js). The BASE is the LiDAR raster: the real shape of
+  // Aylmer, sampled bilinearly, fading to exactly zero 400 m outside its own
+  // rectangle so Hull, Ottawa and the 148 are the flat ground they have always
+  // been. On top of it sit the hand-written FEATURES — the rail berm, the boat
+  // launch, the mall's loading dock — whose heights are offsets above whatever
+  // ground they stand on. `groundAt` is both together, which is what the car
+  // drives on; `baseAt` is the raster alone.
+  //
+  // Almost everything below drapes on `baseAt`, not `groundAt`, and the reason
+  // is worth stating: section 5c emits each feature's own surface as separate
+  // geometry laid over the town, exactly as it did when the town was flat and
+  // the roads were at y = 0.05. Draping a road on `groundAt` would make the
+  // asphalt climb the rail berm AND the berm's own mesh sit on top of it. The
+  // level crossings at the end of 5c are the deliberate exception.
+  const terrain = buildTerrain(FEATURES, groundGrid());
+  const groundAt = terrain.groundAt;
+  const baseAt = terrain.baseAt;
+  const baseRect = terrain.baseRect;
+  // The raster's own cell. Nothing flat is allowed to span more than one of
+  // these: a quad that bridges two cells draws the chord and misses the kink,
+  // and a road decal 5 cm over the lawn loses that fight on every ridge.
+  const DRAPE = terrain.base ? terrain.base.cell : 8;
+
+  // Fast gate: is any of this rectangle over the raster, or in its fade band?
+  // Outside it `baseAt` returns exactly 0, so every drape below is `+ 0` and
+  // the only thing subdividing would buy is vertices. Everything that can be
+  // expensive checks this first and takes the old flat path when it answers no,
+  // which is why the Hull and Ottawa sectors cost nothing for a hill that is
+  // not under them.
+  function overBase(x0, z0, x1, z1) {
+    if (baseRect === null) return false;
+    const f = baseRect.fade;
+    return x1 >= baseRect.x0 - f && x0 <= baseRect.x1 + f
+      && z1 >= baseRect.z0 - f && z0 <= baseRect.z1 + f;
+  }
+
+  // The node lines of one axis of a rectangle: both edges, plus every raster
+  // grid line strictly between them. Aligning the cuts to the raster instead of
+  // simply chopping into equal pieces is what makes the drawn hillside the same
+  // surface the car drives on — a node that landed halfway between two raster
+  // nodes would draw the chord across the cell and sit up to a quarter of the
+  // local second difference away from the height the physics reports.
+  function gridLines(a, b, origin, cell) {
+    const out = [a];
+    for (let k = Math.floor((a - origin) / cell) + 1; ; k++) {
+      const v = origin + k * cell;
+      if (v >= b - 1e-6) break;
+      if (v > a + 1e-6) out.push(v);
+    }
+    out.push(b);
+    return out;
+  }
+
+  const surface = makeSurface(baseAt, baseRect, DRAPE);
+  const surfaceVertices = new WeakMap();
+  const DN = [0,1,0];
+  function drapeNormal(x,z) { const b=baseAt(x,z); DN[0]=b.nx;DN[1]=b.ny;DN[2]=b.nz;return b.h; }
+  function cover(poly,y,col,get=bAt,reuse=null) {
+    surface.drape(poly,y,points=>{
+      // Remove clip-generated duplicates and collinear vertices before fanning.
+      let changed=true;
+      while(changed && points.length>3) {
+        changed=false;
+        for(let i=0;i<points.length;i++) {
+          const a=points[(i+points.length-1)%points.length],b=points[i],c=points[(i+1)%points.length];
+          if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))<1e-8) {
+            points.splice(i,1);changed=true;break;
+          }
+        }
+      }
+      let mx=0,mz=0;for(const p of points){mx+=p[0];mz+=p[2];}mx/=points.length;mz/=points.length;
+      if(inside && !inside(mx,mz))return;
+      const bd=get(mx,mz);drapeNormal(mx,mz);
+      let shared=reuse;
+      if(!shared) { shared=surfaceVertices.get(bd);if(!shared){shared=new Map();surfaceVertices.set(bd,shared);} }
+      const colorKey=col.map(v=>v.toFixed(5)).join(',');
+      const ids=points.map(p=>{
+        const key=p[0].toFixed(6)+','+p[1].toFixed(6)+','+p[2].toFixed(6)+','+colorKey;
+        if(shared.has(key))return shared.get(key);
+        drapeNormal(p[0],p[2]);
+        const k=bd.vert(p[0],p[1],p[2],DN[0],DN[1],DN[2],col);
+        shared.set(key,k);return k;
+      });
+      for(let i=1;i+1<points.length;i++) {
+        const a=points[0],b=points[i],c=points[i+1];
+        const cr=(b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]);
+        if(Math.abs(cr)<1e-9)continue;
+        if(cr<0)bd.tri(ids[0],ids[i],ids[i+1]);else bd.tri(ids[0],ids[i+1],ids[i]);
+      }
+    });
+  }
+  function rectPoints(cx,cz,w,len,yaw) {
+    const s=Math.sin(yaw),c=Math.cos(yaw);
+    return [[-w/2,-len/2],[-w/2,len/2],[w/2,len/2],[w/2,-len/2]].map(([u,t])=>[cx+c*u+s*t,cz-s*u+c*t]);
+  }
+  function stripe(cx,cz,w,len,y,yaw,col) { cover(rectPoints(cx,cz,w,len,yaw),y,col); }
+  function slab(cx,cz,w,len,thick,yaw,col) {
+    const ring=rectPoints(cx,cz,w,len,yaw);
+    if(!overBase(cx-w-len,cz-w-len,cx+w+len,cz+w+len)) {
+      const bd=bAt(cx,cz);bd.flatRot(cx,cz,w,len,thick,yaw,col);
+      for(const e of [0,2]) { const a=ring[e],b=ring[(e+1)%4];bd.quad([a[0],0,a[1]],[b[0],0,b[1]],[b[0],thick,b[1]],[a[0],thick,a[1]],col); }
+      return;
+    }
+    cover(ring,thick,col);
+    for(const e of [0,2]) {
+      const a=ring[e],b=ring[(e+1)%4],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/DRAPE));
+      for(let i=0;i<n;i++) {
+        const x=a[0]+(b[0]-a[0])*i/n,z=a[1]+(b[1]-a[1])*i/n;
+        const xx=a[0]+(b[0]-a[0])*(i+1)/n,zz=a[1]+(b[1]-a[1])*(i+1)/n;
+        const h=baseAt(x,z).h,hh=baseAt(xx,zz).h;
+        bAt(x,z).quad([x,h,z],[xx,hh,zz],[xx,hh+thick,zz],[x,h+thick,z],col);
+      }
     }
   }
+  function interDeck(bd,ring,y,col) { cover(ring,y,col); }
+  function drapeTri(ax,az,bx,bz,cx,cz,y,col,get,step) { cover([[ax,az],[bx,bz],[cx,cz]],y,col,get); }
+
+  // Grass and every pavement layer use identical terrain triangles.
+  const gr=mulberry32(0x51ee7);
+  let groundQuads=0;
+  for(let cz=0;cz<NZ;cz++) for(let cx=0;cx<NX;cx++) {
+    const x0=B.minX+cx*CHUNK,x1=Math.min(x0+CHUNK,B.maxX);
+    const z0=B.minZ+cz*CHUNK,z1=Math.min(z0+CHUNK,B.maxZ);
+    if(x1<=x0||z1<=z0)continue;
+    if(inside && !inside((x0+x1)/2,(z0+z1)/2))continue;
+    const bd=bAt((x0+x1)/2,(z0+z1)/2),col=shade(C.grassLo,1+gr()*0.16);
+    cover([[x0,z0],[x0,z1],[x1,z1],[x1,z0]],Y.grass,col,()=>bd,new Map());
+    groundQuads++;
+  }
+  const groundMeshStats={...surface.stats};
 
   // ------------------------------------------------------------ 2. water
   // Water goes into its OWN chunk meshes so the whole draw can carry the wobble
@@ -370,15 +531,32 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   for (const w of MAP.water) triScatter(w.p, w.t, Y.water, waterCol, wAt);
 
   // ------------------------------------------------------------ 3. areas
+  // colour, decal height, and how finely the polygon is cut when it is draped.
+  //
+  // The third number is a budget, not a preference. mapdata's ear-clipper hands
+  // over a wood as a few hundred triangles up to 200 m across, and splitting
+  // those to the 8 m raster cell turns 43k landuse triangles into 3.0 M — nine
+  // million vertices for ground tint. So the two things you stand or drive on
+  // (the beach, the car parks) are cut fine, and the big green washes under the
+  // trees are cut at four cells, where a 32 m span is about 15 cm off the true
+  // surface on Aylmer's steepest slope and invisible on the rest.
   const AREA = {
-    park: [C.park, Y.park], school: [C.school, Y.park], cemetery: [C.cemetery, Y.park],
-    sand: [C.sand, Y.sand], wood: [C.wood, Y.wood], parking: [C.parking, Y.parking],
-    pitch: [C.pitch, Y.pitch], pool: [C.pool, Y.pool], water: [C.water, Y.water],
+    park: [C.park, Y.park, 32], school: [C.school, Y.park, 32], cemetery: [C.cemetery, Y.park, 32],
+    sand: [C.sand, Y.sand, 8], wood: [C.wood, Y.wood, 32], parking: [C.parking, Y.parking, 8],
+    pitch: [C.pitch, Y.pitch, 8], pool: [C.pool, Y.pool, 8], water: [C.water, Y.water, 0],
   };
+  // Landuse is draped; water is not. The datum in ground_data.js was chosen so
+  // the river bed sits UNDER the water quad and the banks about a metre over
+  // it, which only works if the river surface stays the flat sheet it is.
   for (const a of areas) {
     const spec = AREA[a.k];
     if (!spec) continue;
-    triScatter(a.p, a.t, spec[1], rgb(spec[0]), a.k === 'water' ? wAt : bAt);
+    if (a.k === 'water') { triScatter(a.p, a.t, spec[1], rgb(spec[0]), wAt); continue; }
+    const col = rgb(spec[0]);
+    for (let i = 0; i < a.t.length; i += 3) {
+      const p0 = a.p[a.t[i]], p1 = a.p[a.t[i + 1]], p2 = a.p[a.t[i + 2]];
+      drapeTri(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1], spec[1], col, bAt, spec[2]);
+    }
   }
 
   // ------------------------------------------------------------ 4. roads
@@ -395,14 +573,11 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   }
   // 10-gon disc, +Y facing. Ring order must be clockwise in (x,z) terms... see triTo:
   // negative shoelace == CCW from above, so walk the ring with decreasing angle.
-  function disc(x, z, r, y, col) {
-    const bd = bAt(x, z);
-    const c0 = bd.vert(x, y, z, 0, 1, 0, col);
-    for (let i = 0; i < DISC; i++) bd.vert(x + discCos[i] * r, y, z + discSin[i] * r, 0, 1, 0, col);
-    for (let i = 0; i < DISC; i++) {
-      const a = c0 + 1 + i, b = c0 + 1 + ((i + 1) % DISC);
-      bd.tri(c0, b, a);
-    }
+  // Draped: a joint disc is never wider than a carriageway, so it stays one
+  // fan, but every point on it rides the hill under the road it patches.
+  function disc(x,z,r,y,col) {
+    const ring=[];for(let i=0;i<DISC;i++)ring.push([x+discCos[i]*r,z+discSin[i]*r]);
+    cover(ring,y,col);
   }
 
   // -------------------------------------------------- 4a. the road broadphase
@@ -445,6 +620,17 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     }
   }
   const roadSegArr = Float64Array.from(roadSegs);
+  function streetClear(x,z,margin=2.6) {
+    const ix=Math.floor(x/ROAD_CELL),iz=Math.floor(z/ROAD_CELL);
+    for(let i=ix-1;i<=ix+1;i++)for(let j=iz-1;j<=iz+1;j++) {
+      for(const id of roadGrid.get(gkey(i,j)) || []) {
+        const o=id*7,r=roadSegArr[o+5]+margin;
+        if(distPtSeg2(x,z,roadSegArr[o],roadSegArr[o+1],roadSegArr[o+2],roadSegArr[o+3])<r*r)return false;
+      }
+    }
+    return true;
+  }
+  const cemeteryFences=buildCemeteryFences(areas,{clear:streetClear,baseAt,bAt,addSegment,inside});
 
   // "Is the car on tarmac?" — unchanged, kerb + 0.8 so a wheel on the gutter
   // still counts as on the road.
@@ -553,7 +739,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     return lo.concat(up);
   }
 
-  const hullPts = [], hullIdx = [];
+  const hullPts = [];
   for (const nd of NODES.values()) {
     if (!isJunction(nd)) continue;
     const ext = nd.ext;
@@ -567,16 +753,14 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     }
     const ring = convexHull(hullPts.slice());
     if (ring.length < 3) continue;
-    hullIdx.length = 0;
-    for (let i = 1; i + 1 < ring.length; i++) hullIdx.push(0, i, i + 1);
     const col = rank >= 3 ? roadCols.trunk : rank >= 2 ? roadCols.tertiary : roadCols.residential;
-    triTo(bAt(nd.x, nd.z), ring, hullIdx, Y.inter, col);
+    interDeck(bAt(nd.x, nd.z), ring, Y.inter, col);
     interExt.set(nd.id, ext);
     interCount++;
 
     // Sidewalk corners: the kerb radius between two paved branches. Without
     // these the two straight bands leave a notch at every junction.
-    const paved = nd.br.filter((b) => PAVED[b.cls] === 1);
+    const paved = nd.br.filter((b) => PAVED[b.cls] === 1 || b.cls === 'residential');
     if (paved.length >= 2) {
       paved.sort((a, b) => Math.atan2(a.dx, a.dz) - Math.atan2(b.dx, b.dz));
       for (let i = 0; i < paved.length; i++) {
@@ -596,12 +780,14 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         let d = ext + 1.9, cx = 0, cz = 0, placed = false;
         for (let k = 0; k < 9; k++, d += 0.6) {
           cx = nd.x + ux * d; cz = nd.z + uz * d;
-          if (!pavedAt(cx, cz, -1, 0.2)) { placed = true; break; }
+          if (rectPoints(cx,cz,2.8,2.8,Math.atan2(ux,uz)).every(p=>!pavedAt(p[0],p[1],-1,0.25)) && !pavedAt(cx,cz,-1,0.2)) { placed = true; break; }
         }
         noteFurniture(cx, cz, 'kerb', -1, !placed);
         if (!placed) { furnDropped++; continue; }
-        bAt(cx, cz).tower(cx, 0, cz, 2.8, 2.8, 0.12, walkCol,
-          { yaw: Math.atan2(ux, uz), noBottom: true });
+        // 2.8 m square: smaller than a raster cell, so it is simply stood on
+        // the ground under its centre rather than cut up. On a 5 % corner the
+        // far edge is 7 cm out, which is half the slab's own thickness.
+        slab(cx, cz, 2.8, 2.8, 0.12, Math.atan2(ux, uz), walkCol);
         cornerCount++;
       }
     }
@@ -612,7 +798,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   function stopLine(x, z, dx, dz, hw, yaw) {
     const rxx = -dz, rzz = dx;
     const cx = x + rxx * hw * 0.5, cz = z + rzz * hw * 0.5;
-    bAt(cx, cz).flatRot(cx, cz, hw * 0.9, 0.55, Y.mark, yaw, white);
+    stripe(cx, cz, hw * 0.9, 0.55, Y.mark, yaw, white);
     stopLineCount++;
   }
 
@@ -633,16 +819,14 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     const hw = road.w / 2;
     const isService = road.cls === 'service';
     const y = isService ? Y.service : Y.road;
-    const col = roadCols[road.cls] || roadCols.residential;
+    const age = streetHash(road.name, road.name ? 0 : ri) % 5;
+    const col = (roadCols[road.cls] || roadCols.residential).map(v => Math.min(1,v*(age===0?0.94:1.12+age*0.09)));
     const major = MAJOR[road.cls] === 1;
     const paved = PAVED[road.cls] === 1;
     const rh = streetHash(road.name, ri);
-    // Collectors have walks on both sides. Some residential streets get a walk
-    // on one consistent side; the rest retain the soft
-    // shoulder common in older Aylmer neighbourhoods.
-    const residentialWalk = road.cls === 'residential' && (rh % 100) < 18;
-    const walkSides = paved ? [1, -1]
-      : residentialWalk ? [(rh & 1) ? 1 : -1] : [];
+    // Both sides of collectors and residential streets get concrete walks.
+    const residentialWalk = road.cls === 'residential';
+    const walkSides = paved || residentialWalk ? [1, -1] : [];
 
     // per-segment unit direction + right-hand normal
     const dxs = new Float64Array(n - 1), dzs = new Float64Array(n - 1), lens = new Float64Array(n - 1);
@@ -695,9 +879,24 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         l1x = pts[i + 1][0] + nx; l1z = pts[i + 1][1] + nz;
         r1x = pts[i + 1][0] - nx; r1z = pts[i + 1][1] - nz;
       }
-      bAt(mx, mz).quad(
-        [l0x, y, l0z], [r0x, y, r0z],
-        [r1x, y, r1z], [l1x, y, l1z], col, UP);
+      cover([[l0x,l0z],[r0x,r0z],[r1x,r1z],[l1x,l1z]],y,col);
+      // Sparse summer repairs. These are visual decals, not physical bumps.
+      const wear=(rh+Math.imul(i+1,2654435761))>>>0;
+      if(!isService && age>0 && lens[i]>24 && overBase(mx,mz,mx,mz)) {
+        const yaw=Math.atan2(dxs[i],dzs[i]),nx=dzs[i],nz=-dxs[i];
+        if(wear%3===0) {
+          const px=mx+nx*hw*0.45,pz=mz+nz*hw*0.45;
+          stripe(px,pz,0.85,2.8+(wear%4),Y.inter+0.007,yaw,col.map(v=>v*0.82));
+          // An irregular thin crack with two short branches.
+          for(const [off,len,ang] of [[-0.7,1.1,0.31],[0.25,1.0,-0.2],[0.8,0.65,0.55]])
+            stripe(mx+dxs[i]*off,mz+dzs[i]*off,0.035,len,Y.inter+0.009,yaw+ang,col.map(v=>v*0.61));
+        }
+        if(wear%5===0) {
+          const px=mx-nx*hw*0.48,pz=mz-nz*hw*0.48;
+          disc(px,pz,0.34,Y.inter+0.01,rgb(0x555650));
+          for(const off of [-0.12,0,0.12])stripe(px+nx*off,pz+nz*off,0.025,0.40,Y.inter+0.012,yaw,rgb(0x363b39));
+        }
+      }
       // Streets without a concrete walk transition through a narrow compacted
       // shoulder, rather than ending in a perfectly sharp asphalt/grass seam.
       if (road.cls === 'residential' && walkSides.length === 0 && lens[i] > 2) {
@@ -716,7 +915,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
             const c = (runs[q] + runs[q + 1]) / 2;
             const bx = pts[i][0] + dxs[i] * c, bz = pts[i][1] + dzs[i] * c;
             const sx = bx + nx * (hw + 0.34) * side, sz = bz + nz * (hw + 0.34) * side;
-            bAt(sx, sz).flatRot(sx, sz, 0.68, L, Y.service - 0.002, yaw, shoulderCol);
+            stripe(sx, sz, 0.68, L, Y.service - 0.002, yaw, shoulderCol);
             noteFurniture(sx, sz, 'shoulder', ri, false);
           }
         }
@@ -755,7 +954,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         let s = Math.max(carry, s0);
         while (s + 4 <= s1) {
           const cx = pts[i][0] + dx * (s + 2), cz = pts[i][1] + dz * (s + 2);
-          bAt(cx, cz).flatRot(cx, cz, 0.35, 4, Y.mark, yaw, yellow);
+          stripe(cx, cz, 0.17, age===0?4:3.7, Y.mark, yaw, yellow.map((v,k)=>v*(age===0?1:0.76)+col[k]*(age===0?0:0.24)));
           dashCount++;
           s += 10;
         }
@@ -778,15 +977,14 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         const off = hw - 0.5;
         for (const s of [1, -1]) {
           const cx = mx + nx * off * s, cz = mz + nz * off * s;
-          bAt(cx, cz).flatRot(cx, cz, 0.25, L, Y.mark, yaw, white);
+          stripe(cx, cz, 0.16, L, Y.mark, yaw, white.map((v,k)=>v*0.72+col[k]*0.28));
         }
       }
     }
 
     // Concrete sidewalks outside the asphalt, stopping at the kerb corners.
     // A dark gutter strip and a small height step make the road edge read as a
-    // curb instead of two coplanar ribbons. Residential streets use the stable
-    // one-/two-side policy above.
+    // curb instead of two coplanar ribbons.
     if (walkSides.length) {
       for (let i = 0; i < n - 1; i++) {
         const s0 = cut[i] > 0 ? cut[i] + 1.4 : 0;
@@ -814,15 +1012,20 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
             const mid = (runs[q] + runs[q + 1]) / 2;
             const mx = pts[i][0] + dx * mid, mz = pts[i][1] + dz * mid;
             const gx = mx + nx * (hw + 0.11) * s, gz = mz + nz * (hw + 0.11) * s;
-            bAt(gx, gz).flatRot(gx, gz, 0.28, L, Y.road + 0.008, yaw, gutterCol);
+            stripe(gx, gz, 0.28, L, Y.road + 0.008, yaw, gutterCol);
             const cx = mx + nx * off * s, cz = mz + nz * off * s;
-            bAt(cx, cz).tower(cx, 0, cz, 1.75, L, 0.12, walkCol, { yaw, noBottom: true });
+            slab(cx, cz, 1.75, L, 0.12, yaw, walkCol);
             // Both ends as well as the middle: a slab is a long thing and the
             // smoke test should be sampling all of it, not just its centre.
             noteFurniture(cx, cz, 'walk', ri, false);
             for (const e of [runs[q] + 0.2, runs[q + 1] - 0.2]) {
               noteFurniture(pts[i][0] + dx * e + nx * off * s,
                 pts[i][1] + dz * e + nz * off * s, 'walk', ri, false);
+            }
+            if(overBase(cx,cz,cx,cz)) {
+              // Slab joints every few metres; enough to read at driving speed.
+              for(let u=-L/2+3;u<L/2-0.5;u+=3.4)
+                stripe(cx+dx*u,cz+dz*u,1.65,0.022,0.124,yaw,rgb(0x817e75));
             }
             sidewalkCount++;
           }
@@ -868,14 +1071,21 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     if (inside && a0 && !inside(a0.poleX, a0.poleZ)) continue;
     for (const a of sig.approaches) {
       const bd = bAt(a.poleX, a.poleZ);
-      bd.cyl(a.poleX, 3.1, a.poleZ, 0.13, 6.2, 6, poleCol, 'y', false);
+      // The mast is planted on the ground at its own foot; the head and its
+      // three dark lenses hang from it at the height they always did. `headY`
+      // is written back onto the approach because signals.js draws the ONE lit
+      // lamp from it at runtime, and a lens 30 m under its housing is not a
+      // traffic light. planSignals() is memoised, so this is the same object.
+      const gy = baseAt(a.poleX, a.poleZ).h;
+      a.headY = HEAD_Y + gy;
+      bd.cyl(a.poleX, gy + 3.1, a.poleZ, 0.13, 6.2, 6, poleCol, 'y', false);
       const mx = (a.poleX + a.headX) / 2, mz = (a.poleZ + a.headZ) / 2;
-      bd.box(mx, 6.18, mz, 0.13, 0.13, a.arm * 0.95, poleCol,
+      bd.box(mx, gy + 6.18, mz, 0.13, 0.13, a.arm * 0.95, poleCol,
         { yaw: Math.atan2(a.armX, a.armZ), noBottom: true });
-      bd.box(a.headX, HEAD_Y, a.headZ, 0.52, 1.52, 0.34, headCol, { yaw: a.headYaw });
+      bd.box(a.headX, a.headY, a.headZ, 0.52, 1.52, 0.34, headCol, { yaw: a.headYaw });
       const fx = Math.sin(a.headYaw), fz = Math.cos(a.headYaw);
       for (let k = 0; k < 3; k++) {
-        bd.box(a.headX + fx * 0.1, HEAD_Y + LAMP_DY[k], a.headZ + fz * 0.1,
+        bd.box(a.headX + fx * 0.1, a.headY + LAMP_DY[k], a.headZ + fz * 0.1,
           0.3, 0.3, 0.14, lensOff, { yaw: a.headYaw });
       }
       poleCollider(a.poleX, a.poleZ, 'signal', 6.2);
@@ -887,9 +1097,10 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   for (const s of STOPS) {
     if (inside && !inside(s.poleX, s.poleZ)) continue;
     const bd = bAt(s.poleX, s.poleZ);
-    bd.cyl(s.poleX, 1.15, s.poleZ, 0.065, 2.3, 4, poleCol, 'y', false);
-    octagon(bd, s.poleX, 2.34, s.poleZ, 0.47, s.faceYaw, stopRim, 0.0);
-    octagon(bd, s.poleX, 2.34, s.poleZ, 0.40, s.faceYaw, stopRed, 0.03);
+    const gy = baseAt(s.poleX, s.poleZ).h;
+    bd.cyl(s.poleX, gy + 1.15, s.poleZ, 0.065, 2.3, 4, poleCol, 'y', false);
+    octagon(bd, s.poleX, gy + 2.34, s.poleZ, 0.47, s.faceYaw, stopRim, 0.0);
+    octagon(bd, s.poleX, gy + 2.34, s.poleZ, 0.40, s.faceYaw, stopRed, 0.03);
     poleCollider(s.poleX, s.poleZ, 'stopsign', 2.3);
     stopLine(s.x, s.z, s.dx, s.dz, s.hw, s.yaw);
   }
@@ -904,7 +1115,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   const HOUSEY = { house: 1, terrace: 1 };
   let houseCount = 0, houseTris = 0, houseFarTris = 0;
   let landmarkRoofs = 0;
-  const buildings = bldgs;
+  const buildings = bldgs.map(fraserFootprint);
   const gableCols = ROOF.map(rgb);
   const flatRoofCol = rgb(C.flatRoof);
   const winCol = rgb(C.win);
@@ -922,12 +1133,55 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     return uv;
   }
 
+  // Where a building's ground floor goes: the MEDIAN base height under its
+  // footprint vertices. Not the mean, which a single corner hanging over a
+  // ditch drags down half a metre, and not the centroid, which on an L-plan is
+  // not under the building at all. `lo` is the lowest corner — where the skirt
+  // has to reach so a house on a slope neither floats at the back nor sinks at
+  // the front. A real one is dug in and has a foundation wall; this is that
+  // wall, in the siding colour, and it is only emitted when there is a slope to
+  // hide (which means nothing outside the raster ever pays for one).
+  const footH = [];
+  const foot = { y: 0, lo: 0 };
+  function footing(p) {
+    footH.length = 0;
+    let lo = Infinity;
+    for (let i = 0; i < p.length; i++) {
+      const h = baseAt(p[i][0], p[i][1]).h;
+      footH.push(h);
+      if (h < lo) lo = h;
+    }
+    footH.sort((a, b) => a - b);
+    const n = footH.length;
+    foot.y = n % 2 ? footH[(n - 1) >> 1] : (footH[n / 2 - 1] + footH[n / 2]) / 2;
+    foot.lo = lo;
+    return foot;
+  }
+  const SKIRT_MIN = 0.08;      // below this the ground already hides the gap
+  let skirtCount = 0;
+  // The skirt goes in the TOWN builder, not either house builder: a chunk draws
+  // its lod 0 houses or its lod 2 houses but always draws the town, so one copy
+  // is enough and the house LOD budget stays where it was.
+  function skirt(p, y, lo, col) {
+    if (y - lo < SKIRT_MIN) return;
+    const y0 = lo - 0.5;
+    bAt(p[0][0], p[0][1]).prism(p, y0, y - y0, col);
+    skirtCount++;
+  }
+
   let signCount = 0, winQuads = 0;
   const shrunk = [];
   for (let bi = 0; bi < buildings.length; bi++) {
     const b = buildings[bi];
     const p = b.p, n = p.length, h = b.h, c = b.c;
     const rnd = mulberry32((bi * 2654435761 + 0x9e3779b9) >>> 0);
+    const ft = footing(p);
+    const by = ft.y, blo = ft.lo;
+    if (b.k === 'fraser') {
+      for (let i=0;i<p.length;i++) addWallSegment(p[i][0],p[i][1],p[(i+1)%p.length][0],p[(i+1)%p.length][1]);
+      if (b.id === FRASER.ids[0]) buildFraser(bAt(FRASER.x, FRASER.z), baseAt(FRASER.x, FRASER.z).h, (x,z)=>baseAt(x,z).h);
+      continue;
+    }
     // Phase 1 gives 537 dwellings an `hs` blob while OSM still calls them
     // 'commercial' on footprint size alone, so the attributes decide too.
     if (HOUSEY[b.k] === 1 || b.hs) {
@@ -935,15 +1189,19 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
       const seed = (bi * 2654435761 + 0x9e3779b9) >>> 0;
       // Near: full detail, the real atlas, and the ONLY call that registers
       // colliders — the far copy is the same house, so it must not add them again.
+      // `y` was already houses.js's own hook (opts.y, threaded through every
+      // wall, roof, porch and driveway in that file); it has simply never had
+      // anything but zero to carry before.
       const hr = buildHouse(hnAt(c[0], c[1]), b, b.hs || null, mats, mulberry32(seed), {
-        lod: 0, index: bi, streetYaw: sy,
+        lod: 0, index: bi, streetYaw: sy, y: by,
         addSegment: addWallSegment, // one call per footprint edge, same order as before
       });
       // Far: same seed, so recipe() draws the same tiles and the silhouette
       // wears the same brick; the stub provider keeps it vertex-coloured.
       const fr = buildHouse(hfAt(c[0], c[1]), b, b.hs || null, MATS, mulberry32(seed), {
-        lod: 2, index: bi, streetYaw: sy,
+        lod: 2, index: bi, streetYaw: sy, y: by,
       });
+      skirt(p, by, blo, shade(SIDING[(rnd() * SIDING.length) | 0], 0.7));
       houseCount++; houseTris += hr.tris || 0; houseFarTris += fr.tris || 0;
       continue;
     }
@@ -969,13 +1227,16 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
 
     // Ring orientation: negative shoelace means walking p[i]->p[i+1] and building the
     // quad [bot_i, bot_j, top_j, top_i] gives an OUTWARD normal. Otherwise walk back.
+    // Everything in this block is measured from `by`, the footing worked out
+    // above: walls, roof cap, parapet, spire, window rows, door and sign board.
     const fwd = ringArea2(p) < 0;
     for (let i = 0; i < n; i++) {
       const ia = fwd ? i : (i + 1) % n, ib = fwd ? (i + 1) % n : i;
       const a = p[ia], q = p[ib];
-      bd.quad([a[0], 0, a[1]], [q[0], 0, q[1]], [q[0], h, q[1]], [a[0], h, a[1]], wall);
+      bd.quad([a[0], by, a[1]], [q[0], by, q[1]], [q[0], by + h, q[1]], [a[0], by + h, a[1]], wall);
       addWallSegment(p[i][0], p[i][1], p[(i + 1) % n][0], p[(i + 1) % n][1]);
     }
+    skirt(p, by, blo, shade(wallHex, 0.7));
 
     const ang = b.a, ca = Math.cos(ang), sa = Math.sin(ang);
     const e = extents(p, c, ca, sa);
@@ -995,12 +1256,12 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
       const roofCol = isChurch ? gableCols[2]
         : isClubhouse ? rgb(0x3f4938)
         : gableCols[(rnd() * 6) | 0];
-      triTo(bd, p, b.t, h, roofCol);
+      triTo(bd, p, b.t, by + h, roofCol);
       const rh = isClubhouse ? clamp(0.16 * ed, 1.5, 3.8) : clamp(0.35 * ed, 1.6, 3.2);
-      bd.roof(gx, h, gz, ew, ed, rh, roofCol, -ang, 0.4);
+      bd.roof(gx, by + h, gz, ew, ed, rh, roofCol, -ang, 0.4);
       if (isClubhouse) landmarkRoofs++;
     } else {
-      triTo(bd, p, b.t, h, flatRoofCol);
+      triTo(bd, p, b.t, by + h, flatRoofCol);
       // A parapet needs vertical faces. The previous inset cap floated 40 cm
       // above the roof with nothing beneath it, especially obvious against the
       // sky. Close it on buildings where roof detail matters; anonymous map
@@ -1015,15 +1276,15 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
           const f = clamp(0.42 / d, 0, 0.32);
           shrunk.push([p[i][0] - dx * f, p[i][1] - dz * f]);
         }
-        bd.prism(shrunk, h, 0.38, shade(C.flatRoof, 0.62));
-        triTo(bd, shrunk, b.t, h + 0.38, shade(C.flatRoof, 0.78));
+        bd.prism(shrunk, by + h, 0.38, shade(C.flatRoof, 0.62));
+        triTo(bd, shrunk, b.t, by + h + 0.38, shade(C.flatRoof, 0.78));
       }
     }
 
     if (isChurch) {
       const sx = c[0] + ca * ew * 0.4, sz = c[1] + sa * ew * 0.4;
-      bd.tower(sx, 0, sz, 2.5, 2.5, h * 1.8, rgb(wallHex), { noBottom: true });
-      bd.cone(sx, h * 1.8, sz, 1.9, 5.5, 6, gableCols[0]);
+      bd.tower(sx, by, sz, 2.5, 2.5, h * 1.8, rgb(wallHex), { noBottom: true });
+      bd.cone(sx, by + h * 1.8, sz, 1.9, 5.5, 6, gableCols[0]);
     }
 
     // Façade openings. Individual punched windows read as apartments/schools;
@@ -1051,8 +1312,8 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
       const maxFacadeQuads = b.k === 'big' ? 4 : 18;
       for (let f = 0; f < floors && quads < maxFacadeQuads; f++) {
         const wh = f === 0 && b.k === 'commercial' ? 1.7 : 1.15;
-        const y0 = 0.82 + f * 3.05, y1 = y0 + wh;
-        if (y1 > h - 0.42) break;
+        const y0 = by + 0.82 + f * 3.05, y1 = y0 + wh;
+        if (y1 > by + h - 0.42) break;
         for (let i = 0; i < n && quads < maxFacadeQuads; i++) {
           const ia = fwd ? i : (i + 1) % n, ib = fwd ? (i + 1) % n : i;
           const a = p[ia], q = p[ib];
@@ -1085,8 +1346,8 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         const cx = (a[0] + q[0]) / 2 + nx, cz = (a[1] + q[1]) / 2 + nz;
         const dw = Math.min(1.55, Math.max(0.9, L * 0.16));
         const tx = dx * dw / 2, tz = dz * dw / 2;
-        bd.quad([cx - tx, 0.08, cz - tz], [cx + tx, 0.08, cz + tz],
-          [cx + tx, 2.35, cz + tz], [cx - tx, 2.35, cz - tz], shade(C.win, 0.68));
+        bd.quad([cx - tx, by + 0.08, cz - tz], [cx + tx, by + 0.08, cz + tz],
+          [cx + tx, by + 2.35, cz + tz], [cx - tx, by + 2.35, cz - tz], shade(C.win, 0.68));
       }
     }
 
@@ -1107,7 +1368,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         const mx = (a[0] + q[0]) / 2 - dz * 0.25, mz = (a[1] + q[1]) / 2 + dx * 0.25;
         const nm = b.name || '';
         const hex = (nm.indexOf('Tim') >= 0 || nm.indexOf('McDo') >= 0) ? 0xd23c2a : 0x2a63c9;
-        bd.box(mx, h + 0.6, mz, 3, 1.2, 0.35, rgb(hex), { yaw: Math.atan2(-dz, dx), noBottom: true });
+        bd.box(mx, by + h + 0.6, mz, 3, 1.2, 0.35, rgb(hex), { yaw: Math.atan2(-dz, dx), noBottom: true });
         signCount++;
       }
     }
@@ -1190,11 +1451,47 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   let shoreCount = 0, rockCount = 0, dockCount = 0;
   const sr = mulberry32(0x5ea17e);
 
-  function flatQuad(bd, q, y, col) {
-    const cr = (q[1][0] - q[0][0]) * (q[2][1] - q[0][1]) - (q[1][1] - q[0][1]) * (q[2][0] - q[0][0]);
-    const o = cr > 0 ? [q[0], q[3], q[2], q[1]] : q;
-    bd.quad([o[0][0], y, o[0][1]], [o[1][0], y, o[1][1]],
-      [o[2][0], y, o[2][1]], [o[3][0], y, o[3][1]], col, UP);
+  // A four-corner ground patch, cut into cell-sized pieces on both axes with
+  // every corner lifted onto the ground under it. (This replaced a `flatQuad`
+  // that laid the whole patch at one absolute y.) The shoreline is what wants
+  // the cutting — one river edge can run 140 m, and a 140 m beach laid flat
+  // across a bank is a ramp into the water. The ring is reordered per piece if
+  // its shoelace comes out positive, so a caller does not have to know which way
+  // round its corners are.
+  const dq = [null, null, null, null];
+  function drapeQuad(q, y, col) {
+    const a = q[0], b = q[1], c2 = q[2], d = q[3];
+    const over = overBase(
+      Math.min(a[0], b[0], c2[0], d[0]), Math.min(a[1], b[1], c2[1], d[1]),
+      Math.max(a[0], b[0], c2[0], d[0]), Math.max(a[1], b[1], c2[1], d[1]));
+    const nu = !over ? 1 : Math.max(1, Math.ceil(Math.max(
+      Math.hypot(b[0] - a[0], b[1] - a[1]), Math.hypot(c2[0] - d[0], c2[1] - d[1])) / DRAPE));
+    const nv = !over ? 1 : Math.max(1, Math.ceil(Math.max(
+      Math.hypot(d[0] - a[0], d[1] - a[1]), Math.hypot(c2[0] - b[0], c2[1] - b[1])) / DRAPE));
+    // Bilinear in (u along a->b, v along a->d), so the piece grid follows the
+    // patch even where the two long edges are not parallel.
+    const P = (u, v) => {
+      const lx = a[0] + (d[0] - a[0]) * v, lz = a[1] + (d[1] - a[1]) * v;
+      const rx2 = b[0] + (c2[0] - b[0]) * v, rz2 = b[1] + (c2[1] - b[1]) * v;
+      const x = lx + (rx2 - lx) * u, z = lz + (rz2 - lz) * u;
+      return [x, z];
+    };
+    for (let i = 0; i < nu; i++) {
+      for (let j = 0; j < nv; j++) {
+        const u0 = i / nu, u1 = (i + 1) / nu, v0 = j / nv, v1 = (j + 1) / nv;
+        dq[0] = P(u0, v0); dq[1] = P(u1, v0); dq[2] = P(u1, v1); dq[3] = P(u0, v1);
+        const mx = (dq[0][0] + dq[2][0]) / 2, mz = (dq[0][1] + dq[2][1]) / 2;
+        const cr = (dq[1][0] - dq[0][0]) * (dq[2][1] - dq[0][1])
+          - (dq[1][1] - dq[0][1]) * (dq[2][0] - dq[0][0]);
+        const o = cr > 0 ? [dq[0], dq[3], dq[2], dq[1]] : dq;
+        drapeNormal(mx, mz);
+        bAt(mx, mz).quad(
+          [o[0][0], baseAt(o[0][0], o[0][1]).h + y, o[0][1]],
+          [o[1][0], baseAt(o[1][0], o[1][1]).h + y, o[1][1]],
+          [o[2][0], baseAt(o[2][0], o[2][1]).h + y, o[2][1]],
+          [o[3][0], baseAt(o[3][0], o[3][1]).h + y, o[3][1]], col, DN);
+      }
+    }
   }
 
   {
@@ -1227,7 +1524,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         noteFurniture(mx + nx * w * 0.5, mz + nz * w * 0.5, 'shore', -1, bad);
         if (bad) { furnDropped++; continue; }
       }
-      flatQuad(bAt(mx, mz), [
+      drapeQuad([
         [a[0], a[1]], [b[0], b[1]],
         [b[0] + nx * w, b[1] + nz * w], [a[0] + nx * w, a[1] + nz * w],
       ], Y.sand, sandCol);
@@ -1237,7 +1534,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         const rxp = a[0] + (b[0] - a[0]) * t + nx * (0.4 + sr() * 1.6);
         const rzp = a[1] + (b[1] - a[1]) * t + nz * (0.4 + sr() * 1.6);
         const s = 0.5 + sr() * 0.9;
-        bAt(rxp, rzp).box(rxp, s * 0.28, rzp, s, s * 0.75, s * 0.85,
+        bAt(rxp, rzp).box(rxp, baseAt(rxp, rzp).h + s * 0.28, rzp, s, s * 0.75, s * 0.85,
           shade(C.rock, 0.85 + sr() * 0.3), { yaw: sr() * 3.1, noBottom: true });
         rockCount++;
       }
@@ -1245,6 +1542,13 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
 
     // Marina docks: walk south (+Z) from the parking apron until the mask says
     // water, then run a finger pier out from there. PLACES.marina is (-1766,-88).
+    //
+    // These are the one thing in the file that is NOT draped, on purpose. A
+    // finger pier stands over open water, and the base under open water is the
+    // river bed — a metre and a half below the quad the water is drawn on. Set
+    // on the ground, a dock would be a plank under the Outaouais. The docks
+    // belong to the water surface, which is flat by construction, so they keep
+    // their absolute y exactly as they had it.
     for (const [sx, sz] of [[-1806, -260], [-1782, -246], [-1756, -232]]) {
       let z = sz;
       while (z < sz + 140 && !waterAt(sx, z)) z += 1;
@@ -1271,8 +1575,9 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // cross-sections along its spine) and, where a side is a vertical face rather
   // than a slope, a wall quad and — only if the feature asks for it — a collider.
   // Ramp faces never get colliders: you are supposed to go up them.
-  const terrain = buildTerrain();
-  const groundAt = terrain.groundAt;
+  //
+  // The field itself was built at the top of the file (section 0) — everything
+  // in between needed it. What is left here is the geometry.
   const TC = {
     asphalt: 0x3f3f44, concrete: 0x9d9a92, gravel: 0x8a8276, grass: 0x6d8a4c,
     sand: 0xd9cba4, path: 0x928b7c, dirt: 0x7c6449, stair: 0xa8a49a,
@@ -1309,10 +1614,81 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     }
     bd.tri(v0, v0 + 1, v0 + 2);
     terrainStats.tris++;
+    // Paint crossing streets on the actual feature triangle. Independent
+    // crossing decks cut through the rail berm between sample points.
+    const triangle=[[ax,az],[bx,bz],[cx2,cz2]], seen=new Set();
+    const minX=Math.min(ax,bx,cx2),maxX=Math.max(ax,bx,cx2);
+    const minZ=Math.min(az,bz,cz2),maxZ=Math.max(az,bz,cz2);
+    const denom=(bz-cz2)*(ax-cx2)+(cx2-bx)*(az-cz2);
+    if(Math.abs(denom)<1e-9)return;
+    const height=(x,z)=>{
+      const u=((bz-cz2)*(x-cx2)+(cx2-bx)*(z-cz2))/denom;
+      const v=((cz2-az)*(x-cx2)+(ax-cx2)*(z-cz2))/denom;
+      return u*ay+v*by+(1-u-v)*cy;
+    };
+    function overlay(a,b,c,d,col,offset,roadId,walk=false) {
+      let p=triangle;
+      for(const distance of [a,b,c,d])p=clipHalf(p,distance);
+      if(p.length<3)return;
+      if(walk && p.some(q=>pavedAt(q[0],q[1],roadId,0.15)))return;
+      const ids=p.map(q=>bd.vert(q[0],height(q[0],q[1])+offset,q[1],nx,ny,nz,col));
+      let area=0;for(let k=0;k<p.length;k++){const q=p[(k+1)%p.length];area+=p[k][0]*q[1]-p[k][1]*q[0];}
+      terrainStats.decks++;
+      for(let k=1;k+1<ids.length;k++) {
+        if(area<0)bd.tri(ids[0],ids[k],ids[k+1]);else bd.tri(ids[0],ids[k+1],ids[k]);
+      }
+    }
+    for(let ix=Math.floor(minX/ROAD_CELL)-1;ix<=Math.floor(maxX/ROAD_CELL)+1;ix++)
+      for(let iz=Math.floor(minZ/ROAD_CELL)-1;iz<=Math.floor(maxZ/ROAD_CELL)+1;iz++)
+        for(const id of roadGrid.get(gkey(ix,iz))||[]) {
+          if(seen.has(id))continue;seen.add(id);
+          const o=id*7,x=roadSegArr[o],z=roadSegArr[o+1],dx=roadSegArr[o+2]-x,dz=roadSegArr[o+3]-z;
+          const len=Math.hypot(dx,dz);if(len<0.01)continue;
+          const hw=roadSegArr[o+5],ri=roadSegArr[o+6],road=roads[ri];
+          const along=p=>((p[0]-x)*dx+(p[1]-z)*dz)/len;
+          const across=p=>((p[0]-x)*dz-(p[1]-z)*dx)/len;
+          const end=p=>len-along(p);
+          overlay(along,end,p=>across(p)+hw,p=>hw-across(p),roadCols[road.cls]||roadCols.residential,0.055,ri);
+          if(PAVED[road.cls]===1||road.cls==='residential')for(const side of [-1,1])
+            overlay(along,end,p=>side*across(p)-hw,p=>hw+2.2-side*across(p),walkCol,0.125,ri,true);
+        }
   }
+  // A feature's surface patch. The emitters below choose their own resolution
+  // from the shape they are drawing — a pad's deck is one region however long
+  // it is, a berm cross-section is cut every 35 m — and that was exactly right
+  // while the ground beneath was a plane. It is not any more: the mall's 32 m
+  // loading dock and the rail berm's long runs have a hillside under them now,
+  // and a patch that spans it draws the chord. So the quad is cut to the raster
+  // cell first, on both axes, wherever there is a hill to follow.
   function tQuad(p0, p1, p2, p3, kind, tint) {
-    tTri(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1], kind, tint);
-    tTri(p0[0], p0[1], p2[0], p2[1], p3[0], p3[1], kind, tint);
+    const over = overBase(
+      Math.min(p0[0], p1[0], p2[0], p3[0]), Math.min(p0[1], p1[1], p2[1], p3[1]),
+      Math.max(p0[0], p1[0], p2[0], p3[0]), Math.max(p0[1], p1[1], p2[1], p3[1]));
+    const nu = !over ? 1 : Math.max(1, Math.ceil(Math.max(
+      Math.hypot(p1[0] - p0[0], p1[1] - p0[1]),
+      Math.hypot(p2[0] - p3[0], p2[1] - p3[1])) / DRAPE));
+    const nv = !over ? 1 : Math.max(1, Math.ceil(Math.max(
+      Math.hypot(p3[0] - p0[0], p3[1] - p0[1]),
+      Math.hypot(p2[0] - p1[0], p2[1] - p1[1])) / DRAPE));
+    if (nu === 1 && nv === 1) {
+      tTri(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1], kind, tint);
+      tTri(p0[0], p0[1], p2[0], p2[1], p3[0], p3[1], kind, tint);
+      return;
+    }
+    // Bilinear in (u along p0->p1, v along p0->p3).
+    const P = (u, v) => {
+      const lx = p0[0] + (p3[0] - p0[0]) * v, lz = p0[1] + (p3[1] - p0[1]) * v;
+      const rx2 = p1[0] + (p2[0] - p1[0]) * v, rz2 = p1[1] + (p2[1] - p1[1]) * v;
+      return [lx + (rx2 - lx) * u, lz + (rz2 - lz) * u];
+    };
+    for (let i = 0; i < nu; i++) {
+      for (let j = 0; j < nv; j++) {
+        const u0 = i / nu, u1 = (i + 1) / nu, v0 = j / nv, v1 = (j + 1) / nv;
+        const a = P(u0, v0), b = P(u1, v0), c2 = P(u1, v1), d = P(u0, v1);
+        tTri(a[0], a[1], b[0], b[1], c2[0], c2[1], kind, tint);
+        tTri(a[0], a[1], c2[0], c2[1], d[0], d[1], kind, tint);
+      }
+    }
   }
 
   // A vertical face from grade up to the deck, with an optional collider. The
@@ -1328,12 +1704,16 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
       const x0 = ax + dx * i, z0 = az + dz * i;
       const x1 = ax + dx * (i + 1), z1 = az + dz * (i + 1);
       const mx = (x0 + x1) / 2 + ox, mz = (z0 + z1) / 2 + oz;
-      if (groundAt(mx, mz).h > H - 0.35) continue;       // a ramp lands here
+      const deckMid = baseAt((x0 + x1) / 2, (z0 + z1) / 2).h + H;
       const base = groundAt(mx, mz).h;
+      if (base > deckMid - 0.35) continue;       // a ramp lands here
+      const top0 = baseAt(x0, z0).h + H, top1 = baseAt(x1, z1).h + H;
+      const bottom0 = groundAt(x0 + ox, z0 + oz).h;
+      const bottom1 = groundAt(x1 + ox, z1 + oz).h;
       const bd = bAt(mx, mz);
       // Outward normal: (ox,oz) already points away from the deck.
       const l = Math.hypot(ox, oz) || 1;
-      bd.quad([x0, base, z0], [x0, H, z0], [x1, H, z1], [x1, base, z1], col, [ox / l, 0, oz / l]);
+      bd.quad([x0, bottom0, z0], [x0, top0, z0], [x1, top1, z1], [x1, bottom1, z1], col, [ox / l, 0, oz / l]);
       terrainStats.tris += 2; terrainStats.walls++;
       if (collide) { addSegment(x0, z0, x1, z1); terrainStats.colliders++; }
     }
@@ -1425,8 +1805,10 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
           const e = [p0x + nx * offs[o + 1], p0z + nz * offs[o + 1]];
           const kind = tKind(f, (a[0] + d[0]) / 2, (a[1] + d[1]) / 2);
           if (f.H === 0) {
-            // Flat patch: a plain decal a hair above the grass, no normals to win.
-            flatQuad(bAt(a[0], a[1]), [a, b, d, e], kind === 'sand' ? Y.sand + 0.002 : Y.park + 0.004,
+            // Flat patch: a plain decal a hair above the grass, no normals to
+            // win — but "flat" now means flat ON the ground, not at sea level,
+            // so the beach follows the bank it is drawn on.
+            drapeQuad([a, b, d, e], kind === 'sand' ? Y.sand + 0.002 : Y.park + 0.004,
               tCol(kind, 1));
             terrainStats.tris += 2;
           } else {
@@ -1482,56 +1864,6 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     else emitProf(f);
   }
 
-  // Level crossings. Where a street runs over the rail berm the road does not
-  // stop at the toe of the fill — it climbs it. One asphalt deck per crossing,
-  // laid on the berm surface and following the road's own bearing.
-  {
-    const rail = terrain.features.find((f) => f.id === 'rail');
-    if (rail) {
-      const half = rail.hw + rail.run;
-      const asph = tCol('asphalt', 1.04);
-      for (const road of roads) {
-        for (let i = 0; i + 1 < road.pts.length; i++) {
-          const [ax, az] = road.pts[i], [bx, bz] = road.pts[i + 1];
-          for (let j = 0; j + 3 < rail.pts.length; j += 2) {
-            const cx2 = rail.pts[j], cz2 = rail.pts[j + 1];
-            const dx2 = rail.pts[j + 2], dz2 = rail.pts[j + 3];
-            const den = (bx - ax) * (dz2 - cz2) - (bz - az) * (dx2 - cx2);
-            if (Math.abs(den) < 1e-9) continue;
-            const t = ((cx2 - ax) * (dz2 - cz2) - (cz2 - az) * (dx2 - cx2)) / den;
-            const u = ((cx2 - ax) * (bz - az) - (cz2 - az) * (bx - ax)) / den;
-            if (t < 0 || t > 1 || u < 0 || u > 1) continue;
-            const hx = ax + (bx - ax) * t, hz = az + (bz - az) * t;
-            let rx2 = bx - ax, rz2 = bz - az;
-            const rl = Math.hypot(rx2, rz2) || 1;
-            rx2 /= rl; rz2 /= rl;
-            // How far the deck has to reach to cross the whole fill. A street
-            // that only grazes the berm gets nothing: a 90 m ribbon of asphalt
-            // laid down the flank would read as a plaza, not a crossing.
-            const cross = Math.abs(rx2 * (dz2 - cz2) - rz2 * (dx2 - cx2)) / Math.hypot(dx2 - cx2, dz2 - cz2);
-            if (cross < 0.4) continue;
-            const reach = Math.min(26, half / cross + 3);
-            const wHalf = (road.w || 8) / 2;
-            const px = -rz2 * wHalf, pz = rx2 * wHalf;
-            const N = 7;
-            for (let k = 0; k < N; k++) {
-              const s0 = -reach + (2 * reach) * (k / N), s1 = -reach + (2 * reach) * ((k + 1) / N);
-              const q = (sx2, sz2, side) => {
-                const x = hx + rx2 * sx2 + px * side, z = hz + rz2 * sz2 + pz * side;
-                return [x, groundAt(x, z).h + 0.05, z];
-              };
-              const a = q(s0, s0, -1), b = q(s1, s1, -1), d = q(s1, s1, 1), e = q(s0, s0, 1);
-              const bd = bAt(hx, hz);
-              bd.quad(a, b, d, e, asph, [0, 1, 0]);
-              terrainStats.tris += 2;
-            }
-            terrainStats.decks++;
-          }
-        }
-      }
-    }
-  }
-
   // The Galeries service fence. It is 1.6 m of chain link with a collider, and
   // the whole point of the loading-dock kicker is to go over it.
   {
@@ -1541,38 +1873,47 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     // barrier in the bake that does so on purpose: the kicker at the east lip
     // of the dock exists to put you over it. Deliberately not run through the
     // asphalt gate the road-derived furniture below goes through.
-    for (let z = -244; z < -216; z += 2) {
+    for (let z = -444; z < -416; z += 2) {
       const bd = bAt(x, z);
+      // Panel by panel on the ground under it — `groundAt`, not `baseAt`,
+      // because half of this fence stands on the loading-dock pad and it is the
+      // deck it has to be 1.6 m above, not the car park the deck sits on.
+      const g0 = groundAt(x, z).h, g1 = groundAt(x, z + 2).h;
       // Both faces: you look at this fence from the dock side on the way in and
       // from the lot side on the way down.
-      bd.quad([x, 0, z], [x, 1.6, z], [x, 1.6, z + 2], [x, 0, z + 2], fenceCol, [1, 0, 0]);
-      bd.quad([x, 0, z + 2], [x, 1.6, z + 2], [x, 1.6, z], [x, 0, z], fenceCol, [-1, 0, 0]);
+      bd.quad([x, g0, z], [x, g0 + 1.6, z], [x, g1 + 1.6, z + 2], [x, g1, z + 2], fenceCol, [1, 0, 0]);
+      bd.quad([x, g1, z + 2], [x, g1 + 1.6, z + 2], [x, g0 + 1.6, z], [x, g0, z], fenceCol, [-1, 0, 0]);
       addSegment(x, z, x, z + 2);
       terrainStats.tris += 4; terrainStats.colliders++;
-      if (((z + 244) % 6) === 0) bd.post(x, 0, z, 0.12, 1.75, postCol);
+      if (((z + 444) % 6) === 0) bd.post(x, g0, z, 0.12, 1.75, postCol);
     }
   }
 
   // ------------------------------------------------------------ 6. trees
   const tr = mulberry32(0x7ee5);
+  // One `baseAt` sample per trunk, and everything above it is measured from
+  // there. Same rule for every scatter below: a tree, a shrub, a pole and a
+  // hydrant are points, so a point sample is the whole of what draping means
+  // for them.
   function tree(x, z, scale, conifer) {
     const bd = bAt(x, z);
+    const g = baseAt(x, z).h;
     const th = 3.0 * scale;
     const pick = tr();
     const leaf = conifer ? CONIFER[(pick * CONIFER.length) | 0] : LEAF[(pick * LEAF.length) | 0];
-    bd.cyl(x, th / 2, z, 0.34 * scale, th, 4, rgb(C.trunk), 'y', false);
+    bd.cyl(x, g + th / 2, z, 0.34 * scale, th, 4, rgb(C.trunk), 'y', false);
     if (conifer) {
       // taller, narrower than the deciduous pair
-      bd.cone(x, th * 0.45, z, 1.9 * scale, 7.0 * scale, 5, rgb(leaf));
-      bd.cone(x, th * 1.5, z, 1.4 * scale, 5.0 * scale, 5, shade(leaf, 1.12));
+      bd.cone(x, g + th * 0.45, z, 1.9 * scale, 7.0 * scale, 5, rgb(leaf));
+      bd.cone(x, g + th * 1.5, z, 1.4 * scale, 5.0 * scale, 5, shade(leaf, 1.12));
     } else {
-      bd.cone(x, th * 0.7, z, 3.1 * scale, 4.0 * scale, 5, rgb(leaf));
-      bd.cone(x, th * 1.5, z, 2.3 * scale, 3.2 * scale, 5, shade(leaf, 1.1));
+      bd.cone(x, g + th * 0.7, z, 3.1 * scale, 4.0 * scale, 5, rgb(leaf));
+      bd.cone(x, g + th * 1.5, z, 2.3 * scale, 3.2 * scale, 5, shade(leaf, 1.1));
       // A small off-centre crown breaks up the repeated hourglass silhouette.
       // Only some trees get one, keeping the extra geometry modest.
       if (tr() < 0.42) {
         const a = tr() * Math.PI * 2;
-        bd.cone(x + Math.cos(a) * 1.35 * scale, th * 1.14, z + Math.sin(a) * 1.35 * scale,
+        bd.cone(x + Math.cos(a) * 1.35 * scale, g + th * 1.14, z + Math.sin(a) * 1.35 * scale,
           1.45 * scale, 2.1 * scale, 5, shade(leaf, 0.94 + tr() * 0.14));
       }
     }
@@ -1583,16 +1924,17 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // most remain the clipped cedar and lilac shrubs common on front lawns.
   function shrub(x, z, scale, flowers) {
     const bd = bAt(x, z);
+    const g = baseAt(x, z).h;
     const col = SHRUB[(tr() * SHRUB.length) | 0];
     const yaw = tr() * Math.PI;
-    bd.tower(x, 0.02, z, 1.8 * scale, 1.15 * scale, 0.72 * scale, rgb(col), {
+    bd.tower(x, g + 0.02, z, 1.8 * scale, 1.15 * scale, 0.72 * scale, rgb(col), {
       yaw, wTop: 1.35 * scale, dTop: 0.9 * scale, noBottom: true, top: shade(col, 1.12),
     });
     if (!flowers) return;
     const bloom = BLOOM[(tr() * BLOOM.length) | 0];
     for (let i = 0; i < 3; i++) {
       const a = yaw + (i - 1) * 0.72;
-      bd.cyl(x + Math.cos(a) * 0.42 * scale, 0.82 * scale,
+      bd.cyl(x + Math.cos(a) * 0.42 * scale, g + 0.82 * scale,
         z + Math.sin(a) * 0.32 * scale, 0.10 * scale, 0.12 * scale, 5, rgb(bloom), 'y', true);
     }
   }
@@ -1711,8 +2053,13 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   const poolCol = rgb(C.pool);
   function lightPool(x, z, r) {
     const bd = nAt(x, z);
-    const c0 = bd.vert(x, Y.pool2, z, 0, 1, 0, poolCol);
-    for (let i = 0; i < DISC; i++) bd.vert(x + discCos[i] * r, Y.pool2, z + discSin[i] * r, 0, 1, 0, poolCol);
+    // 7.4 m across, so the ring gets its own heights: a pool laid flat on a
+    // hill is a disc of light hanging in the air on its downhill side.
+    const c0 = bd.vert(x, baseAt(x, z).h + Y.pool2, z, 0, 1, 0, poolCol);
+    for (let i = 0; i < DISC; i++) {
+      const px = x + discCos[i] * r, pz = z + discSin[i] * r;
+      bd.vert(px, baseAt(px, pz).h + Y.pool2, pz, 0, 1, 0, poolCol);
+    }
     for (let i = 0; i < DISC; i++) {
       const a = c0 + 1 + i, b = c0 + 1 + ((i + 1) % DISC);
       bd.tri(c0, b, a);
@@ -1722,18 +2069,20 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   function streetlight(x, z, dx, dz) {
     const k = bKey(x, z), bd = bAt(x, z);
     const i0 = bd.i.length;
-    bd.cyl(x, 4.2, z, 0.2, 8.4, 4, poleCol, 'y', false);
-    bd.box(x + dx * 1.5, 8.2, z + dz * 1.5, 3.0, 0.22, 0.22, poleCol,
+    const g = baseAt(x, z).h;
+    bd.cyl(x, g + 4.2, z, 0.2, 8.4, 4, poleCol, 'y', false);
+    bd.box(x + dx * 1.5, g + 8.2, z + dz * 1.5, 3.0, 0.22, 0.22, poleCol,
       { yaw: Math.atan2(-dz, dx), noBottom: true });
-    bd.box(x + dx * 3.0, 7.85, z + dz * 3.0, 1.2, 0.4, 1.0, lampCol, { noBottom: true });
+    bd.box(x + dx * 3.0, g + 7.85, z + dz * 3.0, 1.2, 0.4, 1.0, lampCol, { noBottom: true });
     addPole(x, z, 'streetlight', 8.4, k, i0, bd.i.length);
     lightPool(x + dx * 3.0, z + dz * 3.0, 7.4);
   }
   function hydroPole(x, z, dx, dz) {
     const k = bKey(x, z), bd = bAt(x, z);
     const i0 = bd.i.length;
-    bd.cyl(x, 5.4, z, 0.3, 10.8, 4, hydroCol, 'y', false);
-    bd.box(x, 10.0, z, 4.0, 0.28, 0.32, hydroCol, { yaw: Math.atan2(-dz, dx), noBottom: true });
+    const g = baseAt(x, z).h;
+    bd.cyl(x, g + 5.4, z, 0.3, 10.8, 4, hydroCol, 'y', false);
+    bd.box(x, g + 10.0, z, 4.0, 0.28, 0.32, hydroCol, { yaw: Math.atan2(-dz, dx), noBottom: true });
     addPole(x, z, 'hydro', 10.8, k, i0, bd.i.length);
   }
 
@@ -1999,9 +2348,12 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     const rnd = mulberry32(0x9e11ed);
     // Same test the pavement itself had to pass, with a smaller wall clearance:
     // furniture stands closer to a storefront than a person walks.
+    // `y` is the pavement under the bin, sampled once here rather than once per
+    // prop per frame: streetprops.js bakes every spot into a chunk mesh and
+    // never moves it again, so this is the only place that needs to know.
     const add = (x, z, yaw, kind) => {
       if (roadAt(x, z) || waterAt(x, z) || buildingAt(x, z, 0.35)) return;
-      propSpots.push({ x, z, yaw, kind });
+      propSpots.push({ x, z, y: baseAt(x, z).h, yaw, kind });
     };
     // A street is either garbage day or it is not, and both sides of it agree,
     // because the draw is a hash of the street NAME. That is what puts a row of
@@ -2211,7 +2563,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // kills the tab over. Measured: 1057 MB heap before, 182 MB after.
   builders.clear(); houseNearB.clear(); houseFarB.clear(); waterB.clear(); nightB.clear();
   distant.v.length = 0; distant.i.length = 0;
-  const signage = opts.signage === false ? null : buildSignage(renderer);
+  const signage = opts.signage === false ? null : buildSignage(renderer, baseHeightAt);
 
   // Flatten the furniture log: a few hundred thousand samples as loose numbers
   // would be a megabyte of boxed doubles hanging off the world for the whole
@@ -2233,6 +2585,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     + `${jointCount} joints, ${dashCount} dashes, ${sidewalkCount} walks, ${wallsOffRoad} walls off the asphalt, ${stopLineCount} stop lines, `
     + `${furnDropped} pieces kept off the asphalt), `
     + `${SIGNALS.length} signals, ${STOPS.length} stop signs, ${treeCount} trees, ${plantingCount} shrubs, ${poleCount} poles, `
+    + `${groundQuads} ground quads, ${skirtCount} skirts, `
     + `${shoreCount} shore, ${rockCount} rocks, ${dockCount} docks, ${poolCount} lamp pools, `
     + `${segs.length >> 2} collider segments, ${signCount} boards, `
     + `${signage ? signage.names.length : 0} storefronts, ${winQuads} windows — ${dt} ms`);
@@ -2360,14 +2713,17 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     furniture,              // every candidate slab/pole/tree and its verdict
     waterAt,
     groundAt,               // terrain.js height field: { h, nx, ny, nz, kind }
+    baseAt,                 // the LiDAR base alone, no features: { h, nx, ny, nz }
     terrain,                // the field itself, if you want the feature list
     terrainStats,
+    groundMeshStats,
     nearestRoad,
     queryPoles,
     snapPole,
     fallen,                 // poles on their way down / lying there
     poleCount,
     // 9. reactive world: where the pavement runs and what is standing on it
+    cemeteryFences, streetClear,
     walks,                  // sidewalk runs, nodes every 5 m
     queryWalks,             // (x, z, r) -> indices into walks
     walkStep: REACT.step,

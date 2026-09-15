@@ -801,6 +801,7 @@ export class Radio {
     this.volume = saved.volume;
     this.wantOn = saved.on;                   // the deck only runs while driving
     this.on = false;
+    this.suspended = false;
     // store.js clamps its `station` field to 0..3 and that file is not ours, so
     // which station you were on is remembered by ID on the radio's own key. The
     // clamped index is still written, so an old build reading it still finds a
@@ -840,7 +841,8 @@ export class Radio {
   // ---- graph ----------------------------------------------------------
   _build() {
     const a = this.audio;
-    if (this.built || !a || !a.ok) return false;
+    if (this.built) return true;
+    if (!a || !a.ok) return false;
     const ctx = a.ctx;
     this.ctx = ctx;
     this.out = ctx.createGain();
@@ -1050,10 +1052,10 @@ export class Radio {
   }
 
   /** Called by main.js when the game leaves drive mode. */
-  suspend() { this._stopSource(); this.on = false; this._emit(); }
+  suspend() { this.suspended = true; this._stopSource(); this.on = false; this._emit(); }
 
   /** ...and when it comes back. Picks up where the deck left off. */
-  resume() { if (this.wantOn) this._restart(); else this._emit(); }
+  resume() { this.suspended = false; if (this.wantOn) this._restart(); else this._emit(); }
 
   /**
    * Look for assets/radio/playlist.json. Safe to call once at boot; the only
@@ -1223,7 +1225,7 @@ export class Radio {
   _restart() {
     if (!this._build()) { this.on = false; this._emit(); return; }
     this._stopSource();
-    if (!this.wantOn) { this.on = false; this._emit(); return; }
+    if (!this.wantOn || this.suspended) { this.on = false; this._emit(); return; }
     // Each band gets its own speaker: the AM station's is narrow, and that is
     // most of why it sounds like 1150 on the dash of a Ranger.
     const st = this.def;
@@ -1249,7 +1251,7 @@ export class Radio {
         // Two loops in the cache is plenty; anything older is cheap to rebuild.
         if (this.loops.size > 2) this.loops.delete(this.loops.keys().next().value);
         this.loops.set(key, b);
-        if (this.wantOn && this._track() === t) this._playSynth();
+        if (this.wantOn && !this.suspended && this._track() === t) this._playSynth();
       }).catch((e) => { this.rendering = false; console.warn('radio: loop render failed', e); });
       this.on = true;
       this._sting();
