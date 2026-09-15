@@ -458,6 +458,12 @@ body.modal #pause{background:rgba(6,10,13,.9)}
 /* the buttons still work — a photocopy of a button is a button */
 .photocopy button,.photocopy select,.photocopy input{filter:none}
 
+.title-scene{display:grid;grid-template-columns:minmax(260px,.7fr) 1.3fr;align-items:center;gap:28px;margin-bottom:28px;border-bottom:1px solid rgba(239,197,111,.3);padding-bottom:24px}
+.title-copy h1{text-align:left;font-size:clamp(38px,4.6vw,64px);margin-bottom:12px}
+.title-copy .tag{text-align:left;line-height:1.6;margin:0;max-width:320px}
+.title-art{display:block;width:100%;height:clamp(190px,22vw,300px);object-fit:cover;object-position:center;border-radius:10px;border:1px solid rgba(239,197,111,.3)}
+@media(max-width:700px){.title-scene{grid-template-columns:1fr;gap:16px}.title-copy h1{text-align:center}.title-copy .tag{max-width:none;text-align:center}.title-art{height:200px}}
+
 /* Readable, explicit controls toggle, reachable without knowing a shortcut. */
 #legend{right:20px;top:114px;bottom:auto;width:min(370px,calc(100vw - 40px));padding:12px;background:rgba(9,30,35,.96);font-size:14px;z-index:12;max-height:calc(100vh - 290px);overflow:auto}
 #legend.collapsed{padding:0;width:auto;max-height:none;background:rgba(9,30,35,.96)}

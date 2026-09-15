@@ -258,9 +258,10 @@ const OWNER = {
   // Tyler Yank's Z24, at her aunt's on Samuel-Edey. It used to be the fourth
   // beater on the lot; it is hers now, so it never moves to your driveway.
   cavalier: 'tyler',
-  // The three beaters live on the lot until somebody buys them, and after that
-  // they live in your driveway with everything else.
-  cutlass: 'usedlot', caravan: 'usedlot', bus: 'usedlot',
+  // The four beaters live on the lot until somebody buys them, and after that
+  // they live in your driveway with everything else. Roger's 240D is on that
+  // gravel on consignment, which is why it is here and not at his house.
+  cutlass: 'usedlot', caravan: 'usedlot', bus: 'usedlot', benz: 'usedlot',
   // The Club's cart. It stays at the golf course whatever you do with it.
   cart: 'golf',
 };
@@ -690,6 +691,10 @@ function installSkin() {
   document.head.appendChild(el);
 }
 
+// The three words for which wheels a car drives, in the language the rest of
+// the card is written in.
+const DRIVETRAIN = { fwd: 'Traction', rwd: 'Propulsion', awd: 'Intégrale' };
+
 function buildMenu() {
   const wrap = $('cars');
   wrap.innerHTML = '';
@@ -705,6 +710,12 @@ function buildMenu() {
       const w = Math.round(Math.max(0.04, Math.min(1, v)) * 100);
       return `<div class="bar"><b>${label}</b><u><i style="width:${w}%"></i></u></div>`;
     };
+    // Which wheels it drives, for the cars that have declared it (cars.js FEEL).
+    // A word, not a bar: it is not more or less of anything, it is a different
+    // thing to drive, and it belongs on the card for the same reason the seat
+    // count does. Cars with no `feel` block say nothing rather than guess.
+    const drivetrain = c.feel && DRIVETRAIN[c.feel.layout]
+      ? `<div class="bar"><b>Roues</b><span>${DRIVETRAIN[c.feel.layout]}</span></div>` : '';
     // The turntable canvas replaces the paint swatch when WebGL is available;
     // the body colour stays as a thin stripe so the car is still identifiable.
     const art = turntable.ok
@@ -719,6 +730,7 @@ function buildMenu() {
       `<div class="who">${Math.round(c.topSpeed * 3.6)} km/h</div>` + bar('Vitesse', speedFraction(c)) +
       bar('Accel', (c.accel - 1.4) / 4.2) +
       bar('Grip', (c.grip - 0.60) / 0.52) +
+      drivetrain +
       `<div class="flav">${c.flavour}</div>`;
     el.onclick = () => { if (!owned) return; G.carId = c.id; buildMenu(); };
     wrap.appendChild(el);
@@ -970,7 +982,7 @@ function enterDrive(save = null, startKey = null) {
   const doorstep = !save && (who.home === 'home' && home[spec.id] || (PLACES[who.home] && curbSpot(PLACES[who.home], 0)));
   const start = chosen || (save && save.parked && save.parked[spec.id]) || doorstep
     || home[spec.id] || homeSpot(spec.id);
-  G.veh.reset(start.x, start.z, start.yaw);
+  G.veh.reset(start.x, start.z, start.yaw, spawnY(start.x, start.z));
   G.health = save ? { ...save.health } : {};
   restoreDamage(G.veh, G.health[spec.id] || 0);
   G.repair.t = 0; G.towed = false;
@@ -1164,6 +1176,12 @@ function homeParked(currentId = G.carId) {
 }
 function homeSpot(id) { return homeParked()[id] || curbSpot(PLACES.home, 0); }
 
+// The ground under a parking spot. Every one of the tables above is a flat
+// (x, z, yaw) — the terrain is what says how high that is — so every place that
+// puts a car down feeds this to `reset`. Before the load step that builds
+// G.phys there is no height field yet, and 0 is what the old flat town was.
+function spawnY(x, z) { return G.phys && G.phys.groundY ? G.phys.groundY(x, z) : 0; }
+
 // « Remettre les chars chez eux ». Every car goes back to its owner's curb and
 // gets repaired; jobs, money, records and the clock are untouched. This is the
 // undo for a night of leaving the Civic in the river.
@@ -1177,7 +1195,7 @@ function resetCarLocations(quiet = false) {
   G.health = {};
   if (G.veh) {
     const h = home[G.veh.spec.id] || homeSpot(G.veh.spec.id);
-    G.veh.reset(h.x, h.z, h.yaw);
+    G.veh.reset(h.x, h.z, h.yaw, spawnY(h.x, h.z));
     G.veh.repair();
     G.repair.t = 0; G.towed = false;
   }
@@ -1223,7 +1241,7 @@ function swapCar(id) {
   G.carId = id;
   G.veh = new Vehicle(spec);
   G.veh.assist = G.assist;
-  G.veh.reset(spot.x, spot.z, spot.yaw);
+  G.veh.reset(spot.x, spot.z, spot.yaw, spawnY(spot.x, spot.z));
   restoreDamage(G.veh, G.health[id]);
   settleAfterPlacing(true);
   audio.setEngineProfile(spec.sound);
@@ -1447,7 +1465,7 @@ function failMission(why) {
 G.failMission = failMission;
 
 function updateMission(dt) {
-  if (fortier.interact(G, garage)) {
+  if (!G.mission && !G.ambush && fortier.interact(G, garage)) {
     if (G.carId !== 'svx') hud.setObjective('La SVX de Sara Fortier', 'E — prendre le char');
     return;
   }
@@ -1845,7 +1863,7 @@ function driveHooks(dt, v) {
         + (paid ? ', pis réparé' : ' — t’es cassé, on te le passe'), 3200);
       audio.chime(false);
     }
-    v.reset(home.x, home.z, home.a);
+    v.reset(home.x, home.z, home.a, spawnY(home.x, home.z));
     v.repair();
     G.health[v.spec.id] = 0;
     G.repair.t = 0; G.repair.key = null;
@@ -2029,7 +2047,9 @@ function tick(dt) {
     if (v.landed > G.stats.hardest) G.stats.hardest = v.landed;
     audio.land(v.landed);
     G.camShake = Math.min(1, G.camShake + v.landed * 0.09);
-    if (v.lastAir > 0.8) {
+    // jumps.js owns what counts as a jump. This used to be its own 0.8, which
+    // meant the stats counter and the money disagreed about what had happened.
+    if (v.lastAir > AIR.minAir) {
       G.stats.jumps++;
       if (v.lastAir > G.stats.bigAir) G.stats.bigAir = v.lastAir;
       hud.toast(`${v.lastAir.toFixed(1)} s dans les airs!`, 1500);
@@ -2385,7 +2405,7 @@ function render(dt) {
   }
   for (const t of G.traffic.cars) {
     if (Math.hypot(t.x - v.x, t.z - v.z) > 320) continue;
-    drawCar(t.spec, t.x, t.z, t.yaw, 0, 0, t.spin, 0, t.tint, t.y || 0, t.y || 0);
+    drawCar(t.spec, t.x, t.z, t.yaw, 0, 0, t.spin, 0, t.tint, 0, t.y || 0, t.y || 0);
   }
   for (const id of Object.keys(G.parked)) {
     const p = G.parked[id];
@@ -2395,7 +2415,7 @@ function render(dt) {
   for (const rv of G.rivals) {                     // race agent: the friends
     const c = rv.veh;
     if (Math.hypot(c.x - v.x, c.z - v.z) > 400) continue;
-    drawCar(rv.spec, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y);
+    drawCar(rv.spec, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y, c.gh);
   }
   G.cops.draw(G, drawCar);
   fortier.draw(G, drawCar);                          // ...and the police
@@ -2494,21 +2514,21 @@ function drawMarkers() {
   const r = G.renderer, v = G.veh;
   const pulse = 0.75 + Math.sin(G.time * 3) * 0.25;
   if (G.waypoint && !G.mission) {
-    m4.compose(mm, G.waypoint.x, 0, G.waypoint.z, 0, 0, 0, 6, 9 + pulse * 2, 6);
+    m4.compose(mm, G.waypoint.x, spawnY(G.waypoint.x, G.waypoint.z), G.waypoint.z, 0, 0, 0, 6, 9 + pulse * 2, 6);
     r.draw(G.meshes.marker, mm, { alpha: 0.22, unlit: true, colorMul: cyan });
   }
   if (G.mission && G.mission.target) {
     const t = G.mission.target;
-    m4.compose(mm, t.x, 0, t.z, 0, 0, 0, t.r, 7 + pulse * 2, t.r);
+    m4.compose(mm, t.x, spawnY(t.x, t.z), t.z, 0, 0, 0, t.r, 7 + pulse * 2, t.r);
     r.draw(G.meshes.marker, mm, { alpha: 0.22, unlit: true, colorMul: yellow });
-    m4.compose(mm, t.x, 0.09, t.z, 0, 0, 0, t.r, 1, t.r);
+    m4.compose(mm, t.x, spawnY(t.x, t.z) + 0.09, t.z, 0, 0, 0, t.r, 1, t.r);
     r.draw(G.meshes.ring, mm, { alpha: 0.3, unlit: true, colorMul: yellow });
   } else if (!G.mission) {
     for (const def of MISSIONS) {
       const p = PLACES[def.giver];
       if (Math.hypot(p.x - v.x, p.z - v.z) > 600) continue;
       const c = G.done.has(def.id) ? white : yellow;
-      m4.compose(mm, p.x, 0, p.z, 0, 0, 0, 8, 6 + pulse, 8);
+      m4.compose(mm, p.x, spawnY(p.x, p.z), p.z, 0, 0, 0, 8, 6 + pulse, 8);
       r.draw(G.meshes.marker, mm, { alpha: G.done.has(def.id) ? 0.1 : 0.2, unlit: true, colorMul: c });
     }
   }
@@ -2913,7 +2933,7 @@ window.AYLMER = {
   G, hud, input, garage, radio, cinema,
   step(dt = STEP) { if (G.mode === 'drive' && !cinema.active) { input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } },
   render() { if (G.mode === 'drive') render(STEP); },
-  teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw); },
+  teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw, spawnY(x, z)); },
   start: (def) => startMission(typeof def === 'string' ? ALL_MISSIONS.find(m=>m.id===def) : def),
   // Save-system hooks, so a test (or a console) can drive the slots without
   // reaching into the DOM. The buttons call exactly the same functions.
@@ -2973,7 +2993,7 @@ window.AYLMER = {
 //
 // installJumps() must run BEFORE buildWorld(), which it does — this is module
 // scope and the world is not built until somebody presses EMBARQUE.
-import { installJumps, JUMPS, resetJumps } from './game/jumps.js';
+import { installJumps, JUMPS, resetJumps, AIR } from './game/jumps.js';
 import { installModes, openModes, startCourse, COURSES, MODES } from './game/modes.js';
 import { loadRacingText, TEXT } from './game/racingtext.js';
 installJumps();

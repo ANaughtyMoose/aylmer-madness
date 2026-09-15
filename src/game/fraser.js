@@ -15,10 +15,10 @@ export function fraserFootprint(b) {
   return {...b,p,c:fraserPoint(side*5,0),k:'fraser',hs:null,h:6.7};
 }
 
-export function buildFraser(mb) {
+export function buildFraser(mb, baseY = 0, groundY = () => baseY) {
   const brick=rgb(0x854633),mortar=rgb(0x986753),trim=rgb(0xd5d2bd),roof=rgb(0x414446),glass=rgb(0x334c57),concrete=rgb(0x93948c);
-  const box=(x,y,z,w,h,d,color)=>{const [px,pz]=fraserPoint(x,z);mb.box(px,y,pz,w,h,d,color,{yaw:FRASER.yaw});};
-  const cap=(x,z,w,d,y,h)=>{const [px,pz]=fraserPoint(x,z);mb.roof(px,y,pz,w,d,h,roof,FRASER.yaw,0.25);};
+  const box=(x,y,z,w,h,d,color)=>{const [px,pz]=fraserPoint(x,z);mb.box(px,y + (y < 0.15 ? groundY(px,pz) : baseY),pz,w,h,d,color,{yaw:FRASER.yaw});};
+  const cap=(x,z,w,d,y,h)=>{const [px,pz]=fraserPoint(x,z);mb.roof(px,y+baseY,pz,w,d,h,roof,FRASER.yaw,0.25);};
   box(0,0.35,0,14,0.7,11,concrete);
   box(0,3.65,0,14,5.9,11,brick);cap(0,0,14,11,6.6,1.7);
   // Quiet masonry courses make the broad facade read as brick at driving scale.
@@ -60,14 +60,14 @@ export function buildFraser(mb) {
   for(let i=0;i<=8;i++)box(-11.5,0.8,-2+i,0.045,1.6,0.045,concrete);
   for(let i=0;i<8;i++)for(let j=0;j<4;j++){
     const a=fraserPoint(-11.49,-2+i),b=fraserPoint(-11.49,-1+i);
-    const y=j*0.36+0.1;
+    const y=baseY+j*0.36+0.1;
     mb.quad([a[0],y,a[1]],[b[0],y+0.34,b[1]],[b[0],y+0.36,b[1]],[a[0],y+0.02,a[1]],concrete);
     mb.quad([a[0],y+0.34,a[1]],[b[0],y,b[1]],[b[0],y+0.02,b[1]],[a[0],y+0.36,a[1]],concrete);
   }
   // Lawn trees: red tree one quarter across from the left drive; younger fir.
-  const [rx,rz]=fraserPoint(-4.3,12.6);mb.cyl(rx,1.15,rz,0.12,2.3,6,rgb(0x6d513f));
-  for(let i=0;i<4;i++)mb.cone(rx,2.3+i*0.62,rz,1.45-i*0.23,1.9,7,rgb(i%2?0x713c40:0x87414a));
-  const [fx,fz]=fraserPoint(-0.9,11.2);
-  for(let i=0;i<4;i++)mb.cone(fx,1.1+i*0.75,fz,1.45-i*0.25,2.0,7,rgb(i%2?0x365239:0x405e3f));
+  const [rx,rz]=fraserPoint(-4.3,12.6), ry=groundY(rx,rz);mb.cyl(rx,ry+1.15,rz,0.12,2.3,6,rgb(0x6d513f));
+  for(let i=0;i<4;i++)mb.cone(rx,ry+2.3+i*0.62,rz,1.45-i*0.23,1.9,7,rgb(i%2?0x713c40:0x87414a));
+  const [fx,fz]=fraserPoint(-0.9,11.2), fy=groundY(fx,fz);
+  for(let i=0;i<4;i++)mb.cone(fx,fy+1.1+i*0.75,fz,1.45-i*0.25,2.0,7,rgb(i%2?0x365239:0x405e3f));
   for(let i=0;i<18;i++)box(-6.5+random()*13,0.25,7.7+random()*1.6,0.45,0.45,0.4,rgb(i%3?0x556d3d:0xaa9859));
 }

@@ -13,5 +13,5 @@ assert.equal(PLACES.ctire.x,HISTORIC_CT.x);
 assert.equal(placementReason(world,{...HISTORIC_CT,yaw:Math.PI},carById('ranger')),null,'pickup footprint clear');
 for(let z=-207;z>=-240;z--)assert.equal(placementReason(world,{x:-157,z,yaw:Math.PI},carById('ranger')),null,`parking aisle at ${z}`);
 console.log('Canadian Tire: correct marker; collision-free pickup and 33m approach.');
-for(let z=-207;z>=-240;z--) assert.equal(world.groundAt(-157,z).h,0,'customer approach has no loading ramps');
-console.log('Customer approach is level; loading docks are behind the mall.');
+for(let z=-207;z>=-240;z--) assert.equal(world.groundAt(-157,z).h,world.baseAt(-157,z).h,'customer approach follows the hill without loading ramps');
+console.log('Customer approach follows the hill; loading docks are behind the mall.');

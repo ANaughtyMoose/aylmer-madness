@@ -290,14 +290,35 @@ export function installJumps(list = FEATURES) {
 const LAND_SAFE = 4.0, LAND_DMG = 0.75;
 
 export const AIR = {
-  minAir: 0.55,        // seconds before a hop counts as a jump at all
+  minAir: 0.75,        // seconds before a hop counts as a jump at all
   bigAir: 1.6,         // ...and before the board shouts about it
   comboWindow: 6.0,    // seconds after a landing to still be on a chain
+  comboMin: 1.0,       // ...and the air a flight needs to be a link in one
   comboMax: 3,         // multiplier ceiling
-  perSecond: 7,        // dollars per second of air
+  // The money is a CURVE and not a rate, and that is the whole point of it.
+  // A rate pays by the second, so five kerb hops of half a second each pay
+  // what one two-and-a-half-second flight pays — except you can do the five in
+  // the time it takes to line the one up, so the town turns into a cash
+  // machine and the eleven ramps turn into scenery. A fourth-power curve
+  // prices a jump by how big it IS: `airBase` is what one flat second of air
+  // is worth, and every doubling of the airtime is worth sixteen times more.
+  //
+  //     0.8 s   a kerb at speed            $1
+  //     1.0 s   a good kerb-to-kerb hop    $2
+  //     1.6 s   the ciné-parc berms        $16
+  //     2.5 s   the chantier ramp          $95
+  //     2.8 s   the 148, flat out          $150
+  //
+  // Against a $450 Kijiji beater and a $520 exhaust, that is the right shape:
+  // the ramps are worth driving to and the kerbs are worth nothing.
+  airBase: 2.44,
+  airPow: 4,
   perMetre: 0.20,      // ...per metre of it
   cleanBonus: 6,       // ...for putting it down straight
   nearMissBonus: 3,    // ...per thing you nearly hit on the way over
+  // Distance, the clean bonus and the near misses are all scaled by `bigness`
+  // below. A kerb hop past a hydro pole is not worth three dollars for the
+  // pole, and it is not worth six for landing the way a kerb hop always lands.
   // A ramp pays less the third time you hit it inside a minute. The town is not
   // a cash machine and the Ranger is not a rental.
   repeatDecay: [1, 0.6, 0.4, 0.25],
@@ -315,6 +336,16 @@ export const AIR = {
 };
 
 // ---------------------------------------------------------------- the scorer
+
+/**
+ * How much of a jump this was: 0 at the floor where a flight starts counting
+ * at all, 1 once it is big air. Everything that is not the airtime curve
+ * itself is scaled by this, so the small stuff pays pennies of the small stuff
+ * rather than full price for being airborne at all.
+ */
+export function bigness(air, c = AIR) {
+  return clamp((air - c.minAir) / (c.bigAir - c.minAir), 0, 1);
+}
 
 /**
  * One flight, start to finish. Pure logic on a car-shaped object — no DOM, no
@@ -419,9 +450,17 @@ export class AirScorer {
     }
 
     const near = Math.max(0, (ctx.nearMiss || 0) - this.nearMiss0);
-    this.combo = Math.min(this.combo + 1, 99);
-    this.comboT = c.comboWindow;
-    const mult = Math.min(c.comboMax, 1 + (this.combo - 1) * 0.5);
+    // Only a real flight is a link in a chain. A kerb every four seconds used
+    // to hold a x3 open indefinitely, which is where most of the money was
+    // actually coming from: the multiplier, not the jumps.
+    if (air >= c.comboMin) {
+      this.combo = Math.min(this.combo + 1, 99);
+      this.comboT = c.comboWindow;
+    }
+    // ...and with the gate, `combo` can now be 0 here, which the old
+    // 1 + (combo - 1) * 0.5 would have turned into a HALF-price payout.
+    const mult = this.combo > 0
+      ? Math.min(c.comboMax, 1 + (this.combo - 1) * 0.5) : 1;
 
     // The same ramp over and over pays less each time, for a minute.
     let decay = 1;
@@ -431,14 +470,16 @@ export class AirScorer {
       this.repeat.set(ctx.siteId, { n: r.n + 1, t: c.repeatForget });
     }
 
-    let pay = air * c.perSecond + this.dist * c.perMetre + near * c.nearMissBonus;
-    if (grade !== 'crooked') pay += c.cleanBonus;
+    const size = bigness(air, c);
+    let pay = c.airBase * Math.pow(air, c.airPow)
+      + (this.dist * c.perMetre + near * c.nearMissBonus) * size;
+    if (grade !== 'crooked') pay += c.cleanBonus * size;
     else pay *= 0.5;
     pay = Math.max(1, Math.round(pay * mult * decay));
 
     const rec = {
       air, dist: this.dist, peak: this.peak, entryKmh: this.entryKmh,
-      grade, slip, drop, near, combo: this.combo, mult, pay,
+      grade, slip, drop, near, combo: this.combo, mult, pay, size,
       big: air >= c.bigAir,
     };
     this.total += pay;
@@ -509,6 +550,9 @@ export function scoreText(rec) {
 const CALL_D = 110, CALL_COS = 0.55, CALL_KMH = 25, CALL_AGAIN = 25;
 // ...and how near counts as "that was THIS ramp" when the money is worked out.
 const SITE_D = 70;
+// Away from the eleven ramps, the repeat decay keys on a cell of the town this
+// big instead. Forty metres is one kerb, one driveway apron, one kicker.
+const SITE_CELL = 40;
 
 const state = { scorer: null, called: new Map(), hideAt: 0 };
 
@@ -534,7 +578,13 @@ export function updateJumps(G, dt) {
   G.air = sc;
 
   const near = nearestJump(v.x, v.z);
-  const siteId = near && near.d < SITE_D ? near.jump.id : null;
+  // The decay needs a name for the ground you just left. Near a real ramp that
+  // is the ramp; anywhere else it is the cell you are standing in, so the same
+  // kerb taken over and over falls off exactly the way the same ramp does.
+  // Before this the decay only existed within seventy metres of eleven places
+  // and the other forty square kilometres of Aylmer paid full price forever.
+  const siteId = near && near.d < SITE_D ? near.jump.id
+    : `g${Math.round(v.x / SITE_CELL)},${Math.round(v.z / SITE_CELL)}`;
   const rec = sc.update(dt, v, {
     nearMiss: G.stats ? G.stats.nearMiss || 0 : 0,
     siteId,

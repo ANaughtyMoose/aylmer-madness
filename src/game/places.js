@@ -67,6 +67,23 @@ export const PLACES = {
   // The used lot: a gravel corner on chemin d'Aylmer beside the Canadian Tire.
   // Four beaters nose-to-tail and a plywood sign — see game/garage.js.
   usedlot:   { road: "Chemin d'Aylmer", x: 520, z: -246, label: 'Lot d’occasion, chemin d’Aylmer', snap: true },
+  // Carrosserie Volkov: a Quonset hut and four hectares of nettles on the far
+  // side of Deschênes, out where chemin Vanier stops pretending to be a street.
+  // Grigori restores cars and does nothing else (game/upgrades.js), and he is
+  // out here rather than on chemin d'Aylmer for the same reason any man who
+  // needs four hectares of nettles is: nobody in town would rent it to him.
+  // UNCERTAIN in the way PLACES.abraham is — there is no civic number behind
+  // this, only the right stretch of the right road — so `snap: true` puts the
+  // yard entrance on the pavement wherever the network actually runs.
+  //
+  // The label says « Deschênes » and NOT « chemin Vanier », which is where it
+  // is: main.js's mapState() drops any place whose label matches Fraser /
+  // Denise / Bancroft / Vanier, because those are the cast's home addresses and
+  // the big map is not a phone book. The one shop in the game you have to drive
+  // forty minutes to find has to be findable ON that map, so the street name
+  // lives in the shop pane and in assets/text/grisha.json instead.
+  grisha:    { x: 2332, z: 1276, label: 'Carrosserie Volkov, Deschênes',
+               snap: true, lot: true, landmark: true },
   // The garage sale: 41 Promenade Wychwood, a real footprint on a real street.
   yardsale:  { road: 'Promenade Wychwood', x: -523.8, z: 219.8, label: '41 Promenade Wychwood', snap: true },
   // 'sayyad' is the same house as 'steph' (historical key) — same coordinates, and the

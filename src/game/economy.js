@@ -18,6 +18,7 @@ import {
   PARTS, BOARD, tuned, tunedSound, canFit, fit, priceOf, measure, bodyPrice, PAINT,
   PAINT_PRICE, PAINT_LABEL, BODY_LABEL, partsMul, isStock,
   NORM, loadMechanic, normSay,
+  RESTORE_PRICE, GRISHA, loadRestorer, grishaSay, canRestore, restore,
 } from './upgrades.js';
 import { FAMOUS, JUMPS, OWNERS, RUMOURS, watchJumps, claimFamous, jumpsFound } from './famouscars.js';
 import * as kijiji from './kijiji.js';
@@ -26,6 +27,12 @@ import * as kijiji from './kijiji.js';
 // existing missions and saves connected to the same mechanic destination.
 const SHOPS = [{place:'norm',name:'Garage Hugo Caumartin',line:'143 rue Principale'}];
 const SHOP_RADIUS = 30;
+// Grigori Volkov's yard. Same « U » key, different address, and the opposite
+// shop in every way: Norm sells you five parts, two levels each and a paint
+// colour; Grisha sells one thing at one price and will not discuss it. He is
+// far enough out of town (places.js `grisha`) that his prompt and Norm's can
+// never both be up, so nothing has to arbitrate between them.
+const VOLKOV = { place: 'grisha', line: 'chemin Vanier, Deschênes' };
 
 const money = (n) => Math.round(n).toLocaleString('fr-CA') + ' $';
 const secs = (v) => (v == null ? '—' : v.toFixed(1).replace('.', ',') + ' s');
@@ -88,6 +95,34 @@ const CSS = `
 #moment p{white-space:pre-wrap;opacity:.88}
 #moment .key{margin-top:22px;opacity:.5;font-size:12px;letter-spacing:2px}
 #moment.hidden{display:none}
+/* Carrosserie Volkov. Deliberately NOT a second copy of #mecano: there is one
+   row, one price and one button in this shop, and a work-order layout with four
+   empty columns would be a lie about what happens here. Cold light, a hard
+   border, and the man's own words carrying the screen. */
+#volkov{position:fixed;inset:0;z-index:60;overflow:auto;color:#e6e8e6;
+  background:linear-gradient(150deg,#1b211f,#090c0b 70%);font:13px/1.65 Helvetica,Arial,sans-serif}
+#volkov .wrap{max-width:660px;margin:0 auto;padding:30px 24px 48px}
+#volkov h2{font:800 25px/1.15 Helvetica,Arial,sans-serif;letter-spacing:1.2px;margin:0}
+#volkov .sub{opacity:.55;font-size:12px;letter-spacing:.7px;margin-top:4px}
+#volkov .top{display:flex;align-items:flex-start;gap:16px;border-bottom:2px solid #7d8f5e;padding-bottom:12px}
+#volkov .top .cash{margin-left:auto;text-align:right}
+#volkov .top .cash b{display:block;font-size:22px;color:#ffc94d}
+#volkov button{font:700 12px Helvetica,Arial,sans-serif;padding:8px 15px;border:0;border-radius:5px;
+  background:#7d8f5e;color:#10140f;cursor:pointer;letter-spacing:.5px}
+#volkov button.ghost{background:#252c29;color:#cfd4cf}
+#volkov button:disabled{background:#242a27;color:#6a736d;cursor:default}
+#volkov .say{background:#141a18;border-left:3px solid #7d8f5e;border-radius:0 6px 6px 0;
+  padding:11px 15px;margin:16px 0 0;font-size:13.5px;line-height:1.6}
+#volkov .say b{display:block;font-size:10.5px;letter-spacing:1.6px;color:#9aa49a;margin-bottom:4px}
+#volkov .say.bad{border-left-color:#e2705f;color:#f0c9c2}
+#volkov .job{display:flex;gap:14px;align-items:center;margin-top:20px;
+  border-top:1px solid #232a27;border-bottom:1px solid #232a27;padding:15px 0}
+#volkov .job .txt{flex:1}
+#volkov .job .nm{font-weight:700;letter-spacing:.3px}
+#volkov .job .lv{font-size:11.5px;color:#93a07f;margin-top:3px}
+#volkov .job .pr{white-space:nowrap;font-weight:700;color:#ffc94d;font-size:17px}
+#volkov .no{color:#e2705f;font-size:11.5px;margin-top:3px}
+#volkov .note{font-size:11.5px;opacity:.55;margin-top:14px;font-style:italic;line-height:1.7}
 `;
 
 function inject() {
@@ -399,6 +434,119 @@ export function installEconomy(env) {
     shopEl.classList.add('hidden');
   }
 
+  // ---- Carrosserie Volkov -------------------------------------------------
+  // One row, one price, one button. Everything the restoration DOES to the car
+  // is in upgrades.js restore() — the wallet and the mod — and everything it
+  // does to what you can see is here, because this is the module that owns a
+  // renderer: the mesh comes back off the rebuilt spec (no `wear`), the
+  // bodywork is straight, and the tailpipe drops to `RESTORED_SMOKE`.
+
+  const volkovEl = div('volkov', 'hidden');
+  volkovEl.style.display = 'none';
+  let volkovOpen = false, volkovSaid = '', volkovVisit = 0;
+  loadRestorer();
+
+  function paintVolkov() {
+    const id = G.carId;
+    const base = carById(id);
+    const mods = G.garage.modsFor(id);
+    const r = canRestore(base, mods, G.wallet);
+    // Which of him you get: the refusal, the lecture about money, the « already
+    // done », or hello. He is the same man in all four and only one of them is
+    // an apology.
+    const line = volkovSaid ? volkovSaid
+      : r.refused ? grishaSay('refuse', volkovVisit)
+      : r.broke ? grishaSay('broke', volkovVisit)
+      : r.done ? grishaSay('done', volkovVisit)
+      : grishaSay('greetings', volkovVisit);
+    const bad = !!(r.refused || r.broke);
+
+    volkovEl.innerHTML = `<div class="wrap">
+      <div class="top">
+        <div><h2>${GRISHA.shop.toUpperCase()}</h2>
+          <div class="sub">${GRISHA.where} &middot; ${base.name}</div></div>
+        <div class="cash"><b>${money(G.wallet.value)}</b>
+          <button class="ghost" data-act="close">Fermer (Échap)</button></div>
+      </div>
+      <div class="say${bad ? ' bad' : ''}"><b>${GRISHA.name}</b>${line}</div>
+      <div class="job"><div class="txt">
+        <div class="nm">Restauration complète</div>
+        <div class="lv">${r.done
+          ? 'Déjà faite. Elle est comme en 1976 pis elle le restera tant que tu la laisses pas dehors.'
+          : 'Tout démonté, tout décapé, tout remonté d’origine. Tôle neuve, peinture d’usine, chrome refait, moteur rodé.'}</div>
+        ${!r.ok && !r.done ? `<div class="no">${r.why}</div>` : ''}
+      </div>
+      <div class="pr">${r.done ? '' : money(RESTORE_PRICE)}</div>
+      <button data-act="restore" ${r.ok ? '' : 'disabled'}>${r.done ? 'C’EST FAIT' : 'HUIT CENTS'}</button></div>
+      <div class="note">${GRISHA.name} fait ça pis rien d’autre. Pas de pièces, pas de pneus,
+        pas de pose de silencieux — pour ça c’est Norm, su’ l’chemin d’Aylmer.
+        <br>« ${grishaSay('quote', volkovVisit)} »</div>
+    </div>`;
+    volkovEl.onclick = onVolkovClick;
+  }
+
+  function onVolkovClick(e) {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    if (b.dataset.act === 'close') { closeVolkov(); return; }
+    if (b.dataset.act === 'restore') doRestore();
+  }
+
+  /**
+   * Eight hundred dollars and the car comes back. The wallet and the mod are
+   * upgrades.js's restore(); everything below it is what only a module holding
+   * a renderer can do. Returns canRestore()'s answer either way, so the caller
+   * — the button, or a test — is told which of the three refusals it got.
+   */
+  function doRestore() {
+    const id = G.carId, base = carById(id), mods = G.garage.modsFor(id);
+    const r = restore(base, mods, G.wallet);
+    if (!r.ok) { if (volkovOpen) paintVolkov(); return r; }
+    G.garage.setMods(id, mods);
+    // The paint, the panels and the smoke all hang off the derived spec, so the
+    // cache key has to go before retune() will notice anything changed.
+    cache.key = '';
+    retune();
+    repaint(id);
+    // Twenty-eight years of dents go with the rust: you do not hand a car back
+    // from a restoration with the bumper still folded.
+    if (G.veh && G.veh.spec.id === id) { G.veh.repair(); G.health[id] = 0; }
+    else G.health[id] = 0;
+    G.repairHints.h25 = false; G.repairHints.h60 = false;
+    hud.setRepairHint(null);
+    volkovSaid = grishaSay('done', volkovVisit);
+    hud.toast(`RESTAURÉE — ${money(r.price)}\n${base.name}\n${volkovSaid}`, 4200);
+    if (audio && audio.chime) audio.chime(true);
+    if (volkovOpen) paintVolkov();
+    if (G.autosave) G.autosave('restore');
+    return r;
+  }
+
+  function openVolkov() {
+    volkovSaid = '';
+    volkovVisit++;
+    volkovOpen = true;
+    volkovEl.style.display = 'block';
+    volkovEl.classList.remove('hidden');
+    paintVolkov();
+    if (audio) { audio.engine(0, 0); audio.skid(0); }
+  }
+  function closeVolkov() {
+    volkovOpen = false;
+    volkovEl.style.display = 'none';
+    volkovEl.classList.add('hidden');
+  }
+
+  /** Stopped on Grigori's gravel? */
+  function volkovAt() {
+    const v = G.veh;
+    if (!v || Math.abs(v.vLong) > 1.5) return null;
+    const p = PLACES[VOLKOV.place];
+    if (!p) return null;
+    const dx = v.x - p.x, dz = v.z - p.z;
+    return dx * dx + dz * dz < SHOP_RADIUS * SHOP_RADIUS ? VOLKOV : null;
+  }
+
   /** The shop you are parked on the forecourt of, or null. */
   function shopAt() {
     const v = G.veh;
@@ -455,8 +603,9 @@ export function installEconomy(env) {
   function pulse() {
     if (!G.veh || G.mode !== 'drive') { hud.setShopPrompt(null); return; }
     retune();
-    if (Math.abs(G.veh.vLong) > ROLLING && (shopOpen || kijiji.isOpen())) {
+    if (Math.abs(G.veh.vLong) > ROLLING && (shopOpen || volkovOpen || kijiji.isOpen())) {
       closeShop();
+      closeVolkov();
       kijiji.close();
       hud.toast('Ton char roule.', 1400, true);
     }
@@ -479,10 +628,15 @@ export function installEconomy(env) {
 
     // The forecourt prompt. Silent while a mission, a repair or the moment card
     // owns the screen — those keys belong to somebody else.
-    if (G.mission || momentVisible() || shopOpen || kijiji.isOpen()) {
+    if (G.mission || momentVisible() || shopOpen || volkovOpen || kijiji.isOpen()) {
       hud.setShopPrompt(null);
       return;
     }
+    // Grigori's yard first: it is forty minutes from anything and if you are
+    // standing in it there is exactly one thing you came for. There is no
+    // « K — Kijiji » out here either; Roger does not have a computer and
+    // neither does Grisha.
+    if (volkovAt()) { hud.setShopPrompt(`U  —  ${GRISHA.shop}`); return; }
     const s = shopAt();
     // U8: one prompt slot. This used to be #econprompt, its own line 66 px
     // under #prompt — which at 1280x800 is exactly where the tutorial card
@@ -530,11 +684,12 @@ export function installEconomy(env) {
     if (e.code === 'Escape') {
       if (kijiji.isOpen()) { kijiji.close(); e.preventDefault(); return; }
       if (shopOpen) { closeShop(); e.preventDefault(); return; }
+      if (volkovOpen) { closeVolkov(); e.preventDefault(); return; }
     }
     if (momentVisible() && ['Space', 'KeyE', 'Enter', 'Escape'].includes(e.code)) {
       hideMoment(); e.preventDefault(); return;
     }
-    if (G.mode !== 'drive' || shopOpen || kijiji.isOpen() || momentVisible()) return;
+    if (G.mode !== 'drive' || shopOpen || volkovOpen || kijiji.isOpen() || momentVisible()) return;
     if (e.code !== 'KeyK' && e.code !== 'KeyU') return;
     if (G.veh && Math.abs(G.veh.vLong) > 1.5) {
       hud.toast('Arrête-toi d’abord.', 1400);
@@ -543,6 +698,9 @@ export function installEconomy(env) {
     }
     if (e.code === 'KeyK') { openKijiji(); e.preventDefault(); return; }
     if (e.code === 'KeyU') {
+      // Two shops, one key. Grigori's is tested first because it is the one you
+      // have to have driven to Deschênes on purpose to be standing in.
+      if (volkovAt()) { openVolkov(); e.preventDefault(); return; }
       const s = shopAt();
       if (s) openShop(s);
       else hud.toast('Garage Hugo Caumartin — 143 rue Principale. Stationne-toi devant les deux portes.', 2600);
@@ -556,6 +714,11 @@ export function installEconomy(env) {
   const api = {
     openShop: () => openShop(shopAt() || SHOPS[0]),
     closeShop, openKijiji, closeKijiji: kijiji.close,
+    openVolkov, closeVolkov, volkovAt,
+    // The restoration end to end without a keyboard: the same call the button
+    // makes. Returns canRestore()'s answer, so a refusal says which one it was.
+    restore: doRestore,
+    canRestore: () => canRestore(carById(G.carId), G.garage.modsFor(G.carId), G.wallet),
     shopAt, retune, deliver, repaint,
     mods: () => G.garage.modsFor(G.carId),
     fit: (partId) => {

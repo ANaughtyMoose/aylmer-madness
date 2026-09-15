@@ -16,21 +16,33 @@ import { m4 } from '../core/math.js';
 import { KINDS } from './streetprops.js';
 
 const MAX_BODIES = 48;
-const SMOKE = 24, SPARKS = 28, GLASS = 24;
+// 32 smoke slots, of which the last 8 belong to the tailpipe and the first 24
+// — every one the tyres ever had — still belong to the tyres. The 240D burns
+// oil continuously (reactive.js exhaust()) and a shared round-robin would have
+// it eating the handbrake slide it is nowhere near quick enough to start.
+const SMOKE = 32, SOOT = 8, SPARKS = 28, GLASS = 24;
 const GRAV = 16;              // arcade gravity: things come down where you can see them
 const BOUNCE = 0.34;
 
 const C_SMOKE = new Float32Array([0.80, 0.79, 0.76]);
 const C_WATER = new Float32Array([0.74, 0.86, 0.95]);
+// Unburnt diesel. Dark enough to read against asphalt as well as against sky,
+// and warm rather than neutral — soot is not grey smoke with the lights off.
+const C_SOOT = new Float32Array([0.21, 0.20, 0.18]);
 const C_SPARK = new Float32Array([1.0, 0.78, 0.28]);
 const C_GLASS = new Float32Array([0.80, 0.92, 0.96]);
 
 const mm = m4.create();
 
 class Pool {
-  constructor(n, fields) {
+  // `reserve` fences off the last few slots for a second caller: take() can
+  // never reach them and takeB() can never reach anything else, so two
+  // spawners share one pool without either being able to starve the other.
+  constructor(n, fields, reserve = 0) {
     this.n = n;
+    this.split = n - reserve;
     this.next = 0;
+    this.nextB = this.split;
     this.p = [];
     for (let i = 0; i < n; i++) this.p.push({ ...fields });
     this.opts = [];
@@ -38,28 +50,37 @@ class Pool {
   }
   take() {
     const q = this.p[this.next];
-    this.next = (this.next + 1) % this.n;
+    this.next = (this.next + 1) % this.split;
+    return q;
+  }
+  takeB() {
+    const q = this.p[this.nextB];
+    this.nextB = this.split + ((this.nextB + 1 - this.split) % (this.n - this.split));
     return q;
   }
 }
 
 export class Debris {
-  constructor(renderer, kindMeshes) {
+  constructor(renderer, kindMeshes, world) {
     this.r = renderer;
     this.kindMeshes = kindMeshes || {};
+    // The deck all of this lands on. Sampled once per thrown thing, never per
+    // frame: a bin does not roll far enough to change what is under it, and a
+    // spark lives a third of a second. Without a world it is the flat town.
+    this.world = world || null;
     this.bodies = [];
     for (let i = 0; i < MAX_BODIES; i++) {
       this.bodies.push({
-        live: false, kind: '', mesh: null, cy: 0.4, rest: 0.3,
+        live: false, kind: '', mesh: null, cy: 0.4, rest: 0.3, g: 0,
         x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
         rx: 0, ry: 0, rz: 0, wx: 0, wy: 0, wz: 0,
         bounced: 0, settled: false, age: 0,
       });
     }
     this.nextBody = 0;
-    this.smokePool = new Pool(SMOKE, { life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0, water: 0 });
-    this.sparkPool = new Pool(SPARKS, { life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
-    this.glassPool = new Pool(GLASS, { life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
+    this.smokePool = new Pool(SMOKE, { life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0, water: 0, soot: 0 }, SOOT);
+    this.sparkPool = new Pool(SPARKS, { life: 0, x: 0, y: 0, z: 0, g: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
+    this.glassPool = new Pool(GLASS, { life: 0, x: 0, y: 0, z: 0, g: 0, vx: 0, vy: 0, vz: 0, s: 0, spin: 0 });
     this.puffMesh = renderer.upload(unitBox(0.5, 0xffffff));
     this.sparkMesh = renderer.upload(unitBox(0.5, 0xffffff));
     this.glassMesh = renderer.upload(unitBox(0.5, 0xffffff));
@@ -67,6 +88,12 @@ export class Debris {
   }
 
   // --------------------------------------------------------------- spawning
+
+  /** How high the ground is here, or zero if nobody handed us a world. */
+  groundY(x, z) {
+    const w = this.world;
+    return w && w.groundAt ? w.groundAt(x, z).h : 0;
+  }
 
   /**
    * A prop has just left the baked mesh. (vx, vz) is the car's velocity; the
@@ -83,7 +110,11 @@ export class Debris {
     const k = K.kick;
     b.live = true; b.kind = kind; b.mesh = this.kindMeshes[kind] || null;
     b.cy = K.cy; b.rest = Math.min(K.cy, K.r);
-    b.x = x; b.y = y + K.cy; b.z = z;
+    b.g = this.groundY(x, z);
+    // It leaves at the height of whatever hit it, but never below the ground it
+    // was standing on — a caller with no `y` to give used to mean "y is zero",
+    // which on a hillside is forty metres of rock.
+    b.x = x; b.y = Math.max(y, b.g) + K.cy; b.z = z;
     b.vx = vx * k + (Math.random() - 0.5) * 1.4;
     b.vz = vz * k + (Math.random() - 0.5) * 1.4;
     b.vy = 1.6 + Math.min(5.5, speed * 0.30);
@@ -96,24 +127,33 @@ export class Debris {
     return b;
   }
 
-  /** Tyre smoke, and (with water = true) the plume off a sheared hydrant. */
-  puff(x, y, z, vx, vz, water = false) {
-    const q = this.smokePool.take();
+  /**
+   * Tyre smoke; with `water` the plume off a sheared hydrant; with `soot` the
+   * black out of a tired diesel's tailpipe (reactive.js exhaust()). The three
+   * differ in colour, in how fast they grow and in how long they last: a tyre
+   * boils off a big pale cloud, a hydrant throws water up and it is gone, and
+   * soot leaves the pipe small, dark and dense and hangs about in the air
+   * getting thinner. `soot` draws from the pool's reserved slots, so a 240D
+   * idling in the middle of a handbrake turn cannot take the tyres' smoke.
+   */
+  puff(x, y, z, vx, vz, water = false, soot = false) {
+    const q = soot ? this.smokePool.takeB() : this.smokePool.take();
     q.life = 1;
     q.x = x; q.y = y; q.z = z;
-    q.vx = vx * 0.18 + (Math.random() - 0.5) * 0.9;
-    q.vz = vz * 0.18 + (Math.random() - 0.5) * 0.9;
-    q.vy = water ? 3.4 + Math.random() * 1.6 : 0.55 + Math.random() * 0.55;
-    q.s = water ? 0.22 : 0.30 + Math.random() * 0.22;
+    q.vx = vx * 0.18 + (Math.random() - 0.5) * (soot ? 0.35 : 0.9);
+    q.vz = vz * 0.18 + (Math.random() - 0.5) * (soot ? 0.35 : 0.9);
+    q.vy = water ? 3.4 + Math.random() * 1.6 : soot ? 0.30 + Math.random() * 0.40 : 0.55 + Math.random() * 0.55;
+    q.s = water ? 0.22 : soot ? 0.13 + Math.random() * 0.10 : 0.30 + Math.random() * 0.22;
     q.spin = Math.random() * 3;
     q.water = water ? 1 : 0;
+    q.soot = soot ? 1 : 0;
   }
 
   /** A scrape along a wall: a short-lived orange streak thrown backwards. */
   spark(x, y, z, vx, vz) {
     const q = this.sparkPool.take();
     q.life = 1;
-    q.x = x; q.y = y; q.z = z;
+    q.x = x; q.y = y; q.z = z; q.g = this.groundY(x, z);
     const sp = 2.5 + Math.random() * 4;
     const a = Math.atan2(-vx, -vz) + (Math.random() - 0.5) * 1.1;
     q.vx = Math.sin(a) * sp; q.vz = Math.cos(a) * sp;
@@ -124,10 +164,11 @@ export class Debris {
 
   /** Broken glass off a hard impact: falls, does not bounce, fades on the road. */
   glassBurst(x, y, z, vx, vz, n = 6) {
+    const g = this.groundY(x, z);
     for (let i = 0; i < n; i++) {
       const q = this.glassPool.take();
       q.life = 1;
-      q.x = x; q.y = y; q.z = z;
+      q.x = x; q.y = y; q.z = z; q.g = g;
       q.vx = vx * 0.25 + (Math.random() - 0.5) * 5;
       q.vz = vz * 0.25 + (Math.random() - 0.5) * 5;
       q.vy = 1.8 + Math.random() * 2.6;
@@ -151,13 +192,13 @@ export class Debris {
         const want = b.rx >= 0 ? Math.PI / 2 : -Math.PI / 2;
         b.rx += (want - b.rx) * t;
         b.rz += (0 - b.rz) * t;
-        b.y += (b.rest - b.y) * t;
+        b.y += (b.g + b.rest - b.y) * t;
         continue;
       }
       b.vy -= GRAV * dt;
       b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
       b.rx += b.wx * dt; b.ry += b.wy * dt; b.rz += b.wz * dt;
-      const floor = b.cy;
+      const floor = b.g + b.cy;
       if (b.y <= floor) {
         b.y = floor;
         if (b.vy < -1.6 && b.bounced < 1) {
@@ -185,10 +226,10 @@ export class Debris {
       const q = S[i];
       if (q.life <= 0) continue;
       parts++;
-      q.life -= dt * (q.water ? 1.5 : 0.85);
+      q.life -= dt * (q.water ? 1.5 : q.soot ? 1.15 : 0.85);
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
       q.vy *= 1 - 1.1 * dt;
-      q.s += dt * (q.water ? 0.5 : 0.85);
+      q.s += dt * (q.water ? 0.5 : q.soot ? 0.55 : 0.85);
     }
     const K = this.sparkPool.p;
     for (let i = 0; i < SPARKS; i++) {
@@ -198,7 +239,7 @@ export class Debris {
       q.life -= dt * 3.4;
       q.vy -= 22 * dt;
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
-      if (q.y < 0.03) { q.y = 0.03; q.vy = -q.vy * 0.3; q.vx *= 0.5; q.vz *= 0.5; }
+      if (q.y < q.g + 0.03) { q.y = q.g + 0.03; q.vy = -q.vy * 0.3; q.vx *= 0.5; q.vz *= 0.5; }
     }
     const GL = this.glassPool.p;
     for (let i = 0; i < GLASS; i++) {
@@ -208,8 +249,8 @@ export class Debris {
       q.life -= dt * 0.5;
       q.vy -= GRAV * dt;
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
-      if (q.y < 0.04) {
-        q.y = 0.04; q.vy = 0;
+      if (q.y < q.g + 0.04) {
+        q.y = q.g + 0.04; q.vy = 0;
         q.vx *= Math.exp(-6 * dt); q.vz *= Math.exp(-6 * dt);
       }
     }
@@ -248,7 +289,7 @@ export class Debris {
       m4.compose(mm, q.x, q.y, q.z, q.spin, q.spin * 0.7, 0, s, s, s);
       const o = pool.opts[i];
       o.alpha = alphaK * Math.min(1, q.life);
-      o.colorMul = col || (q.water ? C_WATER : C_SMOKE);
+      o.colorMul = col || (q.water ? C_WATER : q.soot ? C_SOOT : C_SMOKE);
       r.draw(mesh, mm, o);
       draws++;
     }

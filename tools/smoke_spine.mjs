@@ -99,19 +99,26 @@ ok('P1 jobs take the lift × difficulty, races the difficulty alone, node suites
   // The budget table, checked against the defs. Outside ok(): the defs pull the map in.
   const { ALL_MISSIONS } = await import('../src/game/missions.js');
   const { COURSES } = await import('../src/game/modes.js');
+  const { LIFE_MISSIONS } = await import('../src/game/lifejobs.js');
+  const lifeIds = new Set(LIFE_MISSIONS.map(d => d.id));
   const G = cal.startSummer({ difficulty: 'normal' });
-  let jobs = 0, gross = 0;
+  let jobs = 0, gross = 0, coreGross = 0;
   for (const def of ALL_MISSIONS) {
     const ctx = { carId: 'ranger', carName: 'Ranger', seats: 2, money: 0 };
-    for (const st of def.build(ctx)) gross += scaledPay(G, { def }, st.money || 0) - (st.cost || 0);
+    for (const st of def.build(ctx)) {
+      const pay = scaledPay(G, { def }, st.money || 0) - (st.cost || 0);
+      gross += pay;
+      if (!lifeIds.has(def.id)) coreGross += pay;
+    }
     jobs++;
   }
   let races = 0;
   for (const c of COURSES) races += scaledPay(G, { def: { mode: c.kind || 'blitz' } }, c.money || 0);
-  ok(`P2 one clean pass: ${jobs} jobs net $${gross}, ${COURSES.length} courses $${races} (plan: ~950 and 435)`, () => {
+  ok(`P2 one clean pass: ${jobs} jobs net $${gross}, core $${coreGross}, ${COURSES.length} courses $${races}`, () => {
     // 28 until « L'alternateur » became the first job of the summer.
-    assert.equal(jobs, 29);
-    assert.ok(gross >= 950 && gross <= 1050, `jobs net ${gross}`);
+    assert.equal(jobs, 29 + LIFE_MISSIONS.length);
+    assert.ok(coreGross >= 950 && coreGross <= 1050, `original jobs net ${coreGross}`);
+    assert.ok(gross > coreGross, 'new life missions offer additional income');
     assert.equal(races, 435);
   });
 }

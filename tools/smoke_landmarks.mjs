@@ -7,14 +7,15 @@
 // Asserts: every hero site stays inside its triangle budget at both LODs, the
 // far bake keeps the near bake's silhouette (so the LOD swap is not a pop), no
 // NaN/Inf vertices, every OSM footprint a site replaces was actually found and
-// collapsed, the new PLACES entries exist and resolve, and the couch is where
-// the tree is rather than somewhere over the road.
+// collapsed, the new PLACES entries exist and resolve, the lift onto the
+// hillside moves a site and nothing else, and the couch is where the tree is
+// rather than somewhere over the road.
 import { MAP } from '../src/game/mapdata.js';
 import { PLACES } from '../src/game/places.js';
 import STUB from '../src/game/materials_stub.js';
 import {
   SITES, BUDGET, HIDE_MISSES, bakeSite, bakeColliders, COUCH, MIKE_MAPLE,
-  LANDMARK_FLAGS, HERO_NEAR, offsetRing, rectRing,
+  LANDMARK_FLAGS, HERO_NEAR, offsetRing, rectRing, buildCouchPreview,
 } from '../src/game/landmarks.js';
 
 const table = process.argv.includes('--table');
@@ -146,11 +147,52 @@ ok('the Auberge Symmes is signed as an inn/museum, never as a school');
 if (Math.hypot(COUCH.x - MIKE_MAPLE.x, COUCH.z - MIKE_MAPLE.z) > 4.0) {
   fail('the couch is not in the maple');
 }
+// 5.62 is measured UP THE TREE, not up from the river, and it stayed 5.62 when
+// the town went onto the LiDAR hillside: how high a chesterfield is lodged in a
+// maple is a fact about the maple. installLandmarks adds the lawn under 129
+// Frank-Robinson — 18.8 m on the shipped raster — to the couch and to the limbs
+// it rests on in the same breath, which is the next check.
 if (COUCH.y < 4.5 || COUCH.y > MIKE_MAPLE.crownY + 3) {
   fail(`the couch is at ${COUCH.y} m — wanted "high in the branches", not on the lawn`);
 }
 if (LANDMARK_FLAGS.couchInTree !== true) fail('the couch should be there by default');
 ok(`the couch is lodged ${COUCH.y} m up in the maple at 129 Frank-Robinson`);
+
+// ---------------------------------------------------------------- on the hill
+
+// A site is built at y = 0 and carried up to the ground under it (bakeSite's
+// `y0`). A rigid translate is the whole contract: the same triangles, the same
+// bounding box shape, the same building — 18.79 m further from the river.
+const LIFT = 18.79;                       // the lawn at 129 Frank-Robinson
+for (const s of SITES) {
+  const flat = bakeSite(s, STUB), up = bakeSite(s, STUB, LIFT);
+  for (const [nm, a, b] of [['near', flat.near, up.near], ['far', flat.far, up.far],
+    ['site', flat.site, up.site]]) {
+    if (a.i.length !== b.i.length || a.v.length !== b.v.length) {
+      fail(`${s.key} ${nm}: the lift changed the mesh, not just its height`);
+      continue;
+    }
+    let worst = 0;
+    for (let i = 0; i < a.v.length; i++) {
+      const d = Math.abs(b.v[i] - (a.v[i] + (i % 9 === 1 ? LIFT : 0)));
+      if (d > worst) worst = d;
+    }
+    if (worst > 1e-9) fail(`${s.key} ${nm}: lifted vertices differ by ${worst} beyond the translate`);
+    if (a.v.length && (Math.abs(b.min[1] - (a.min[1] + LIFT)) > 1e-9
+      || Math.abs(b.max[1] - (a.max[1] + LIFT)) > 1e-9)) {
+      // Renderer.visible() frustum-tests these; a stale box culls the building.
+      fail(`${s.key} ${nm}: the bounds did not go up with the vertices`);
+    }
+  }
+}
+ok(`bakeSite(s, mats, ${LIFT}) is a rigid vertical translate at all ${SITES.length} sites, bounds included`);
+
+// The couch goes up with the limbs it is wedged in, or it hangs in the air.
+{
+  const a = buildCouchPreview(), b = buildCouchPreview(LIFT);
+  if (Math.abs(b.min[1] - (a.min[1] + LIFT)) > 1e-9) fail('the couch did not follow the tree up the hill');
+  else ok(`the couch rides the same lift as the maple (${a.min[1].toFixed(2)} m -> ${b.min[1].toFixed(2)} m)`);
+}
 
 // ---------------------------------------------------------------- ring maths
 

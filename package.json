@@ -1,0 +1,12 @@
+{
+  "name": "aylmer-madness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An open-world arcade driving game set in a stylised Aylmer, Quebec. No dependencies: the scripts below are shortcuts, not a build step.",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "test": "node tools/run_smoke.mjs",
+    "deploy": "wrangler deploy"
+  }
+}

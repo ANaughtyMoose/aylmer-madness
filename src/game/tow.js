@@ -106,9 +106,10 @@ export function resetSpot(world, veh) {
 }
 
 function place(veh, spot, world) {
-  veh.reset(spot.x, spot.z, spot.yaw);
+  const y = world?.groundAt?.(spot.x, spot.z)?.h || 0;
+  veh.reset(spot.x, spot.z, spot.yaw, y);
   veh.onRoad = world?.roadAt?.(spot.x, spot.z) || null;
-  veh.lastSafe = { x: spot.x, z: spot.z, yaw: spot.yaw };
+  veh.lastSafe = { x: spot.x, z: spot.z, yaw: spot.yaw, y };
 }
 
 /** T. Back on the road, damage and all, for nothing. */
@@ -156,7 +157,7 @@ export function settleSpawn(G, {allowOffRoad = false} = {}) {
     if (spot) { place(veh, spot, world); return { moved: true, reason, name: spot.name }; }
   }
   const safe = roadSpot(world, veh.x, veh.z, veh.spec);
-  if (safe) veh.lastSafe = { x: safe.x, z: safe.z, yaw: safe.yaw };
+  if (safe) veh.lastSafe = { x: safe.x, z: safe.z, yaw: safe.yaw, y: world?.groundAt?.(safe.x, safe.z)?.h || 0 };
   return { moved: false, reason, blocked: !!reason };
 }
 

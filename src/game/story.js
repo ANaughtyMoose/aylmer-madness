@@ -29,9 +29,9 @@ export const STUCK_T = 20;        // ...in this many seconds, or you get a nudge
 export const STORY_CARDS = [
   { title: 'ÉTÉ 2004', body: 'T’es Tom. Ton Ranger XL 1993, ton gaz, tes réparations. Un été à Aylmer pour préparer la suite.' },
   { title: 'LA GANG', body: 'Margaret et sa Saturn, Sayyad et sa Civic, Adam et son Sunfire, Mike et son divan : les commissions, les coups de main pis les détours font partie de l’été.' },
-  { title: 'SEPTEMBRE', body: '1 200 $ à mettre de côté pour le Ranger et les études. Ton père est généreux, mais il roule pas sur l’or. Tu fais ta part.' },
+  { title: 'SEPTEMBRE', body: '1 200 $ à mettre de côté pour le Ranger et les études. Les commissions, les pourboires pis les détours : tu fais ta part.' },
   { title: 'LES COMMANDES', body: 'W accélère, S freine. ? affiche les commandes. Tab ouvre la carte. T remet le char sur le chemin.' },
-  { title: 'PREMIÈRE JOB', body: 'Ta première job, l’alternateur, commence après la présentation. Aucun chrono : suis le GPS, freine dans le pilier jaune au comptoir, puis E pour ramasser ta pièce.' },
+  { title: 'PREMIÈRE JOB', body: 'Ta première job, l’alternateur au Canadian Tire des Galeries d’Aylmer, commence après la présentation. Aucun chrono : suis le GPS, freine dans le pilier jaune au comptoir, puis E pour ramasser ta pièce.' },
 ];
 
 export function endingCards(amount, target, madeIt) {
@@ -567,7 +567,7 @@ export function applyDialogue(json) {
     // tomorrow rather than being folded into `start` and lost.
     const when = String(r.when || 'start');
     const p = DIALOGUE[r.who] || (DIALOGUE[r.who] = { start: [], end: [] });
-    const key = r.who + ' ' + when;
+    const key = r.who + '' + when;
     if (!seen.has(key)) { seen.add(key); p[when] = []; }   // the file replaces the fallback
     p[when].push(quote(r.line));
     n++;

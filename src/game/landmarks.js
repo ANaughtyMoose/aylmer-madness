@@ -25,6 +25,11 @@
 // is flat, it is cheap, and seeing the lot from the road is how you know where
 // to turn in.
 //
+// HEIGHT. Builders use local pavement height. With a world, bakeSite keeps
+// buildings rigid, drapes subdivided site surfaces, and plants fixtures locally.
+// The historic mall west wing has its own front-door footing and grade skirt.
+// Without a world, preview bakes retain the original rigid y0 translation.
+//
 // OWNERSHIP NOTE. world.js, places.js and cars.js belong to other agents this
 // wave, so nothing here edits them:
 //   * hero footprints already in OSM are collapsed in MAP at import time
@@ -33,7 +38,7 @@
 //   * colliders and the draw call are wrapped onto the object buildWorld
 //     returns (`installLandmarks`).
 // See the fold-back list at the bottom of the file.
-import { MeshBuilder, rgb, shade } from '../core/mesh.js';
+import { MeshBuilder, STRIDE, rgb, shade } from '../core/mesh.js';
 import { MAP } from './mapdata.js';
 import { PLACES } from './places.js';
 import { TILES } from './materials_stub.js';
@@ -486,7 +491,7 @@ function railing(K, ax, ay, az, bx, bz, h, colHex) {
   }
 }
 
-function flagpole(K, x, z, h, flagHex) {
+function flagpoleLocal(K, x, z, h, flagHex) {
   K.mb.cyl(x, h / 2, z, 0.09, h, K.detail ? 8 : 5, flat(0xdedad0), 'y', false);
   K.mb.box(x, 0.25, z, 1.1, 0.5, 1.1, flat(CONCRETE), { noBottom: true });
   // No wind to speak of and no cloth simulation, so it hangs: a slab with two
@@ -498,7 +503,7 @@ function flagpole(K, x, z, h, flagHex) {
 // Ground-level furniture keeps a coarse stand-in in the far bake. It is not
 // that anyone can read a bike rack at 340 m — it is that the near and far bakes
 // must cover the same ground, or the LOD swap changes the shape of the site.
-function bikeRack(K, x, z, yaw, hoops) {
+function bikeRackLocal(K, x, z, yaw, hoops) {
   const c = flat(0x8d9096);
   const s = Math.sin(yaw), co = Math.cos(yaw);
   if (!K.detail) { K.mb.box(x, 0.45, z, hoops * 0.75, 0.9, 0.7, c, { yaw: -yaw }); return; }
@@ -511,7 +516,7 @@ function bikeRack(K, x, z, yaw, hoops) {
   }
 }
 
-function dumpster(K, x, z, yaw, hex) {
+function dumpsterLocal(K, x, z, yaw, hex) {
   const c = flat(hex);
   K.mb.tower(x, 0.12, z, 1.9, 1.35, 1.25, c, { yaw: -yaw, noBottom: true, top: flat(hex, 0.7) });
   if (!K.detail) return;
@@ -559,7 +564,7 @@ function lot(K, cx, cz, w, d, yaw, opts = {}) {
 // A parking-lot light standard: the thing that tells you a two-hundred-metre
 // slab of asphalt is a school lot and not a runway. 22 tris; they go in the site
 // mesh so they are there from the road.
-function lightStandard(K, x, z, h = 8.5, yaw = 0) {
+function lightStandardLocal(K, x, z, h = 8.5, yaw = 0) {
   K.mb.box(x, 0.28, z, 0.7, 0.56, 0.7, flat(CONCRETE, 0.85), { noBottom: true });
   K.mb.cyl(x, h / 2, z, 0.13, h, 5, flat(0x6f6d68), 'y', false);
   K.mb.box(x + Math.cos(yaw) * 0.85, h - 0.1, z + Math.sin(yaw) * 0.85,
@@ -1169,7 +1174,10 @@ const MK = { id: 473653319, cx: -428.3, cz: 58.3, yaw: -0.096, fz: 53.7, mz: 56.
 export const MIKE_MAPLE = { x: -417.5, z: 57.0, crownY: 6.4 };
 // Wedged in the fork between the two lowest limbs and pushed far enough out
 // along them that a good third of it clears the foliage — the whole point is
-// that you can see it from the road if you look up.
+// that you can see it from the road if you look up. `y` is 5.62 m up the TREE,
+// not 5.62 m above the river: how high a couch is lodged in a maple is a fact
+// about the maple, and Frank-Robinson happens to be nineteen metres up a hill.
+// installLandmarks adds the lawn; world.landmarks.couch.y is the absolute one.
 export const COUCH = {
   x: MIKE_MAPLE.x + 2.95, y: 5.62, z: MIKE_MAPLE.z + 0.44, yaw: -0.55, roll: 0.17, pitch: 0.09,
 };
@@ -1258,17 +1266,20 @@ function tintOrFlat(K, mat, t) { on(K, mat); return t; }
 
 // The couch, in its own builder so it can be lifted in and out. Reuses the same
 // 1977 plaid brown as props.js rather than inventing a second chesterfield.
-function buildCouchMesh() {
+// `y0` is the lawn at 129 Frank-Robinson, the same metres the mike bake is
+// carried up: the limbs it rests on are part of that bake, and a couch that did
+// not go up with them would be a couch hanging in the air over Aylmer.
+function buildCouchMesh(y0 = 0) {
   const mb = new MeshBuilder();
   const base = rgb(0x8a5f3a), dark = rgb(0x6d4a2c), cush = rgb(0xa0764a), leg = rgb(0x3b2a1c);
-  const c = COUCH;
+  const c = COUCH, cyy = c.y + y0;
   const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw);
   // Yaw is a real rotation; roll and pitch are applied as a shear on the box
   // CENTRES — MeshBuilder.box only turns about Y, and for something this small,
   // wedged in a fork and seen from thirty metres below, a shear reads as a tilt.
   const kr = Math.tan(c.roll), kp = Math.tan(c.pitch);
   const put = (lx, ly, lz, w, h, d, col) => {
-    mb.box(c.x + lx * cy - lz * sy, c.y + ly + lx * kr - lz * kp, c.z + lx * sy + lz * cy,
+    mb.box(c.x + lx * cy - lz * sy, cyy + ly + lx * kr - lz * kp, c.z + lx * sy + lz * cy,
       w, h, d, col, { yaw: -c.yaw });
   };
   put(0, 0.0, 0, 1.95, 0.34, 0.86, base);                       // frame
@@ -1287,7 +1298,7 @@ function buildCouchMesh() {
 export const LANDMARK_FLAGS = { couchInTree: true };
 
 /** The couch mesh, unuploaded — for tools/preview_landmarks.mjs and the tests. */
-export function buildCouchPreview() { const b = buildCouchMesh(); b.finish(); return b; }
+export function buildCouchPreview(y0 = 0) { const b = buildCouchMesh(y0); b.finish(); return b; }
 
 function siteMike(K) {
   // gravel drive on the Smiley side, the corner sidewalk, and the street-name
@@ -1395,6 +1406,7 @@ const MALL_SIGNS = [
 
 function historicMall(K) {
   const mb=K.mb;
+  const wingStart = mb.v.length;
   // Replace the modern residence with the low retail/service wing.
   const ring=rectRing(-157,-290,76,74,0);
   walls(K,ring,0,7.2,{mat:'brick_buff',tint:tint(K,'brick_buff',1.05),rows:[]});
@@ -1411,6 +1423,23 @@ function historicMall(K) {
   for(let x=-144;x<=-122;x+=4) mb.box(x,1.3,-246,.07,2.6,.07,flat(0x454b48));
   for(const y of [.2,1.3,2.5]) mb.box(-133,y,-246,22,.035,.035,flat(0x737c75));
   for(let x=-143;x<-123;x+=1) mb.box(x,1.3,-246,.022,2.3,.022,flat(0x737c75));
+  if (K.heightAt) {
+    const footing = K.heightAt(-157, -253) - K.y0;
+    for (let i = wingStart + 1; i < mb.v.length; i += STRIDE) mb.v[i] += footing;
+    // A level retail floor over a sloping parcel: only the skirt follows grade.
+    const N = edgeNormals(ring);
+    for (let e = 0; e < ring.length; e++) {
+      const a = ring[e], b = ring[(e + 1) % ring.length];
+      const count = Math.ceil(Math.hypot(b[0]-a[0], b[1]-a[1]) / 8);
+      for (let j = 0; j < count; j++) {
+        const P = t => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];
+        const u = P(j/count), v = P((j+1)/count);
+        const low = q => Math.min(footing - .25, K.heightAt(...q) - K.y0 - .25);
+        mb.quad([u[0],low(u),u[1]], [v[0],low(v),v[1]],
+          [v[0],footing+.05,v[1]], [u[0],footing+.05,u[1]], flat(CONCRETE), [N[e][0],0,N[e][1]]);
+      }
+    }
+  }
   // The photograph's mixed buff/red brick shopfront, teal entry towers,
   // yellow St-Hubert surround and red Super C fascia at the east end.
   for(const [x,z,w,colour] of [[-103,-258.8,19,0xb69775],[-77,-266,22,0xbd957a],[-54,-272.3,19,0x326267],[23,-282.8,16,0xbca176],[63,-276.1,29,0xb52c28]]) {
@@ -1534,7 +1563,7 @@ export const SITES = [
       board: '#243a4a' } },
   // No `hide`: the mall's own footprint stays exactly as it is and this bolts a
   // door onto it. See GALERIES_DOOR above for the point missions aim at.
-  { key: 'galeries', cx: GA.cx, cz: GA.cz, r: 235, near: HERO_NEAR,
+  { key: 'galeries', cx: GA.cx, cz: GA.cz, r: 235, near: HERO_NEAR, ground: true,
     hide: [{id:693895603, at:[-157,-290]}],
     signs: MALL_SIGNS,
     build: buildGaleries, site: siteGaleries,
@@ -1627,18 +1656,151 @@ function runBuild(s, K) {
   else s.build(K);
 }
 
-// Build one site into three MeshBuilders. Pure: no GL, no DOM — the smoke test
-// calls it with materials_stub and counts triangles.
-export function bakeSite(s, mats) {
+// Every builder above measures y from the pavement: a sill is at 1.15 m, a
+// cornice at 11.4, the couch 5.62 m up a maple. That was an absolute height for
+// as long as the town was flat and it is a height ABOVE THE GROUND now that it
+// is not, so a site is baked exactly as it always was and then carried, whole,
+// up the hill it stands on. One pass over the vertex buffer, no allocation, and
+// nothing above has to know what the ground is doing — which is the only reason
+// nine hand-written buildings did not have to be rewritten.
+//
+// The bounds go up with it. `Renderer.visible` frustum-tests min/max, and a
+// school whose box still claims to be at sea level is a school that vanishes
+// when you look up the hill at it.
+function lift(b, dy) {
+  const v = b.v;
+  for (let i = 1; i < v.length; i += STRIDE) v[i] += dy;
+  if (v.length) { b.min[1] += dy; b.max[1] += dy; }
+}
+
+// Build one site into three MeshBuilders, `y0` metres up. Pure: no GL, no DOM —
+// the smoke test calls it with materials_stub and counts triangles, and the
+// preview tool calls it at y0 = 0 to draw the building on its own.
+function heightSampler(s, world) {
+  const f = world && (s.ground ? world.groundAt : world.baseAt);
+  return f ? (x,z) => { const h = f.call(world,x,z).h; return Number.isFinite(h) ? h : 0; } : null;
+}
+
+function signFooting(s, g, heightAt, y0) {
+  if (!heightAt) return y0;
+  if (s.key === 'galeries' && g.x >= -195 && g.x <= -119 && g.z < -245)
+    return heightAt(-157,-253);
+  return g.mount === 'wall' || (g.y > 3 && !(s.key === 'galeries' && g.z > -200))
+    ? y0 : heightAt(g.x,g.z);
+}
+
+// Site-only geometry adapter: surfaces follow grade; objects remain rigid.
+function terrainSite(mb, heightAt, y0, refine = false) {
+  const quad = mb.quad.bind(mb);
+  mb.quad = (a,b,c,d,col,n) => {
+    const width=Math.max(Math.hypot(b[0]-a[0],b[2]-a[2]),Math.hypot(c[0]-d[0],c[2]-d[2]));
+    const depth=Math.max(Math.hypot(d[0]-a[0],d[2]-a[2]),Math.hypot(c[0]-b[0],c[2]-b[2]));
+    let nx=Math.max(1,Math.ceil(width/8)), nz=Math.max(1,Math.ceil(depth/8));
+    // Start at 8 m cells; coarsen only when both rendered triangles agree
+    // with sampled grade within 25 mm. Sloped planes need no dense grid.
+    const P = (u,v) => {
+      const x=(1-v)*(a[0]*(1-u)+b[0]*u)+v*(d[0]*(1-u)+c[0]*u);
+      const z=(1-v)*(a[2]*(1-u)+b[2]*u)+v*(d[2]*(1-u)+c[2]*u);
+      const y=(1-v)*(a[1]*(1-u)+b[1]*u)+v*(d[1]*(1-u)+c[1]*u);
+      return [x,y+heightAt(x,z)-y0,z];
+    };
+    const fits = (cols,rows,u0=0,v0=0,u1=1,v1=1) => {
+      const Q=(u,v)=>P(u0+(u1-u0)*u,v0+(v1-v0)*v);
+      for(let i=0;i<cols;i++) for(let j=0;j<rows;j++) {
+        const corners=[Q(i/cols,j/rows),Q((i+1)/cols,j/rows),Q((i+1)/cols,(j+1)/rows),Q(i/cols,(j+1)/rows)];
+        for(const ids of [[0,1,2],[0,2,3]]) {
+          const t=ids.map(k=>corners[k]);
+          const divisions=Math.max(2,Math.ceil(Math.max(...t.map((p,k)=>Math.hypot(p[0]-t[(k+1)%3][0],p[2]-t[(k+1)%3][2])))/2));
+          for(let u=0;u<=divisions;u++) for(let v=0;v<=divisions-u;v++) {
+            const weights=[u/divisions,v/divisions,1-(u+v)/divisions];
+            const x=t.reduce((sum,p,k)=>sum+p[0]*weights[k],0), z=t.reduce((sum,p,k)=>sum+p[2]*weights[k],0);
+            const interpolated=t.reduce((sum,p,k)=>sum+(p[1]-heightAt(p[0],p[2])+y0)*weights[k],0);
+            const y=t.reduce((sum,p,k)=>sum+p[1]*weights[k],0);
+            if(Math.abs(y-(interpolated+heightAt(x,z)-y0))>.025) return false;
+          }
+        }
+      }
+      return true;
+    };
+    while(nx>1 && fits(nx-1,nz)) nx--;
+    while(nz>1 && fits(nx,nz-1)) nz--;
+    const emit=(u0,v0,u1,v1,level=0)=>{
+      if(refine && level<10 && !fits(1,1,u0,v0,u1,v1)) {
+        if(width*(u1-u0)>depth*(v1-v0)) {
+          const mid=(u0+u1)/2;emit(u0,v0,mid,v1,level+1);emit(mid,v0,u1,v1,level+1);
+        } else {
+          const mid=(v0+v1)/2;emit(u0,v0,u1,mid,level+1);emit(u0,mid,u1,v1,level+1);
+        }
+      } else quad(P(u0,v0),P(u1,v0),P(u1,v1),P(u0,v1),col);
+    };
+    for(let i=0;i<nx;i++) for(let j=0;j<nz;j++) emit(i/nx,j/nz,(i+1)/nx,(j+1)/nz);
+
+  };
+  let active = false;
+  for(const name of ['box','tower','cyl','post']) {
+    const original = mb[name].bind(mb);
+    mb[name] = (...args) => {
+      if(active) return original(...args);
+      active=true;
+      const start=mb.v.length, saved=mb.quad; mb.quad=quad;
+      try { original(...args); const dy=heightAt(args[0],args[2])-y0;
+        for(let i=start+1;i<mb.v.length;i+=STRIDE) mb.v[i]+=dy;
+      } finally { mb.quad=saved; active=false; }
+    };
+  }
+}
+
+function refreshBounds(mb) {
+  if (!mb.v.length) return;
+  mb.min=[Infinity,Infinity,Infinity]; mb.max=[-Infinity,-Infinity,-Infinity];
+  for(let i=0;i<mb.v.length;i+=STRIDE) for(let k=0;k<3;k++) {
+    mb.min[k]=Math.min(mb.min[k],mb.v[i+k]); mb.max[k]=Math.max(mb.max[k],mb.v[i+k]);
+  }
+}
+
+export function bakeSite(s, mats, y0 = 0, world = null) {
   const near = new MeshBuilder(), far = new MeshBuilder(), site = new MeshBuilder();
-  runBuild(s, kit(near, mats, true, s.cx, s.cz));
-  runBuild(s, kit(far, PLAIN, false, s.cx, s.cz));
+  const heightAt = heightSampler(s,world);
+  for (const [mb,provider,detail] of [[near,mats,true],[far,PLAIN,false]]) {
+    const K=kit(mb,provider,detail,s.cx,s.cz); K.heightAt=heightAt; K.y0=y0;
+    runBuild(s,K);
+  }
+  if(heightAt) terrainSite(site,heightAt,y0,['pwhs','heritage','galeries'].includes(s.key));
   const KS = kit(site, PLAIN, false, s.cx, s.cz);
   s.site(KS);
-  if (s.sign) signFrame(KS, s.sign);
-  for (const g of s.signs || []) signFrame(KS,g);
+  // Frames and textured faces share exactly one footing, including wall mounts.
+  for(const g of [s.sign,...(s.signs || [])].filter(Boolean)) {
+    const frame=new MeshBuilder(); signFrame(kit(frame,PLAIN,false,s.cx,s.cz),g);
+    const dy=signFooting(s,g,heightAt,y0)-y0;
+    const offset=site.vertCount;
+    for(let i=0;i<frame.v.length;i+=STRIDE) site.vert(frame.v[i],frame.v[i+1]+dy,...frame.v.slice(i+2,i+6),frame.v.slice(i+6,i+9));
+    for(const index of frame.i) site.i.push(index+offset);
+  }
+  for(const mb of [near,far,site]) refreshBounds(mb);
   near.finish(); far.finish(); site.finish();
+  if (y0) for (const b of [near, far, site]) lift(b, y0);
   return { near, far, site };
+}
+
+// The height a site's y = 0 sits at, per site.
+//
+// `baseAt` is the LiDAR raster on its own and is what world.js drapes every
+// other building, road and tree on: terrain.js's features are separate meshes
+// drawn ON the raster, so a building that read `groundAt` next to the rail berm
+// would climb the berm the berm's own geometry already covers. A site whose
+// ground genuinely IS a feature is the exception, and says so with `ground:
+// true` — Les Galeries stands on the south apron, which is concrete the driving
+// model knows about rather than lawn. The apron is H = 0 today, so the two
+// fields agree at all nine sites to the millimetre; the flag is there so that
+// stops being luck the day somebody gives the apron a lip.
+function siteHeights(world) {
+  const m = new Map();
+  for (const s of SITES) {
+    const f = s.ground ? (world && world.groundAt) : (world && world.baseAt);
+    const h = f ? f(s.cx, s.cz).h : 0;
+    m.set(s.key, Number.isFinite(h) ? h : 0);
+  }
+  return m;
 }
 
 // Colliders. buildWorld keeps `addSegment` to itself, so hero walls register
@@ -1716,9 +1878,12 @@ function signFrame(K, g) {
     { yaw: -g.yaw, noBottom: true, top: flat(0x8a857b) });
 }
 
-function buildSignMesh(renderer) {
+// `ground` is the Map siteHeights() built: one mesh for every board, but each
+// board is pinned to its own site's patch of hillside, and two of them are
+// twenty metres apart vertically.
+function buildSignMesh(renderer, ground, world) {
   if (typeof document === 'undefined' || !document.createElement) return null;
-  const boards = SITES.flatMap(s => [s.sign, ...(s.signs || [])].filter(Boolean).map(sign=>({sign})));
+  const boards = SITES.flatMap(s => [s.sign, ...(s.signs || [])].filter(Boolean).map(sign=>({key: s.key, sign})));
   const cv = document.createElement('canvas');
   const cols = Math.ceil(boards.length / 16), rows = Math.min(16, boards.length);
   cv.width = SIGN_W * cols; cv.height = SIGN_H * rows;
@@ -1758,16 +1923,18 @@ function buildSignMesh(renderer) {
     const u0=(px+2)/cv.width,u1=(px+SIGN_W-2)/cv.width;
     const v0 = (py + 2) / cv.height, v1 = (py + SIGN_H - 2) / cv.height;
     const hw = g.w / 2;
+    const owner = SITES.find(site => site.key === s.key);
+    const y = g.y + signFooting(owner,g,heightSampler(owner,world),(ground && ground.get(s.key)) || 0);
     // Both faces, so a sign reads whichever way you drive past it.
     for (const side of [1, -1]) {
       const nx = -Math.sin(g.yaw) * side, nz = Math.cos(g.yaw) * side;
       const dx = Math.cos(g.yaw) * side, dz = Math.sin(g.yaw) * side;
       const ax = g.x - dx * hw + nx * 0.13, az = g.z - dz * hw + nz * 0.13;
       const bx = g.x + dx * hw + nx * 0.13, bz = g.z + dz * hw + nz * 0.13;
-      const b = mb.vert(ax, g.y, az, nx, 0, nz, white, u0, v1);
-      mb.vert(bx, g.y, bz, nx, 0, nz, white, u1, v1);
-      mb.vert(bx, g.y + g.h, bz, nx, 0, nz, white, u1, v0);
-      mb.vert(ax, g.y + g.h, az, nx, 0, nz, white, u0, v0);
+      const b = mb.vert(ax, y, az, nx, 0, nz, white, u0, v1);
+      mb.vert(bx, y, bz, nx, 0, nz, white, u1, v1);
+      mb.vert(bx, y + g.h, bz, nx, 0, nz, white, u1, v0);
+      mb.vert(ax, y + g.h, az, nx, 0, nz, white, u0, v0);
       mb.tri(b, b + 1, b + 2); mb.tri(b, b + 2, b + 3);
     }
   });
@@ -1788,20 +1955,26 @@ function buildSignMesh(renderer) {
 export function installLandmarks(world, renderer, mats, opts = {}) {
   const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const built = [];
+  // The nine patches of hillside these things stand on. Read once, before the
+  // bake, so a site and its marquee board cannot end up on two different
+  // answers if anything ever makes the field stateful.
+  const ground = siteHeights(world);
   let nearT = 0, farT = 0, siteT = 0;
   for (const s of SITES) {
-    const b = bakeSite(s, mats);
+    const y0 = ground.get(s.key) || 0;
+    const b = bakeSite(s, mats, y0, world);
     nearT += b.near.i.length / 3; farT += b.far.i.length / 3; siteT += b.site.i.length / 3;
     built.push({
-      key: s.key, cx: s.cx, cz: s.cz, r: s.r, near2: s.near * s.near,
+      key: s.key, cx: s.cx, cz: s.cz, cy: y0, r: s.r, near2: s.near * s.near,
       nearMesh: b.near.empty ? null : renderer.upload(b.near),
       farMesh: b.far.empty ? null : renderer.upload(b.far),
       siteMesh: b.site.empty ? null : renderer.upload(b.site),
       col: bakeColliders(s),
     });
   }
-  const signs = buildSignMesh(renderer);
-  const couchB = buildCouchMesh();
+  const signs = buildSignMesh(renderer, ground, world);
+  const couchY = COUCH.y + (ground.get('mike') || 0);
+  const couchB = buildCouchMesh(ground.get('mike') || 0);
   couchB.finish();
   const couchMesh = renderer.upload(couchB);
   const couchTris = couchB.i.length / 3;
@@ -1811,7 +1984,7 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
   // is close enough that you have stopped to look and far enough that you can
   // still see the whole tree.
   const couch = {
-    x: COUCH.x, z: COUCH.z, y: COUCH.y, radius: 26, found: false,
+    x: COUCH.x, z: COUCH.z, y: couchY, radius: 26, found: false,
     line: 'LE DIVAN EST ENCORE LÀ-HAUT\n129 Frank-Robinson — personne l’a jamais descendu',
   };
 
@@ -1882,11 +2055,14 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
   // The handle the couch side job should reach for at merge time: flip
   // world.landmarks.flags.couchInTree, and read world.landmarks.couch for where
   // it came to rest.
-  world.landmarks = { sites: built, stats, signs, flags: LANDMARK_FLAGS, couch };
+  world.landmarks = { sites: built, stats, signs, flags: LANDMARK_FLAGS, couch, ground };
+  const ys = [...ground.values()];
   console.log(`landmarks: ${SITES.length} hero sites, ${nearT | 0} near + ${farT | 0} far `
     + `+ ${siteT | 0} paving + ${couchTris} couch tris, ${colliders} colliders — ${ms} ms`);
+  console.log(`landmarks: standing on ground ${Math.min(...ys).toFixed(1)} to `
+    + `${Math.max(...ys).toFixed(1)} m; the couch is ${couchY.toFixed(2)} m up`);
   return { tris: nearT + farT + siteT + couchTris, near: nearT, far: farT, site: siteT,
-    ms, colliders };
+    ms, colliders, couchY };
 }
 
 // ---------------------------------------------------------------------------
@@ -1905,3 +2081,23 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
 //     widen the clip if anyone ever wants Symmes at its modern address.
 //  5. signage.js's SKIP set drops 'school'; once these are real buildings the
 //     storefront planner could hang their names instead of buildSignMesh().
+
+function flagpole(K,x,z,...args) {
+  const start=K.mb.v.length; flagpoleLocal(K,x,z,...args);
+  if(K.heightAt) { const dy=K.heightAt(x,z)-K.y0; for(let i=start+1;i<K.mb.v.length;i+=STRIDE) K.mb.v[i]+=dy; }
+}
+
+function bikeRack(K,x,z,...args) {
+  const start=K.mb.v.length; bikeRackLocal(K,x,z,...args);
+  if(K.heightAt) { const dy=K.heightAt(x,z)-K.y0; for(let i=start+1;i<K.mb.v.length;i+=STRIDE) K.mb.v[i]+=dy; }
+}
+
+function dumpster(K,x,z,...args) {
+  const start=K.mb.v.length; dumpsterLocal(K,x,z,...args);
+  if(K.heightAt) { const dy=K.heightAt(x,z)-K.y0; for(let i=start+1;i<K.mb.v.length;i+=STRIDE) K.mb.v[i]+=dy; }
+}
+
+function lightStandard(K,x,z,...args) {
+  const start=K.mb.v.length; lightStandardLocal(K,x,z,...args);
+  if(K.heightAt) { const dy=K.heightAt(x,z)-K.y0; for(let i=start+1;i<K.mb.v.length;i+=STRIDE) K.mb.v[i]+=dy; }
+}

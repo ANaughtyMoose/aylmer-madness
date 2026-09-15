@@ -35,10 +35,14 @@ export const FALLBACK_PAUSE = [
 // exists. `test(G, ev)` runs about once a second; `ev` carries the one-shot
 // events main.js hands over (a landing, mostly).
 export const RULES = {
-  // Three seconds of continuous air. ui.json says "on the Galeries loading dock
-  // jump", which is where you will get it — terrain.js builds that ramp — but
-  // the rule does not care which ramp you used.
-  "L'Envolée d'Aylmer": (G) => (G.stats && G.stats.bigAir) >= 3,
+  // Two and a half seconds of continuous air, and the rule does not care which
+  // ramp you used. It asked for three until 2026-09-14, which nothing in the
+  // game could deliver: tools/smoke_jumps.mjs measures every ramp on the real
+  // bake and the best of the eleven is the contractor's ramp on the 148 at
+  // 2.47 s, and that is the bot arriving at 84 km/h. The ramp is built for 110,
+  // where the closed form gives 2.89 s, so three seconds was always just out of
+  // reach and 2.5 is a hard run at about 93 km/h into the lip.
+  "L'Envolée d'Aylmer": (G) => (G.stats && G.stats.bigAir) >= 2.5,
   // Off the marina boat ramp and into the river past the docks. The landing
   // event carries where you came down and whether it was wet.
   "Bain de Minuit": (G, ev) => !!(ev && ev.landedInWater && ev.air > 0.6),

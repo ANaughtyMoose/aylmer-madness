@@ -41,7 +41,7 @@ export class FortierChase {
     this.stop(); const v=G.veh;
     const back={x:v.x-Math.sin(v.yaw)*65,z:v.z-Math.cos(v.yaw)*65};
     const p=G.nav?.nearest(back.x,back.z)||back;
-    this.unit=new Rival(NSX,{id:'claude_fortier',name:'Claude Fortier',skill:{cruise:63,cornerK:.52,minSpeed:7,gain:1.75,damp:.27,avoid:.65,band:{ahead:1,behind:1}}});
+    this.unit=new Rival(NSX,{id:'claude_fortier',name:'Claude Fortier',phys:G.phys,skill:{cruise:63,cornerK:.52,minSpeed:7,gain:1.75,damp:.27,avoid:.65,band:{ahead:1,behind:1}}});
     this.unit.place(p.x,p.z,Math.atan2(v.x-p.x,v.z-p.z));this.unit.active=true;
     this.routeT=0;this.unseen=0;this.tauntT=5.5;this.line=0;this.returnT=0;
     G.hud?.toast('LA SVX DE SARA\nClaude arrive en NSX. Sème-le : 300 m pendant 12 secondes.',5000);
@@ -76,5 +76,5 @@ export class FortierChase {
       if(this.line%2)this.speak(G,'Sara',SARA_LINE);else this.speak(G,'Claude',CLAUDE[(this.line/2)%CLAUDE.length]);}
   }
   draw(G,drawCar){const u=this.unit;if(!u)return;const v=u.veh;
-    drawCar(NSX,v.x,v.z,v.yaw,v.pitch,v.roll,v.spin,v.steer,null,0,v.y);}
+    drawCar(NSX,v.x,v.z,v.yaw,v.pitch,v.roll,v.spin,v.steer,null,0,v.bodyY,v.gh);}
 }

@@ -1,18 +1,42 @@
-// The height field: everything in Aylmer that is not at y = 0.
+// The height field: the shape of the ground under Aylmer.
 //
-// The town is flat, and it stays flat — a base height of exactly zero everywhere
-// — but a short hand-written list of ANALYTIC features (an old rail berm, a boat
-// launch, loading docks, a couple of gravel piles, some driveway aprons) is
-// layered on top of it. Each one is a closed-form h(x,z) with a closed-form
-// gradient, so `groundAt` is a grid lookup plus two or three evaluations: no
-// sampling, no interpolation, no allocation, and the same numbers on the CPU
-// that world.js baked into the mesh.
+// The town is not flat. It was, for as long as this file had only one layer in
+// it; now there are two, and they are different kinds of thing.
+//
+// Underneath is the BASE — the real town, a LiDAR-derived height raster on a
+// regular grid, handed in by ground.js and sampled bilinearly. That is where
+// the thirty-odd metres between the river at Parc des Cèdres and the high
+// ground north of Chemin d'Aylmer live. On top of it sits the same short
+// hand-written list of ANALYTIC features it always had (an old rail berm, a
+// boat launch, loading docks, a couple of gravel piles, some driveway aprons),
+// each a closed-form h(x,z) with a closed-form gradient. A feature's `H` is an
+// OFFSET above whatever ground it stands on, never an absolute altitude, and a
+// feature marked `dig` cuts the same distance below it — which is what keeps
+// the rail berm 2.5 m proud of the hillside instead of 2.5 m above sea level.
+//
+// So `groundAt` is one bilinear lookup plus two or three evaluations: no
+// search, no allocation, and the same numbers on the CPU that world.js baked
+// into the mesh. That last one is the promise worth stating out loud, because
+// a car whose wheels are on a surface you cannot see is not something you can
+// debug from the driver's seat.
 //
 //   groundAt(x, z) -> { h, nx, ny, nz, kind }   SHARED object, do not keep it
+//   baseAt(x, z)   -> { h, nx, ny, nz }         a DIFFERENT shared object
 //
-// The return value is one preallocated record that is overwritten on every call.
-// Read what you need out of it before calling again. That is what keeps the
-// physics loop allocation-free.
+// Both hand back one preallocated record that is overwritten on every call.
+// Read what you need out of it before calling again; that is what keeps the
+// physics loop allocation-free. They are deliberately two records and not one,
+// so the mesh builder can ask for the base and the full ground in the same
+// expression without either answer eating the other.
+//
+// With no base — `buildTerrain(FEATURES)`, `FLAT_TERRAIN`, and every stubbed
+// test world — the base reads exactly zero everywhere and this module behaves
+// bit for bit as it did when the town really was flat.
+//
+// Outside the raster the base fades rather than stops: the clamped edge height
+// times a smoothstep that reaches exactly zero 400 m out, gradient included, so
+// the 148 corridor and the run to Hull are the flat ground they have always
+// been and the seam is a gentle ramp instead of a wall.
 //
 // Coordinates are the usual metres: +X east, +Z south, +Y up. Local feature
 // frames follow the car's convention — `w` is forward (sin yaw, cos yaw) and
@@ -29,8 +53,9 @@
 //   prof   rotated strip with an arbitrary piecewise-linear profile along w and
 //          a lateral blend across u. The boat launch and the Symmes steps.
 //
-// Heights combine with max(); a feature marked `dig` may also pull the ground
-// BELOW zero (the submerged half of the slipway) when nothing raised wins.
+// Feature heights combine with max(); a feature marked `dig` may also pull the
+// ground BELOW the base (the submerged half of the slipway) when nothing
+// raised wins.
 
 // ---------------------------------------------------------------- surfaces
 
@@ -399,6 +424,35 @@ function evalFeature(f, x, z) {
   }
 }
 
+// The argmax over one broadphase cell, shared by every terrain and both of the
+// `groundAt` variants below: the tallest raised feature, the deepest `dig`, and
+// the highest-priority surface patch, each with the winner's gradient. Results
+// land in these module-level slots rather than an object, the same trick and
+// for the same reason as `E`.
+//
+// It lives out here, and not inside `buildTerrain` where it is used, on
+// purpose. As a closure there would be one copy per terrain — and the smoke
+// suites build three or four — which makes the call site inside `groundAt`
+// polymorphic and stops V8 inlining it. That measured 40 ns a call, which is a
+// fifth of the whole budget for a refactor nobody asked for.
+let sBestH = 0, sBdx = 0, sBdz = 0, sBestKind = '';
+let sDigH = 0, sDdx = 0, sDdz = 0, sDigKind = '';
+let sFlatKind = '', sFlatPri = -1;
+function scan(features, list, x, z) {
+  sBestH = 0; sBdx = 0; sBdz = 0; sBestKind = '';
+  sDigH = 0; sDdx = 0; sDdz = 0; sDigKind = '';
+  sFlatKind = ''; sFlatPri = -1;
+  for (let i = 0; i < list.length; i++) {
+    const f = features[list[i]];
+    evalFeature(f, x, z);
+    if (!E.in) continue;
+    const kind = E.top ? f.kind : (f.side || f.kind);
+    if (E.h > sBestH) { sBestH = E.h; sBdx = E.dx; sBdz = E.dz; sBestKind = kind; }
+    else if (f.dig && E.h < sDigH) { sDigH = E.h; sDdx = E.dx; sDdz = E.dz; sDigKind = kind; }
+    if (f.pri > sFlatPri) { sFlatPri = f.pri; sFlatKind = kind; }
+  }
+}
+
 // Axis-aligned bound of a feature, generous by `pad` metres. Used for the grid
 // and by world.js to know what area to bake.
 export function featureBounds(f, pad = 0) {
@@ -429,12 +483,20 @@ export function featureBounds(f, pad = 0) {
 // ---------------------------------------------------------------- the field
 
 /**
- * Bake a feature list into a queryable height field.
+ * Bake a feature list, and optionally a base height raster, into a queryable
+ * height field.
  *
- * Returns { groundAt, heightAt, features, cell, stats }. `groundAt` hands back
- * one shared, mutable record — copy anything you intend to keep.
+ * `base` is what `decodeGround()` returns: { x0, z0, cell, w, h, hgt, gx, gz },
+ * three Float32Arrays of w*h nodes with node (i,j) at x = x0 + i*cell,
+ * z = z0 + j*cell and index j*w + i. `hgt` is already in game y; `gx`/`gz` are
+ * dh/dx and dh/dz at each node in m/m. Pass null (the default) for the old flat
+ * town.
+ *
+ * Returns { groundAt, heightAt, baseAt, base, baseRect, features, cell, stats }.
+ * `groundAt` and `baseAt` each hand back one shared, mutable record — copy
+ * anything you intend to keep.
  */
-export function buildTerrain(features = FEATURES) {
+export function buildTerrain(features = FEATURES, base = null) {
   // Precompute the per-feature trig and lengths once, in place, so the hot path
   // never calls sin/cos or hypot.
   for (const f of features) {
@@ -473,29 +535,120 @@ export function buildTerrain(features = FEATURES) {
   let maxPerCell = 0;
   for (const [k, a] of tmp) { grid.set(k, Int32Array.from(a)); if (a.length > maxPerCell) maxPerCell = a.length; }
 
-  // The one record every query writes into.
+  // ------------------------------------------------------------- the base
+  //
+  // Everything the raster needs, hoisted out of the hot path. `bX1`/`bZ1` are
+  // the coordinates of the LAST node, not one cell past it: the field is
+  // defined on the nodes and interpolated between them, so that is where the
+  // rectangle ends.
+  const bHgt = base !== null ? base.hgt : null;
+  const bGx = base !== null ? base.gx : null;
+  const bGz = base !== null ? base.gz : null;
+  const bW = base !== null ? base.w : 0;
+  const bRows = base !== null ? base.h : 0;
+  const bCell = base !== null ? base.cell : 1;
+  const bInv = 1 / bCell;
+  const bX0 = base !== null ? base.x0 : 0;
+  const bZ0 = base !== null ? base.z0 : 0;
+  const bX1 = bX0 + (bW - 1) * bCell;
+  const bZ1 = bZ0 + (bRows - 1) * bCell;
+  const bIMax = bW - 2, bJMax = bRows - 2;
+
+  // The three arrays are read straight as ground.js decoded them. Interleaving
+  // them into one Float32Array of (h, dh/dx, dh/dz) triples was tried — a query
+  // touches the same node in all three, so packed they would share a cache line
+  // — and it did not pay: over eight runs each the medians went 265 ns to 236
+  // but the minima did not move (222 against 227), which is noise on a machine
+  // this busy. A certain 3.4 MB for an uncertain 10 %, so it is not here.
+
+  // How far past its own rectangle the base reaches before it is exactly zero.
+  // A smoothstep is steepest in the middle, at 1.5/FADE, so 400 m turns an edge
+  // height of h into a ramp of at most 0.375 % per metre of it: three or four
+  // per cent where the clip edge is a riverbank, a tenth at the very highest
+  // corner. A hill, not a cliff, and short enough that the 148 corridor and the
+  // Hull ramp at x 7959 never feel it.
+  const FADE = 400;
+
+  // The base's own record, and its raw gradient. Two reasons this is not `R`:
+  // world.js drapes a road by asking for the base and the ground in one
+  // expression, and `groundAt` needs the gradient in m/m, which the normal has
+  // already thrown away.
+  const B = { h: 0, nx: 0, ny: 1, nz: 0 };
+  let bh = 0, bdx = 0, bdz = 0;
+
+  /**
+   * Sample the raster into `bh`/`bdx`/`bdz`. No record, no normal, no sqrt —
+   * `groundAtBase` wants the gradient in m/m and would only have to undo a
+   * normalise it did not ask for.
+   *
+   * The four bilinear weights are applied to `gx`/`gz` as well as to `hgt`,
+   * rather than differencing the interpolated height. A bilinear patch's own
+   * derivative is only piecewise constant, so reading it off the surface would
+   * put a kink in the normal at every cell line — and a kink in the normal is
+   * a tick in the car's vertical velocity you can feel through the springs.
+   * Interpolating the node gradients makes height and normal both C0.
+   */
+  function baseSample(x, z) {
+    // Clamp to the rectangle, and remember by how much we had to.
+    let cx = x; if (cx < bX0) cx = bX0; else if (cx > bX1) cx = bX1;
+    let cz = z; if (cz < bZ0) cz = bZ0; else if (cz > bZ1) cz = bZ1;
+    const fx = (cx - bX0) * bInv, fz = (cz - bZ0) * bInv;
+    let i = fx | 0; if (i > bIMax) i = bIMax; if (i < 0) i = 0;
+    let j = fz | 0; if (j > bJMax) j = bJMax; if (j < 0) j = 0;
+    const tx = fx - i, tz = fz - j;
+    const ux = 1 - tx, uz = 1 - tz;
+    const w00 = ux * uz, w10 = tx * uz, w01 = ux * tz, w11 = tx * tz;
+    const a = j * bW + i, b = a + bW;
+    let h = bHgt[a] * w00 + bHgt[a + 1] * w10 + bHgt[b] * w01 + bHgt[b + 1] * w11;
+    let dx = bGx[a] * w00 + bGx[a + 1] * w10 + bGx[b] * w01 + bGx[b + 1] * w11;
+    let dz = bGz[a] * w00 + bGz[a + 1] * w10 + bGz[b] * w01 + bGz[b + 1] * w11;
+    const ex = x - cx, ez = z - cz;
+    if (ex !== 0 || ez !== 0) {
+      // Outside. Take the edge value out with a smoothstep, and carry the
+      // product-rule term or the normal stops agreeing with the height, and the
+      // mesh and the physics disagree about which way the seam slopes. Note
+      // that each axis takes exactly one of the two terms: along a clamped axis
+      // the edge height does not change, and along a free axis the fade does
+      // not, so the term that is missing is the one that would have been zero.
+      const d = Math.sqrt(ex * ex + ez * ez);
+      if (d >= FADE) { bh = 0; bdx = 0; bdz = 0; return; }
+      const u = d * (1 / FADE);
+      const s = 1 - u * u * (3 - 2 * u);
+      const k = h * (-6 * u * (1 - u) * (1 / FADE)) / d;
+      dx = ex !== 0 ? k * ex : dx * s;
+      dz = ez !== 0 ? k * ez : dz * s;
+      h *= s;
+    }
+    bh = h; bdx = dx; bdz = dz;
+  }
+
+  /** The raster alone, with no features on it. Shared record; see the header. */
+  function baseAt(x, z) {
+    if (base === null) return B;
+    baseSample(x, z);
+    B.h = bh;
+    if (bdx !== 0 || bdz !== 0) {
+      const l = Math.sqrt(bdx * bdx + bdz * bdz + 1);
+      B.nx = -bdx / l; B.ny = 1 / l; B.nz = -bdz / l;
+    } else { B.nx = 0; B.ny = 1; B.nz = 0; }
+    return B;
+  }
+
+  // The one record every ground query writes into.
   const R = { h: 0, nx: 0, ny: 1, nz: 0, kind: '' };
 
-  function groundAt(x, z) {
+  // The flat town, unchanged: no base term anywhere, not even an addition of
+  // zero, because `smoke_terrain.mjs` pins a 5 s run to nine decimals and a
+  // stray `0 +` is enough to turn a -0 into a +0 in a normal.
+  function groundAtFlat(x, z) {
     R.h = 0; R.nx = 0; R.ny = 1; R.nz = 0; R.kind = '';
     const list = grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL)));
     if (list === undefined) return R;
-    let bestH = 0, bdx = 0, bdz = 0, bestKind = '';
-    let digH = 0, ddx = 0, ddz = 0, digKind = '';
-    let flatKind = '', flatPri = -1;
-    for (let i = 0; i < list.length; i++) {
-      const f = features[list[i]];
-      evalFeature(f, x, z);
-      if (!E.in) continue;
-      const kind = E.top ? f.kind : (f.side || f.kind);
-      if (E.h > bestH) { bestH = E.h; bdx = E.dx; bdz = E.dz; bestKind = kind; }
-      else if (f.dig && E.h < digH) { digH = E.h; ddx = E.dx; ddz = E.dz; digKind = kind; }
-      if (f.pri > flatPri) { flatPri = f.pri; flatKind = kind; }
-    }
+    scan(features, list, x, z);
     let dx = 0, dz = 0;
-    if (bestH > 0) { R.h = bestH; dx = bdx; dz = bdz; R.kind = bestKind; }
-    else if (digH < 0) { R.h = digH; dx = ddx; dz = ddz; R.kind = digKind; }
-    else if (flatPri >= 0) { R.kind = flatKind; }
+    if (sBestH > 0) { R.h = sBestH; dx = sBdx; dz = sBdz; R.kind = sBestKind; }
+    else if (sDigH < 0) { R.h = sDigH; dx = sDdx; dz = sDdz; R.kind = sDigKind; }
+    else if (sFlatPri >= 0) { R.kind = sFlatKind; }
     if (dx !== 0 || dz !== 0) {
       const l = Math.sqrt(dx * dx + dz * dz + 1);
       R.nx = -dx / l; R.ny = 1 / l; R.nz = -dz / l;
@@ -503,12 +656,41 @@ export function buildTerrain(features = FEATURES) {
     return R;
   }
 
+  // The real town: base first, then the features as offsets on top of it. The
+  // gradients add, which is the whole reason the base carries one — a berm on a
+  // 5 % grade has to tilt with the grade, or it reads as a level shelf cut into
+  // the hill and the car crests it on the wrong axis.
+  function groundAtBase(x, z) {
+    baseSample(x, z);
+    const h0 = bh;
+    let dx = bdx, dz = bdz;
+    R.h = h0; R.kind = '';
+    const list = grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL)));
+    if (list !== undefined) {
+      scan(features, list, x, z);
+      if (sBestH > 0) { R.h = h0 + sBestH; dx += sBdx; dz += sBdz; R.kind = sBestKind; }
+      else if (sDigH < 0) { R.h = h0 + sDigH; dx += sDdx; dz += sDdz; R.kind = sDigKind; }
+      else if (sFlatPri >= 0) { R.kind = sFlatKind; }
+    }
+    if (dx !== 0 || dz !== 0) {
+      const l = Math.sqrt(dx * dx + dz * dz + 1);
+      R.nx = -dx / l; R.ny = 1 / l; R.nz = -dz / l;
+    } else { R.nx = 0; R.ny = 1; R.nz = 0; }
+    return R;
+  }
+
+  const groundAt = base === null ? groundAtFlat : groundAtBase;
+
   // Height only — for anything that does not care which way is up (the camera,
   // traffic, props). Same cost minus the normalise.
   function heightAt(x, z) { return groundAt(x, z).h; }
 
   return {
-    groundAt, heightAt, features, cell: CELL,
+    groundAt, heightAt, baseAt, base,
+    // What world.js needs to know which chunks are worth tessellating: the
+    // raster's own rectangle, plus the band the fade reaches into.
+    baseRect: base === null ? null : { x0: bX0, z0: bZ0, x1: bX1, z1: bZ1, fade: FADE },
+    features, cell: CELL,
     stats: { features: features.length, cells: grid.size, maxPerCell },
   };
 }

@@ -20,6 +20,7 @@ contributed.
 
     python3 tools/fetch_roll.py
     python3 tools/fetch_lidar.py && data/raw/venv/bin/python3 tools/lidar_roof.py
+    (on Windows: data\\raw\\venv\\Scripts\\python.exe)
     python3 tools/build_houses.py          # -> data/houses.json
 """
 import collections
@@ -260,7 +261,8 @@ def main():
             lidar = json.load(f)['roofs']
     else:
         print('! data/raw/lidar_roofs.json missing — run tools/fetch_lidar.py '
-              'then data/raw/venv/bin/python3 tools/lidar_roof.py', file=sys.stderr)
+              'then <venv>/bin/python3 (Scripts/python.exe on Windows) '
+              'tools/lidar_roof.py', file=sys.stderr)
 
     # --- footprints, filtered exactly the way build_map.build_buildings does
     feats = []

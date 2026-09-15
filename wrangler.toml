@@ -1,0 +1,18 @@
+# Deploy: npx wrangler@latest deploy
+#
+# The game is static files and nothing else, so this is a Workers static-assets
+# deploy with no Worker script at all. `directory = "./"` serves the repo root,
+# which is also where the game expects to be served from (index.html loads
+# ./src/main.js and everything fetches relative paths), so there is no build
+# step here either. What must NOT ship is listed in .assetsignore next door.
+#
+# Pages is the older path for this and Cloudflare's own migration guide points
+# at Workers instead, so this is the current one.
+name = "aylmer-madness"
+compatibility_date = "2026-09-14"
+
+[assets]
+directory = "./"
+# Unknown paths fall through to index.html, so a deep link does not 404 into
+# Cloudflare's own error page.
+not_found_handling = "single-page-application"

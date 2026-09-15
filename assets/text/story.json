@@ -1,12 +1,12 @@
 {
   "spine": {
-    "goal": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Son père aide dans la mesure de ses moyens; le camion reste à Tom quel que soit le résultat.",
-    "statedHow": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Son père aide dans la mesure de ses moyens; le camion reste à Tom quel que soit le résultat.",
+    "goal": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Le camion reste à Tom quel que soit le résultat.",
+    "statedHow": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Le camion reste à Tom quel que soit le résultat.",
     "visibleAs": "Une enveloppe écornée épinglée au coin supérieur droit de l'écran avec le montant accumulé (ex: 340 $ / 1 200 $), qui monte avec les pourboires de livraisons et descend quand il faut acheter des pièces chez Canadian Tire ou mettre du gaz ordinaire à 85 cents le litre.",
     "whyThisAndNotTheObvious": "Dans l'Outaouais en 2004, le Cégep coûte 150 $ par session : personne ne sue tout l'été pour payer ses frais scolaires. Ce qui te tue à 17 ans à Aylmer, c'est d'être piégé sans char. Sans char, aller à Heritage College ou traverser à Ottawa prend deux correspondances d'autobus STO et une heure et quart dans la pluie. Le Ranger n'est pas un symbole poétique abstrait : c'est l'outil physique qui décide si tu es libre ou si tu passes l'automne à attendre la ligne 41 au coin de Fraser."
   },
   "ending": {
-    "proposal": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Son père aide dans la mesure de ses moyens; le camion reste à Tom quel que soit le résultat.",
+    "proposal": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Le camion reste à Tom quel que soit le résultat.",
     "whyBetterThanA": "L'option A (choisir artificiellement entre 'garder l'argent pour partir' ou 'acheter le camion') est un faux dilemme de jeu vidéo qui méconnaît la réalité d'Aylmer : avoir un char n'est pas l'opposé de partir, c'est l'unique moyen pratique de se déplacer entre Gatineau, Hull et Ottawa. Forcer un choix binaire détruirait l'authenticité locale.",
     "whyBetterThanB": "L'option B (une tuile financière imprévue qui prive le joueur de son argent au dernier moment) ressemble à une punition scénaristique injuste et mélodramatique qui annule les efforts du joueur tout l'été pour imposer une fausse leçon de morale.",
     "finalScene": "Mardi 7 septembre 2004, 6h45 du matin. Le joueur est arrêté au feu rouge du boulevard Wilfrid-Lavigne dans le Ranger blanc. Les essuie-glaces balayent une brume d'automne froide. Le fil de la cassette adaptatrice pend sur le tableau de bord, branché à un lecteur CD où tourne 'Toune d'automne' des Cowboys Fringants. Dans le rétroviseur, les feux de circulation passent au vert. La file de camionnettes et de berlines s'engage sur le chemin d'Aylmer vers le pont Champlain. Le joueur passe la première, relâche la clutch sans caler, et s'insère dans le trafic."
@@ -19,7 +19,7 @@
       "cargo": "Canot de cèdre 16 pieds, 2 pagaies en frêne, veste de flottaison orange."
     },
     {
-      "vehicle": "Honda Civic 1993 (Sayyad)",
+      "vehicle": "Honda Civic Si 1987 (Sayyad)",
       "job": "La course contre la montre pour les billets",
       "why": "Le Ranger est trop lourd et lent pour traverser le boulevard des Allumettières en moins de quatre minutes avant la fermeture du guichet : la Civic abaissée de Sayyad avec son swap de moteur permet de se faufiler dans le trafic dense de Hull.",
       "cargo": "Enveloppe scellée de laissez-passer VIP pour le festival de montgolfières."
@@ -256,7 +256,7 @@
       "giver": "Zahra",
       "from": "l'Hôtel British",
       "to": "Heritage College",
-      "vehicle": "Honda Civic 1993 (Sayyad)",
+      "vehicle": "Honda Civic Si 1987 (Sayyad)",
       "what": "Première grande virée intersectorielle à haute vitesse sur le boulevard des Allumettières.",
       "complication": "Radars de la police de Gatineau embusqués sur les longues lignes droites; garder un œil sur le speedomètre.",
       "reward": {
@@ -363,9 +363,9 @@
       "complication": "Le soleil couchant rasant éclaire les reflets du fleuve; tu connais désormais chaque vitesse et chaque craque d'asphalte.",
       "reward": {
         "kind": "vehicle",
-        "what": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Son père aide dans la mesure de ses moyens; le camion reste à Tom quel que soit le résultat."
+        "what": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Le camion reste à Tom quel que soit le résultat."
       },
-      "spineProgress": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Son père aide dans la mesure de ses moyens; le camion reste à Tom quel que soit le résultat.",
+      "spineProgress": "Tom possède déjà son Ranger. Il économise 1 200 $ pour les réparations et les études. Le camion reste à Tom quel que soit le résultat.",
       "connects": "Fin de la campagne : l'été 2004 s'achève, tu es prêt pour la route."
     }
   ],

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { Radio } from '../src/game/radio.js';
+const r=new Radio({ok:true});
+r.built=true;
+r.ctx={currentTime:0};
+r.tone={frequency:{setTargetAtTime(){}},Q:{setTargetAtTime(){}}};
+let plays=0,stops=0;
+r._playSynth=()=>{plays++;r.on=true;};
+r._stopSource=()=>stops++;
+assert.equal(r._build(),true,'an existing graph is ready for reuse');
+r.tune(0);assert.equal(r.on,true);
+r.tune(1);assert.equal(plays,2,'station changes reuse the live graph');
+r.suspend();assert.equal(r.on,false);
+r.tune(2);assert.equal(plays,2,'tuning while paused stays silent');
+r.resume();assert.equal(plays,3);assert.equal(r.on,true);
+r.power(false);assert.equal(r.on,false);
+r.power(true);assert.equal(plays,4);assert.ok(stops>=6);
+console.log('Radio graph reuse, tuning, pause/resume and power: passed');

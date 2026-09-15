@@ -204,7 +204,8 @@ const surchauffe = {
           // back, and you are at his garage when it gets there.
           const p = PLACES.ctire;
           if (G.veh && p) {
-            G.veh.reset(p.x, p.z, p.a || 0);
+            G.veh.reset(p.x, p.z, p.a || 0,
+              G.phys && G.phys.groundY ? G.phys.groundY(p.x, p.z) : 0);
             G.veh.syncFrame && G.veh.syncFrame();
           }
           say(G, 'Norm charge le Ranger sur la plateforme sans dire un mot.\nSoixante-cinq kilomètres de silence.', 3600);
