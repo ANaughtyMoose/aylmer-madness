@@ -39,6 +39,9 @@
 
 import { rgb, shade } from '../core/mesh.js';
 import { clamp, mulberry32 } from '../core/math.js';
+import { buildGlenwood, chooseGlenwood, GLENWOOD_STREETS, GLENWOOD_VARIANTS } from './glenwood.js';
+
+export { GLENWOOD_VARIANTS, GLENWOOD_STREETS };
 
 // Decal ladder — must stay between world.js's Y.grass (0) and Y.road (0.05).
 const Y_DRIVE = 0.042;
@@ -734,6 +737,33 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   const id = archetypeOf(attrs);
   const t0 = mb.i.length;
 
+  // ---- Glenwood bungalows (glenwood.js). Decided before the archetype path and
+  // without touching `rng`, so the near and far bakes of a house still agree.
+  // opts.glenwood: undefined = only on GLENWOOD_STREETS, false = never,
+  // true/'auto' = any detached one-storey house, '<variant id>' = forced.
+  const gw = glenwoodPlan(b, attrs, opts);
+  if (gw) {
+    if (opts.addSegment) {
+      const p = b.p;
+      for (let i = 0; i < p.length; i++) {
+        const q = p[(i + 1) % p.length];
+        opts.addSegment(p[i][0], p[i][1], q[0], q[1]);
+      }
+    }
+    const info = buildGlenwood(mb, gw.variant, {
+      fw: gw.fw, D: gw.D, side: gw.side, lod, y0, mats, seed: gw.seed,
+      cap: Number.isFinite(opts.budget) ? opts.budget : GLENWOOD_BUDGET[Math.min(lod, 2)],
+    });
+    return {
+      archetype: gw.variant,
+      attrs: { ...attrs, height: info.height, ridgeHeight: info.ridgeHeight,
+        garage: info.garage, porch: info.porch },
+      tris: (mb.i.length - t0) / 3, streetYaw: gw.streetYaw, front: gw.frontYaw,
+      glenwood: { variant: gw.variant, side: gw.side, clearance: info.clearance,
+        frontage: gw.fw.len, depth: gw.D },
+    };
+  }
+
   if (id === 'flat_block') {
     buildPlain(mb, b, mats, rng, { y: y0, addSegment: opts.addSegment });
     return { archetype: 'flat_block', attrs, tris: (mb.i.length - t0) / 3 };
@@ -997,6 +1027,32 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   // else's road, and it has to come out of the white 'flat' tile untouched.
   mt.off();
   return { archetype: id, attrs, tris: (mb.i.length - t0) / 3, streetYaw, front: front.yaw };
+}
+
+// Same per-lod ceilings tools/smoke_houses.mjs holds every archetype to.
+const GLENWOOD_BUDGET = [160, 80, 48];
+
+// Is this house a Glenwood bungalow, and in which frame? The frame is the street
+// face of the footprint's largest rectangle, found exactly the way buildHouse
+// finds it for every other archetype. Returns null for the ~57k buildings that
+// are not candidates, after one regex test when opts.glenwood is unset.
+export function glenwoodPlan(b, attrs, opts = {}) {
+  const opt = opts.glenwood;
+  if (opt === false || opt === null) return null;
+  if (opt === undefined && !(b.addr && GLENWOOD_STREETS.test(b.addr))) return null;
+  if (attrs.link === 'apartment') return null;
+  const ang = attrs.ridgeYaw;
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const L2M = (u, v) => [b.c[0] + u * ca - v * sa, b.c[1] + u * sa + v * ca];
+  const main = decompose(b.p, b.c, ang).rects[0];
+  const streetYaw = Number.isFinite(opts.streetYaw) ? opts.streetYaw : -ang;
+  const front = frontFace(ang, streetYaw);
+  const fw = faceOf(main, L2M, front);
+  const D = ((main.u1 - main.u0) * (main.v1 - main.v0)) / Math.max(0.1, fw.len);
+  const seed = houseSeed(b, opts.index || 0);
+  const pick = chooseGlenwood(b, attrs, opt, seed, fw.len, D);
+  if (!pick) return null;
+  return { ...pick, fw, D, seed, streetYaw, frontYaw: front.yaw };
 }
 
 // ---------------------------------------------------------------- sub-builders
