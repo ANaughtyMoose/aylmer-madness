@@ -89,7 +89,7 @@ export class Audio {
     }
     if (this.ok) {
       const t = this.ctx.currentTime;
-      this.master.gain.setTargetAtTime(0.5 * this.vol.master, t, 0.05);
+      this.master.gain.setTargetAtTime((this.paused ? 0 : 0.5 * this.vol.master), t, 0.05);
       this.engBus.gain.setTargetAtTime(this.vol.engine, t, 0.05);
       this.fx.gain.setTargetAtTime(this.vol.effects, t, 0.05);
       this.radioBus.gain.setTargetAtTime(this.vol.radio, t, 0.05);
@@ -147,6 +147,13 @@ export class Audio {
     this.noise.start();
     this.ok = true;
     this.setEngineProfile(this.ep);
+  }
+  setPaused(on) {
+    this.paused = !!on;
+    if (!this.master || !this.ctx) return;
+    const gain = this.master.gain, t = this.ctx.currentTime;
+    gain.cancelScheduledValues(t);
+    gain.setValueAtTime(this.paused ? 0 : 0.5 * this.vol.master, t);
   }
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
 

@@ -16,7 +16,7 @@
 // Nothing in here draws or steps anything. main.js owns the four hook lines.
 // The one exception is the opener's own card: it goes through ui.js's
 // setModal() so the HUD stops drawing behind it (U7).
-import { MISSIONS } from './missions.js';
+import { MISSIONS, missionAvailable } from './missions.js';
 import { setModal } from './ui.js';
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
@@ -123,6 +123,7 @@ export function nearestJob(G, list = MISSIONS) {
   if (!v) return null;
   let best = null, bd = Infinity;
   for (const def of list) {
+    if (!missionAvailable(G, def)) continue;
     if (G.done && G.done.has && G.done.has(def.id)) continue;
     const p = PLACES[def.giver];
     if (!p) continue;
@@ -138,6 +139,7 @@ export function nearestAnyJob(G, list = MISSIONS) {
   if (!v) return null;
   let best = null, bd = Infinity;
   for (const def of list) {
+    if (!missionAvailable(G, def)) continue;
     const p = PLACES[def.giver];
     if (!p) continue;
     const d = Math.hypot(p.x - v.x, p.z - v.z);

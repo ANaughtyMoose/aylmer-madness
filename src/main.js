@@ -29,7 +29,7 @@ import { loadCarSkin } from './game/carskin.js';
 import { Nav, routeLength } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
-import { MISSIONS, ALL_MISSIONS, TIME_OF_DAY, unlockArc } from './game/missions.js';
+import { MISSIONS, ALL_MISSIONS, TIME_OF_DAY, unlockArc, nextMission, missionAvailable, availableMissions } from './game/missions.js';
 // No query string on this import. A `?v=` suffix makes the browser treat the
 // file as a second, separate module: PLACES forks into two objects, only one of
 // them ever meets resolvePlaces(), and every mission target silently stops being
@@ -1331,6 +1331,11 @@ function stepEnv(dt) {
 // ---------------------------------------------------------------- missions
 
 function startMission(def) {
+  if (!def || !missionAvailable(G,def)) {
+    const next=nextMission(G);
+    hud.toast(next ? (G.settings.lang==='en' ? 'Finish first: ' : 'Finis d’abord : ')+next.title : 'Job indisponible',2500);
+    return false;
+  }
   const spec = G.veh.spec;
   const stages = def.build({
     carId: spec.id, carName: spec.name, seats: spec.seats, places: carPlaces(spec),
@@ -1477,7 +1482,7 @@ function updateMission(dt) {
     // next few seconds, so the job pillar under the truck does not.
     if (G.ambush) { G.wantStart = false; return; }
     // Several missions share a start marker, so offer one and let Tab cycle.
-    const near = MISSIONS.filter((d) => {
+    const near = availableMissions(G).filter((d) => {
       const p = PLACES[d.giver];
       return Math.hypot(v.x - p.x, v.z - p.z) < 12;
     });
@@ -1684,7 +1689,7 @@ function mapState() {
   return {
     x: v.x, z: v.z, yaw: v.yaw, route: G.route, waypoint: G.waypoint,
     target: G.mission ? G.mission.target : null,
-    missions: G.mission ? [] : MISSIONS.map((d) => ({ x: PLACES[d.giver].x, z: PLACES[d.giver].z, title: d.title, place: PLACES[d.giver].label, done: G.done.has(d.id) })),
+    missions: G.mission ? [] : availableMissions(G).map((d) => ({ x: PLACES[d.giver].x, z: PLACES[d.giver].z, title: d.title, place: PLACES[d.giver].label, done: G.done.has(d.id) })),
     parked: Object.keys(G.parked).filter(id => !carById(id).hidden || garage.has(id,G.done)).map((id) => ({ x: G.parked[id].x, z: G.parked[id].z, name: carById(id).name })),
     rivals: G.rivals.map((rv) => ({ x: rv.x, z: rv.z, name: rv.name })),
     cops: [...G.cops.units.map((u) => ({ x: u.x, z: u.z })), ...G.cops.blocks.map((b) => ({ x: b.x, z: b.z }))],
@@ -2498,7 +2503,7 @@ function markerList() {
   if (G.mission) {
     if (G.mission.target) out.push({ x: G.mission.target.x, z: G.mission.target.z, kind: 'objective' });
   } else {
-    for (const def of MISSIONS) {
+    for (const def of availableMissions(G)) {
       const p = PLACES[def.giver];
       out.push({ x: p.x, z: p.z, kind: 'mission' });
     }
@@ -2524,7 +2529,7 @@ function drawMarkers() {
     m4.compose(mm, t.x, spawnY(t.x, t.z) + 0.09, t.z, 0, 0, 0, t.r, 1, t.r);
     r.draw(G.meshes.ring, mm, { alpha: 0.3, unlit: true, colorMul: yellow });
   } else if (!G.mission) {
-    for (const def of MISSIONS) {
+    for (const def of availableMissions(G)) {
       const p = PLACES[def.giver];
       if (Math.hypot(p.x - v.x, p.z - v.z) > 600) continue;
       const c = G.done.has(def.id) ? white : yellow;
@@ -2537,29 +2542,36 @@ function drawMarkers() {
 // ---------------------------------------------------------------- pause / wiring
 
 function fillJobs() {
-  const el = $('jobs');
-  el.innerHTML = MISSIONS.map((d, i) => {
-    const done = G.done.has(d.id), b = G.best[d.id];
-    return `<div class="job${done ? ' done' : ''}" data-i="${i}"><span>${done ? '\u2713' : '\u00b7'}</span>` +
-      `<span><span class="t">${d.title}</span><br><span class="w">${d.brief}</span></span>` +
-      `<span class="w">${t('pause.start')}: ${PLACES[d.giver].label}</span>` +
-      `<span class="b">${b != null ? fmtTime(b) : '\u2014'}</span></div>`;
-  }).join('');
-  // Click a job to drop a waypoint on where it starts.
-  for (const row of el.querySelectorAll('.job')) {
-    row.onclick = () => {
-      const d = MISSIONS[+row.dataset.i];
-      const p = PLACES[d.giver];
-      if (!p) return;
-      G.waypoint = { x: p.x, z: p.z };
-      G.routeKey = '';
-      pause(false);
-      hud.toast('Waypoint \u2014 ' + d.title + '\n' + p.label, 1800);
-      audio.blip(660, 0.1, 'triangle', 0.14);
+  const el=$('jobs'),en=G.settings.lang==='en',next=nextMission(G);
+  el.replaceChildren();
+  const current=G.mission?.def || next;
+  $('pausemission').textContent=current?.title || (en?'Summer complete':'Été terminé');
+  $('pausebrief').textContent=G.mission?.stages[G.mission.idx]?.text || current?.brief || '';
+  $('pause').style.setProperty('--pause-art', 'url("'+(current?.id==='alternateur'?'assets/cinema/alternateur.png':'assets/cinema/fraser-2004.png')+'")');
+  $('restartmission').hidden=!G.mission;
+  $('restartmission').textContent=en?'Restart mission':'Recommencer la job';
+  const add=(parent,d)=>{
+    const done=G.done.has(d.id),allowed=missionAvailable(G,d);
+    const row=document.createElement('button');row.className='job'+(done?' done':'')+(!allowed?' locked':'');
+    row.disabled=!allowed || !!G.mission;
+    const title=document.createElement('strong');title.textContent=(done?'✓ ':allowed?'→ ':'🔒 ')+d.title;
+    const note=document.createElement('span');note.className='w';
+    note.textContent=allowed ? PLACES[d.giver]?.label || '' : (en?'Finish first: ':'Finis d’abord : ')+(next?.title || '');
+    row.append(title,note);parent.append(row);
+    row.onclick=()=>{if(!missionAvailable(G,d)||G.mission)return;const p=PLACES[d.giver];if(!p)return;
+      G.waypoint={x:p.x,z:p.z};G.routeKey='';pause(false);
     };
+  };
+  if(next)add(el,next);
+  for(const [done,label] of [[true,en?'Completed missions':'Jobs terminées'],[false,en?'Upcoming missions':'Prochaines jobs']]) {
+    const defs=ALL_MISSIONS.filter(d=>G.done.has(d.id)===done && d.id!==next?.id && d.id!==G.mission?.def.id);
+    if(!defs.length)continue;
+    const details=document.createElement('details'),summary=document.createElement('summary');
+    summary.textContent=label+' ('+defs.length+')';details.append(summary);el.append(details);
+    defs.forEach(d=>add(details,d));
   }
-  const hint = $('jobshint');
-  if (hint) hint.textContent = t('pause.clickjob');
+  $('jobshint').textContent=G.mission ? (en?'Your mission resumes where you paused.':'Ta job reprend où tu l’as laissée.')
+    : (en?'Complete the next mission to continue the story.':'Termine la prochaine job pour continuer l’histoire.');
 }
 
 // ---- pause tabs --------------------------------------------------------
@@ -2789,6 +2801,7 @@ function pause(on) {
     fortier.cancelVoice();
     if (fortier.subtitle) fortier.subtitle.hidden=true;
     G.mode = 'paused';
+    audio.setPaused(true);
     fillJobs();
     buildTabBar();
     applyPauseText();
@@ -2801,6 +2814,7 @@ function pause(on) {
     weather.suspend();          // the rain stops at the pause screen too
   } else {
     G.mode = 'drive';
+    audio.setPaused(false);
     last = performance.now();
     setModal('pause', false);
     radio.resume();
@@ -2809,6 +2823,7 @@ function pause(on) {
 }
 
 function toMenu() {
+  audio.siren(false);
   fortier.stop();
   pause(false);
   radio.suspend();
@@ -2863,6 +2878,12 @@ $('btnEnglish').onclick = () => {
 };
 $('optback').onclick = () => openOptions(false);
 $('optback2').onclick = () => openOptions(false);
+$('restartmission').onclick = () => {
+  const def=G.mission?.def;if(!def)return;
+  refundJob(G,G.mission);missionCleanup(G,G.mission,true);
+  G.mission=null;G.veh.passengers=0;G.wantStart=false;G.offer=null;
+  pause(false);startMission(def);
+};
 $('resume').onclick = () => pause(false);
 $('mapbtn').onclick = () => { pause(false); openMap(true); };
 $('garage').onclick = toMenu;

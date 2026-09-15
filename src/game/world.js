@@ -1,3 +1,4 @@
+import { makeSurface } from './surface.js';
 import { FRASER, fraserFootprint, buildFraser } from './fraser.js';
 // Turns mapdata.js (real OpenStreetMap Aylmer) into geometry and collision data.
 //
@@ -444,245 +445,67 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     return out;
   }
 
-  // Scratch for the per-vertex normals the drape helpers hand to quad().
-  const DN = [0, 1, 0];
-  // Take the base normal at (x, z) into DN and hand back the height there. One
-  // call, one shared record read, no allocation.
-  function drapeNormal(x, z) {
-    const b = baseAt(x, z);
-    DN[0] = b.nx; DN[1] = b.ny; DN[2] = b.nz;
-    return b.h;
+  const surface = makeSurface(baseAt, baseRect, DRAPE);
+  const DN = [0,1,0];
+  function drapeNormal(x,z) { const b=baseAt(x,z); DN[0]=b.nx;DN[1]=b.ny;DN[2]=b.nz;return b.h; }
+  function cover(poly,y,col,get=bAt,reuse=null) {
+    surface.drape(poly,y,points=>{
+      let mx=0,mz=0;for(const p of points){mx+=p[0];mz+=p[2];}mx/=points.length;mz/=points.length;
+      if(inside && !inside(mx,mz))return;
+      const bd=get(mx,mz);drapeNormal(mx,mz);
+      const ids=points.map(p=>{
+        const key=reuse ? p[0].toFixed(6)+','+p[2].toFixed(6) : null;
+        if(reuse && reuse.has(key))return reuse.get(key);
+        const k=bd.vert(p[0],p[1],p[2],DN[0],DN[1],DN[2],col);
+        if(reuse)reuse.set(key,k);return k;
+      });
+      for(let i=1;i+1<points.length;i++) {
+        const a=points[0],b=points[i],c=points[i+1];
+        const cr=(b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]);
+        if(Math.abs(cr)<1e-9)continue;
+        if(cr<0)bd.tri(ids[0],ids[i],ids[i+1]);else bd.tri(ids[0],ids[i+1],ids[i]);
+      }
+    });
   }
-
-  // ---------------------------------------------------------------- draping
-  //
-  // Four shapes cover everything in the file that used to be laid flat at an
-  // absolute y: a rotated strip (dashes, edge lines, gutters, shoulders, stop
-  // bars), the same strip with a thickness (the concrete sidewalk), a convex
-  // ring (junction decks) and a triangle (landuse). Each one cuts itself down
-  // to the raster cell and lifts every corner to the ground under it, and each
-  // one falls back to the exact call it used to make when there is no hill
-  // beneath it.
-
-  // MeshBuilder.flatRot, draped. `y` is height above the ground, not altitude.
-  function stripe(cx, cz, w, len, y, yaw, col) {
-    const s = Math.sin(yaw), co = Math.cos(yaw);
-    const hw = w / 2, hl = len / 2;
-    if (!overBase(cx - hw - hl, cz - hw - hl, cx + hw + hl, cz + hw + hl)) {
-      bAt(cx, cz).flatRot(cx, cz, w, len, y, yaw, col);
+  function rectPoints(cx,cz,w,len,yaw) {
+    const s=Math.sin(yaw),c=Math.cos(yaw);
+    return [[-w/2,-len/2],[-w/2,len/2],[w/2,len/2],[w/2,-len/2]].map(([u,t])=>[cx+c*u+s*t,cz-s*u+c*t]);
+  }
+  function stripe(cx,cz,w,len,y,yaw,col) { cover(rectPoints(cx,cz,w,len,yaw),y,col); }
+  function slab(cx,cz,w,len,thick,yaw,col) {
+    const ring=rectPoints(cx,cz,w,len,yaw);
+    if(!overBase(cx-w-len,cz-w-len,cx+w+len,cz+w+len)) {
+      const bd=bAt(cx,cz);bd.flatRot(cx,cz,w,len,thick,yaw,col);
+      for(const e of [0,2]) { const a=ring[e],b=ring[(e+1)%4];bd.quad([a[0],0,a[1]],[b[0],0,b[1]],[b[0],thick,b[1]],[a[0],thick,a[1]],col); }
       return;
     }
-    // flatRot's frame: local +X runs across the strip, local +Z along it.
-    const axx = co, axz = -s, alx = s, alz = co;
-    const n = Math.max(1, Math.ceil(len / DRAPE));
-    const m = Math.max(1, Math.ceil(w / DRAPE));
-    for (let k = 0; k < n; k++) {
-      const t0 = -hl + len * (k / n), t1 = -hl + len * ((k + 1) / n);
-      for (let q = 0; q < m; q++) {
-        const u0 = -hw + w * (q / m), u1 = -hw + w * ((q + 1) / m);
-        const mu = (u0 + u1) / 2, mt = (t0 + t1) / 2;
-        const mx = cx + axx * mu + alx * mt, mz = cz + axz * mu + alz * mt;
-        const P = (u, t) => {
-          const x = cx + axx * u + alx * t, z = cz + axz * u + alz * t;
-          return [x, baseAt(x, z).h + y, z];
-        };
-        drapeNormal(mx, mz);
-        bAt(mx, mz).quad(P(u0, t0), P(u0, t1), P(u1, t1), P(u1, t0), col, DN);
+    cover(ring,thick,col);
+    for(const e of [0,2]) {
+      const a=ring[e],b=ring[(e+1)%4],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/DRAPE));
+      for(let i=0;i<n;i++) {
+        const x=a[0]+(b[0]-a[0])*i/n,z=a[1]+(b[1]-a[1])*i/n;
+        const xx=a[0]+(b[0]-a[0])*(i+1)/n,zz=a[1]+(b[1]-a[1])*(i+1)/n;
+        const h=baseAt(x,z).h,hh=baseAt(xx,zz).h;
+        bAt(x,z).quad([x,h,z],[xx,hh,zz],[xx,hh+thick,zz],[x,h+thick,z],col);
       }
     }
   }
+  function interDeck(bd,ring,y,col) { cover(ring,y,col); }
+  function drapeTri(ax,az,bx,bz,cx,cz,y,col,get,step) { cover([[ax,az],[bx,bz],[cx,cz]],y,col,get); }
 
-  // The concrete sidewalk band. `tower` is a box and a box cannot follow a
-  // hill, so the slab is cut into cell-length pieces, each a draped top surface
-  // and a vertical fillet down both long edges — which is all the kerb step
-  // ever was. The ends stay open, exactly as `noBottom` left them.
-  function slab(cx, cz, w, len, thick, yaw, col) {
-    const s = Math.sin(yaw), co = Math.cos(yaw);
-    const hw = w / 2, hl = len / 2;
-    if (!overBase(cx - hw - hl, cz - hw - hl, cx + hw + hl, cz + hw + hl)) {
-      bAt(cx, cz).tower(cx, 0, cz, w, len, thick, col, { yaw, noBottom: true });
-      return;
-    }
-    const axx = co, axz = -s, alx = s, alz = co;
-    const n = Math.max(1, Math.ceil(len / DRAPE));
-    for (let k = 0; k < n; k++) {
-      const t0 = -hl + len * (k / n), t1 = -hl + len * ((k + 1) / n);
-      const mx = cx + alx * (t0 + t1) / 2, mz = cz + alz * (t0 + t1) / 2;
-      const bd = bAt(mx, mz);
-      const P = (u, t, dy) => {
-        const x = cx + axx * u + alx * t, z = cz + axz * u + alz * t;
-        return [x, baseAt(x, z).h + dy, z];
-      };
-      drapeNormal(mx, mz);
-      bd.quad(P(-hw, t0, thick), P(-hw, t1, thick), P(hw, t1, thick), P(hw, t0, thick), col, DN);
-      // The two long faces, wound outward the way tower() winds its -X / +X.
-      bd.quad(P(-hw, t0, 0), P(-hw, t1, 0), P(-hw, t1, thick), P(-hw, t0, thick), col);
-      bd.quad(P(hw, t1, 0), P(hw, t0, 0), P(hw, t0, thick), P(hw, t1, thick), col);
-    }
+  // Grass and every pavement layer use identical terrain triangles.
+  const gr=mulberry32(0x51ee7);
+  let groundQuads=0;
+  for(let cz=0;cz<NZ;cz++) for(let cx=0;cx<NX;cx++) {
+    const x0=B.minX+cx*CHUNK,x1=Math.min(x0+CHUNK,B.maxX);
+    const z0=B.minZ+cz*CHUNK,z1=Math.min(z0+CHUNK,B.maxZ);
+    if(x1<=x0||z1<=z0)continue;
+    if(inside && !inside((x0+x1)/2,(z0+z1)/2))continue;
+    const bd=bAt((x0+x1)/2,(z0+z1)/2),col=shade(C.grassLo,1+gr()*0.16);
+    cover([[x0,z0],[x0,z1],[x1,z1],[x1,z0]],Y.grass,col,()=>bd,new Map());
+    groundQuads++;
   }
-
-  // A junction deck. The polygon used to be one planar fan at a single y; it is
-  // fanned from its own centroid now, with a height per ring vertex. A 30 m
-  // intersection on a 5 % street floated or sank three quarters of a metre at
-  // its edges the planar way, and the extra triangle a centroid fan costs over
-  // the ring fan triTo() was doing is the cheapest three quarters of a metre in
-  // the file. It is still only exact ON the ring: the deck is a cone over the
-  // junction, not a graded profile, and that is the piece 3 this slice skipped.
-  const fanIdx = [];
-  function interDeck(bd, ring, y, col) {
-    let mx = 0, mz = 0;
-    for (let i = 0; i < ring.length; i++) { mx += ring[i][0]; mz += ring[i][1]; }
-    mx /= ring.length; mz /= ring.length;
-    if (!overBase(mx, mz, mx, mz)) {
-      // No hill under it: the old ring fan, unchanged. A centroid buys nothing
-      // on a plane and would cost two triangles a junction to say so.
-      fanIdx.length = 0;
-      for (let i = 1; i + 1 < ring.length; i++) fanIdx.push(0, i, i + 1);
-      triTo(bd, ring, fanIdx, y, col);
-      return;
-    }
-    const cy = baseAt(mx, mz).h + y;
-    for (let i = 0; i < ring.length; i++) {
-      const a = ring[i], b = ring[(i + 1) % ring.length];
-      const ay = baseAt(a[0], a[1]).h + y;
-      const by = baseAt(b[0], b[1]).h + y;
-      const tx = (mx + a[0] + b[0]) / 3, tz = (mz + a[1] + b[1]) / 3;
-      drapeNormal(tx, tz);
-      // Wind so the normal points up, the same test triTo() makes.
-      const cr = (a[0] - mx) * (b[1] - mz) - (a[1] - mz) * (b[0] - mx);
-      const v0 = bd.vert(mx, cy, mz, DN[0], DN[1], DN[2], col);
-      if (cr > 0) {
-        bd.vert(b[0], by, b[1], DN[0], DN[1], DN[2], col);
-        bd.vert(a[0], ay, a[1], DN[0], DN[1], DN[2], col);
-      } else {
-        bd.vert(a[0], ay, a[1], DN[0], DN[1], DN[2], col);
-        bd.vert(b[0], by, b[1], DN[0], DN[1], DN[2], col);
-      }
-      bd.tri(v0, v0 + 1, v0 + 2);
-    }
-  }
-
-  // One landuse triangle, draped. mapdata's triangulation of a car park or a
-  // wood is whatever the ear clipper produced, which is regularly 80 m across,
-  // so the triangle is split at its own midpoints until no edge is longer than
-  // a raster cell. Four sub-triangles a level, so a 128 m triangle is four
-  // levels and 256 pieces — worth it for a park that would otherwise be buried
-  // thirty metres inside the hill it is drawn on.
-  function drapeTri(ax, az, bx, bz, cx2, cz2, y, col, get, step) {
-    // Off the raster `baseAt` reads exactly zero with an exactly vertical
-    // normal, so the emit below is the flat triangle triScatter used to make,
-    // number for number — no split, no drift, nothing to pay for.
-    const lim = step || DRAPE;
-    const over = overBase(Math.min(ax, bx, cx2), Math.min(az, bz, cz2),
-      Math.max(ax, bx, cx2), Math.max(az, bz, cz2));
-    const longest = !over ? 0 : Math.max(
-      Math.hypot(bx - ax, bz - az), Math.hypot(cx2 - bx, cz2 - bz), Math.hypot(ax - cx2, az - cz2));
-    if (longest > lim) {
-      const abx = (ax + bx) / 2, abz = (az + bz) / 2;
-      const bcx = (bx + cx2) / 2, bcz = (bz + cz2) / 2;
-      const cax = (cx2 + ax) / 2, caz = (cz2 + az) / 2;
-      drapeTri(ax, az, abx, abz, cax, caz, y, col, get, lim);
-      drapeTri(abx, abz, bx, bz, bcx, bcz, y, col, get, lim);
-      drapeTri(cax, caz, bcx, bcz, cx2, cz2, y, col, get, lim);
-      drapeTri(abx, abz, bcx, bcz, cax, caz, y, col, get, lim);
-      return;
-    }
-    const mx = (ax + bx + cx2) / 3, mz = (az + bz + cz2) / 3;
-    if (inside && !inside(mx, mz)) return;
-    const bd = get(mx, mz);
-    drapeNormal(mx, mz);
-    const ay = baseAt(ax, az).h + y, by = baseAt(bx, bz).h + y, cy = baseAt(cx2, cz2).h + y;
-    const cr = (bx - ax) * (cz2 - az) - (bz - az) * (cx2 - ax);
-    const v0 = bd.vert(ax, ay, az, DN[0], DN[1], DN[2], col);
-    if (cr > 0) {
-      bd.vert(cx2, cy, cz2, DN[0], DN[1], DN[2], col);
-      bd.vert(bx, by, bz, DN[0], DN[1], DN[2], col);
-    } else {
-      bd.vert(bx, by, bz, DN[0], DN[1], DN[2], col);
-      bd.vert(cx2, cy, cz2, DN[0], DN[1], DN[2], col);
-    }
-    bd.tri(v0, v0 + 1, v0 + 2);
-  }
-
-  // ------------------------------------------------------------ 1. ground
-  // The lawn. Outside the raster it is still one 200 m quad per chunk; over it,
-  // a grid of quads cut on the raster's own 8 m lines with a height and a
-  // normal per vertex, sharing vertices across the whole chunk so the hillside
-  // costs 676 vertices rather than 2,500. The per-chunk grass shade stays a
-  // per-chunk constant, which is what lets the sharing work.
-  //
-  // Note this reads `baseAt`, not `groundAt`: the feature surfaces of 5c are
-  // their own geometry on top of the lawn, the way they always were.
-  const gr = mulberry32(0x51ee7);
-  let groundQuads = 0;
-  const groundMeshStats = { cells: 0, refinedCells: 0, extraVertices: 0, extraTriangles: 0, maxDivisions: 1 };
-  // A bilinear cell differs from its diagonal triangles by |cross difference|/4.
-  // Splitting each axis n ways divides that bound by n�. Keep a little room
-  // below 10 cm for uploaded Float32 rounding. Raster edges are linear, so
-  // adjacent cells can refine independently without opening a geometric gap.
-  const GROUND_ERROR = 0.095;
-  for (let cz = 0; cz < NZ; cz++) {
-    for (let cx = 0; cx < NX; cx++) {
-      const x0 = B.minX + cx * CHUNK, x1 = Math.min(x0 + CHUNK, B.maxX);
-      const z0 = B.minZ + cz * CHUNK, z1 = Math.min(z0 + CHUNK, B.maxZ);
-      if (x1 <= x0 || z1 <= z0) continue;
-      if (inside && !inside((x0 + x1) / 2, (z0 + z1) / 2)) continue;
-      const g = shade(C.grassLo, 1 + gr() * 0.16);
-      const bd = bAt((x0 + x1) / 2, (z0 + z1) / 2);
-      if (!overBase(x0, z0, x1, z1)) { bd.flat(x0, z0, x1, z1, Y.grass, g); continue; }
-      const xs = gridLines(x0, x1, baseRect.x0, DRAPE);
-      const zs = gridLines(z0, z1, baseRect.z0, DRAPE);
-      const W = xs.length, v0 = bd.vertCount;
-      for (let j = 0; j < zs.length; j++) {
-        for (let i = 0; i < W; i++) {
-          const b = baseAt(xs[i], zs[j]);
-          bd.vert(xs[i], b.h + Y.grass, zs[j], b.nx, b.ny, b.nz, g);
-        }
-      }
-      // Same winding as MeshBuilder.flat: negative shoelace in (x,z) is CCW
-      // seen from above, which is the face the renderer wants pointing up.
-      for (let j = 0; j + 1 < zs.length; j++) {
-        for (let i = 0; i + 1 < W; i++) {
-          const a = v0 + j * W + i;
-          const h00 = bd.v[a * 9 + 1], h01 = bd.v[(a + W) * 9 + 1];
-          const h11 = bd.v[(a + W + 1) * 9 + 1], h10 = bd.v[(a + 1) * 9 + 1];
-          const error = Math.abs(h00 + h11 - h01 - h10) / 4;
-          let divisions = 1;
-          while (error / (divisions * divisions) > GROUND_ERROR) divisions *= 2;
-          groundMeshStats.cells++;
-          groundMeshStats.maxDivisions = Math.max(groundMeshStats.maxDivisions, divisions);
-          if (divisions === 1) {
-            bd.tri(a, a + W, a + W + 1);
-            bd.tri(a, a + W + 1, a + 1);
-          } else {
-            groundMeshStats.refinedCells++;
-            const rows = [], corners = [a, a + 1, a + W, a + W + 1];
-            for (let q = 0; q <= divisions; q++) {
-              const row = [];
-              for (let r = 0; r <= divisions; r++) {
-                if ((q === 0 || q === divisions) && (r === 0 || r === divisions)) {
-                  row.push(corners[(q === divisions ? 2 : 0) + (r === divisions ? 1 : 0)]);
-                  continue;
-                }
-                const x = lerp(xs[i], xs[i + 1], r / divisions);
-                const z = lerp(zs[j], zs[j + 1], q / divisions);
-                const b = baseAt(x, z);
-                row.push(bd.vert(x, b.h + Y.grass, z, b.nx, b.ny, b.nz, g));
-                groundMeshStats.extraVertices++;
-              }
-              rows.push(row);
-            }
-            for (let q = 0; q < divisions; q++) for (let r = 0; r < divisions; r++) {
-              bd.tri(rows[q][r], rows[q + 1][r], rows[q + 1][r + 1]);
-              bd.tri(rows[q][r], rows[q + 1][r + 1], rows[q][r + 1]);
-            }
-            groundMeshStats.extraTriangles += 2 * (divisions * divisions - 1);
-          }
-          groundQuads += divisions * divisions;
-        }
-      }
-    }
-  }
+  const groundMeshStats={...surface.stats};
 
   // ------------------------------------------------------------ 2. water
   // Water goes into its OWN chunk meshes so the whole draw can carry the wobble
@@ -735,18 +558,9 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // negative shoelace == CCW from above, so walk the ring with decreasing angle.
   // Draped: a joint disc is never wider than a carriageway, so it stays one
   // fan, but every point on it rides the hill under the road it patches.
-  function disc(x, z, r, y, col) {
-    const bd = bAt(x, z);
-    const cy = drapeNormal(x, z) + y;
-    const c0 = bd.vert(x, cy, z, DN[0], DN[1], DN[2], col);
-    for (let i = 0; i < DISC; i++) {
-      const px = x + discCos[i] * r, pz = z + discSin[i] * r;
-      bd.vert(px, baseAt(px, pz).h + y, pz, DN[0], DN[1], DN[2], col);
-    }
-    for (let i = 0; i < DISC; i++) {
-      const a = c0 + 1 + i, b = c0 + 1 + ((i + 1) % DISC);
-      bd.tri(c0, b, a);
-    }
+  function disc(x,z,r,y,col) {
+    const ring=[];for(let i=0;i<DISC;i++)ring.push([x+discCos[i]*r,z+discSin[i]*r]);
+    cover(ring,y,col);
   }
 
   // -------------------------------------------------- 4a. the road broadphase
@@ -918,7 +732,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
 
     // Sidewalk corners: the kerb radius between two paved branches. Without
     // these the two straight bands leave a notch at every junction.
-    const paved = nd.br.filter((b) => PAVED[b.cls] === 1);
+    const paved = nd.br.filter((b) => PAVED[b.cls] === 1 || b.cls === 'residential');
     if (paved.length >= 2) {
       paved.sort((a, b) => Math.atan2(a.dx, a.dz) - Math.atan2(b.dx, b.dz));
       for (let i = 0; i < paved.length; i++) {
@@ -945,8 +759,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         // 2.8 m square: smaller than a raster cell, so it is simply stood on
         // the ground under its centre rather than cut up. On a 5 % corner the
         // far edge is 7 cm out, which is half the slab's own thickness.
-        bAt(cx, cz).tower(cx, baseAt(cx, cz).h, cz, 2.8, 2.8, 0.12, walkCol,
-          { yaw: Math.atan2(ux, uz), noBottom: true });
+        slab(cx, cz, 2.8, 2.8, 0.12, Math.atan2(ux, uz), walkCol);
         cornerCount++;
       }
     }
@@ -985,9 +798,8 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     // Collectors have walks on both sides. Some residential streets get a walk
     // on one consistent side; the rest retain the soft
     // shoulder common in older Aylmer neighbourhoods.
-    const residentialWalk = road.cls === 'residential' && (rh % 100) < 18;
-    const walkSides = paved ? [1, -1]
-      : residentialWalk ? [(rh & 1) ? 1 : -1] : [];
+    const residentialWalk = road.cls === 'residential';
+    const walkSides = paved || residentialWalk ? [1, -1] : [];
 
     // per-segment unit direction + right-hand normal
     const dxs = new Float64Array(n - 1), dzs = new Float64Array(n - 1), lens = new Float64Array(n - 1);
@@ -1040,38 +852,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         l1x = pts[i + 1][0] + nx; l1z = pts[i + 1][1] + nz;
         r1x = pts[i + 1][0] - nx; r1z = pts[i + 1][1] - nz;
       }
-      // The carriageway. One quad per segment was fine on a flat town; on a
-      // real one a 50 m run at 5 % drawn as a single quad sinks two and a half
-      // metres into the hillside at its midpoint, where the tessellated lawn
-      // is. So the strip is cut on both axes until no piece spans more than a
-      // raster cell — the long way for the grade, the short way because a
-      // 14 m trunk carriageway is wider than a cell on its own.
-      if (!overBase(Math.min(l0x, r0x, l1x, r1x), Math.min(l0z, r0z, l1z, r1z),
-        Math.max(l0x, r0x, l1x, r1x), Math.max(l0z, r0z, l1z, r1z))) {
-        bAt(mx, mz).quad(
-          [l0x, y, l0z], [r0x, y, r0z],
-          [r1x, y, r1z], [l1x, y, l1z], col, UP);
-      } else {
-        const nt = Math.max(1, Math.ceil(lens[i] / DRAPE));
-        const nu = Math.max(1, Math.ceil(hw * 2 / DRAPE));
-        // (t, u) -> the point t of the way along the segment and u of the way
-        // across it, from the mitred left edge to the mitred right edge.
-        const P = (t, u) => {
-          const lxp = l0x + (l1x - l0x) * t, lzp = l0z + (l1z - l0z) * t;
-          const rxp = r0x + (r1x - r0x) * t, rzp = r0z + (r1z - r0z) * t;
-          const x = lxp + (rxp - lxp) * u, z = lzp + (rzp - lzp) * u;
-          return [x, baseAt(x, z).h + y, z];
-        };
-        for (let k = 0; k < nt; k++) {
-          const t0 = k / nt, t1 = (k + 1) / nt;
-          for (let q = 0; q < nu; q++) {
-            const u0 = q / nu, u1 = (q + 1) / nu;
-            const p = P((t0 + t1) / 2, (u0 + u1) / 2);
-            drapeNormal(p[0], p[2]);
-            bAt(p[0], p[2]).quad(P(t0, u0), P(t0, u1), P(t1, u1), P(t1, u0), col, DN);
-          }
-        }
-      }
+      cover([[l0x,l0z],[r0x,r0z],[r1x,r1z],[l1x,l1z]],y,col);
       // Streets without a concrete walk transition through a narrow compacted
       // shoulder, rather than ending in a perfectly sharp asphalt/grass seam.
       if (road.cls === 'residential' && walkSides.length === 0 && lens[i] > 2) {

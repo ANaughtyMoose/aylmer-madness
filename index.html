@@ -84,9 +84,11 @@
 
 <canvas id="bigmap" class="hidden"></canvas>
 
-<div id="pause" class="hidden">
+<div id="pause" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pausetitle">
   <div class="panel">
     <h2 id="pausetitle">Pause</h2>
+    <h3 id="pausemission"></h3>
+    <p id="pausebrief"></p>
     <div id="ptabs"></div>
     <div id="tabjobs" class="ptab">
       <div id="jobs"></div>
@@ -98,6 +100,7 @@
     <div id="tabkeys" class="ptab hidden"></div>
     <div class="row">
       <button id="resume">Continuer</button>
+      <button id="restartmission" hidden>Recommencer la job</button>
       <button id="mapbtn">Carte</button>
       <button id="garage">Menu</button>
     </div>

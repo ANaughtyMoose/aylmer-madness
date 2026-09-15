@@ -439,6 +439,26 @@ export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS].sort(byOpening)
   .concat(VERB_MISSIONS, RACE_MISSIONS, GOLF_MISSIONS, LIFE_MISSIONS, openBeats(new Set()));
 export const ALL_MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...VERB_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS, ...LIFE_MISSIONS, ...ARC];
 
+// One new campaign job at a time. Story beats take their turn when their
+// existing prerequisites are earned; completed jobs remain replayable.
+// Compute from this save, never from a mutable global unlock counter.
+export const CAMPAIGN = [...CORE_MISSIONS, ...SIDE_MISSIONS].sort(byOpening)
+  .concat(VERB_MISSIONS, RACE_MISSIONS, GOLF_MISSIONS, LIFE_MISSIONS);
+export function nextMission(G) {
+  const done = G?.done || new Set();
+  return ARC.find(d => !done.has(d.id) && gateOpen(d.id, done))
+    || CAMPAIGN.find(d => !done.has(d.id)) || null;
+}
+export function missionAvailable(G, def) {
+  if (!def) return false;
+  // Generated driving modes and roadside encounters are not campaign jobs.
+  if (!ALL_MISSIONS.some(d => d.id === def.id)) return true;
+  return !!G?.done?.has(def.id) || nextMission(G)?.id === def.id;
+}
+export function availableMissions(G) {
+  return ALL_MISSIONS.filter(d => missionAvailable(G, d));
+}
+
 // What a job hands you, in its own brief. The garage already knows which car
 // each mission unlocks — it prints "Finis « Ramasser la gang »" on the locked
 // card in the menu — but the job itself never said, so from the driver's seat
