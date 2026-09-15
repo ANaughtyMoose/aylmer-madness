@@ -81,6 +81,7 @@ export const SECTIONS = [
   {
     id: 'controls', title: 'opt.controls', rows: [
       { k: 'steerSens', type: 'range', min: 0.5, max: 1.6, step: 0.05, fmt: 'times' },
+      { k: 'damageSensitivity', type: 'range', min: 0, max: 2, step: 0.1, fmt: 'times' },
       { k: 'assist', type: 'check' },
       { k: 'lookBackToggle', type: 'check' },
       { k: 'invertLook', type: 'check' },
@@ -310,6 +311,7 @@ export function applySettings(G, s0) {
   // ---- driving
   G.assist = s.assist;
   if (G.veh) G.veh.assist = s.assist;
+  if (G.veh) G.veh.damageSensitivity = s.damageSensitivity;
   if (s.cam !== prev.cam) G.cam = s.cam;
   G.difficulty = s.difficulty;   // the AI agent reads it if it wants to
 

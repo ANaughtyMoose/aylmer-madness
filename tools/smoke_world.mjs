@@ -388,6 +388,31 @@ ok('near and far house bakes agree on how many houses there are', () => {
   assert.equal(near, far, `${near} near chunks vs ${far} far chunks`);
 });
 
+ok('all roadside pole types and small trees lose their mesh and collider once', () => {
+  let blanked=0, freed=0;
+  r.blankIndices=()=>blanked++;
+  r.free=()=>freed++;
+  // The full-map furniture cap can consume all slots with streetlights;
+  // hydro poles appear in streamed slices, not necessarily this fixture.
+  const kinds=['streetlight','signal','stopsign','tree'];
+  if(world.poles.some(p=>p.kind==='hydro'))kinds.push('hydro');
+  for(const kind of kinds) {
+    const p=world.poles.find(p=>p.kind===kind);
+    assert.ok(p,kind);
+    assert.ok(p.fragment.v.length>0,kind+' has retained geometry');
+    assert.ok(world.queryPoles(p.x,p.z,1).includes(p));
+    const f=world.snapPole(p,1,0,30);
+    assert.ok(f.mesh.count>0 && f.y===p.y);
+    assert.ok(!world.queryPoles(p.x,p.z,1).includes(p));
+    assert.equal(world.snapPole(p,1,0,30),null);
+    if(p.signal)assert.equal(p.signal.broken,true);
+  }
+  assert.equal(blanked,kinds.length);
+  world.free();
+  assert.equal(world.fallen.length,0);
+  assert.ok(freed>=kinds.length);
+});
+
 console.log(`\n${checks - fails.length}/${checks} checks passed`);
 if (fails.length) {
   console.error('FAILED: ' + fails.join(', '));

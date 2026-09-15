@@ -1,6 +1,7 @@
 <!doctype html><meta charset="utf-8"><title>Aylmer repair review</title>
 <style>body{margin:0;background:#15212a;color:#fff;font:13px system-ui}nav{height:42px;display:flex;align-items:center;gap:8px;padding:0 10px}button{padding:6px 12px}iframe{display:block;border:0;width:100%;height:calc(100vh - 42px)}#report{position:fixed;right:10px;top:48px;max-width:460px;max-height:45vh;overflow:auto;background:#101820ee;white-space:pre-wrap;pointer-events:none;padding:8px}#report:empty{display:none}</style>
 <nav><button data-go="start">New test game</button><button data-go="fraser">Fraser</button><button data-go="cemetery">Saint-Paul</button><button data-go="glenwood">Glenwood</button><button data-go="pause">Pause checks</button><button data-go="resume">Resume</button><button data-go="report">Report</button><button data-go="clear">Hide report</button></nav>
+<nav><label>Impact target <select id="impact-kind"><option>streetlight</option><option>signal</option><option>stopsign</option><option>tree</option></select></label><button data-go="impact">Test 108 km/h impact</button><button data-go="settle">Settle debris</button></nav>
 <iframe id="game" src="../index.html" title="Running Aylmer Madness"></iframe><pre id="report"></pre>
 <script type="module">
 const f=document.querySelector('iframe'),out=document.querySelector('#report');
@@ -16,6 +17,21 @@ try{
   f.focus();out.textContent='';return;
  }
  if(!g?.veh){out.textContent='Start the test game first.';return;}
+ if(btn.dataset.go==='impact'){
+  const kind=document.querySelector('#impact-kind').value;
+  const p=g.world.poles.filter(p=>p.kind===kind&&!p.dead).sort((a,b)=>Math.hypot(a.x-g.veh.x,a.z-g.veh.z)-Math.hypot(b.x-g.veh.x,b.z-g.veh.z))[0];
+  if(!p)throw Error('No remaining target of this type in loaded scenery');
+  a.pause(false);a.cinema.hide();a.teleport(p.x,p.z-2.3,0);a.env('day');
+  g.veh.reset(p.x,p.z-2.3,0,p.y);g.veh.repair();g.veh.vz=30;g.veh.vLong=30;
+  g.veh.collidePoles(g.phys);g.veh.vx=0;g.veh.vz=0;g.veh.vLong=0;
+  out.textContent=JSON.stringify({kind,broken:p.dead,damage:g.veh.damage,ground:p.y,fallen:g.world.fallen.length},null,2);
+  f.focus();return;
+ }
+ if(btn.dataset.go==='settle'){
+  const {stepFragment}=await import('../src/game/breakables.js');
+  for(const p of g.world.fallen)stepFragment(p,8,g.world.groundAt);
+  out.textContent=JSON.stringify(g.world.fallen.map(p=>({kind:p.kind,settled:p.settled,y:p.y})),null,2);return;
+ }
  if(btn.dataset.go==='pause'){
   g.audio.siren(true);saved={time:g.time,mission:a.job(),position:[g.veh.x,g.veh.z]};
   a.pause(true);await wait(300);

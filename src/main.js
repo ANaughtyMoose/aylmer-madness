@@ -877,7 +877,7 @@ function worldStages() {
         querySegments: (x, z, rad) => G.world.querySegments(x, z, rad),
         waterAt: (x, z) => G.world.waterAt(x, z),
         queryPoles: (x, z, rad) => G.world.queryPoles(x, z, rad),
-        snapPole: (p, ux, uz) => G.world.snapPole(p, ux, uz),
+        snapPole: (p, ux, uz, speed) => G.world.snapPole(p, ux, uz, speed),
         // The height field. Hands back a SHARED record { h, nx, ny, nz, kind } —
         // read what you need before calling it again. Anything that only wants
         // the height (traffic, props, the camera) should use groundY.
@@ -2036,6 +2036,7 @@ function tick(dt) {
   // a no-op in anything with a motor.
   vehicleTick(G, ctl, dt);
   const preImpact = v.impact;
+  v.damageSensitivity = G.settings.damageSensitivity;
   v.update(dt, ctl, G.phys);
   if(v.spec.id==='ranger')stepSpare(v,dt);
   // Air and landings. `v.landed` is the vertical speed the springs killed, set

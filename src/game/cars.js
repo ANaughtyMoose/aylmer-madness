@@ -29,11 +29,8 @@ const LAMP = 0xfff3c4, TAIL = 0xc0332a, AMBER = 0xf0a030, PLATE = 0xe8e6dc, TRIM
 //   track:    computed below from `plan` so the tyres stand just proud of the body
 export const CARS = [
   {
-    // XL — the BASE trim, off the photograph and not off a brochure. One colour
-    // of white over the whole body (no two-tone band, no bodyside stripes),
-    // black bumpers, black mirrors, black door handles, argent steel wheels with
-    // small hub caps, and the badge low on the bed side. Nothing on this truck is
-    // chrome. `wear` is the nine years it has done since: see specPaint().
+    // Owner's white XL: rusty painted front bumper, black rear steel bumper,
+    // fine grey pinstripes and front-fender badges. See the reference details.
     id: 'ranger', name: '1993 Ford Ranger XL', who: 'Yours',
     body: 0xebe8dd, seats: 2, style: 'truck',
     // Bed side / cab / front fender, each a shade off the others; the steps are
@@ -1051,12 +1048,14 @@ export function tToZ(s, t) {
  * `paint(face, t, y)` returns [color, u, v] for a vertex on that face:
  * faces are 'bottom','sideL','glassL','top','glassR','sideR','front','rear'.
  */
-export function loft(mb, s, n, ring, paint) {
+export function loft(mb, s, n, ring, paint, cuts = []) {
   const rings = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
+  const samples = new Set(cuts);
+  for (let i = 0; i <= n; i++) samples.add(i / n);
+  for (const t of [...samples].sort((a,b)=>a-b)) {
     rings.push({ t, z: tToZ(s, t), p: ring(t) });
   }
+  n = rings.length - 1;
   const beveled=rings[0].p.length===8;
   const FACES = beveled ? ['bottom','sideL','glassL','glassL','top','glassR','glassR','sideR']
     : ['bottom', 'sideL', 'glassL', 'top', 'glassR', 'sideR'];
@@ -1160,7 +1159,7 @@ function specPaint(s) {
     }
     if (face === 'top') {
       if (s.bed && t > s.bed[0] && t < s.bed[1] && y < bedFloor + 0.02) return [shade(s.body, 0.55), 0, 0];
-      if (inRange(s.glassTop, t, y)) return [glass, 0, 0];
+      if (inRange(s.glassTop, t, y) && !(s.id === 'ranger' && t < .5)) return [glass, 0, 0];
       if (inBumper(t) && y < bumperY) return [clad, 0, 0];
       return [weather(body, t, y), 0, 0];
     }
@@ -1225,45 +1224,89 @@ export function addDetails(mb, s, opts = {}) {
   }
 
   if (s.id === 'ranger') {
-    // XL: BLACK bumpers front and rear (no chrome anywhere on this truck), flush
-    // aero headlamps, and the argent-and-black grille the base trim got.
+    // The owner's front bumper is white painted steel with heavy rust; the
+    // rear is black steel. The grille is grey plastic with a broken centre.
     const blk = shade(TRIM, 0.62), argent = rgb(0x8e9195);
-    mb.box(0, s.clearance + 0.12, zF - 0.02, s.wid * 0.96, 0.18, 0.12, blk);
+    // Inset rear window with its broad black rubber seal. The old 64-ring
+    // sampling stepped over the narrow rear-window interval altogether.
+    const rearPane=(a,b,wa,wb,col,offset)=>mb.quad(
+      [-wa,topAt(s,a)+offset,z(a)-offset],[-wb,topAt(s,b)+offset,z(b)-offset],
+      [wb,topAt(s,b)+offset,z(b)-offset],[wa,topAt(s,a)+offset,z(a)-offset],col);
+    rearPane(.439,.449,.68,.64,blk,.004);
+    rearPane(.440,.448,.645,.612,rgb(GLASS),.007);
+    mb.box(0,1.593,z(.45)-.02,.19,.045,.035,tail);
+    const bumperY = s.clearance + .17, bumperZ = zF - .02;
+    mb.box(0, bumperY, bumperZ, s.wid * .96, .23, .14, bodyC);
+    mb.box(0, s.clearance + .015, bumperZ, s.wid * .93, .08, .13, blk);
+    // Irregular, deterministic islands of orange corrosion and dark pits.
+    // Most of the hood and cab remain white, as in the actual photographs.
+    let rustSeed = 913;
+    const rustRand = () => { rustSeed = (Math.imul(rustSeed, 1664525) + 1013904223) >>> 0; return rustSeed / 4294967296; };
+    for (let i = 0; i < 240; i++) {
+      const x = (rustRand() - .5) * s.wid * .93;
+      const y = bumperY + (rustRand() - .5) * .205;
+      const w = .003 + rustRand() * .026, h = .003 + rustRand() * .018;
+      const col = rgb([0xb78e56, 0xa47441, 0x795030][i % 3]);
+      mb.quad([x-w,y-h,bumperZ+.072],[x+w*.7,y-h*.65,bumperZ+.072],
+        [x+w,y+h*.7,bumperZ+.072],[x-w*.55,y+h,bumperZ+.072],col);
+    }
+    mb.box(0, bumperY-.03, bumperZ+.079, .30, .16, .025, blk);
     mb.box(0, s.clearance + 0.12, zR + 0.02, s.wid * 0.94, 0.18, 0.12, blk);
     const yH = 0.84, zH = z(0.992);
     both((sx) => {
-      mb.box(sx * 0.44, yH, zH, 0.34, 0.15, 0.06, lamp);
-      mb.box(sx * (hwAt(s, 0.99) - 0.09), yH, zH - 0.005, 0.15, 0.14, 0.06, amber);
+      mb.box(sx * 0.615, yH, zH, 0.32, 0.23, 0.06, lamp);
+      mb.box(sx * (hwAt(s, 0.99) - 0.015), yH, zH - 0.005, 0.11, 0.22, 0.06, amber);
       mb.box(sx * (hwAt(s, 0.985) + 0.004), yH, z(0.982), 0.01, 0.12, 0.10, amber);   // wraps onto the fender
     });
-    mb.box(0, yH, zH - 0.005, 0.50, 0.19, 0.05, shade(TRIM, 0.7));          // recessed grille opening
-    mb.box(0, yH, zH, 0.52, 0.03, 0.05, argent);                            // argent bar, not a chrome one
-    mb.box(0, yH + 0.09, zH, 0.54, 0.02, 0.05, argent);                     // grille frame top/bottom
-    mb.box(0, yH - 0.09, zH, 0.54, 0.02, 0.05, argent);
-    mb.box(0, yH, zH + 0.02, 0.12, 0.06, 0.02, rgb(0x1f3f9a));               // blue oval
+    mb.box(0, yH, zH - 0.005, 0.90, 0.25, 0.05, shade(TRIM, 0.45));
+    mb.box(0, yH-.012, zH, 0.90, 0.035, 0.05, argent);
+    both(sx => mb.box(sx*.285, yH+.118, zH, .33, .03, .05, argent)); // broken top centre
+    mb.box(0, yH - 0.118, zH, 0.92, 0.03, 0.05, argent);
+    for (const x of [-.45,-.15,.15,.45]) mb.box(x,yH,zH,.023,.23,.05,argent);
+    mb.box(-.10,yH+.11,zH+.027,.035,.012,.006,rgb(0xc1bbaa)); // peeled grey coating
+    for (const [w,h,depth,col] of [[.08,.037,.029,0x969da0],[.070,.029,.030,0x1f3f78]]) {
+      const c=mb.vert(0,yH,zH+depth,0,0,1,rgb(col));
+      for(let k=0;k<=16;k++) {
+        const a=k*Math.PI/8;
+        mb.vert(Math.cos(a)*w,yH+Math.sin(a)*h,zH+depth,0,0,1,rgb(col));
+        if(k)mb.tri(c,c+k,c+k+1);
+      }
+    }
     // tall vertical tail lamps flanking the tailgate, FORD as a recessed dark box
     both((sx) => mb.box(sx * (hwR - 0.10), 0.93, zR + 0.012, 0.17, 0.40, 0.04, tail));
-    mb.box(0, 0.98, zR + 0.014, 0.56, 0.10, 0.03, shade(s.body, 0.55));
+    mb.box(0, 1.045, zR - 0.012, 0.20, 0.055, 0.025, blk); // recessed tailgate handle
     mb.box(0, s.clearance + 0.12, zR - 0.005, 0.32, 0.15, 0.02, rgb(PLATE));
     // bed: rails, floor and the tailgate inner face
     const [t0, t1, floor] = s.bed;
     const z0 = z(t0), z1 = z(t1), len = z1 - z0, zc = (z0 + z1) / 2;
     const hw = hwAt(s, (t0 + t1) / 2), railTop = pl(s.belt, 0.02);
+    // Brushed aluminum protector folds over the upper outside tailgate lip.
+    mb.box(0, railTop+.012, zR+.055, hw*2-.16, .027, .13, rgb(0xaeb3b3));
+    mb.box(0, railTop-.023, zR-.006, hw*2-.16, .055, .018, rgb(0x929a9c));
     both((sx) => mb.tower(sx * (hw - 0.07), floor - 0.01, zc, 0.14, len, railTop - floor + 0.01, bodyC, { noBottom: true }));
     both((sx) => mb.box(sx * (hw - 0.13), floor + 0.10, zc, 0.03, 0.04, len - 0.30, shade(s.body, 0.6)));   // inner wheel-tub lip
     mb.box(0, floor + 0.01, zc, hw * 2 - 0.28, 0.01, len - 0.2, shade(s.body, 0.62));                    // ribbed floor
-    for (let k = -3; k <= 3; k++) mb.box(0, floor + 0.02, zc + k * (len / 7), hw * 2 - 0.3, 0.008, 0.05, shade(s.body, 0.50));
-    // The XL's only badge: RANGER low on the bed side, aft of the rear arch,
-    // with a small XL under the front of it. Dark decal on white — there is no
-    // brightwork on this truck, and nothing at all on the front fender. The
-    // mirrors and door handles are the shared black ones from the prologue
-    // above; the XLT used to draw chrome ones over the top and does not now.
+    for (let k = -3; k <= 3; k++) mb.box(k * (hw * 2 - .3) / 8, floor + 0.02, zc, .035, .008, len-.2, shade(s.body, 0.50));
+    // RANGER / XL badges sit behind the front wheel on the photographed truck.
     const badge = shade(TRIM, 1.05);
-    const tBadge = 0.13;
+    const tBadge = 0.75;
     both((sx) => {
       const xb = hwAt(s, tBadge) + 0.006;
       mb.box(sx * xb, 0.92, z(tBadge), 0.012, 0.038, 0.30, badge);          // RANGER
       mb.box(sx * xb, 0.862, z(tBadge + 0.022), 0.012, 0.026, 0.075, badge); // XL
+    });
+    // Fine parallel grey pinstripes follow the upper body across each panel.
+    both(sx => {
+      for (const [a,b] of [[.035,.40],[.445,.727],[.742,.94]]) {
+        for (let j=0;j<3;j++) {
+          const ya=(a<.4?railTop:Math.min(beltAt(s,a),topAt(s,a)))-.075-j*.009;
+          const yb=(b<=.4?railTop:Math.min(beltAt(s,b),topAt(s,b)))-.075-j*.009;
+          const xa=sx*(hwAt(s,a)+.008), xb=sx*(hwAt(s,b)+.008);
+          const q=[[xa,ya,z(a)],[xb,yb,z(b)],[xb,yb+.004,z(b)],[xa,ya+.004,z(a)]];
+          if(sx>0)q.reverse();
+          mb.quad(...q,rgb(0x979b99),[sx,0,0]);
+        }
+      }
     });
 
     // The whip. A fixed mast on the right front fender, a metre and a quarter of
@@ -1587,7 +1630,7 @@ export function buildCarBody(s, opts = {}) {
     // same overall envelope and all existing cockpit/glass profile positions.
     const d=Math.min(0.045,Math.max(0,(p[2][1]-p[1][1])*0.2));
     return [p[0],p[1],[p[2][0]+d,p[2][1]-d],p[2],p[3],[p[3][0]-d,p[3][1]-d],p[4],p[5]];
-  }, specPaint(s));
+  }, specPaint(s), s.id==='ranger' ? [...s.top,...s.belt,...s.plan].map(p=>p[0]) : []);
   addDetails(mb, s, opts);
   return mb;
 }
@@ -1603,7 +1646,7 @@ export function carLampBoxes(s) {
   const hwR = pl(s.plan, 0.012);
   if (s.id === 'ranger') {
     return {
-      head: [[0.44, 0.84, z(0.992), 0.34, 0.15]],
+      head: [[0.615, 0.84, z(0.992), 0.32, 0.23]],
       tail: [[hwR - 0.10, 0.93, zR + 0.012, 0.17, 0.40]],
       rev:  [[hwR - 0.10, 0.60, zR + 0.012, 0.15, 0.11]],
     };
@@ -1776,7 +1819,7 @@ export function buildWheel(s) {
     // A plain stamped disc, the five hand holes pressed into it, and the little
     // dog-dish cap that covers the nuts and nothing else. Dulled down because
     // nobody has taken a brush to these since 1993.
-    const rim = 0x9ea1a4;
+    const rim = 0x5a5650;
     mb.cyl(0, 0, 0, rimR, face * 2, 12, rgb(rim), 'x');
     for (const dir of [1, -1]) {
       for (let k = 0; k < 5; k++) {
@@ -1784,7 +1827,7 @@ export function buildWheel(s) {
         facePoly(mb, dir * deco, dir, ellipse(Math.cos(a) * rimR * 0.66, Math.sin(a) * rimR * 0.66, rimR * 0.13, rimR * 0.20, a), shade(rim, 0.22));
       }
     }
-    mb.cyl(0, 0, 0, rimR * 0.40, face * 2 + 0.02, 10, rgb(0xb8babc), 'x');   // dog-dish cap
+    mb.cyl(0, 0, 0, rimR * 0.40, face * 2 + 0.02, 10, rgb(0x6b6254), 'x');   // weathered hub
     mb.cyl(0, 0, 0, rimR * 0.13, face * 2 + 0.03, 6, shade(rim, 0.55), 'x'); // the dimple in it
   } else if (s.id === 'saturn') {
     // plastic multi-slot cover: light grey with eight dark slots around a flat hub
@@ -2500,11 +2543,11 @@ export class Vehicle {
    * approach speed in m/s along the contact normal; (nx, nz) points from
    * whatever we hit toward us. Returns the damage actually added.
    */
-  hit(closing, nx = 0, nz = 0) {
+  hit(closing, nx = 0, nz = 0, damageScale = 1) {
     const force = Math.min(1, Math.abs(closing) / 18);
     this.impact = Math.max(this.impact, force);
     this.lastHit = Math.max(this.lastHit, force);
-    const add = Math.max(0, force - 0.055) * 46;
+    const add = Math.max(0, force - 0.055) * 46 * damageScale * (this.damageSensitivity ?? 1);
     if (add <= 0) return 0;
     const before = this.damage;
     this.damage = clamp(this.damage + add, 0, DAMAGE.DEAD);
@@ -2561,7 +2604,7 @@ export class Vehicle {
   // whatever the step.
   collide(world, dt = 1 / 60) {
     const s = this.spec;
-    if (world.queryPoles) this.collidePoles(world);
+    if (world.queryPoles) this.collidePoles(world, dt);
     const r = s.wid * 0.52;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
     let moved = Math.hypot(this.vx, this.vz) * dt;
@@ -2639,9 +2682,10 @@ export class Vehicle {
   // hit one with any speed on and it snaps, the collider goes with it, and you
   // drive through with a dent and a scrub. Slower than that and it holds, in
   // which case the wall pass below treats it as the fence post it is.
-  collidePoles(world) {
+  collidePoles(world, dt = 1 / 60) {
     const s = this.spec;
-    const list = world.queryPoles(this.x, this.z, s.len * 0.55 + 1.2);
+    const travelX = this.vx * dt, travelZ = this.vz * dt;
+    const list = world.queryPoles(this.x, this.z, s.len * 0.55 + 1.2 + Math.hypot(travelX, travelZ));
     if (!list || !list.length) return;
     const r = s.wid * 0.5;
     const off = Math.max(0.05, s.len * 0.5 - r);
@@ -2649,17 +2693,29 @@ export class Vehicle {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       if (p.dead) continue;
-      for (let k = 1; k >= -1; k -= 2) {
+      for (let k = 1; k >= -1; k--) {
         const cx = this.x + fx * off * k, cz = this.z + fz * off * k;
-        const dx = p.x - cx, dz = p.z - cz;
+        // Sweep each end of the capsule through this frame's travel. Solve
+        // the first circle contact so a fast car cannot jump over a thin pole.
+        const ax = cx - travelX, az = cz - travelZ;
+        const qx = ax - p.x, qz = az - p.z, radius = r + .24;
+        const aa = travelX * travelX + travelZ * travelZ;
+        const bb = 2 * (qx * travelX + qz * travelZ);
+        const cc = qx * qx + qz * qz - radius * radius;
+        const disc = bb * bb - 4 * aa * cc;
+        let u = cc <= 0 ? 0 : aa > 1e-8 && disc >= 0 ? (-bb - Math.sqrt(disc)) / (2 * aa) : -1;
+        if (u < 0 || u > 1) continue;
+        const dx = p.x - (ax + travelX * u), dz = p.z - (az + travelZ * u);
         const d = Math.hypot(dx, dz);
-        if (d > r + 0.24) continue;
-        const nl = d > 1e-4 ? d : 1;
-        const ux = dx / nl, uz = dz / nl;
+        const speed = Math.hypot(this.vx, this.vz);
+        const ux = d > 1e-4 ? dx / d : this.vx / (speed || 1);
+        const uz = d > 1e-4 ? dz / d : this.vz / (speed || 1);
         const into = this.vx * ux + this.vz * uz;     // speed straight at it
-        if (into < 3) break;                          // a nudge leaves it standing
-        world.snapPole(p, ux, uz);
-        this.hit(into * 0.55, -ux, -uz);
+        if (into < 3) continue;                       // another probe may be approaching
+        world.snapPole(p, ux, uz, into);
+        // 14.8 damage for a hard hit: six from a healthy Ranger leave it
+        // battered but running; the seventh exhausts its 100-point condition.
+        this.hit(into, -ux, -uz, .34);
         const scrub = clamp(1 - 1.9 / Math.max(2.5, Math.abs(this.vLong)), 0.60, 0.94);
         this.vx *= scrub; this.vz *= scrub;
         const lat = dx * Math.cos(this.yaw) - dz * Math.sin(this.yaw);

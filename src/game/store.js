@@ -78,6 +78,7 @@ export const DEFAULT_SETTINGS = {
   showFps: false,
   // ---- controls
   steerSens: 1,            // 0.5 .. 1.6 multiplier on the steering input
+  damageSensitivity: 1,    // 0 disables collision damage; 1 is the default
   assist: true,
   lookBackToggle: false,   // false = hold Shift, true = Shift latches the view
   invertLook: false,       // the camera looks back until you hold Shift
@@ -98,7 +99,7 @@ export const DEFAULT_SETTINGS = {
 export const LIMITS = {
   volMaster: [0, 1], volEngine: [0, 1], volEffects: [0, 1], volRadio: [0, 1],
   renderScale: [0.5, 1], drawDist: [400, 1200], fogMul: [0.5, 2],
-  fov: [-0.15, 0.2], steerSens: [0.5, 1.6],
+  fov: [-0.15, 0.2], steerSens: [0.5, 1.6], damageSensitivity: [0, 2],
 };
 const QUALITIES = ['low', 'med', 'high'];
 const DIFFICULTIES = ['easy', 'normal', 'hard'];
@@ -135,6 +136,7 @@ export function normalizeSettings(raw) {
     showFps: bool(s.showFps, D.showFps),
 
     steerSens: lim('steerSens', s.steerSens),
+    damageSensitivity: lim('damageSensitivity', s.damageSensitivity),
     assist: bool(s.assist, D.assist),
     lookBackToggle: bool(s.lookBackToggle, D.lookBackToggle),
     invertLook: bool(s.invertLook, D.invertLook),
