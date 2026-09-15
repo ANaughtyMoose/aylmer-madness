@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8"><title>Aylmer repair review</title>
-<style>body{margin:0;background:#15212a;color:#fff;font:13px system-ui}nav{height:42px;display:flex;align-items:center;gap:8px;padding:0 10px}button{padding:6px 12px}iframe{border:0;width:100%;height:calc(100vh - 42px)}#report{position:fixed;right:10px;top:48px;max-width:460px;max-height:45vh;overflow:auto;background:#101820ee;white-space:pre-wrap;pointer-events:none;padding:8px}#report:empty{display:none}</style>
+<style>body{margin:0;background:#15212a;color:#fff;font:13px system-ui}nav{height:42px;display:flex;align-items:center;gap:8px;padding:0 10px}button{padding:6px 12px}iframe{display:block;border:0;width:100%;height:calc(100vh - 42px)}#report{position:fixed;right:10px;top:48px;max-width:460px;max-height:45vh;overflow:auto;background:#101820ee;white-space:pre-wrap;pointer-events:none;padding:8px}#report:empty{display:none}</style>
 <nav><button data-go="start">New test game</button><button data-go="fraser">Fraser</button><button data-go="cemetery">Saint-Paul</button><button data-go="glenwood">Glenwood</button><button data-go="pause">Pause checks</button><button data-go="resume">Resume</button><button data-go="report">Report</button><button data-go="clear">Hide report</button></nav>
 <iframe id="game" src="../index.html" title="Running Aylmer Madness"></iframe><pre id="report"></pre>
 <script type="module">
@@ -26,7 +26,7 @@ try{
  if(btn.dataset.go==='resume'){a.pause(false);g.audio.siren(false);out.textContent='';f.focus();return;}
  if(btn.dataset.go==='report'){out.textContent=JSON.stringify({mode:g.mode,job:a.job(),position:[g.veh.x,g.veh.y,g.veh.z],world:g.world?.stats,
     audioPaused:g.audio.paused,gain:g.audio.master?.gain.value},null,2);return;}
- const p={fraser:[748,420,Math.PI],cemetery:[622,-370,3.05],glenwood:[733,357,1.5]}[btn.dataset.go];
+ const p={fraser:[932.9,143.9,Math.PI],cemetery:[622,-370,3.05],glenwood:[733,357,1.5]}[btn.dataset.go];
  if(p){a.pause(false);a.cinema.hide();const r=g.world.nearestRoad(p[0],p[1]);a.teleport(r.x,r.z,r.yaw); a.env('day');a.weather('clear');out.textContent='';f.focus();}
 }catch(e){out.textContent=e.stack;}
 };

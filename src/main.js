@@ -2806,6 +2806,7 @@ function pause(on) {
     fortier.cancelVoice();
     if (fortier.subtitle) fortier.subtitle.hidden=true;
     G.mode = 'paused';
+    if ($('reactstats')) $('reactstats').style.display = 'none';
     audio.setPaused(true);
     fillJobs();
     buildTabBar();

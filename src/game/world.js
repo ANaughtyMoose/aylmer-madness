@@ -1,5 +1,5 @@
 import { buildCemeteryFences } from './cemetery.js';
-import { makeSurface } from './surface.js';
+import { makeSurface, clipHalf } from './surface.js';
 import { FRASER, fraserFootprint, buildFraser } from './fraser.js';
 // Turns mapdata.js (real OpenStreetMap Aylmer) into geometry and collision data.
 //
@@ -824,9 +824,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     const major = MAJOR[road.cls] === 1;
     const paved = PAVED[road.cls] === 1;
     const rh = streetHash(road.name, ri);
-    // Collectors have walks on both sides. Some residential streets get a walk
-    // on one consistent side; the rest retain the soft
-    // shoulder common in older Aylmer neighbourhoods.
+    // Both sides of collectors and residential streets get concrete walks.
     const residentialWalk = road.cls === 'residential';
     const walkSides = paved || residentialWalk ? [1, -1] : [];
 
@@ -986,8 +984,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
 
     // Concrete sidewalks outside the asphalt, stopping at the kerb corners.
     // A dark gutter strip and a small height step make the road edge read as a
-    // curb instead of two coplanar ribbons. Residential streets use the stable
-    // one-/two-side policy above.
+    // curb instead of two coplanar ribbons.
     if (walkSides.length) {
       for (let i = 0; i < n - 1; i++) {
         const s0 = cut[i] > 0 ? cut[i] + 1.4 : 0;
@@ -1617,6 +1614,44 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     }
     bd.tri(v0, v0 + 1, v0 + 2);
     terrainStats.tris++;
+    // Paint crossing streets on the actual feature triangle. Independent
+    // crossing decks cut through the rail berm between sample points.
+    const triangle=[[ax,az],[bx,bz],[cx2,cz2]], seen=new Set();
+    const minX=Math.min(ax,bx,cx2),maxX=Math.max(ax,bx,cx2);
+    const minZ=Math.min(az,bz,cz2),maxZ=Math.max(az,bz,cz2);
+    const denom=(bz-cz2)*(ax-cx2)+(cx2-bx)*(az-cz2);
+    if(Math.abs(denom)<1e-9)return;
+    const height=(x,z)=>{
+      const u=((bz-cz2)*(x-cx2)+(cx2-bx)*(z-cz2))/denom;
+      const v=((cz2-az)*(x-cx2)+(ax-cx2)*(z-cz2))/denom;
+      return u*ay+v*by+(1-u-v)*cy;
+    };
+    function overlay(a,b,c,d,col,offset,roadId,walk=false) {
+      let p=triangle;
+      for(const distance of [a,b,c,d])p=clipHalf(p,distance);
+      if(p.length<3)return;
+      if(walk && p.some(q=>pavedAt(q[0],q[1],roadId,0.15)))return;
+      const ids=p.map(q=>bd.vert(q[0],height(q[0],q[1])+offset,q[1],nx,ny,nz,col));
+      let area=0;for(let k=0;k<p.length;k++){const q=p[(k+1)%p.length];area+=p[k][0]*q[1]-p[k][1]*q[0];}
+      terrainStats.decks++;
+      for(let k=1;k+1<ids.length;k++) {
+        if(area<0)bd.tri(ids[0],ids[k],ids[k+1]);else bd.tri(ids[0],ids[k+1],ids[k]);
+      }
+    }
+    for(let ix=Math.floor(minX/ROAD_CELL)-1;ix<=Math.floor(maxX/ROAD_CELL)+1;ix++)
+      for(let iz=Math.floor(minZ/ROAD_CELL)-1;iz<=Math.floor(maxZ/ROAD_CELL)+1;iz++)
+        for(const id of roadGrid.get(gkey(ix,iz))||[]) {
+          if(seen.has(id))continue;seen.add(id);
+          const o=id*7,x=roadSegArr[o],z=roadSegArr[o+1],dx=roadSegArr[o+2]-x,dz=roadSegArr[o+3]-z;
+          const len=Math.hypot(dx,dz);if(len<0.01)continue;
+          const hw=roadSegArr[o+5],ri=roadSegArr[o+6],road=roads[ri];
+          const along=p=>((p[0]-x)*dx+(p[1]-z)*dz)/len;
+          const across=p=>((p[0]-x)*dz-(p[1]-z)*dx)/len;
+          const end=p=>len-along(p);
+          overlay(along,end,p=>across(p)+hw,p=>hw-across(p),roadCols[road.cls]||roadCols.residential,0.055,ri);
+          if(PAVED[road.cls]===1||road.cls==='residential')for(const side of [-1,1])
+            overlay(along,end,p=>side*across(p)-hw,p=>hw+2.2-side*across(p),walkCol,0.125,ri,true);
+        }
   }
   // A feature's surface patch. The emitters below choose their own resolution
   // from the shape they are drawing — a pad's deck is one region however long
@@ -1827,56 +1862,6 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     else if (f.type === 'mound') emitMound(f);
     else if (f.type === 'ridge') emitRidge(f, f.H === 0 ? 22 : 35);
     else emitProf(f);
-  }
-
-  // Level crossings. Where a street runs over the rail berm the road does not
-  // stop at the toe of the fill — it climbs it. One asphalt deck per crossing,
-  // laid on the berm surface and following the road's own bearing.
-  {
-    const rail = terrain.features.find((f) => f.id === 'rail');
-    if (rail) {
-      const half = rail.hw + rail.run;
-      const asph = tCol('asphalt', 1.04);
-      for (const road of roads) {
-        for (let i = 0; i + 1 < road.pts.length; i++) {
-          const [ax, az] = road.pts[i], [bx, bz] = road.pts[i + 1];
-          for (let j = 0; j + 3 < rail.pts.length; j += 2) {
-            const cx2 = rail.pts[j], cz2 = rail.pts[j + 1];
-            const dx2 = rail.pts[j + 2], dz2 = rail.pts[j + 3];
-            const den = (bx - ax) * (dz2 - cz2) - (bz - az) * (dx2 - cx2);
-            if (Math.abs(den) < 1e-9) continue;
-            const t = ((cx2 - ax) * (dz2 - cz2) - (cz2 - az) * (dx2 - cx2)) / den;
-            const u = ((cx2 - ax) * (bz - az) - (cz2 - az) * (bx - ax)) / den;
-            if (t < 0 || t > 1 || u < 0 || u > 1) continue;
-            const hx = ax + (bx - ax) * t, hz = az + (bz - az) * t;
-            let rx2 = bx - ax, rz2 = bz - az;
-            const rl = Math.hypot(rx2, rz2) || 1;
-            rx2 /= rl; rz2 /= rl;
-            // How far the deck has to reach to cross the whole fill. A street
-            // that only grazes the berm gets nothing: a 90 m ribbon of asphalt
-            // laid down the flank would read as a plaza, not a crossing.
-            const cross = Math.abs(rx2 * (dz2 - cz2) - rz2 * (dx2 - cx2)) / Math.hypot(dx2 - cx2, dz2 - cz2);
-            if (cross < 0.4) continue;
-            const reach = Math.min(26, half / cross + 3);
-            const wHalf = (road.w || 8) / 2;
-            const px = -rz2 * wHalf, pz = rx2 * wHalf;
-            const N = 7;
-            for (let k = 0; k < N; k++) {
-              const s0 = -reach + (2 * reach) * (k / N), s1 = -reach + (2 * reach) * ((k + 1) / N);
-              const q = (sx2, sz2, side) => {
-                const x = hx + rx2 * sx2 + px * side, z = hz + rz2 * sz2 + pz * side;
-                return [x, groundAt(x, z).h + 0.05, z];
-              };
-              const a = q(s0, s0, -1), b = q(s1, s1, -1), d = q(s1, s1, 1), e = q(s0, s0, 1);
-              const bd = bAt(hx, hz);
-              bd.quad(a, b, d, e, asph, [0, 1, 0]);
-              terrainStats.tris += 2;
-            }
-            terrainStats.decks++;
-          }
-        }
-      }
-    }
   }
 
   // The Galeries service fence. It is 1.6 m of chain link with a collider, and

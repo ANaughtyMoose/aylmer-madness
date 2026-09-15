@@ -69,14 +69,10 @@ export function historicSites({rectRing,walls,lot,lightStandard}) {
   add('edeycorner',570,-303,[],K=>{
     // Cemetery lies west of Edey; the golf grounds are east. The existing
     // map area supplies the grass, so no new surface overlaps either road.
+    // Road-aligned perimeter and its colliders are built by world.js.
     for(const x of [518,531]){
       box(K,x,1.5,-232,1.1,3,1.2,0xbabdb6);
       if(K.seg)for(const dz of [-.6,.6])K.seg(x-.55,-232+dz,x+.55,-232+dz);
-    }
-    for(const [a,b] of [[475,518],[531,619]]){
-      for(let x=a;x<b;x+=5)box(K,x,.65,-232,.07,1.3,.07,0x7e8580);
-      box(K,(a+b)/2,1.15,-232,b-a,.05,.05,0x909a90);
-      if(K.seg)K.seg(a,-232,b,-232);
     }
     for(let row=0;row<8;row++)for(let col=0;col<8;col++){
       const x=481+col*15+(row%2)*2,z=-260-row*26;

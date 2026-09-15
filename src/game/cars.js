@@ -1994,6 +1994,7 @@ export class Vehicle {
     // car, or wherever the ballistic arc has got to. `susp` is the body on top
     // of that, which is what the renderer should draw (see `bodyY`).
     this.y = y; this.vy = 0;
+    this.spareLift = 0; this.spareVelocity = 0; this.spareLastVy = 0;
     this.gh = y;                         // ground height under the car right now
     this.air = false;                    // integrating ballistically
     this.inAir = false;                  // ...and far enough up to have lost the tyres

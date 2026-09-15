@@ -4,7 +4,7 @@ import {rgb} from '../core/mesh.js';
 // straight run, rather than independently nudging posts into a crooked fence.
 export function buildCemeteryFences(areas,{clear,baseAt,bAt,addSegment,inside}) {
   const result=[],color=rgb(0x495550);
-  for(const area of areas.filter(a=>a.k==='cemetery')) {
+  for(const area of areas.filter(a=>a.k==='cemetery' && a.name==='Cimetière Saint-Paul')) {
     const p=area.p;
     let cx=0,cz=0;for(const v of p){cx+=v[0];cz+=v[1];}cx/=p.length;cz/=p.length;
     if(inside && !inside(cx,cz))continue;
@@ -17,8 +17,7 @@ export function buildCemeteryFences(areas,{clear,baseAt,bAt,addSegment,inside}) 
       const n=Math.ceil(L/2);
       let inset=0.8;
       for(;inset<18;inset+=0.4) {
-        let free=true;
-        for(let k=0;k<=n;k++)if(!clear(a[0]+dx*L*k/n+nx*inset,a[1]+dz*L*k/n+nz*inset)){free=false;break;}
+        const free=clear((a[0]+b[0])/2+nx*inset,(a[1]+b[1])/2+nz*inset);
         if(free)break;
       }
       if(inset>=18)continue;
@@ -26,6 +25,9 @@ export function buildCemeteryFences(areas,{clear,baseAt,bAt,addSegment,inside}) 
         if(L>35 && Math.abs((k+0.5)/n-0.5)*L<3)continue; // pedestrian entrance
         const x=a[0]+dx*L*k/n+nx*inset,z=a[1]+dz*L*k/n+nz*inset;
         const xx=a[0]+dx*L*(k+1)/n+nx*inset,zz=a[1]+dz*L*(k+1)/n+nz*inset;
+        let blocked=false;
+        for(let t=0;t<=1;t+=0.1)if(!clear(x+(xx-x)*t,z+(zz-z)*t,2.65)){blocked=true;break;}
+        if(blocked)continue;
         const h=baseAt(x,z).h,hh=baseAt(xx,zz).h,bd=bAt(x,z);
         bd.box(x,h+0.57,z,0.075,1.14,0.075,color,{noBottom:true});
         for(const dy of [0.35,0.92]) {
