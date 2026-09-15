@@ -62,10 +62,11 @@ group('« L’alternateur » is a real job');
   }
 }
 
-group('it introduces the Canadian Tire, which is the paid garage');
+group('Canadian Tire supplies parts; paid repairs happen at the historic garage');
 {
-  ok(REPAIR_SPOTS.some((s) => s.place === 'ctire' && !s.free),
-    'damage.js charges you there, so the first job has shown you where money goes');
+  ok(REPAIR_SPOTS.some((s) => s.place === 'norm' && !s.free)
+    && !REPAIR_SPOTS.some((s) => s.place === 'ctire'),
+    'Garage Caumartin handles repairs while Canadian Tire remains the parts destination');
   ok(/Canadian Tire/.test(PLACES.ctire.label) && /Aylmer/.test(PLACES.ctire.label),
     `and it is on the ${PLACES.ctire.label}`);
 }

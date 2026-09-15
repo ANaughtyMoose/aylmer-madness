@@ -4,6 +4,12 @@ import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { clamp, segCross } from '../core/math.js';
 import { CONTACT } from '../core/audio.js';
 import { SURF, FLAT } from './terrain.js';
+// Pure arithmetic, no imports of its own: the FEEL block needs an rpm to read
+// its torque curve at, and a gear to hang `shiftCut` off. This is a SECOND box
+// from the one cockpit.js runs for the engine note — that one exists to make a
+// noise and is free to lag a frame; this one is in the physics and only ever
+// built for a vehicle that declares a `feel` block.
+import { Gearbox } from './gearbox.js';
 
 const TIRE = 0x17181a, GLASS = 0x26313b, CHROME = 0xd4d6d8;
 const LAMP = 0xfff3c4, TAIL = 0xc0332a, AMBER = 0xf0a030, PLATE = 0xe8e6dc, TRIM = 0x2e3033;
@@ -52,7 +58,7 @@ export const CARS = [
   },
   {
     id: 'saturn', name: '1997 Saturn SL 4-door', who: "Margaret's",
-    body: 0x2f5fa8, seats: 3, style: 'sedan',
+    body: 0x27384f, seats: 3, style: 'sedan',
     flavour: 'Polymer door panels, so the parking-lot dings pop back out. Gutless, but it never quits.',
     len: 4.49, wid: 1.70, h: 1.39, wheelbase: 2.60, overhangF: 0.95, track: 1.64, wheelR: 0.30,
     topSpeed: 47.78, accel: 4.2, brake: 9.0, grip: 0.90, steerMax: 0.57, mass: 1130, aero: 0.000350,
@@ -68,9 +74,9 @@ export const CARS = [
     cladding: { rocker: 0.10, bumper: 0.42, tRear: 0.03, tFront: 0.962, color: 0x50545a },
   },
   {
-    id: 'civic', name: '1988 Honda Civic Si', who: "Sayyad's",
+    id: 'civic', name: '1987 Honda Civic Si', who: "Sayyad's",
     body: 0xa8322b, seats: 3, style: 'hatch',
-    flavour: 'Two thousand pounds of nothing, a 1.6 that begs for 7000, and a hatch you could sleep in.',
+    flavour: 'Two thousand pounds of nothing, a 1.5 that begs for 6500, and a hatch you could sleep in.',
     len: 3.99, wid: 1.67, h: 1.33, wheelbase: 2.50, overhangF: 0.83, track: 1.61, wheelR: 0.29,
     topSpeed: 49.44, accel: 5.3, brake: 9.6, grip: 1.04, steerMax: 0.63, mass: 940, aero: 0.000402,
     seatY: 0.98, seatZ: 0.0, seatX: 0.38, clearance: 0.20,
@@ -252,6 +258,56 @@ export const CARS = [
     glassTop: [[0.955, 0.985, 1.90]], glassSide: [0.055, 0.94],
     cladding: { rocker: 0.30, bumper: 0.42, tRear: 0.012, tFront: 0.988, color: 0x2b6ea8 },
   },
+  {
+    // The W115. Roger Bouchard bought it new in Hull, drove it to Florida
+    // eleven summers running, and parked it in 1998 when his licence went.
+    // Ti-Guy has it on the gravel on consignment and the Kijiji ad is still
+    // Roger's own (game/kijiji.js).
+    //
+    // Everything about this car is the same joke told twice: it is the slowest
+    // thing in Aylmer with four doors and the only one with chrome on every
+    // edge of it. 4680 × 1770 × 1440 mm, 2750 mm wheelbase, 175R14 — within a
+    // few centimetres of the Cutlass Ciera above, so the profiles are authored
+    // against the same station layout and then stood upright: a taller roof, a
+    // longer flatter boot, a lower beltline, thinner pillars. There is no
+    // cladding anywhere (`rocker: 0`) because there was no plastic on a 1976
+    // Mercedes; every bright edge on it is a box in addDetails.
+    //
+    // `wear` is twenty-eight years, six of them outside: the boot lid, the
+    // doors and the front wings have each faded a different amount, and there
+    // is road film most of the way up the flanks. `smokes` is the tailpipe
+    // (game/reactive.js) and `restorable` is what makes it the one car in the
+    // Outaouais Grigori Volkov will take on (game/upgrades.js).
+    id: 'benz', name: '1976 Mercedes-Benz 240D', who: 'Le lot', lot: true,
+    body: 0xb9bd8e, seats: 4, style: 'sedan',
+    restorable: true, smokes: 1,
+    wear: { dirt: 0x8d906f, rise: 0.46, arch: 0.50, film: 0.40,
+            panels: [[0, 0.938], [0.268, 0.938], [0.282, 0.986], [0.695, 0.986], [0.709, 0.922], [1, 0.922]] },
+    flavour: 'Diesel 2,4 L, 65 chevaux, quatre vitesses automatiques. Zéro à cent en vingt-cinq secondes, pis c’est si la côte descend. Du chrome su’ chaque coin, de la cuirette su’ la banquette, pis un nuage de boucane noire à chaque fois que tu pèses dessus. Le char le plus lent en ville — pis le plus classe.',
+    len: 4.68, wid: 1.77, h: 1.44, wheelbase: 2.75, overhangF: 0.86, wheelR: 0.33,
+    topSpeed: 36.4, accel: 2.0, brake: 7.2, grip: 0.78, steerMax: 0.46, mass: 1450, aero: 0.000380,
+    seatY: 1.10, seatZ: 0.05, seatX: 0.42, clearance: 0.22,
+    // Upright three-box: a long flat boot lid, a steep backlight, a flat roof
+    // that is the highest thing on the car, an equally steep windshield, and a
+    // long flat hood that falls away to the chrome bumper.
+    top: [[0, 1.06], [0.02, 1.12], [0.05, 1.145], [0.24, 1.15], [0.275, 1.18], [0.315, 1.34],
+          [0.355, 1.43], [0.40, 1.44], [0.62, 1.44], [0.655, 1.435], [0.685, 1.33],
+          [0.735, 1.18], [0.765, 1.12], [0.80, 1.115], [0.93, 1.11], [0.965, 1.05],
+          [0.985, 0.92], [1, 0.66]],
+    // Deliberately ABOVE `top` over the boot lid and the hood: specRing clamps
+    // belt to top, the glass faces collapse, and the deck and the bonnet come
+    // out full width instead of tumbling inwards the way the Ciera's do.
+    belt: [[0, 1.10], [0.03, 1.16], [0.26, 1.16], [0.30, 1.06], [0.685, 1.06],
+           [0.73, 1.12], [0.78, 1.16], [1, 1.16]],
+    plan: [[0, 0.79], [0.03, 0.86], [0.09, 0.885], [0.88, 0.885], [0.945, 0.865], [0.978, 0.825], [1, 0.76]],
+    // 0.88: a W115's pillars are pencils and the roof is nearly as wide as the
+    // body. Nothing else in the game is this square in plan up at the glass.
+    roofK: 0.88, tuck: 0.03,
+    glassTop: [[0.28, 0.36], [0.655, 0.74]], glassSide: [0.31, 0.68],
+    // `color` is half a shade off the body so the valance under the chrome
+    // bumpers reads as painted steel, which is what it is.
+    cladding: { rocker: 0, bumper: 0.30, tRear: 0.028, tFront: 0.970, color: 0xa9ad80 },
+  },
 
   // ------------------------------------------------------------- the cart
   // Club de Golf Gatineau's fleet cart, parked on the apron in front of the
@@ -308,6 +364,12 @@ const HANDBRAKE = {
   cutlass: { hbGrip: 0.55, hbYaw: 1.20 },
   cavalier:{ hbGrip: 0.34, hbYaw: 1.58 },
   caravan: { hbGrip: 0.66, hbYaw: 1.08 },
+  // A tonne and a half on tall soft springs and 175-section tyres, with the
+  // weight spread further front-to-back than anything else here. The lever
+  // locks a rear axle that is barely loaded, so it lets go early — but the
+  // car is so long and so slow to answer that what you get is a lean, a
+  // drift and then a shrug, not a pivot.
+  benz:    { hbGrip: 0.68, hbYaw: 1.16 },
   bus:     { hbGrip: 0.88, hbYaw: 0.92 },
   // Four tiny turf tyres and no weight on them: the lever locks the back and it
   // just slides, but there is nothing there to swing.
@@ -328,6 +390,10 @@ const REVERSE = {
   cutlass: { revTop: 6.94, revEngage: 0.24 },
   cavalier:{ revTop: 6.94, revEngage: 0.21 },
   caravan: { revTop: 6.94, revEngage: 0.28 },
+  // A four-speed Mercedes automatic with a fluid coupling and no lock-up: you
+  // move the lever, you count to one, and THEN it takes. Slower into gear than
+  // anything except the bus's crash box.
+  benz:    { revTop: 6.94, revEngage: 0.29 },
   bus:     { revTop: 4.17, revEngage: 0.30 },
 };
 // C5 — the procedural engine, per car. These are the parameters core/audio.js's
@@ -379,8 +445,10 @@ const SOUND = {
              hissG: 0.18, raspG: 0.24, raspFrom: 4000, rasp: 0.55, raspK: 3.0,
              boomF: 165, boomQ: 7.0, boomDb: 10, tickF: 3800, tickG: 0.030,
              lumpy: 0.010, pop: 0.9, gain: 1.00, rattle: 0, rattleFrom: 0 },
-  // D16 1.6. Little exhaust, huge buzzy induction, spins to 7200.
-  civic:   { cyl: 4, idle: 850, redline: 7200, limiter: 7300,
+  // D15A2 1.5, twelve valves. Little exhaust, huge buzzy induction, and the
+  // third-gen Si stops at 6500 — it is a 91 hp 1.5, not the 1.6 the game used
+  // to claim, and the note has to run out where the tachometer does.
+  civic:   { cyl: 4, idle: 850, redline: 6500, limiter: 6500,
              decay: 9.0, uneven: 0.10, tilt: 0.55, harm: 176,
              exhQ: 1.00, exhG: 0.85, intF0: 1100, intSpan: 3200, intQ: 1.4, intG: 0.90,
              hissG: 0.26, raspG: 0.16, raspFrom: 5200, rasp: 0.35, raspK: 2.4,
@@ -442,6 +510,24 @@ const SOUND = {
              hissG: 0.12, raspG: 0.12, raspFrom: 4200, rasp: 0.28, raspK: 2.2,
              boomF: 120, boomQ: 5.0, boomDb: 9, tickF: 3100, tickG: 0.020,
              lumpy: 0.010, pop: 0.7, gain: 1.02, rattle: 0, rattleFrom: 0 },
+  // OM616: a 2.4 L indirect-injection diesel four with no turbo, no balance
+  // shafts and a prechamber that lights the charge in one hard slap. Everything
+  // in this row is the clatter. `tickG` at 0.075 is the loudest valvetrain in
+  // the table and it is not the valvetrain — it is injectors and pins, and it
+  // is what you actually hear standing beside one. `decay` 3.8 makes each pulse
+  // fat rather than sharp, `uneven` 0.26 is the lumpiness that never smooths
+  // out at any speed, and `tilt` 0.14 keeps the harmonics rolled off so it is
+  // dull and hard instead of brassy: a diesel never sings. It fires at rpm/30
+  // and stops at 4500, so wide open in third is 75 Hz, which you can count.
+  // `rattle: 0` — there is nothing loose in a Mercedes, only tired.
+  benz:    { cyl: 4, idle: 780, redline: 4500, limiter: 4600,
+             decay: 3.8, uneven: 0.26, tilt: 0.14, harm: 232,
+             exhQ: 0.74, exhG: 1.16, intF0: 460, intSpan: 900, intQ: 0.85, intG: 0.40,
+             hissG: 0.26, raspG: 0.30, raspFrom: 2400, rasp: 0.55, raspK: 3.2,
+             boomF: 104, boomQ: 4.4, boomDb: 10, tickF: 2700, tickG: 0.075,
+             lumpy: 0.026, pop: 0.35, gain: 1.10, rattle: 0, rattleFrom: 0,
+             toneLo: 560, toneHi: 3800, labour: 5.5, burble: 0.05,
+             whineK: 3.0, whineG: 0.018, gearThunk: 0.045 },
   // Diesel straight-six: slow, enormous pulses at rpm/20, and it clatters.
   bus:     { cyl: 6, idle: 620, redline: 2400, limiter: 2450,
              decay: 4.0, uneven: 0.28, tilt: 0.15, harm: 240,
@@ -476,9 +562,12 @@ const DRIVE = {
   saturn:  { gears: [3.25, 1.96, 1.30, 0.94, 0.72], reverse: 3.14, final: 3.55, tyre: 0.601,
              idle: 800, redline: 6300, limiter: 6400,
              shiftUp: 5800, shiftUpLight: 2800, shiftDown: 1800, launch: 2300, shiftTime: 0.22 },
+  // The real AH five-speed behind the 1.5, 4.25 axle, 175/70R13. Ratios are
+  // off the sheet already; the rev limits are the 1987 car's, not the 1988
+  // 1.6's the table used to describe.
   civic:   { gears: [3.25, 1.89, 1.25, 0.90, 0.71], reverse: 3.15, final: 4.25, tyre: 0.577,
-             idle: 850, redline: 7200, limiter: 7300,
-             shiftUp: 6800, shiftUpLight: 3600, shiftDown: 2100, launch: 2800, shiftTime: 0.18 },
+             idle: 850, redline: 6500, limiter: 6500,
+             shiftUp: 6200, shiftUpLight: 3600, shiftDown: 2100, launch: 2800, shiftTime: 0.18 },
   sunfire: { gears: [3.50, 2.05, 1.38, 1.03, 0.72], reverse: 3.42, final: 3.63, tyre: 0.629,
              idle: 720, redline: 5800, limiter: 5900,
              shiftUp: 5200, shiftUpLight: 2900, shiftDown: 1700, launch: 2200, shiftTime: 0.24 },
@@ -501,6 +590,16 @@ const DRIVE = {
   caravan: { gears: [2.69, 1.55, 1.00], reverse: 2.10, final: 3.19, tyre: 0.640,
              idle: 730, redline: 5200, limiter: 5300,
              shiftUp: 4600, shiftUpLight: 2500, shiftDown: 1350, launch: 1900, shiftTime: 0.42 },
+  // The W4A 020 four-speed, 3.69 axle, 175R14 (0.653 m rolling). North American
+  // 240Ds were almost all automatics and this one is no exception. It starts in
+  // first, shifts at 4100 because there is nothing above that worth having, and
+  // takes half a second over every one of them — which is `shiftTime` for the
+  // engine note and `shiftCut` in the FEEL table for the shove in your back
+  // going away. 131 km/h in fourth is 3930 rpm, so it is flat out AND at the
+  // top of the band at the same moment, which is exactly the car.
+  benz:    { gears: [3.98, 2.39, 1.46, 1.00], reverse: 5.47, final: 3.69, tyre: 0.653,
+             idle: 780, redline: 4500, limiter: 4600,
+             shiftUp: 4100, shiftUpLight: 2200, shiftDown: 1250, launch: 1600, shiftTime: 0.50 },
   bus:     { gears: [3.45, 2.24, 1.41, 1.00], reverse: 5.00, final: 5.29, tyre: 1.050,
              idle: 620, redline: 2400, limiter: 2450,
              shiftUp: 2200, shiftUpLight: 1600, shiftDown: 900, launch: 1200, shiftTime: 0.55 },
@@ -511,6 +610,330 @@ const DRIVE = {
              idle: 0, redline: 4200, limiter: 4400,
              shiftUp: 99999, shiftUpLight: 99999, shiftDown: 0, launch: 0, shiftTime: 0.05 },
 };
+
+// FEEL — how a car drives, as opposed to how fast it is.
+//
+// Everything above this line is a number a brochure would print. Until now the
+// driving model read only those, so the Civic was the Ranger with bigger ones:
+// one yaw equation, one lateral catch-up rate, one steering rack, one thrust
+// scalar for every vehicle in town. Nothing asked you to drive them
+// differently. This table is the other half — the levers a driver feels in the
+// seat rather than reads off a spec sheet.
+//
+// THE RULE THAT MAKES IT SAFE. Every term below is optional, and a vehicle with
+// no entry here takes a numerically identical path through Vehicle.update to
+// the one it took before any of this existed — not "close", identical, which is
+// why the blocks are guarded with `if (feel)` rather than written as `x * 1`.
+// The Ranger declares nothing on purpose: it is the reference car, the one
+// whose handling was signed off, and tools/smoke_feel.mjs pins its 5 s run to
+// the last digit of the table in smoke_terrain.mjs. If that ever moves, the
+// feel work has leaked; put it back behind the guard.
+//
+// The terms, and what each one does to the driver:
+//
+//   layout      'fwd' / 'rwd' / 'awd'. A tag. It picks nothing on its own — it
+//               is the word on the garage card and the shorthand for why the
+//               two terms below are signed the way they are. Default: absent.
+//   powerYaw    What the throttle does to the nose mid-corner. RWD is positive:
+//               open it and the tail comes round, lift and it catches. FWD is
+//               negative: open it and it washes wide. It scales the geometric
+//               yaw rate by 1 + powerYaw · throttle · |steer| · speedFrac, and
+//               takes a little lateral bite with it whichever way it is signed,
+//               because power through a corner is grip you are not cornering
+//               with. Default 0 — no throttle/yaw coupling at all.
+//   liftTuck    The FWD answer to the above: shut the throttle mid-corner and
+//               the nose tucks in for a beat. A pulse on the release, decaying
+//               over about a quarter second, scaling the same yaw rate.
+//               Default 0.
+//   torqueSteer Rad/s of yaw the engine puts into the wheel whether you asked
+//               for it or not: a front-driver with unequal half-shafts pulls
+//               one way under hard throttle and you hold it straight yourself.
+//               Signed — positive pulls the nose left — and it needs no steer
+//               input, which is exactly what makes it different from
+//               `powerYaw`. Full at rest, gone by TSTEER_V. Default exact 0.
+//   wheelspin   The traction cap, in g. Ask for more thrust than
+//               wheelspin · grip · 9.81 from low speed and the tyres break
+//               loose: you get LESS drive than the cap, not more, and less
+//               lateral bite with it, fading out by WSPIN_V. Feather it.
+//               Default absent — the tyres take whatever the engine has.
+//   torque      [[rpmFrac, mult], ...] — the shape of the engine, read at the
+//               rpm the car's own `drive` ratios put it at (a gearbox of its
+//               own, below, separate from the audio one). Clamped at 1, so the
+//               curve can only ever take thrust away: it MUST be 1.0 through
+//               the top of the band or the terminal speed moves and the SPEED
+//               section of smoke_driving.mjs is right to fail. Default: flat 1.
+//   shiftCut    Seconds of nothing between gears, on up-shifts only. Default 0.
+//   steerRate   How fast the wheel itself moves, per second. 12 is the old
+//               global; the Civic is 18 and the Sienna 8. Default 12.
+//   rackSpeed   How fast the rack tightens up with speed: the lock is
+//               0.42 + 0.58/(1 + v/rackSpeed), so a small number is a rack that
+//               has gone heavy by 30 km/h. Default 14.
+//   bite        The tyre sidewall: the rate the travel direction catches the
+//               nose up, per unit grip. 9.5 is the old global. Default 9.5.
+//   wallow      Tall soft things lean before they turn: bite is scaled by
+//               1 − wallow · |roll| / 0.13, off the cosmetic roll that already
+//               exists. Default 0.
+//   abs         `false` for a car old enough to lock a wheel: past NOABS_FROM
+//               on the brake pedal the steering goes light. Default true.
+//   counterSteer  How hard the assist catches a slide. 0.045 is the old global;
+//               a car that expects you to do it yourself gets less.
+//
+// WHO IS NOT IN HERE, AND WHY. The Ranger, the two bicycles and the golf cart
+// declare nothing, by design: the Ranger because it is the reference car and
+// the bikes and the cart because a `feel` block describes an engine, a rack and
+// a pair of driven tyres and they have at most one of the three. Two vehicles
+// that DO have blocks keep them in their own files rather than here — the
+// school bus in game/buses.js, next to the drive ratios and the diesel it
+// already declares inline, and the police Crown Victoria in game/cops.js,
+// which is not in CARS at all and whose id (`cruiser`) is already taken in this
+// table's key space by the Schwinn in game/bikes.js. A row called `cruiser`
+// here would land on the bicycle, which is precisely what must not happen.
+const FEEL = {
+  // 1987 Si: 940 kg, a 1.5 that does nothing until the cam wakes up, and a rack
+  // quicker than anything else in town. It is the car this whole table is for:
+  // keep it above 4000, use the lift to turn it, and do your own counter-steer,
+  // because there is no ABS and not much assist.
+  civic: {
+    layout: 'fwd', powerYaw: -0.55, liftTuck: 0.45, wheelspin: 0.42,
+    torque: [[0, 0.62], [0.34, 0.70], [0.50, 0.86], [0.64, 1], [1, 1]],
+    // `bite` wanted to be 11 — a 175-section tyre on a 13" rim is the stiffest
+    // sidewall in the table. At 11 it was stiff enough to CATCH the car in a
+    // handbrake turn: the nose came round further than anything else and the
+    // slip angle closed behind it, and smoke_driving's D2 ordering (ranger <
+    // saturn < civic) went the wrong way round. 10.2 keeps it the stiffest
+    // thing here and leaves the lever doing what D2 says it does.
+    shiftCut: 0.06, steerRate: 18, rackSpeed: 18, bite: 10.2, wallow: 0.06,
+    abs: false, counterSteer: 0.022,
+  },
+  // 5.7 TPI, 1580 kg, and the rear tyres of 1988. It shoves from idle with a
+  // lump in the middle where the TPI runs out of plenum, it will not put any of
+  // that down from a standstill, and the recirculating-ball box is half a turn
+  // behind your hands. Open it mid-corner and the back comes round.
+  //   `wheelspin` is 0.42 and not the 0.33 it shipped at. The cap and WSPIN_V
+  // are one number between them, and the pair has to satisfy two things at
+  // once: the floor must still be slower off the line than a feathered
+  // launch, and the car must still be a Trans Am. With the cap at 0.33 the
+  // tyres were pulling 1.4 m/s² of the engine's 4.8 away from a standstill and
+  // the GTA did 0-100 in 11.90 s — slower than a Caravan. 0.42 puts the cap at
+  // 3.71 m/s² against 4.83 asked for, which is 2.81 on the floor and 3.38 at
+  // seven tenths, so feathering still wins and 0-100 is 8.23 s.
+  firebird: {
+    layout: 'rwd', powerYaw: 0.95, wheelspin: 0.42,
+    torque: [[0, 0.86], [0.18, 0.98], [0.38, 0.92], [0.55, 1], [1, 1]],
+    shiftCut: 0.16, steerRate: 9, rackSpeed: 9, bite: 8.4, wallow: 0.18,
+    counterSteer: 0.016,
+  },
+  // Two tonnes of van on soft springs. The wheel is slow, the body leans first
+  // and turns second, and the V6 is the same everywhere above 2500. Nothing
+  // quick happens in a Sienna — the handbrake table already said so; this is
+  // what it feels like with the lever down.
+  sienna: {
+    layout: 'fwd', powerYaw: -0.30, liftTuck: 0.10,
+    torque: [[0, 0.78], [0.25, 0.92], [0.45, 1], [1, 1]],
+    shiftCut: 0.10, steerRate: 8, rackSpeed: 8, bite: 6.8, wallow: 0.55,
+    counterSteer: 0.06,
+  },
+  // 1450 kg, 65 hp, a rear axle and a recirculating-ball box. Everything here
+  // is slow ON PURPOSE, and none of it is the same slowness as the Sienna's:
+  // the van is soft and numb, the 240D is soft and deliberate.
+  //
+  //   steerRate 8 / rackSpeed 8  the wheel is four turns lock to lock and the
+  //     rack has gone heavy by 30 km/h. You aim this car a corner early.
+  //   bite 7.5                   a 175-section tyre on a 14" rim with a tall
+  //     sidewall: it takes its time agreeing to the nose, and then it holds.
+  //   wallow 0.35                it leans, and only then does it turn. Half
+  //     the Sienna's, because a sedan on torsion bars is not a minivan.
+  //   torque                     a naturally aspirated IDI diesel: nothing at
+  //     all under 800 rpm, everything it is ever going to have by 1600, and
+  //     a flat shelf from there to the limiter. It MUST reach 1 inside the
+  //     band or the terminal speed moves — see the note over FEEL — and for
+  //     this engine that is not a compromise, it is the truth about it.
+  //   shiftCut 0.35              the fluid coupling and a band that takes half
+  //     a second to come on. You can count all three up-shifts.
+  //   powerYaw 0.15              rear-wheel drive, and the smallest number in
+  //     the table: 65 hp cannot push the tail anywhere. It exists so the layout
+  //     is honest, not so you can hang the back out. No `wheelspin` for the
+  //     same reason — there is no torque here to break a tyre loose with.
+  //   abs: false                 1976. Stand on the pedal and the fronts lock.
+  benz: {
+    layout: 'rwd', powerYaw: 0.15,
+    torque: [[0, 0.70], [0.16, 0.90], [0.34, 1], [1, 1]],
+    shiftCut: 0.35, steerRate: 8, rackSpeed: 8, bite: 7.5, wallow: 0.35,
+    abs: false, counterSteer: 0.050,
+  },
+
+  // ---- the ordinary front-drivers -------------------------------------
+  // Three nineties econoboxes and a Z24. None of them is a bad car and none of
+  // them is an interesting one: the nose washes wide when you ask for both
+  // grip and drive out of the same axle, the body takes a beat to settle, and
+  // that is the whole story. They are here so the Civic has something to be
+  // sharper THAN.
+
+  // Margaret's SL: a 1.9 that pulls from anywhere, a rack with no weight in it,
+  // and enough roll to tell you when you have asked for too much.
+  saturn: {
+    layout: 'fwd', powerYaw: -0.22, liftTuck: 0.12,
+    torque: [[0, 0.72], [0.30, 0.86], [0.55, 1], [1, 1]],
+    // The same argument the Civic's `bite` note makes, from the other end.
+    // « Soft-to-medium » wanted bite 9.0 and wallow 0.14, and that combination
+    // is 7.74 of effective sidewall against the Civic's 9.59: under the lever
+    // the Saturn then slipped 1.98 to the Civic's 1.81 and smoke_driving's D2
+    // ordering (ranger < saturn < civic) came out the wrong way round. The
+    // softness is in the wallow and the rack, where you feel it in an ordinary
+    // corner; 9.8 keeps the SL on the right side of the lever at 1.74.
+    shiftCut: 0.05, steerRate: 12, rackSpeed: 13, bite: 9.8, wallow: 0.10,
+    counterSteer: 0.045,
+  },
+  // The Tempo is the numb one: a slow rack, a three-speed that takes its time,
+  // an HSC four with nothing at the top, and no ABS. Point it early.
+  tempo: {
+    layout: 'fwd', powerYaw: -0.28, liftTuck: 0.10,
+    torque: [[0, 0.74], [0.28, 0.90], [0.50, 1], [1, 1]],
+    shiftCut: 0.14, steerRate: 10, rackSpeed: 11, bite: 8.2, wallow: 0.30,
+    abs: false, counterSteer: 0.055,
+  },
+  // Adam's Sunfire: quick in a straight line, lazy in the bends — the 2.2 OHV
+  // is flat by 3000 and the front end gives up before the rear ever does.
+  sunfire: {
+    layout: 'fwd', powerYaw: -0.26, liftTuck: 0.14,
+    torque: [[0, 0.70], [0.26, 0.88], [0.52, 1], [1, 1]],
+    shiftCut: 0.05, steerRate: 13, rackSpeed: 13, bite: 8.8, wallow: 0.18,
+    counterSteer: 0.045,
+  },
+  // Tyler's Z24: a 3.1 V6 and two half-shafts of different lengths, which is
+  // the whole reason `torqueSteer` exists. Stand on it out of a light and the
+  // car goes left on its own until you take it back. It is the only one in
+  // town that does this, and it is 1991, so nobody fixed it.
+  cavalier: {
+    layout: 'fwd', powerYaw: -0.34, liftTuck: 0.18, torqueSteer: 0.06, wheelspin: 0.40,
+    torque: [[0, 0.66], [0.22, 0.84], [0.48, 1], [1, 1]],
+    shiftCut: 0.07, steerRate: 13, rackSpeed: 12, bite: 9.0, wallow: 0.16,
+    counterSteer: 0.045,
+  },
+
+  // ---- the boats -------------------------------------------------------
+  // Both are three-speed automatics on soft springs with the steering box of a
+  // much older car and no ABS at either end. They lean, then they turn, and if
+  // you brake and turn at the same time they do neither.
+
+  // Le lot's Ciera: it rolls onto its outside shoulder and waits there.
+  cutlass: {
+    layout: 'fwd', powerYaw: -0.32, liftTuck: 0.08,
+    torque: [[0, 0.76], [0.24, 0.92], [0.46, 1], [1, 1]],
+    shiftCut: 0.26, steerRate: 8.5, rackSpeed: 9, bite: 7.2, wallow: 0.45,
+    abs: false, counterSteer: 0.055,
+  },
+  // The Caravan is the Ciera with another foot of roof on it. Nothing about it
+  // is quick and the brake pedal is a suggestion.
+  caravan: {
+    layout: 'fwd', powerYaw: -0.30, liftTuck: 0.06,
+    torque: [[0, 0.72], [0.26, 0.90], [0.48, 1], [1, 1]],
+    shiftCut: 0.28, steerRate: 8, rackSpeed: 8.5, bite: 6.6, wallow: 0.60,
+    abs: false, counterSteer: 0.060,
+  },
+
+  // ---- four driven wheels ----------------------------------------------
+
+  // Mike's Forester: genuinely neutral, which in this table means the smallest
+  // positive `powerYaw` in it — smaller even than the 240D's 0.15, because four
+  // driven wheels settle a car rather than pushing either end of it. What it
+  // does instead is lean: a tall wagon on soft springs, and you feel the body
+  // go over before the tyres answer.
+  forester: {
+    layout: 'awd', powerYaw: 0.10,
+    torque: [[0, 0.68], [0.28, 0.90], [0.52, 1], [1, 1]],
+    shiftCut: 0.08, steerRate: 11, rackSpeed: 12, bite: 8.6, wallow: 0.40,
+    counterSteer: 0.045,
+  },
+  // Henderson's Leone: a 1987 turbo, which means a curve that does nothing and
+  // then everything. At 1800 rpm there is 46 % of an engine here; it is all in
+  // by 3500, and every up-shift drops you back down the hole — the shift points
+  // put it at 0.53 of the redline in second, which is still short of the knee.
+  // Short-shift it and it is slower than the Tempo; keep it above 3500 and it is
+  // the only four-wheel-drive thing in town that goes anywhere. The hole costs
+  // it 1.7 s to 100 km/h (10.65 against 8.97 on a flat curve), which is the trade.
+  leone: {
+    layout: 'awd', powerYaw: 0.18,
+    torque: [[0, 0.40], [0.30, 0.46], [0.42, 0.66], [0.52, 0.96], [0.58, 1], [1, 1]],
+    shiftCut: 0.10, steerRate: 13, rackSpeed: 12, bite: 9.2, wallow: 0.22,
+    abs: false, counterSteer: 0.040,
+  },
+
+  // ---- rear drive -------------------------------------------------------
+
+  // The ex-municipal Crown Victoria. Body-on-frame, a 5.0 that is flat from
+  // idle, and a recirculating-ball box with half a turn of nothing in the
+  // middle of it. It floats. Open the throttle in a bend and the tail eases out
+  // — nothing like the Firebird, just enough that you have to mean it.
+  crownvic: {
+    layout: 'rwd', powerYaw: 0.42, wheelspin: 0.44,
+    torque: [[0, 0.84], [0.16, 0.96], [0.34, 1], [1, 1]],
+    shiftCut: 0.18, steerRate: 8, rackSpeed: 9, bite: 7.4, wallow: 0.42,
+    counterSteer: 0.050,
+  },
+
+  // ---- the hot one ------------------------------------------------------
+
+  // « La Si ». The same car as `civic` with everything a notch further: a
+  // quicker rack, a stiffer sidewall, less assist, a sharper lift, and a B16
+  // that is genuinely dead until the second cam lobe comes in around 4700.
+  // Everything the Civic teaches you, this one insists on.
+  sicivic: {
+    layout: 'fwd', powerYaw: -0.62, liftTuck: 0.52, wheelspin: 0.36,
+    torque: [[0, 0.58], [0.30, 0.66], [0.52, 0.84], [0.62, 1], [1, 1]],
+    shiftCut: 0.05, steerRate: 20, rackSpeed: 20, bite: 11.0, wallow: 0.04,
+    abs: false, counterSteer: 0.018,
+  },
+
+  // ---- twelve tonnes ----------------------------------------------------
+
+  // The New Look. Two turns of wheel before anything happens, a body that
+  // leans over the top of its outside tyres and stays there, drum brakes with
+  // nothing electronic behind them, and a blown two-stroke Detroit that takes
+  // most of a second to pick the drive back up at every up-shift — which is
+  // exactly the point: you can count all three of them.
+  //
+  // `torque` is written out flat at exactly 1 on purpose, and it is not an
+  // oversight. A 6V71 geared for 92 km/h IS flat everywhere this bus ever runs:
+  // it never leaves the top half of a 2400 rpm band except off the line. Writing
+  // that truth out as [[0, 1], [1, 1]] makes the term a multiplicative identity
+  // to the bit, so the terminal speed is 92.016000000 km/h before and after —
+  // which is what the SPEED section of smoke_driving.mjs is entitled to demand.
+  // `shiftCut` is the one thing here that DOES move a number: the bus is still
+  // accelerating at 40 s, so smoke_vehicles' flat-out asphalt figure drops from
+  // 87.3 to 86.5 km/h. The 1e-9 pin next to it compares grunt against no grunt
+  // with the same block on both sides, so it is untouched. No `powerYaw`:
+  // twelve tonnes does not rotate because you pressed something.
+  bus: {
+    layout: 'rwd',
+    torque: [[0, 1], [1, 1]],
+    shiftCut: 0.45, steerRate: 6, rackSpeed: 6, bite: 5.8, wallow: 0.70,
+    abs: false, counterSteer: 0.070,
+  },
+};
+
+// The globals the terms above replace, written down once so a car with no block
+// gets the literal it always got and the two paths cannot drift apart.
+const STEER_RATE = 12;      // how fast the wheel itself moves, /s
+const RACK_V = 14;          // where the rack has tightened halfway, m/s
+const BITE_K = 9.5;         // lateral catch-up rate per unit grip, /s
+const COUNTER = 0.045;      // assist counter-steer gain
+// ...and the shared shape of the terms that have no global to replace.
+//
+// WSPIN_V was 24 m/s (86 km/h) when the Firebird was the only car with any real
+// power in the table, and at that number a full-throttle launch was still
+// spinning its tyres at highway speed: the GTA took 11.90 s to 100 km/h against
+// 6.7 s for the same car with no block at all, which is not "hard to launch",
+// it is broken. A street tyre on dry asphalt has hooked up by 50 km/h, so it is
+// 14 now, and the Firebird's own cap moved with it (see FEEL.firebird).
+const WSPIN_V = 14;         // wheelspin has hooked up by here, m/s
+const WSPIN_LOSS = 0.80;    // what breaking traction costs off the cap
+const WSPIN_BITE = 0.55;    // ...and how much lateral bite goes with it
+const TUCK_FADE = 4.2;      // lift-off tuck decay, /s (≈ a quarter second)
+const TSTEER_V = 18;        // torque steer is gone by here, m/s
+const NOABS_FROM = 0.30;    // brake pedal past which a car with no ABS goes light
+const NOABS_K = 0.55;       // ...and the steering it loses at the pedal on the floor
+
 const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24
   : s.style === 'cart' ? 0.14 : 0.20);
 const WHEEL_PROUD = 0.07;   // tyre outer face this far outside the body at the axle
@@ -549,6 +972,7 @@ function defaults(c, src) {
  * import time, and it has to be able to finish it the same way these are.
  */
 export function finalizeCar(c) {
+  if (c.speedCap) c.topSpeed = Math.min(c.topSpeed, c.speedCap);
   c.axleZ = c.wheelbase / 2;
   // Track from the plan: the tyre's outer face stands just proud of the widest axle station.
   const rearOverhang = c.len - c.wheelbase - c.overhangF;
@@ -567,13 +991,19 @@ export function finalizeCar(c) {
   defaults(c, REVERSE[c.id]);                 // a car with no entry takes the defaults
   if (c.sound === undefined) c.sound = SOUND[c.id];
   if (c.drive === undefined) c.drive = DRIVE[c.id];
+  // The same fill-in, never overwrite. A tuned copy is Object.create(stock), so
+  // `c.feel` is already answered through the prototype and the shop's work is
+  // not stamped over — and a vehicle with no row here keeps `feel` undefined,
+  // which is what the whole guard in Vehicle.update turns on.
+  if (c.feel === undefined) c.feel = FEEL[c.id];
   // Solve the thrust curve for the stated terminal speed. If a spec is greedy
   // enough that drag alone eats the whole engine, the clamp keeps vPow finite
   // and the car simply never quite gets there.
   const aero = c.aero != null ? c.aero : AERO;
-  const drag = ROLL + aero * c.topSpeed * c.topSpeed;
+  const powerTop = c.powerTopSpeed || c.topSpeed;
+  const drag = ROLL + aero * powerTop * powerTop;
   const x = clamp(1 - drag / Math.max(0.01, c.accel), 0.05, 0.999);
-  c.vPow = c.topSpeed / Math.pow(x, 1 / POW);
+  c.vPow = powerTop / Math.pow(x, 1 / POW);
   return c;
 }
 for (const c of CARS) finalizeCar(c);
@@ -946,6 +1376,98 @@ export function addDetails(mb, s, opts = {}) {
     mb.box(0, topAt(s, 0.64) - 0.02, z(0.64), hwAt(s, 0.64) * 1.62, 0.05, 0.10, shade(TRIM, 0.85));
   }
 
+  if (s.id === 'benz') {
+    // The whole car is the brightwork. A W115 in the flesh is a pale green
+    // slab with a bright edge on every line of it, and leaving any of it off
+    // is what makes a lofted Mercedes read as a lofted Volvo.
+    const rubber = shade(TRIM, 0.55);
+    const zH = z(0.983), yH = 0.92;
+
+    // Round sealed beams in chrome bezels. MeshBuilder.cyl only stands on X or
+    // Y — a disc facing down the road would need one standing on Z — so the
+    // lamp is three courses of box, widest across the middle, chorded off a
+    // 90 mm radius. At any distance you ever see the front of this car from,
+    // that is round, and it is eighteen triangles instead of a hundred.
+    const DISC = [[0, 0.170, 0.060], [0.053, 0.130, 0.046], [-0.053, 0.130, 0.046]];
+    both((sx) => {
+      for (const [dy, w, h] of DISC) {
+        mb.box(sx * 0.47, yH + dy, zH - 0.016, w + 0.038, h + 0.030, 0.05, chrome);
+        mb.box(sx * 0.47, yH + dy, zH, w, h, 0.05, lamp);
+      }
+      // US spec: an amber marker out on the corner of the wing, and the little
+      // one that wraps onto the side of it.
+      mb.box(sx * (hwAt(s, 0.972) - 0.055), yH - 0.10, zH - 0.028, 0.12, 0.09, 0.05, amber);
+      mb.box(sx * (hwAt(s, 0.966) + 0.004), yH - 0.10, z(0.963), 0.01, 0.09, 0.12, amber);
+    });
+
+    // The grille: a chrome frame standing proud of a black eggcrate, with the
+    // horizontal bars across it. It is nearly square and it is the only grille
+    // in the game that is taller than it is deep.
+    const yG = 0.98, zG = z(0.978), gw = 0.62, gh = 0.34;
+    mb.box(0, yG, zG - 0.014, gw, gh, 0.05, shade(TRIM, 0.62));
+    for (let k = -2; k <= 2; k++) mb.box(0, yG + k * 0.068, zG, gw - 0.03, 0.016, 0.05, chrome);
+    mb.box(0, yG + gh / 2, zG - 0.004, gw + 0.05, 0.030, 0.045, chrome);     // frame: top
+    mb.box(0, yG - gh / 2, zG - 0.004, gw + 0.05, 0.030, 0.045, chrome);     // ...bottom
+    both((sx) => mb.box(sx * (gw / 2 + 0.010), yG, zG - 0.004, 0.030, gh, 0.045, chrome));
+
+    // Chrome bumpers front and rear, each with the black rubber strip along
+    // its face. The strip is what dates the car to the bumper standards of the
+    // seventies, and it is the only black thing on the outside of it.
+    for (const [zz, w] of [[zF - 0.035, 0.96], [zR + 0.035, 0.94]]) {
+      const dir = zz > 0 ? 1 : -1;
+      mb.box(0, s.clearance + 0.15, zz, s.wid * w, 0.18, 0.14, chrome);
+      mb.box(0, s.clearance + 0.15, zz + dir * 0.055, s.wid * (w - 0.06), 0.06, 0.05, rubber);
+      both((sx) => mb.box(sx * s.wid * w * 0.5, s.clearance + 0.15, zz - dir * 0.10, 0.06, 0.18, 0.22, chrome));
+    }
+
+    // Full-width ribbed tail lamps, amber over red, wrapping the corners — the
+    // ribs are there so the lens cannot collect road dirt, which is the sort of
+    // thing this company put on a taxi in 1976 and the reason you can still
+    // recognise the back of one.
+    both((sx) => {
+      mb.box(sx * (hwR - 0.28), 0.93, zR + 0.012, 0.52, 0.10, 0.04, amber);
+      mb.box(sx * (hwR - 0.28), 0.815, zR + 0.012, 0.52, 0.13, 0.04, tail);
+      for (let k = 0; k < 4; k++) {
+        mb.box(sx * (hwR - 0.07 - k * 0.14), 0.875, zR + 0.020, 0.018, 0.22, 0.03, shade(TRIM, 0.85));
+      }
+      mb.box(sx * (hwR + 0.002), 0.875, z(0.016), 0.008, 0.22, 0.10, tail);   // round the corner
+    });
+    mb.box(0, 0.62, zR + 0.012, 0.34, 0.14, 0.03, rgb(PLATE));
+    mb.box(0, 1.14, zR + 0.010, hwR * 1.5, 0.020, 0.03, chrome);              // boot-lid edge trim
+    // « 240 D », chrome, on the right of the boot lid. Local −X is the car's
+    // right; every Mercedes of this era put the model on that corner and the
+    // engine badge under it, and Roger's has both.
+    mb.box(-(hwR - 0.32), 1.035, zR + 0.014, 0.16, 0.028, 0.012, chrome);
+
+    // The rubbing strip down both flanks — one thin chrome line at door-handle
+    // height, running the length of the doors and the wings.
+    both((sx) => mb.box(sx * (hwAt(s, 0.5) + 0.006), beltAt(s, 0.5) - 0.20, z(0.5),
+      0.012, 0.022, s.len * 0.62, chrome));
+    // ...and the drip rails over the doors, which is what makes the roof read
+    // as a separate panel rather than as the top of a bar of soap.
+    both((sx) => mb.box(sx * (hwAt(s, 0.5) * s.roofK + 0.008), topAt(s, 0.5) - 0.03, z(0.49),
+      0.014, 0.020, s.len * 0.26, shade(CHROME, 0.78)));
+
+    // The star. Behind `noAerial` for the same reason the Ranger's whip is: it
+    // stands proud of the body and tools/car_views.mjs measures the envelope.
+    // A three-pointed star inside a ring is a circle in the XY plane, and cyl()
+    // stands on X or Y and not on Z — so it is a stalk and a bright disc, which
+    // from behind the wheel is exactly what you see of one anyway.
+    if (!opts.noAerial) {
+      const tStar = 0.952, yStar = topAt(s, tStar);
+      mb.box(0, yStar + 0.042, z(tStar), 0.022, 0.084, 0.022, chrome);
+      mb.cyl(0, yStar + 0.092, z(tStar), 0.052, 0.016, 10, chrome, 'y');
+    }
+
+    // Twenty-eight years. The film up the flanks is in specPaint; this is the
+    // one thing a gradient cannot do — the rust coming out of the bottom of the
+    // driver's front wing, where a W115 always goes first, and out of the lip
+    // of the rear arch behind it. Driver's side only: wear is never symmetrical.
+    const rust = rgb(0x7a4526);
+    mb.box(hwAt(s, 0.78) + 0.004, s.clearance + 0.14, z(0.78), 0.010, 0.09, 0.30, rust);
+    mb.box(hwAt(s, 0.27) + 0.004, s.wheelR + 0.22, -s.axleZ + 0.34, 0.010, 0.05, 0.16, rust);
+  }
+
   if (s.id === 'cavalier') {
     // composite lamps with the bowtie bar, twin exhaust, lip spoiler
     const zH = z(0.978), yH = 0.75;
@@ -1096,6 +1618,16 @@ export function carLampBoxes(s) {
       head: [[0.30, 0.84, z(0.985), 0.24, 0.16], [0.58, 0.84, z(0.985), 0.24, 0.16]],
       tail: [[hwR - 0.24, 0.86, zR + 0.012, 0.42, 0.26]],
       rev:  [[hwR - 0.60, 0.86, zR + 0.012, 0.13, 0.15]],
+    };
+  }
+  if (s.id === 'benz') {
+    // One round lamp a side, so `head` is the square the disc is inscribed in;
+    // the tail box is the RED half of the lens, because the amber above it is
+    // a marker and does not come on with the brakes.
+    return {
+      head: [[0.47, 0.92, z(0.983), 0.18, 0.17]],
+      tail: [[hwR - 0.28, 0.815, zR + 0.012, 0.52, 0.13]],
+      rev:  [[hwR - 0.62, 0.815, zR + 0.012, 0.14, 0.12]],
     };
   }
   if (s.id === 'cavalier') {
@@ -1267,6 +1799,22 @@ export function buildWheel(s) {
       }
     }
     mb.cyl(0, 0, 0, rimR * 0.30, face * 2 + 0.01, 8, shade(rim, 0.3), 'x');
+  } else if (s.id === 'benz') {
+    // The full chrome cap: a bright dished disc with a raised rim, no slots and
+    // no spokes, and the star pressed into the middle of it. Three thin wedges
+    // off the hub ARE the star — the one place on this car where the badge is
+    // cheap enough to draw properly, because the wheel face is a flat polygon
+    // in the YZ plane and facePoly() will take any outline you hand it.
+    const rim = 0xd2d5d8;
+    mb.cyl(0, 0, 0, rimR, face * 2, 14, rgb(rim), 'x');
+    for (const dir of [1, -1]) {
+      facePoly(mb, dir * deco, dir, ellipse(0, 0, rimR * 0.80, rimR * 0.80, 0, 14), shade(rim, 0.86));
+      for (let k = 0; k < 3; k++) {
+        const a = (k / 3) * Math.PI * 2 + Math.PI / 2;
+        facePoly(mb, dir * (deco + 0.004), dir, spokeQuad(0, rimR * 0.36, a, rimR * 0.055), shade(rim, 0.42));
+      }
+    }
+    mb.cyl(0, 0, 0, rimR * 0.15, face * 2 + 0.02, 8, shade(rim, 1.08), 'x');
   } else if (s.id === 'cart') {
     // A turf tyre on a painted steel wheel: no spokes, no cover, one pale hub.
     const rim = 0xd7d4cb;
@@ -1421,7 +1969,12 @@ export class Vehicle {
   get wid() { return this.spec.wid; }
   get mass() { return this.spec.mass; }
 
-  reset(x, z, yaw) {
+  // `y` is the ground under (x, z). It defaults to 0 — the town used to be
+  // flat and a caller with no height field to ask still gets the old numbers,
+  // to the bit — but anything placing a car on the real terrain must pass it,
+  // or the car starts tens of metres underground and snaps up on the first
+  // tick with a landing event nobody asked for.
+  reset(x, z, yaw, y = 0) {
     this.x = x; this.z = z; this.yaw = yaw;
     this.vx = 0; this.vz = 0;
     this.vLong = 0; this.vLat = 0;
@@ -1431,8 +1984,8 @@ export class Vehicle {
     // Vertical state. `y` is where the wheels are — the ground height under the
     // car, or wherever the ballistic arc has got to. `susp` is the body on top
     // of that, which is what the renderer should draw (see `bodyY`).
-    this.y = 0; this.vy = 0;
-    this.gh = 0;                         // ground height under the car right now
+    this.y = y; this.vy = 0;
+    this.gh = y;                         // ground height under the car right now
     this.air = false;                    // integrating ballistically
     this.inAir = false;                  // ...and far enough up to have lost the tyres
     this.airT = 0;                       // seconds into the current flight
@@ -1452,7 +2005,29 @@ export class Vehicle {
     this.curb = 0;
     this.lastHit = 0;
     this.misfireT = 0;
-    this.lastSafe = { x, z, yaw };
+    // Where a free reset puts you back — and how high that is. recover() used to
+    // hand reset() three arguments and drop the car at sea level, which on the
+    // hill is up to thirty metres under the road it was driving on. `y` is the
+    // same 0 this signature already defaults to, so a flat world and a caller
+    // with no height field get exactly the numbers they got before.
+    this.lastSafe = { x, z, yaw, y };
+    // FEEL state. All of it is dead weight on a vehicle with no `feel` block —
+    // the box is never built, and nothing below is ever read.
+    this.shiftCut = 0;        // seconds of nothing left in this up-shift
+    this.tuck = 0;            // lift-off pulse, 1 at the release, decaying
+    this.thrWas = 0;          // last frame's throttle, to see the release
+    // The pedal, kept on the vehicle for anything downstream of the integration
+    // that needs to know how hard it is being worked — game/reactive.js's
+    // tailpipe is the only reader today. Written every frame for every vehicle
+    // and read by nothing in the physics, so it changes no number anywhere.
+    this.throttle = 0;
+    this.wspin = 0;           // how far past the traction cap the tyres are
+    this.shiftsWas = 0;
+    const s = this.spec;
+    if (s && s.feel) {
+      if (!this.box) this.box = new Gearbox(s.drive);
+      this.box.reset();
+    } else this.box = null;
   }
 
   get speedKmh() { return Math.abs(this.vLong) * 3.6; }
@@ -1467,6 +2042,7 @@ export class Vehicle {
 
   update(dt, ctl, world) {
     const s = this.spec;
+    this.throttle = ctl.throttle;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
     const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
 
@@ -1544,6 +2120,28 @@ export class Vehicle {
       }
     }
 
+    // ---- FEEL: the engine's own shape, and the beat between gears ---------
+    // `feel` is undefined for every vehicle with no row in the FEEL table, and
+    // everything from here to the end of update() that reads it is behind a
+    // guard for exactly that reason: no block, no branch, no arithmetic, and
+    // the old numbers come out to the bit. See the note over FEEL.
+    const feel = s.feel;
+    let torque = 1, cutting = false;
+    if (feel) {
+      this.wspin = 0;
+      if (this.box) {
+        this.box.update(dt, Math.abs(vLong) * 3.6, ctl.throttle, this.dir < 0);
+        if (this.box.shifts !== this.shiftsWas) {
+          // Up-shifts only: dropping a gear is a blip, not a gap.
+          if (feel.shiftCut && this.box.toGear > this.box.gear) this.shiftCut = feel.shiftCut;
+          this.shiftsWas = this.box.shifts;
+        }
+        if (feel.torque) torque = Math.min(1, pl(feel.torque, this.box.rpm / this.box.d.redline));
+      }
+      cutting = this.shiftCut > 0;
+      if (cutting) this.shiftCut = Math.max(0, this.shiftCut - dt);
+    }
+
     let a = 0;
     if (!inAir) {
       if (flip) {
@@ -1566,7 +2164,29 @@ export class Vehicle {
         if (ctl.throttle > 0 && vLong > -0.02) a += ctl.throttle * s.accel * surface;
       } else {
         if (ctl.throttle > 0) {
-          a += ctl.throttle * s.accel * grunt * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+          if (feel) {
+            // Same expression, then the three things an engine and a pair of
+            // driven tyres do to it: the torque curve, the gap between gears,
+            // and the tyres letting go when you ask for more than they hold.
+            let th = ctl.throttle * s.accel * grunt * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+            th *= torque;
+            if (cutting) th = 0;
+            if (feel.wheelspin && th > 0) {
+              const fade = 1 - Math.min(1, Math.abs(vLong) / WSPIN_V);
+              const cap = feel.wheelspin * s.grip * gripSurf * 9.81;
+              if (fade > 0 && cap > 0 && th > cap) {
+                // Past the cap the tyres are turning faster than the road, and
+                // a spinning tyre pulls LESS than a gripping one — which is why
+                // mashing it is slower than feathering it away from a light.
+                const over = Math.min(1, th / cap - 1);
+                this.wspin = fade * over;
+                th += (cap * (1 - WSPIN_LOSS * over) - th) * fade;
+              }
+            }
+            a += th;
+          } else {
+            a += ctl.throttle * s.accel * grunt * surface * (1 - Math.pow(Math.max(0, frac), 1.7));
+          }
         }
         // The brakes bring you to rest; they never push you out the other side.
         if (ctl.brake > 0 && vLong > 0.02) a -= Math.min(ctl.brake * s.brake * surface, vLong / dt);
@@ -1603,6 +2223,7 @@ export class Vehicle {
       }
     }
     vLong += a * dt;
+    if (s.speedCap) vLong = Math.min(vLong, s.speedCap);
     // The direction-change brake stops AT zero — it never shoves you backwards
     // in the tick it arrives, so the gear below is what turns you round.
     if (flip && vLong * rolling < 0) vLong = 0;
@@ -1637,13 +2258,19 @@ export class Vehicle {
     this.curb *= Math.exp(-9 * dt);
 
     // Steering: less lock the faster you go, so a keyboard tap can't spin you.
-    const speedFrac = clamp(Math.abs(vLong) / topSpeed, 0, 1);
-    let lock = s.steerMax * (0.42 + 0.58 / (1 + Math.abs(vLong) / 14));
+    const speedFrac = clamp(Math.abs(vLong) / (s.steeringTopSpeed || topSpeed), 0, 1);
+    const rackV = feel && feel.rackSpeed != null ? feel.rackSpeed : RACK_V;
+    let lock = s.steerMax * (0.42 + 0.58 / (1 + Math.abs(vLong) / rackV));
     if (this.assist) lock *= 1 - 0.28 * speedFrac;
+    // FEEL: no ABS. Stand on the pedal in something old enough to lock a wheel
+    // and the fronts stop steering — which is the whole argument for braking in
+    // a straight line, and for trailing off the pedal as you turn in.
+    if (feel && feel.abs === false && ctl.brake > NOABS_FROM) lock *= 1 - NOABS_K * ctl.brake;
     let target = ctl.steer * lock;
     // R4: a bent car pulls. Enough to notice, not enough to be unplayable.
     if (this.hurt) target += this.pull * lock * 0.20 * clamp((this.damage - DAMAGE.PERF) / 40, 0, 1);
-    this.steer += (target - this.steer) * Math.min(1, 12 * dt);
+    const steerRate = feel && feel.steerRate != null ? feel.steerRate : STEER_RATE;
+    this.steer += (target - this.steer) * Math.min(1, steerRate * dt);
 
     // Bicycle model yaw. Handbrake lets the back end come around — how far is
     // a per-car number now (D2): the Ranger keeps most of its grip and ploughs.
@@ -1651,12 +2278,46 @@ export class Vehicle {
     const grip = s.grip * gripSurf * (ctl.handbrake ? hbGrip : 1) * (inWater ? 0.3 : 1);
     // Negative: positive yaw swings the nose toward local +X, which is left.
     this.yawRate = -(vLong / s.wheelbase) * Math.tan(this.steer);
+    // FEEL: what the right foot does to the nose. `powerYaw` is signed by
+    // drivetrain — a rear axle pushing the car round, or a front axle being
+    // asked to steer and pull at once and doing neither — and `liftTuck` is
+    // the beat after you close it, when the weight goes forward and a FWD car
+    // finally turns in. Both ride on the same geometric yaw, so a car pointing
+    // straight still goes straight.
+    let biteK = 1;
+    if (feel) {
+      const pw = (feel.powerYaw || 0) * ctl.throttle * Math.abs(this.steer) * speedFrac;
+      if (feel.liftTuck) {
+        if (this.thrWas > 0.5 && ctl.throttle < 0.1
+          && Math.abs(this.steer) > 0.02 && Math.abs(vLong) > 5) this.tuck = 1;
+        this.tuck *= Math.exp(-TUCK_FADE * dt);
+        if (this.tuck < 0.01) this.tuck = 0;
+        this.yawRate *= 1 + pw + feel.liftTuck * this.tuck;
+      } else {
+        this.yawRate *= 1 + pw;
+      }
+      this.thrWas = ctl.throttle;
+      // Torque steer. Unlike everything above it this is ADDED, not scaled:
+      // the pull is there with the wheel dead straight, which is the whole
+      // character of it — you are holding the car straight against the engine
+      // rather than being given more or less of a corner you asked for. It
+      // only exists going forwards and it is gone by TSTEER_V, because a
+      // half-shaft cannot pull what it is no longer driving hard.
+      if (feel.torqueSteer && vLong > 0) {
+        this.yawRate += feel.torqueSteer * ctl.throttle
+          * (1 - Math.min(1, vLong / TSTEER_V));
+      }
+      // Power through a corner is grip you are not cornering with, whichever
+      // end is doing the work; spinning tyres are worse again.
+      biteK = Math.max(0.25, 1 - Math.min(0.5, Math.abs(pw) * 0.5) - WSPIN_BITE * this.wspin);
+    }
     if (ctl.handbrake) this.yawRate *= (s.hbYaw != null ? s.hbYaw : 1.55);
     if (this.assist) {
       // Gentle counter-steer: pull the heading toward the direction of travel.
       // Backwards that is the other way round — the same term unsigned would
       // fight the wheel and make reversing feel like it was on ice.
-      this.yawRate += vLat * 0.045 * (1 - speedFrac * 0.5) * (vLong < 0 ? -1 : 1);
+      const counter = feel && feel.counterSteer != null ? feel.counterSteer : COUNTER;
+      this.yawRate += vLat * counter * (1 - speedFrac * 0.5) * (vLong < 0 ? -1 : 1);
     }
     // Nothing to steer against once the wheels are off the ground: the heading
     // freezes and the stick only leans the body, Midtown Madness style.
@@ -1670,7 +2331,18 @@ export class Vehicle {
     }
 
     // Lateral grip pulls the car's travel direction toward where it points.
-    const bite = 1 - Math.exp(-9.5 * grip * dt);
+    // FEEL: the sidewall. `bite` is how fast the travel direction catches the
+    // nose up, and `wallow` is the tall soft thing leaning onto its outside
+    // shoulder before it agrees to turn — off the cosmetic roll, which is one
+    // frame old here and is meant to be: the lean leads the loss of grip.
+    let bite;
+    if (feel) {
+      let g = grip * biteK;
+      if (feel.wallow) g *= 1 - feel.wallow * Math.min(1, Math.abs(this.roll) / 0.13);
+      bite = 1 - Math.exp(-(feel.bite != null ? feel.bite : BITE_K) * g * dt);
+    } else {
+      bite = 1 - Math.exp(-9.5 * grip * dt);
+    }
     const slipBefore = vLat;
     vLat -= vLat * bite;
     this.skid = clamp((Math.abs(slipBefore) - 1.2) / 7, 0, 1) * clamp(Math.abs(vLong) / 8, 0, 1);
@@ -1796,7 +2468,10 @@ export class Vehicle {
     } else {
       this.drowning = 0;
       if (onRoad && !this.inAir && Math.abs(vLong) > 2) {
-        this.lastSafe = { x: this.x, z: this.z, yaw: this.yaw };
+        // `gh` and not `y`: this fires with the wheels on the deck, so the two
+        // agree to the suspension, and gh is the one that means "the road was
+        // here" if a later frame catches the car a hand's breadth off it.
+        this.lastSafe = { x: this.x, z: this.z, yaw: this.yaw, y: this.gh };
       }
     }
     // Keep everyone inside the map.
@@ -1997,7 +2672,7 @@ export class Vehicle {
 
   recover() {
     const p = this.lastSafe;
-    this.reset(p.x, p.z, p.yaw);
+    this.reset(p.x, p.z, p.yaw, p.y || 0);
   }
 
   // Seat positions in local space, for drawing the friends you picked up.

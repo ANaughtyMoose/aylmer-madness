@@ -143,7 +143,8 @@ group('the shirt is open and the fronds are on it');
       .map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('');
     cm.add(hex);
   }
-  ok(cm.has('ffffff'), 'white hair is in the mesh');
+  ok(cm.has('392b24') && cm.has('291f1a'), 'Margaret has dark brown hair');
+  ok(cm.has('b8b1a8') && cm.has('d1cbc3'), 'Margaret has grey strands');
   ok(cm.has('f7f3ea'), 'the smile has teeth in it');
   ok(cm.has('596069') && cm.has('79826f'), 'the fleece and its pouch are round her waist');
   ok(cm.has('1a2236'), 'the navy tee is in the mesh');

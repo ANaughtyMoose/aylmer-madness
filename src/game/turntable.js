@@ -7,9 +7,10 @@ import { Renderer } from '../core/gl.js';
 import { MeshBuilder, rgb } from '../core/mesh.js';
 import { m4 } from '../core/math.js';
 import { CARS, buildCarBody, buildWheel } from './cars.js';
+import './vehicles.js';
 
 const GL_W = 300, GL_H = 200;       // off-screen render size, in CSS px
-const FPS = 24;                     // the menu is static; this is plenty
+const FPS = 12;                     // the menu is static; this is plenty
 const STEER_SWING = 0.30;           // radians the front wheels sweep through
 
 const ENV = {
@@ -106,7 +107,7 @@ export class CarTurntable {
         m4.compose(mm, 0, 0, spec.axleZ, -steer, 0, 0);
         r.draw(this.steers[spec.id], mm);
       }
-      for (const sz of [1, -1]) for (const sx of [-1, 1]) {
+      for (const sz of [1, -1]) for (const sx of (spec.twoWheel ? [0] : [-1, 1])) {
         m4.compose(mm, sx * spec.track / 2, wr, sz * spec.axleZ,
           sz > 0 ? -steer : 0, ms * 0.0015, 0);
         r.draw(this.wheels[spec.id], mm);
@@ -115,7 +116,14 @@ export class CarTurntable {
       // Same task as the draw, so the drawing buffer is still intact.
       const g = card.ctx, cv = card.canvas;
       g.clearRect(0, 0, cv.width, cv.height);
-      g.drawImage(this.glCanvas, 0, 0, cv.width, cv.height);
+      // Read a completed frame: deferred canvas copies can all display the last car.
+      const gl = r.gl, w = this.glCanvas.width, h = this.glCanvas.height;
+      this.pixels ||= new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
+      this.frameImage ||= g.createImageData(w, h);
+      for (let y = 0; y < h; y++) this.frameImage.data.set(
+        this.pixels.subarray((h - y - 1) * w * 4, (h - y) * w * 4), y * w * 4);
+      g.putImageData(this.frameImage, 0, 0);
     }
   }
 }

@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { MAP } from '../src/game/mapdata.js';
+import { HISTORIC_CT, installLandmarks } from '../src/game/landmarks.js';
+import { buildWorld } from '../src/game/world.js';
+import { PLACES, resolvePlaces } from '../src/game/places.js';
+import { placementReason } from '../src/game/tow.js';
+import { carById } from '../src/game/cars.js';
+import MATS_STUB from '../src/game/materials_stub.js';
+const r={upload(b){if(b.finish)b.finish();
+ return {min:b.min,max:b.max,count:b.i.length};},texture(){return{};},env:{sky:[.4,.6,.9],fog:[.7,.8,.9],sun:[1,1,1]}};
+const world=buildWorld(r);installLandmarks(world,r,MATS_STUB);resolvePlaces(world);
+assert.equal(PLACES.ctire.x,HISTORIC_CT.x);
+assert.equal(placementReason(world,{...HISTORIC_CT,yaw:Math.PI},carById('ranger')),null,'pickup footprint clear');
+for(let z=-207;z>=-240;z--)assert.equal(placementReason(world,{x:-157,z,yaw:Math.PI},carById('ranger')),null,`parking aisle at ${z}`);
+console.log('Canadian Tire: correct marker; collision-free pickup and 33m approach.');
+for(let z=-207;z>=-240;z--) assert.equal(world.groundAt(-157,z).h,world.baseAt(-157,z).h,'customer approach follows the hill without loading ramps');
+console.log('Customer approach follows the hill; loading docks are behind the mall.');

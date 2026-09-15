@@ -11,6 +11,12 @@ import { MAP } from './mapdata.js';
 const POI_SNAP = 600;
 
 export const PLACES = {
+  sol: {x:67,z:-201,label:'Sol — aliments naturels, 195 Principale'},
+  morin: {x:-1107,z:-60,label:'Dr Morin — rue Principale'},
+  mocaloca: {x:-471,z:-118,label:'Moca-Loca — ancien café'},
+  oldlibrary: {x:-662,z:-72,label:'Ancienne bibliothèque — fermée (dégâts d’eau)'},
+  stvincent: { poi:'Saint-Vincent Hospital',road:'Cambridge Street North',x:9906.8,z:-2136.2,label:'Hôpital St. Vincent',snap:true },
+  royalottawa: { poi:'Royal Ottawa Golf Club',x:5062.5,z:-2605.7,label:'Royal Ottawa Golf Club',snap:true,lot:true },
   // The four homes.
   home:      { x: 932.9, z: 143.9, label: '299 Chemin Fraser', snap: true },
   // The 'steph' key is historical; the person is Sayyad.
@@ -55,14 +61,29 @@ export const PLACES = {
 
   // ---- side jobs -------------------------------------------------------
   // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.
-  ctire:     { poi: 'Canadian Tire', x: 429.2, z: -242.8, label: 'Canadian Tire, chemin d’Aylmer', snap: true, lot: true },
-  // Norm's is a real destination and needs its own pin. It used to borrow
-  // PLACES.ctire, so the only garage in the game that charges money was
-  // invisible on the map — you could only find it by driving past.
-  norm:      { x: 470, z: -212, label: 'Garage Norm Lafleur & Fils', snap: true, lot: true, landmark: true },
+  ctire:     { x: -157, z: -236, a: Math.PI / 2, label: 'Canadian Tire — Galeries d’Aylmer', snap: false, lot: false },
+  // The legacy key now points to Tom's pictured garage and its own map pin.
+  norm:      { x: -514, z: -137, label: 'Garage Hugo Caumartin — 143 Principale', landmark: true },
   // The used lot: a gravel corner on chemin d'Aylmer beside the Canadian Tire.
   // Four beaters nose-to-tail and a plywood sign — see game/garage.js.
   usedlot:   { road: "Chemin d'Aylmer", x: 520, z: -246, label: 'Lot d’occasion, chemin d’Aylmer', snap: true },
+  // Carrosserie Volkov: a Quonset hut and four hectares of nettles on the far
+  // side of Deschênes, out where chemin Vanier stops pretending to be a street.
+  // Grigori restores cars and does nothing else (game/upgrades.js), and he is
+  // out here rather than on chemin d'Aylmer for the same reason any man who
+  // needs four hectares of nettles is: nobody in town would rent it to him.
+  // UNCERTAIN in the way PLACES.abraham is — there is no civic number behind
+  // this, only the right stretch of the right road — so `snap: true` puts the
+  // yard entrance on the pavement wherever the network actually runs.
+  //
+  // The label says « Deschênes » and NOT « chemin Vanier », which is where it
+  // is: main.js's mapState() drops any place whose label matches Fraser /
+  // Denise / Bancroft / Vanier, because those are the cast's home addresses and
+  // the big map is not a phone book. The one shop in the game you have to drive
+  // forty minutes to find has to be findable ON that map, so the street name
+  // lives in the shop pane and in assets/text/grisha.json instead.
+  grisha:    { x: 2332, z: 1276, label: 'Carrosserie Volkov, Deschênes',
+               snap: true, lot: true, landmark: true },
   // The garage sale: 41 Promenade Wychwood, a real footprint on a real street.
   yardsale:  { road: 'Promenade Wychwood', x: -523.8, z: 219.8, label: '41 Promenade Wychwood', snap: true },
   // 'sayyad' is the same house as 'steph' (historical key) — same coordinates, and the

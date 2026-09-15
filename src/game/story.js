@@ -27,103 +27,21 @@ export const STUCK_T = 20;        // ...in this many seconds, or you get a nudge
 // ---------------------------------------------------------------- the opener
 
 export const STORY_CARDS = [
-  {
-    title: 'ÉTÉ 2004',
-    body: 'T’as dix-sept ans pis t’es à Aylmer, Québec. L’école est finie, il fait '
-      + '28 degrés, pis ton père a laissé les clés du Ranger XL 1993 dans le plat '
-      + 'à monnaie en partant travailler.\n\n'
-      + 'Un permis. Un demi-réservoir. Rien de prévu jusqu’en septembre.',
-  },
-  {
-    title: 'LA GANG',
-    body: 'Margaret reste juste à côté, au 299 Fraser — c’est sa Saturn dans l’entrée.\n'
-      + 'Sayyad est sur Denise-Friend, avec la Civic pis ses jantes neuves.\n'
-      + 'Adam reste à Mayo, à une heure de char, pis il descend avec le Sunfire.\n'
-      + 'Pis Mike, sur Frank-Robinson, a un divan pis une idée.',
-  },
-  {
-    // The spine, stated in the first five minutes: the deal is on the table
-    // before the first job, and the envelope on the HUD is that envelope.
-    title: 'L’ENVELOPPE',
-    body: 'À la fin de la première matinée, les clés étaient sur la table de cuisine, '
-      + 'à côté d’une vieille enveloppe brune de la Caisse pop, marquée au feutre:\n\n'
-      + '« Ranger — 1 200 $ avant septembre. Sinon le concessionnaire le prend en '
-      + 'échange pis tu prends la bus. »\n\n'
-      + 'Ton gaz pis tes réparations, c’est de ta poche. La fête du Travail, c’est le 6.',
-  },
-  {
-    title: 'LES PILIERS JAUNES',
-    body: 'Une job, c’est un pilier jaune. Roule dedans, arrête-toi, pis appuie sur E.\n\n'
-      + 'La ligne bleue, c’est le GPS: elle t’amène toujours au prochain arrêt.\n'
-      + 'Tab ouvre la grande carte. Backspace abandonne une job. T remet le char '
-      + 'sur le chemin quand t’es dans le fossé.',
-  },
-  {
-    title: 'PREMIÈRE JOB',
-    body: 'Va chercher ta première job: le pilier jaune chez vous (E dessus).\n\n'
-      + 'Il y a une note avec les clés: l’alternateur du truck lâche, pis y en a '
-      + 'un de payé qui attend au comptoir du Canadian Tire.\n\n'
-      + 'On te met un waypoint dessus. Pas de chrono. Prends ton temps — la ville '
-      + 'est à toi jusqu’à minuit.',
-  },
+  { title: 'ÉTÉ 2004', body: 'T’es Tom. Ton Ranger XL 1993, ton gaz, tes réparations. Un été à Aylmer pour préparer la suite.' },
+  { title: 'LA GANG', body: 'Margaret et sa Saturn, Sayyad et sa Civic, Adam et son Sunfire, Mike et son divan : les commissions, les coups de main pis les détours font partie de l’été.' },
+  { title: 'SEPTEMBRE', body: '1 200 $ à mettre de côté pour le Ranger et les études. Les commissions, les pourboires pis les détours : tu fais ta part.' },
+  { title: 'LES COMMANDES', body: 'W accélère, S freine. ? affiche les commandes. Tab ouvre la carte. T remet le char sur le chemin.' },
+  { title: 'PREMIÈRE JOB', body: 'Ta première job, l’alternateur au Canadian Tire des Galeries d’Aylmer, commence après la présentation. Aucun chrono : suis le GPS, freine dans le pilier jaune au comptoir, puis E pour ramasser ta pièce.' },
 ];
 
-// ---------------------------------------------------------------- the endings
-//
-// Labour Day. Two of them, from assets/text/story.json's `ending` (the father
-// counts the money and pushes it back) and the one the file only names — the
-// dealer, and the bus. Both are three cards through the same StoryOpener, and
-// both end with the calendar stopped; you keep driving either way, because
-// the town is still there.
 export function endingCards(amount, target, madeIt) {
   const a = Math.round(amount);
-  if (madeIt) {
-    return [
-      {
-        title: 'LA FÊTE DU TRAVAIL',
-        body: 'Dimanche soir. Ton père rentre du chantier pis l’enveloppe est sur la table: '
-          + `${a} $, en vingt pis en cinquante, comptés deux fois.\n\n`
-          + 'Il la prend. Il compte sans sourire. Il compte encore.',
-      },
-      {
-        title: 'LES CLÉS',
-        body: 'Il repousse l’enveloppe vers toi. Il pose le double des clés dessus, pis '
-          + 'l’immatriculation, signée à ton nom.\n\n'
-          + '« Garde tes piasses pour tes plaques pis tes assurances. Tu vas en avoir '
-          + 'besoin pour aller à tes cours. »\n\n'
-          + 'Tu vas t’asseoir tout seul dans la cabine à minuit, sur Fraser, sous la '
-          + 'petite pluie de septembre. C’est à toi. La gang part demain matin.',
-      },
-      {
-        title: 'MARDI 7 SEPTEMBRE, 6 H 45',
-        body: 'Le feu rouge de Wilfrid-Lavigne. Les essuie-glaces dans la brume. Le fil de '
-          + 'la cassette adaptatrice pend du tableau de bord, pis le Discman joue '
-          + '« Toune d’automne ».\n\n'
-          + 'Vert. Première. Tu relâches la clutch sans caler, pis tu rentres dans le trafic.',
-      },
-    ];
-  }
   return [
-    {
-      title: 'LA FÊTE DU TRAVAIL',
-      body: 'Dimanche soir. Ton père rentre du chantier pis l’enveloppe est sur la table: '
-        + `${a} $ sur ${target}.\n\n`
-        + 'Il compte. Il compte encore. « C’est correct. C’est pas rien. » Il la remet '
-        + 'dans le tiroir, avec les clés.',
-    },
-    {
-      title: 'LE CONCESSIONNAIRE',
-      body: 'Mardi matin, le Ranger part en échange sur un Escape neuf que ton père va '
-        + 'payer pendant cinq ans.\n\n'
-        + 'Toi, t’as une passe de bus de la STO pis le Diamondback. La 40 passe au coin '
-        + 'à 7 h 12. Sayyad klaxonne en passant. Il arrête pas.',
-    },
-    {
-      title: 'SEPTEMBRE',
-      body: 'L’argent est encore dans le tiroir. Ton père a rien dit, mais il a pas '
-        + 'dépensé une cenne dessus non plus.\n\n'
-        + 'L’été prochain, tu commences en juin. Pis tu roules plus sur les pistes cyclables.',
-    },
+    { title: 'LA FÊTE DU TRAVAIL', body: `${a} $ sur ${target} $ mis de côté. Du gaz, des pièces, des commissions : tu sais ce que cet argent t’a coûté.` },
+    { title: madeIt ? 'LA SUITE' : 'ENCORE UN BOUT DE CHEMIN',
+      body: madeIt ? 'Ton objectif est atteint. Réparer le Ranger pour les études à Ottawa, ou préparer le loyer à Waterloo : septembre approche.'
+        : 'Le budget est plus serré que prévu. Tu peux continuer les jobs et préparer la suite à ton rythme. Le Ranger est toujours à toi.' },
+    { title: 'SEPTEMBRE', body: 'Les clés dans ta poche. La gang, les rues, les souvenirs de cet été. Tu reprends la route.' },
   ];
 }
 
@@ -376,6 +294,16 @@ export function updateStuck(G, dt, hud = null) {
 // bubbles, not toasts, so the name is in bold and they do not fight the big
 // mission text for the middle of the screen.
 export const FRIEND_LINES = {
+  margaretdental: {start:[['Margaret','La boîte chez le Dr Morin, s’il te plaît. Je vais finir ça ici.']],end:[['Margaret','Merci ! Ça va me faire un petit extra ce soir.']]},
+  solerrand: {start:[['Sayyad','Passe chez Sol ! Zahra et moi, on adore ça.']],end:[['Zahra','Merci pour la commande. On y retourne bientôt !']]},
+  stvincent: {
+    start: [['Tom', '« Je stationne le Ranger, pis je rentre pour le repas. »']],
+    end: [['Une patiente', '« Merci d’avoir pris ton temps. »']],
+  },
+  russellroyal: {
+    start: [['Russell', '« Peux-tu venir au Royal Ottawa? Je vais t’expliquer dans le char. »']],
+    end: [['Russell', '« Garde ça pour le gaz. Pis si le club rappelle, je suis disponible. »']],
+  },
   // Wave 3 — the jobs that are not deliveries (game/verbjobs.js).
   suis: {
     start: [['Sayyad', '« Regarde pas la carte, regarde-moé. Pis si tu me perds, c’est pas moé qui t’attends. »']],
@@ -410,7 +338,7 @@ export const FRIEND_LINES = {
     end: [['Sayyad', '« Chelsea aller-retour pour aucune raison. Ça, c’est une vraie ride. »']],
   },
   school: {
-    start: [['Ton père', '« Les clés sont dans le plat à monnaie. Touche pas au radio. »']],
+    start: [['Ton père', '« Bonne route. Appelle si t’as besoin d’un coup de main. »']],
     end: [['Ta mère', '« Ton prof a appelé. Il a dit que t’étais “à l’heure”. »']],
   },
   gang: {
@@ -425,11 +353,11 @@ export const FRIEND_LINES = {
   },
   alternateur: {
     start: [
-      ['Ton père', '« La lumière de batterie clignote depuis mardi. L’alternateur est payé, il est su’a tablette au comptoir, à mon nom. »'],
-      ['Ton père', '« Tiens, un cent. Le change est à toi si la boîte arrive icitte pas magannée. »'],
+      ['Ton père', '« Vérifie que c’est le bon modèle avant de repartir du comptoir. »'],
+      ['Ton père', '« Mets la boîte où elle glissera pas quand tu freines. »'],
     ],
     end: [
-      ['Ton père', '« C’est le bon. Bon. Garde le change, pis mets-en dans le réservoir. »'],
+      ['Ton père', '« C’est le bon. On regardera ça ensemble quand on aura un moment. »'],
       ['Ta mère', '« Il a dit “garde le change”. Écris ça sur le calendrier. »'],
     ],
   },
@@ -639,7 +567,7 @@ export function applyDialogue(json) {
     // tomorrow rather than being folded into `start` and lost.
     const when = String(r.when || 'start');
     const p = DIALOGUE[r.who] || (DIALOGUE[r.who] = { start: [], end: [] });
-    const key = r.who + ' ' + when;
+    const key = r.who + '' + when;
     if (!seen.has(key)) { seen.add(key); p[when] = []; }   // the file replaces the fallback
     p[when].push(quote(r.line));
     n++;

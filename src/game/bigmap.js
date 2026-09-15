@@ -2,7 +2,11 @@
 // a GPS waypoint. Its own static layer at a higher resolution than the minimap.
 import { MAP } from './mapdata.js';
 
-const PX_PER_M = 0.6;
+// Bound the static raster to 16 MiB, even for the combined Aylmer/Hull map.
+// Routes, markers and street labels are drawn separately at screen resolution.
+export const MAP_RASTER_LIMIT = 2048;
+const PX_PER_M = Math.min(0.6, MAP_RASTER_LIMIT / Math.max(
+  MAP.bounds.maxX - MAP.bounds.minX, MAP.bounds.maxZ - MAP.bounds.minZ));
 const COL = {
   land: '#1f2a1c', park: '#2b4527', wood: '#213520', sand: '#8a7d5c', parking: '#2e2e34',
   pitch: '#33512c', pool: '#3d6f85', water: '#1e3f52', school: '#2b4527', cemetery: '#2b4527',
@@ -16,7 +20,9 @@ export class BigMap {
     this.ctx = canvas.getContext('2d');
     this.zoom = 0.45;            // screen px per metre
     this.cx = 0; this.cz = 0;    // world point at screen centre
+    const started = performance.now();
     this.static = this._buildStatic();
+    this.buildMs = performance.now() - started;
     this.names = this._streetLabels();
     this.onWaypoint = null;
     this.drag = null;

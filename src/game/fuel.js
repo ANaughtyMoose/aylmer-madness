@@ -18,12 +18,18 @@ export const LEND_FRACTION = 0.6;    // what is in a friend's tank when you take
 export const TANK = {
   ranger: 62, saturn: 47, civic: 45, sunfire: 57, forester: 60, sienna: 79,
   cavalier: 57, cutlass: 60, caravan: 76, f250: 72, bus: 300, schoolbus: 230,
-  cart: 0, cruiser: 0, dbike: 0,
+  benz: 65, cart: 0, cruiser: 0, dbike: 0,
 };
 // L/100 km at a steady cruise. The 2.3 Ranger is thirsty for what it is.
+// The 240D is the other end of the same table: 65 hp of indirect-injection
+// diesel is the cheapest thing in town to run, which is most of why people kept
+// them for thirty years. Nothing in here knows the pump sells one grade — it is
+// 84,9 ¢ for everybody, and arguing about diesel pricing in 2004 Aylmer is not
+// a mechanic this game has.
 export const BURN = {
   ranger: 12.5, saturn: 7.5, civic: 7.0, sunfire: 8.5, forester: 10.0, sienna: 11.0,
   cavalier: 8.5, cutlass: 11.0, caravan: 12.0, f250: 17.0, bus: 45.0, schoolbus: 35.0,
+  benz: 8.0,
 };
 
 export function tankOf(spec) {

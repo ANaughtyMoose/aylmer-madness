@@ -20,3 +20,9 @@
 *.mp3 binary
 *.ogg binary
 *.wav binary
+
+# Windows batch files need CRLF or cmd.exe mis-parses them.
+*.bat text eol=crlf
+
+# The spike writes its log next to RUN-ME.bat.
+spike-log.txt

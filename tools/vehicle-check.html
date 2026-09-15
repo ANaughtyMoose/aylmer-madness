@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><title>Vehicle model check</title>
+<style>body{background:#15212a;color:white;font:16px sans-serif}main{display:flex;flex-wrap:wrap;gap:10px}article{width:300px}canvas{width:300px;height:200px}</style><h1>Vehicle model check</h1><main></main>
+<script type="module">
+import {CarTurntable} from '../src/game/turntable.js?vehicle-check-1';
+import {CARS} from '../src/game/cars.js';
+const table=new CarTurntable(),cards=[];
+for(const s of CARS){const card=document.createElement('article');card.innerHTML=`<h3>${s.name}</h3><canvas width="300" height="200"></canvas>`;document.querySelector('main').append(card);cards.push({id:s.id,canvas:card.querySelector('canvas')});}
+table.setCards(cards);table.frame(3200);
+</script>

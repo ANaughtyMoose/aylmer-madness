@@ -52,11 +52,40 @@ export function stuckReason(world, x, z) {
   return null;
 }
 
-/** The nearest road point, as a spot the car can be reset to. */
-export function roadSpot(world, x, z) {
-  const r = world && world.nearestRoad ? world.nearestRoad(x, z) : null;
-  if (!r || !isFinite(r.x) || !isFinite(r.z)) return null;
-  return { x: r.x, z: r.z, yaw: r.yaw || 0, name: r.name || '' };
+/** Check the oriented body, including corners and interior, with clearance. */
+export function placementReason(world, spot, spec = {}) {
+  if (!spot || ![spot.x, spot.z, spot.yaw ?? 0].every(Number.isFinite)) return 'invalid';
+  const hw = (spec.wid || 1.8) / 2, hl = (spec.len || 4.8) / 2;
+  const nx = Math.ceil(hw * 2 / 0.5), nz = Math.ceil(hl * 2 / 0.5);
+  const sn = Math.sin(spot.yaw || 0), cs = Math.cos(spot.yaw || 0);
+  for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) {
+    const side = -hw + 2 * hw * i / nx, along = -hl + 2 * hl * j / nz;
+    const x = spot.x + side * cs + along * sn;
+    const z = spot.z - side * sn + along * cs;
+    if (world?.buildingAt?.(x, z, 0.4)) return 'building';
+    if (world?.waterAt?.(x, z)) return 'water';
+  }
+  return null;
+}
+
+/** Search nearby road points; a blocked nearest point is not a safe reset. */
+export function roadSpot(world, x, z, spec = {}) {
+  if (!world?.nearestRoad) return null;
+  const seen = new Set();
+  for (const radius of [0, 6, 12, 24, 48, 96]) {
+    const count = radius ? 16 : 1;
+    for (let i = 0; i < count; i++) {
+      const angle = i * Math.PI * 2 / count;
+      const r = world.nearestRoad(x + Math.sin(angle) * radius, z + Math.cos(angle) * radius);
+      if (!r || !Number.isFinite(r.x) || !Number.isFinite(r.z)) continue;
+      const spot = { x: r.x, z: r.z, yaw: r.yaw || 0, name: r.name || '' };
+      const key = `${spot.x.toFixed(1)},${spot.z.toFixed(1)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (!placementReason(world, spot, spec)) return spot;
+    }
+  }
+  return null;
 }
 
 /**
@@ -69,15 +98,18 @@ export function resetSpot(world, veh) {
   const ls = veh && veh.lastSafe;
   if (ls && world && world.roadAt && world.roadAt(ls.x, ls.z)
     && Math.hypot(ls.x - veh.x, ls.z - veh.z) >= MIN_MOVE
-    && !stuckReason(world, ls.x, ls.z)) {
+    && !stuckReason(world, ls.x, ls.z)
+    && !placementReason(world, ls, veh.spec)) {
     return { x: ls.x, z: ls.z, yaw: ls.yaw, name: '' };
   }
-  return roadSpot(world, veh.x, veh.z);
+  return roadSpot(world, veh.x, veh.z, veh.spec);
 }
 
-function place(veh, spot) {
-  veh.reset(spot.x, spot.z, spot.yaw);
-  veh.lastSafe = { x: spot.x, z: spot.z, yaw: spot.yaw };
+function place(veh, spot, world) {
+  const y = world?.groundAt?.(spot.x, spot.z)?.h || 0;
+  veh.reset(spot.x, spot.z, spot.yaw, y);
+  veh.onRoad = world?.roadAt?.(spot.x, spot.z) || null;
+  veh.lastSafe = { x: spot.x, z: spot.z, yaw: spot.yaw, y };
 }
 
 /** T. Back on the road, damage and all, for nothing. */
@@ -85,8 +117,8 @@ export function freeReset(G) {
   const veh = G.veh, world = G.world;
   if (!veh) return { ok: false };
   const spot = resetSpot(world, veh);
-  if (!spot) { veh.recover(); return { ok: true, name: '', cost: 0 }; }
-  place(veh, spot);
+  if (!spot) return { ok: false, reason: 'no-safe-road' };
+  place(veh, spot, world);
   return { ok: true, name: spot.name, cost: 0 };
 }
 
@@ -96,9 +128,10 @@ export function callTow(G) {
   if (!veh) return { ok: false, cost: 0 };
   const cost = towCost(veh.damage || 0);
   if (wallet && !wallet.can(cost)) return { ok: false, cost, broke: true };
-  if (wallet) wallet.spend(cost);
-  const spot = roadSpot(world, veh.x, veh.z);
-  if (spot) place(veh, spot);
+  const spot = roadSpot(world, veh.x, veh.z, veh.spec);
+  if (!spot) return { ok: false, cost: 0, reason: 'no-safe-road' };
+  if (wallet && wallet.spend(cost) === false) return { ok: false, cost, broke: true };
+  place(veh, spot, world);
   veh.repair();
   if (G.health) G.health[veh.spec.id] = 0;
   if (G.repair) { G.repair.t = 0; G.repair.key = null; }
@@ -112,17 +145,20 @@ export function callTow(G) {
  * are) the inside of a house. Move a stuck car to the road, free, and make
  * lastSafe a road point regardless.
  */
-export function settleSpawn(G) {
+export function settleSpawn(G, {allowOffRoad = false} = {}) {
   const veh = G.veh, world = G.world;
   if (!veh || !world) return { moved: false, reason: null };
-  const reason = stuckReason(world, veh.x, veh.z);
+  let reason = placementReason(world, veh, veh.spec) || stuckReason(world, veh.x, veh.z);
+  // A deliberately parked car can be well inside a parking lot. Distance to
+  // the road alone is not evidence that this known parking spot is stuck.
+  if (allowOffRoad && reason === 'far') reason = null;
   if (reason) {
-    const spot = roadSpot(world, veh.x, veh.z);
-    if (spot) { place(veh, spot); return { moved: true, reason, name: spot.name }; }
+    const spot = roadSpot(world, veh.x, veh.z, veh.spec);
+    if (spot) { place(veh, spot, world); return { moved: true, reason, name: spot.name }; }
   }
-  const safe = roadSpot(world, veh.x, veh.z);
-  if (safe) veh.lastSafe = { x: safe.x, z: safe.z, yaw: safe.yaw };
-  return { moved: false, reason: null };
+  const safe = roadSpot(world, veh.x, veh.z, veh.spec);
+  if (safe) veh.lastSafe = { x: safe.x, z: safe.z, yaw: safe.yaw, y: world?.groundAt?.(safe.x, safe.z)?.h || 0 };
+  return { moved: false, reason, blocked: !!reason };
 }
 
 // ---------------------------------------------------------------- buttons

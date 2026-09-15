@@ -238,7 +238,7 @@ const SB_YELLOW = 0xf2bf0d, SB_BLACK = 0x16171a, SB_ROOF = 0xe6e6e2;
 const SCHOOL = {
   id: 'schoolbus',
   name: 'Autobus scolaire Blue Bird', who: 'La commission scolaire', whoDe: '',
-  body: SB_YELLOW, seats: 6, style: 'bus',
+  body: SB_YELLOW, seats: 71, places: 72, style: 'bus',
   park: 'building', noTraffic: true, duals: true,
   flavour: 'International 3800, 72 places, pis un été complet sans écoliers dedans. La clé est au-dessus du pare-soleil.',
   len: 11.60, wid: 2.44, h: 3.08, wheelbase: 6.93, overhangF: 1.22, track: 2.06, wheelR: 0.52,
@@ -274,6 +274,26 @@ const SCHOOL = {
   drive: { gears: [3.10, 1.81, 1.41, 1.00, 0.71], reverse: 4.49, final: 5.57, tyre: 1.030,
            idle: 640, redline: 2600, limiter: 2650,
            shiftUp: 2350, shiftUpLight: 1700, shiftDown: 950, launch: 1250, shiftTime: 0.50 },
+  // How it drives, in the grammar of the FEEL table in cars.js. It is declared
+  // here rather than there for the same reason the gearbox and the diesel above
+  // are: everything that makes a school bus a school bus and not the city bus
+  // lives in this one object, and vehiclekit's register() does not run cars.js's
+  // finalizeCar(), so a row in that table would never reach this spec anyway.
+  //
+  // It is the New Look's block with a shade less of everything — a conventional
+  // is 40 cm shorter, 15 cm narrower and a tonne and a half lighter than
+  // a transit coach, and you feel all three through the wheel — and, like the
+  // New Look, no `powerYaw`: ten tonnes does not rotate because you pressed
+  // something. `torque` is flat at exactly 1 because a big naturally-aspirated
+  // diesel geared for 92 km/h is flat everywhere this thing ever runs; see the
+  // long note over FEEL.bus in cars.js for why that is written out rather than
+  // left absent.
+  feel: {
+    layout: 'rwd',
+    torque: [[0, 1], [1, 1]],
+    shiftCut: 0.42, steerRate: 6.5, rackSpeed: 6.5, bite: 6.0, wallow: 0.62,
+    abs: false, counterSteer: 0.070,
+  },
   lamps: {
     head: [[0.62, 1.02, 0, 0.30, 0.20]],
     tail: [[0.98, 1.42, 0, 0.26, 0.34]],

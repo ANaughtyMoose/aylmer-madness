@@ -9,6 +9,7 @@
      hidden among noise is an error nobody sees. -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2310171c'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23ffc94d'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="cinematic.css">
 </head>
 <body>
 <canvas id="gl"></canvas>
@@ -32,7 +33,7 @@
   <div id="prompt" class="hidden"></div>
   <div id="tuto" class="hidden"><span class="cap"></span><span class="txt"></span></div>
   <div id="legend">
-    <div id="legendhead">Touches</div>
+    <button id="legendhead" type="button" aria-controls="legendrows">Afficher les commandes</button>
     <div id="legendrows"></div>
   </div>
   <div id="money">$80</div>
@@ -42,8 +43,13 @@
 
 <div id="menu">
   <div id="menuinner">
-    <h1>AYLMER<span>MADNESS</span></h1>
-    <p class="tag" id="menutag">Aylmer, Québec &middot; été 2004 &middot; t&rsquo;as ton permis pis un demi-réservoir</p>
+    <header class="title-scene">
+      <div class="title-copy">
+        <h1>AYLMER<span>MADNESS</span></h1>
+        <p class="tag" id="menutag">Aylmer, Québec &middot; été 2004 &middot; t&rsquo;as ton permis pis un demi-réservoir</p>
+      </div>
+      <img class="title-art" src="assets/cinema/fraser-2004.png" alt="" fetchpriority="high">
+    </header>
     <div id="menucols">
       <div id="menuside">
         <button id="btnContinue" class="ghost">Continuer</button>
@@ -184,6 +190,7 @@
      prompt slot, so it goes through hud.setRepairPrompt() into #prompt now. -->
 <div id="repairhint" class="hidden"></div>
 
-<script type="module" src="src/main.js?v=starts-15-labels"></script>
+<script type="importmap">{"imports":{"./src/game/story.js":"./src/game/story.js?v=historic-21","./src/game/buses.js":"./src/game/buses.js?v=historic-21","./src/game/turntable.js":"./src/game/turntable.js?v=historic-21","./src/game/cops.js":"./src/game/cops.js?v=historic-21","./src/game/traffic.js":"./src/game/traffic.js?v=historic-21","./src/game/homeparking.js":"./src/game/homeparking.js?v=historic-21","./src/game/missions.js":"./src/game/missions.js?v=historic-21","./src/game/places.js":"./src/game/places.js?v=historic-21","./src/game/lifejobs.js":"./src/game/lifejobs.js?v=historic-21","./src/game/mealshift.js":"./src/game/mealshift.js?v=historic-21","./src/game/routeprogress.js":"./src/game/routeprogress.js?v=historic-21","./src/game/cars.js":"./src/game/cars.js?v=historic-21","./src/game/avatars.js":"./src/game/avatars.js?v=historic-21","./src/game/speeds.js":"./src/game/speeds.js?v=historic-21","./src/game/fortier.js":"./src/game/fortier.js?v=historic-21","./src/game/fortiercars.js":"./src/game/fortiercars.js?v=historic-21","./src/game/landmarks.js":"./src/game/landmarks.js?v=historic-21","./src/game/historicstrip.js":"./src/game/historicstrip.js?v=historic-21","./src/game/tow.js":"./src/game/tow.js?v=historic-21","./src/game/damage.js":"./src/game/damage.js?v=historic-21","./src/game/economy.js":"./src/game/economy.js?v=historic-21","./src/game/oldaylmer.js":"./src/game/oldaylmer.js?v=historic-21"}}</script>
+<script type="module" src="src/main.js?v=historic-21"></script>
 </body>
 </html>

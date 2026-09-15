@@ -39,7 +39,7 @@ import { policeLine, line as textLine } from './racingtext.js';
 // A 1998 Crown Victoria, near enough. Same profile grammar as cars.js: `t` runs
 // 0 (rear bumper) to 1 (front bumper), y and half-width in metres.
 export const CRUISER = {
-  id: 'cruiser', name: 'Police d’Aylmer', who: 'Police', style: 'sedan',
+  id: 'police_cruiser', name: 'Police d’Aylmer', who: 'Police', style: 'sedan',
   body: 0xf2f4f6, seats: 3,
   flavour: 'Crown Victoria, moteur 4.6, gyrophare pis un projecteur sur le pilier.',
   len: 5.40, wid: 1.98, h: 1.45, wheelbase: 2.91, overhangF: 1.06, wheelR: 0.36,
@@ -58,6 +58,32 @@ export const CRUISER = {
   hbGrip: 0.44, hbYaw: 1.36,
   sound: { f0: 40, span: 190, sub: 0.5, o2g: 0.5, cut0: 320, cutSpan: 2000, gain: 1.05,
            type1: 'sawtooth', type2: 'square', rattle: 0, rattleFrom: 0 },
+  // The 4.6 modular and the AOD-E behind it. Nothing in the audio path reads
+  // this — the cruiser is still on the two-oscillator synth above, not the
+  // pulse-train one the cars use — but the FEEL block below needs a gearbox of
+  // its own to read an rpm off, and leaving it out would have handed a police
+  // Crown Victoria the Ranger's five-speed and a 2.3 Lima's shift points.
+  // 169 km/h is 2894 rpm in fourth, which is what an overdriven P71 does.
+  drive: { gears: [2.84, 1.55, 1.00, 0.70], reverse: 2.32, final: 3.27, tyre: 0.710,
+           idle: 600, redline: 5000, limiter: 5100,
+           shiftUp: 4600, shiftUpLight: 2300, shiftDown: 1300, launch: 1800, shiftTime: 0.28 },
+  // How it drives, in the grammar of the FEEL table in cars.js — declared here
+  // and not there because this car is not in CARS at all (you never get to buy
+  // it) and because the key `cruiser` in that table is already spoken for by the
+  // Schwinn in game/bikes.js, which must stay blank.
+  //
+  // It is the Crown Vic on the used lot (FEEL.crownvic) with the municipal
+  // package on it: the same flat 5.0 torque, the same body-on-frame float, but
+  // a quicker box, a firmer bar and tyres somebody bought to be driven on. It
+  // still steps out under power — further than the civilian car, because it has
+  // more of everything to step out with — it just does not wallow about
+  // afterwards. That is the difference you are meant to feel in a chase.
+  feel: {
+    layout: 'rwd', powerYaw: 0.48, wheelspin: 0.46,
+    torque: [[0, 0.84], [0.16, 0.96], [0.34, 1], [1, 1]],
+    shiftCut: 0.14, steerRate: 10, rackSpeed: 11, bite: 8.4, wallow: 0.28,
+    counterSteer: 0.042,
+  },
 };
 {
   const c = CRUISER;
@@ -261,7 +287,9 @@ export class Cops {
   spawn(G) {
     const p = this.spawnPoint(G);
     const v = G.veh;
-    const u = new Rival(CRUISER, { id: 'cop' + this.units.length, name: 'Police', skill: SKILL.cop });
+    const u = new Rival(CRUISER, {
+      id: 'cop' + this.units.length, name: 'Police', skill: SKILL.cop, phys: G.phys,
+    });
     u.place(p.x, p.z, Math.atan2(v.x - p.x, v.z - p.z));
     u.active = true;
     u.routeT = 0.2 * this.units.length;
@@ -293,9 +321,14 @@ export class Cops {
     for (const [, s] of near) {
       const back = (s.ext || 12) + 7;
       const cx = s.x - fx * back, cz = s.z - fz * back;
+      // `y` because the barricade is parked, not driven: nothing steps these
+      // two, so the height of the road under them is sampled once, here, or
+      // they sit at sea level under the hill the lights are on.
+      const gy = (G.phys && G.phys.groundY) ? G.phys.groundY : null;
       const spots = [-1, 1].map((side) => ({
         x: cx + rx * side * 2.3, z: cz + rz * side * 2.3,
         yaw: Math.atan2(rx, rz), spin: 0,
+        y: gy ? gy(cx + rx * side * 2.3, cz + rz * side * 2.3) : 0,
       }));
       if (onRoad && !spots.every((q) => onRoad(q.x, q.z))) continue;
       for (const q of spots) { asBody(q, CRUISER); this.blocks.push(q); }
@@ -466,11 +499,11 @@ export class Cops {
     for (const u of this.units) {
       if (Math.hypot(u.x - v.x, u.z - v.z) > 400) continue;
       const c = u.veh;
-      drawCar(CRUISER, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y);
+      drawCar(CRUISER, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y, c.gh);
     }
     for (const b of this.blocks) {
       if (Math.hypot(b.x - v.x, b.z - v.z) > 400) continue;
-      drawCar(CRUISER, b.x, b.z, b.yaw, 0, 0, 0, 0, null, 1, 0);
+      drawCar(CRUISER, b.x, b.z, b.yaw, 0, 0, 0, 0, null, 1, b.y || 0, b.y || 0);
     }
     const r = G.renderer, mesh = G.meshes;
     if (!r || !mesh || !mesh.copPodL) return;
@@ -480,7 +513,7 @@ export class Cops {
       for (const u of list) {
         const x = u.x, z = u.z, yaw = u.yaw;
         if (Math.hypot(x - v.x, z - v.z) > 400) continue;
-        m4.compose(MM, x, u.veh ? u.veh.y : 0, z, yaw, 0, 0);
+        m4.compose(MM, x, u.veh ? u.veh.y : (u.y || 0), z, yaw, 0, 0);
         r.draw(mesh.copPodL, MM, red ? OPT_RED : OPT_DIM);
         r.draw(mesh.copPodR, MM, red ? OPT_DIM : OPT_BLUE);
       }

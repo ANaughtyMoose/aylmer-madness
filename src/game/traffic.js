@@ -396,7 +396,11 @@ export class Traffic {
       let e = this.edges[c.edge];
       this.laneAt(e, 1, tgt, c.lane || 0);
       let dx = tgt[0] - c.x, dz = tgt[1] - c.z;
-      if (Math.hypot(dx, dz) < ARRIVE) {
+      // A shoulder-riding cyclist can pass a short bend's endpoint outside
+      // its arrival circle. Advance after crossing its stop line, too.
+      const passedBikeEnd = c.kind === 'bike' && dx * e.dx + dz * e.dz < 0
+        && Math.abs(dx * e.dz - dz * e.dx) < 6;
+      if (Math.hypot(dx, dz) < ARRIVE || passedBikeEnd) {
         // Fake stop sign: three or more differently-named roads meeting here.
         if (this.nodes[e.b].stop && (e.cls === 'residential' || e.cls === 'tertiary')) {
           c.stopT = STOP_HOLD;
@@ -431,7 +435,8 @@ export class Traffic {
       const want = Math.atan2(aim[0] - c.x, aim[1] - c.z);
       const err = angleDelta(want, c.yaw);
       // Turn rate falls off with speed so corners look like corners, not pivots.
-      c.yaw += clamp(err, -1.6, 1.6) * Math.min(1, dt * (1.4 + 6 / (1 + c.speed)));
+      c.yaw += clamp(err, -1.6, 1.6) * Math.min(1, dt * (1.4 + 6 / (1 + c.speed)))
+        * (c.kind === 'bike' ? Math.min(1, c.speed / 0.8) : 1);
 
       // Brake for the player or another car sitting in our lane ahead.
       const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw);

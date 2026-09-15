@@ -11,7 +11,7 @@
 //             and a maroon Hawaiian shirt with big magenta fronds worn WIDE
 //             open over a bare chest. Caught mid-move, because he always is.
 //             The Civic, 75 Denise-Friend.
-//   Margaret  cropped white hair, a smile that takes up a third of her face,
+//   Margaret  dark brown hair with grey streaks, a smile that takes up a third of her face,
 //             a navy tee, and the grey fleece tied round her waist with the
 //             little pouch on it. Waving before you have finished parking.
 //             The Saturn, 299 Chemin Fraser.
@@ -52,7 +52,7 @@ const S = {   // Sayyad
 };
 const M = {   // Margaret
   skin: 0xf2bd95, skinDark: 0xdcaa83, cheek: 0xecb28c,
-  hair: 0xffffff, hairDark: 0xf0eee9,
+  hair: 0x392b24, hairDark: 0x291f1a,
   tee: 0x1a2236, teeLit: 0x232c44,
   fleece: 0x596069, fleeceLit: 0x6d757f, pouch: 0x79826f,
   pants: 0xc6c8c5, shoe: 0xdcd9d2,
@@ -272,7 +272,7 @@ function margaretHead(b, hy) {
   b.box(0, hy + 0.06, 0, 0.37, 0.28, 0.35, skin, { noBottom: true });
   b.box(0, hy - 0.125, 0, 0.35, 0.17, 0.335, skin, { wTop: 0.372, dTop: 0.352 });
   for (const s of [-1, 1]) b.box(s * 0.192, hy + 0.005, -0.02, 0.035, 0.10, 0.08, skin);
-  // The hair: short, cropped, and BRIGHT white — a cap over the top, short
+  // The hair: short, cropped, dark brown with a few grey strands — a cap, short
   // sides, and the back a half-tone down so the silhouette still has a back.
   const w = rgb(M.hair), wd = rgb(M.hairDark);
   b.box(0, hy + 0.245, 0, 0.40, 0.115, 0.38, w);
@@ -282,6 +282,9 @@ function margaretHead(b, hy) {
   b.box(-0.10, hy + 0.198, 0.10, 0.185, 0.07, 0.19, w);
   for (const s of [-1, 1]) b.box(s * 0.194, hy + 0.175, -0.02, 0.04, 0.16, 0.33, w);
   b.box(0, hy + 0.10, -0.187, 0.38, 0.30, 0.045, wd);
+  for (const s of [-1, 1]) b.box(s * .218, hy + .19, .055, .008, .072, .045, rgb(0xb8b1a8));
+  b.box(.075, hy + .338, -.035, .026, .006, .11, rgb(0xd1cbc3));
+  b.box(-.11, hy + .306, .12, .020, .012, .085, rgb(0x9d9790));
   // Eyes: two short bars each, apex in the middle. A single slanted bar reads
   // as a scowl no matter which way you slant it; a shallow ^ is a smile that
   // has got as far as the eyes, which is the only expression she has.

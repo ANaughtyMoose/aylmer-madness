@@ -251,7 +251,7 @@ group('the new-game opener');
   }
   const all = STORY_CARDS.map((c) => c.body).join(' ');
   ok(/Ranger XL 1993/.test(all), 'it says what you are driving');
-  ok(/dix-sept/.test(all) && /2004|Aylmer/.test(all), 'and who and when you are');
+  ok(/Tom/.test(all) && /2004|Aylmer/.test(all), 'and who and where you are, without assuming Tom’s age');
   for (const who of ['Margaret', 'Sayyad', 'Adam', 'Mike']) {
     ok(all.includes(who), `it introduces ${who}`);
   }

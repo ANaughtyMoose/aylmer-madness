@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>Aylmer audio review</title>
+<style>body{background:#182029;color:#eee;font:18px system-ui;margin:32px}button{padding:14px;margin:8px}pre{white-space:pre-wrap}audio{display:block;margin:12px}</style>
+<h1>Aylmer audio review</h1><p>Local review of the actual engine, road and synthesized radio code. No external audio files.</p>
+<button id="render">Render music and vehicle checks</button><button id="live">Check live radio and mixer</button>
+<pre id="result">Ready</pre><div id="samples"></div>
+<script type="module">
+import {STYLES,renderLoop,Radio} from '../src/game/radio.js';
+import {Audio} from '../src/core/audio.js';
+import {CARS} from '../src/game/cars.js';
+import {renderAudition,renderRoadAudition,envelope} from '../src/core/audition.js';
+const result=document.querySelector('#result');
+function playable(samples,rate,label){
+ const bytes=new ArrayBuffer(44+samples.length*2),v=new DataView(bytes);
+ const word=(p,s)=>{for(let i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i));};
+ word(0,'RIFF');v.setUint32(4,bytes.byteLength-8,true);word(8,'WAVE');word(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);word(36,'data');v.setUint32(40,samples.length*2,true);
+ samples.forEach((s,i)=>v.setInt16(44+i*2,Math.round(Math.max(-1,Math.min(1,s))*32767),true));
+ const p=document.createElement('p');p.textContent=label;const a=document.createElement('audio');a.controls=true;a.src=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));document.querySelector('#samples').append(p,a);
+}
+document.querySelector('#render').onclick=async()=>{try{
+ result.textContent='Rendering…';const rows=[];
+ for(const style of STYLES){const b=await renderLoop(style.id,2004);const e=envelope(b.getChannelData(0),b.sampleRate,b.duration);rows.push({music:style.id,peak:e.peak,minRms:Math.min(...e.rms)});if(style.id==='pop')playable(b.getChannelData(0),b.sampleRate,'Radio pop sample');}
+ for(const spec of CARS.filter(s=>['ranger','benz','civic'].includes(s.id))){const a=await renderAudition(spec);const e=envelope(a.samples,a.sampleRate,a.seconds);rows.push({vehicle:spec.id,peak:e.peak,minRms:Math.min(...e.rms),shifts:a.shifts});playable(a.samples,a.sampleRate,spec.name);}
+ const a=await renderRoadAudition(CARS[0]);const e=envelope(a.samples,a.sampleRate,a.seconds);rows.push({road:true,peak:e.peak,minRms:Math.min(...e.rms)});playable(a.samples,a.sampleRate,'Road, landing and collision');
+ result.textContent=JSON.stringify({pass:rows.every(r=>r.peak>0.001&&r.peak<1&&(r.music || r.minRms>0)),rows},null,2);
+ }catch(e){result.textContent=e.stack;}};
+document.querySelector('#live').onclick=async()=>{try{
+ const a=new Audio();a.start();await a.ctx.resume();const r=new Radio(a);r.tune(0);const timer=setInterval(()=>r.update(1/60),1000/60);
+ const meter=a.ctx.createAnalyser();meter.fftSize=2048;a.comp.connect(meter);
+ const rms=()=>{const b=new Float32Array(meter.fftSize);meter.getFloatTimeDomainData(b);return Math.sqrt(b.reduce((s,v)=>s+v*v,0)/b.length);};
+ const level=async()=>{let peak=0;for(let i=0;i<12;i++){await new Promise(resolve=>setTimeout(resolve,100));peak=Math.max(peak,rms());}return peak;};const wait=()=>new Promise(resolve=>setTimeout(resolve,1500));await wait();while(!r.src&&r.rendering)await wait();const on=await level();r.suspend();await wait();const paused=await level();r.resume();await wait();const resumed=await level();a.setVolume({radio:0});await wait();const muted=await level();a.setVolume({radio:1});await wait();const restored=await level();
+ result.textContent=JSON.stringify({pass:on>0.0001&&paused<0.00001&&resumed>0.0001&&muted<0.00001&&restored>0.0001,context:a.ctx.state,on,paused,resumed,muted,restored,radio:r.state()},null,2);clearInterval(timer);r.suspend();await a.ctx.close();
+ }catch(e){result.textContent=e.stack;}};
+</script>

@@ -243,7 +243,7 @@ Finish what B1 started. The spec is `assets/cars/README.md` and it is strict:
 made was a single atlas, not the four views; redo it to spec. All thirteen:
 `ranger` (1993 Ford Ranger **XL** regular cab, white, black steel wheels, black
 plastic mirrors and bumpers, whip antenna, no chrome) · `saturn` (1997 Saturn
-SL 4-door, blue) · `civic` (1988 Civic Si hatch, red) · `sunfire` (1997
+SL 4-door, blue) · `civic` (1987 Civic Si hatch, red) · `sunfire` (1997
 Sunfire coupe, teal) · `forester` (1998 Forester, green) · `sienna` (1999
 Sienna, faded, one mismatched hubcap) · `cavalier` (1991 Cavalier Z24, red) ·
 `cutlass` (1987 Cutlass Ciera, brown) · `caravan` (1988 Caravan, two-tone) ·
