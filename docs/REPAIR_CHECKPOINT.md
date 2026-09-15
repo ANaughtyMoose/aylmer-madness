@@ -1,32 +1,29 @@
 # Repair checkpoint — 15 September 2026
 
-Working checkout: `C:\Users\Tom PC\Documents\Codex\2026-09-15\you-x20\work\aylmer-madness`
-Branch: `codex/aylmer-repairs`. Original checkout is untouched.
+Checkout: C:\Users\Tom PC\Documents\Codex\2026-09-15\you-x20\work\aylmer-madness
+Branch: codex/aylmer-repairs. Original checkout untouched. Work remains in progress.
 
-## Saved and integrated
-- Recovery instructions committed and pushed first: 64361ef.
-- Opus Glenwood commits c6943589/d070a466 cherry-picked as d1db6a1/0c577fa.
-- User supplied Opus handoff; preview tested by Opus, real-game check still pending.
+## Saved work
+- Recovery prompt was committed and pushed FIRST (64361ef).
+- Opus houses integrated as d1db6a1 and 0c577fa; source branch claude/glenwood-houses.
+- Shared terrain triangulation, continuous residential sidewalks, sequential campaign, pause audio gate and mission briefing.
+- Restrained pavement patches, cracks, manholes, worn paint and sidewalk joints.
+- Cemetery perimeter offset from road corridors; requires further visual verification.
+- Ranger roof bevels, rusty spare, anchored chain and bounded impulse-driven tire movement.
 
-## Implementation in progress — NOT release-ready
-- Shared terrain surface clipper `src/game/surface.js`; world lawn, landuse, roads, sidewalks, markings and junction decks now use it. Prevents independently tessellated ground covers from crossing.
-- Two-sided residential sidewalks enabled. Sidewalk curb geometry optimized to two longitudinal faces.
-- Sequential mission availability: first unfinished campaign mission, with existing story beats inserted when earned. Completed jobs replayable; modes/encounters remain separate. Applied to start, nearby prompts, maps, markers and story hints.
-- Pause master audio gate added, with volume changes respecting pause. Briefing artwork, current objective, collapsible locked/completed lists and restart action added.
+## Verification
+- Full local runner: 50/51 suites passed. Story failure found a real missing next-story-beat hint; fixed lookup to use all definitions, gated by save progress. Targeted story rerun: 3156 passed, 0 failed. No other code changes since full run at this checkpoint except that fix.
+- World: 22/22. Vertex sharing brings buffers below the original 340 MB ceiling (previous measurement 313 MB). Non-house triangle ceiling intentionally changed from 3.95M to 4.7M for newly continuous residential walks and shared surface subdivisions; memory ceiling unchanged.
+- Topography mesh and physics height regression passed.
+- Running game: Glenwood houses visible from Rue Glenwood with clear pavement and sidewalks; spare visible in bed.
+- Running pause: master gain 0 with active siren, game time frozen, mission unchanged. Primary actions visible with mission artwork.
+- Browser review harness: tools/repair-review.html, local server port 8136. Single iframe game keeps memory use down.
 
-## Checks so far
-- JavaScript syntax passes for main/world after edits.
-- Running browser started a fresh Tom game and alternator mission; pause opens and keeps all primary actions on screen.
-- Latest full-world smoke: 20/22 checks pass. Remaining failures: non-house geometry 4,441,725 triangles against 3,950,000 budget; vertex buffers 370 MB against 340 MB. Do not claim these tests pass or loosen them casually: user's machine was short of memory during Opus work. Optimize further.
-- Pause artwork CSS ordering corrected after browser check; needs reload/verification.
-- Original baseline tests have not been rerun in this task; historical report says 49 suites passed.
-- Local server started on port 8136 (Node tools/serve.mjs), verify it is still alive before use.
+## Remaining before calling complete
+1. Verify Saint-Paul/Fraser roads across slopes and junctions: latest cemetery camera showed an apparent road gap/grass strip near the vehicle; determine geometry vs streaming/camera state. Do NOT call this fixed until checked.
+2. Verify fence placement and collisions, road props, truck chain close-up and bounce.
+3. Add focused regression coverage for campaign sequence/legacy completion, spare bounds, shared surface overlays and cemetery setbacks.
+4. Check pause restart/resume, eliminate remaining HUD counter behind pause, and verify next job is actionable after completion.
+5. Save final visual evidence, update recovery notes, commit and batch push.
 
-## Next actions
-1. Complete surface optimization and numerical overlap/physics tests. Verify actual Fraser/cemetery/Glenwood streets.
-2. Locate cemetery fencing: current world source only explicitly mentions Galeries fence. Do not invent a confirmed cause; inspect running scene and map data. Check roadside obstacles broadly.
-3. Test mission sequence, legacy saves and paused audio/resume/restart in browser.
-4. Add restrained road wear and truck/spare improvements.
-5. Run local regression suites serially, capture visual evidence, finish verification and push a completed milestone.
-
-No main merge, deployment, workflow edits, CI dispatches or tags. Public repo has only dynamic Pages workflow. Repair branch checkpoints are authorized; batch pushes and check visibility/workflows before each.
+No main merge, deploy, tags or workflow changes. Repository public; only dynamic pages-build-deployment workflow is active. Check visibility/workflows before pushes; docs-only commits use [skip ci].

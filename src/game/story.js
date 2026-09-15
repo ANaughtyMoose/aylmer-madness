@@ -16,7 +16,7 @@
 // Nothing in here draws or steps anything. main.js owns the four hook lines.
 // The one exception is the opener's own card: it goes through ui.js's
 // setModal() so the HUD stops drawing behind it (U7).
-import { MISSIONS, missionAvailable } from './missions.js';
+import { ALL_MISSIONS, missionAvailable } from './missions.js';
 import { setModal } from './ui.js';
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
@@ -118,7 +118,7 @@ export class StoryOpener {
 export const fmtDist = (d) => (d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km');
 
 /** The closest job you have not done yet (or, if you did them all, null). */
-export function nearestJob(G, list = MISSIONS) {
+export function nearestJob(G, list = ALL_MISSIONS) {
   const v = G && (G.focus || G.veh);
   if (!v) return null;
   let best = null, bd = Infinity;
@@ -134,7 +134,7 @@ export function nearestJob(G, list = MISSIONS) {
 }
 
 /** The closest job of all, done or not — for when there is nothing left to do. */
-export function nearestAnyJob(G, list = MISSIONS) {
+export function nearestAnyJob(G, list = ALL_MISSIONS) {
   const v = G && (G.focus || G.veh);
   if (!v) return null;
   let best = null, bd = Infinity;

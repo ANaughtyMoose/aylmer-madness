@@ -1,3 +1,4 @@
+import { buildCemeteryFences } from './cemetery.js';
 import { makeSurface } from './surface.js';
 import { FRASER, fraserFootprint, buildFraser } from './fraser.js';
 // Turns mapdata.js (real OpenStreetMap Aylmer) into geometry and collision data.
@@ -446,18 +447,34 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   }
 
   const surface = makeSurface(baseAt, baseRect, DRAPE);
+  const surfaceVertices = new WeakMap();
   const DN = [0,1,0];
   function drapeNormal(x,z) { const b=baseAt(x,z); DN[0]=b.nx;DN[1]=b.ny;DN[2]=b.nz;return b.h; }
   function cover(poly,y,col,get=bAt,reuse=null) {
     surface.drape(poly,y,points=>{
+      // Remove clip-generated duplicates and collinear vertices before fanning.
+      let changed=true;
+      while(changed && points.length>3) {
+        changed=false;
+        for(let i=0;i<points.length;i++) {
+          const a=points[(i+points.length-1)%points.length],b=points[i],c=points[(i+1)%points.length];
+          if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))<1e-8) {
+            points.splice(i,1);changed=true;break;
+          }
+        }
+      }
       let mx=0,mz=0;for(const p of points){mx+=p[0];mz+=p[2];}mx/=points.length;mz/=points.length;
       if(inside && !inside(mx,mz))return;
       const bd=get(mx,mz);drapeNormal(mx,mz);
+      let shared=reuse;
+      if(!shared) { shared=surfaceVertices.get(bd);if(!shared){shared=new Map();surfaceVertices.set(bd,shared);} }
+      const colorKey=col.map(v=>v.toFixed(5)).join(',');
       const ids=points.map(p=>{
-        const key=reuse ? p[0].toFixed(6)+','+p[2].toFixed(6) : null;
-        if(reuse && reuse.has(key))return reuse.get(key);
+        const key=p[0].toFixed(6)+','+p[1].toFixed(6)+','+p[2].toFixed(6)+','+colorKey;
+        if(shared.has(key))return shared.get(key);
+        drapeNormal(p[0],p[2]);
         const k=bd.vert(p[0],p[1],p[2],DN[0],DN[1],DN[2],col);
-        if(reuse)reuse.set(key,k);return k;
+        shared.set(key,k);return k;
       });
       for(let i=1;i+1<points.length;i++) {
         const a=points[0],b=points[i],c=points[i+1];
@@ -603,6 +620,17 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     }
   }
   const roadSegArr = Float64Array.from(roadSegs);
+  function streetClear(x,z,margin=2.6) {
+    const ix=Math.floor(x/ROAD_CELL),iz=Math.floor(z/ROAD_CELL);
+    for(let i=ix-1;i<=ix+1;i++)for(let j=iz-1;j<=iz+1;j++) {
+      for(const id of roadGrid.get(gkey(i,j)) || []) {
+        const o=id*7,r=roadSegArr[o+5]+margin;
+        if(distPtSeg2(x,z,roadSegArr[o],roadSegArr[o+1],roadSegArr[o+2],roadSegArr[o+3])<r*r)return false;
+      }
+    }
+    return true;
+  }
+  const cemeteryFences=buildCemeteryFences(areas,{clear:streetClear,baseAt,bAt,addSegment,inside});
 
   // "Is the car on tarmac?" — unchanged, kerb + 0.8 so a wheel on the gutter
   // still counts as on the road.
@@ -752,7 +780,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         let d = ext + 1.9, cx = 0, cz = 0, placed = false;
         for (let k = 0; k < 9; k++, d += 0.6) {
           cx = nd.x + ux * d; cz = nd.z + uz * d;
-          if (!pavedAt(cx, cz, -1, 0.2)) { placed = true; break; }
+          if (rectPoints(cx,cz,2.8,2.8,Math.atan2(ux,uz)).every(p=>!pavedAt(p[0],p[1],-1,0.25)) && !pavedAt(cx,cz,-1,0.2)) { placed = true; break; }
         }
         noteFurniture(cx, cz, 'kerb', -1, !placed);
         if (!placed) { furnDropped++; continue; }
@@ -791,7 +819,8 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     const hw = road.w / 2;
     const isService = road.cls === 'service';
     const y = isService ? Y.service : Y.road;
-    const col = roadCols[road.cls] || roadCols.residential;
+    const age = streetHash(road.name, road.name ? 0 : ri) % 5;
+    const col = (roadCols[road.cls] || roadCols.residential).map(v => Math.min(1,v*(age===0?0.94:1.12+age*0.09)));
     const major = MAJOR[road.cls] === 1;
     const paved = PAVED[road.cls] === 1;
     const rh = streetHash(road.name, ri);
@@ -853,6 +882,23 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         r1x = pts[i + 1][0] - nx; r1z = pts[i + 1][1] - nz;
       }
       cover([[l0x,l0z],[r0x,r0z],[r1x,r1z],[l1x,l1z]],y,col);
+      // Sparse summer repairs. These are visual decals, not physical bumps.
+      const wear=(rh+Math.imul(i+1,2654435761))>>>0;
+      if(!isService && age>0 && lens[i]>24 && overBase(mx,mz,mx,mz)) {
+        const yaw=Math.atan2(dxs[i],dzs[i]),nx=dzs[i],nz=-dxs[i];
+        if(wear%3===0) {
+          const px=mx+nx*hw*0.45,pz=mz+nz*hw*0.45;
+          stripe(px,pz,0.85,2.8+(wear%4),Y.inter+0.007,yaw,col.map(v=>v*0.82));
+          // An irregular thin crack with two short branches.
+          for(const [off,len,ang] of [[-0.7,1.1,0.31],[0.25,1.0,-0.2],[0.8,0.65,0.55]])
+            stripe(mx+dxs[i]*off,mz+dzs[i]*off,0.035,len,Y.inter+0.009,yaw+ang,col.map(v=>v*0.61));
+        }
+        if(wear%5===0) {
+          const px=mx-nx*hw*0.48,pz=mz-nz*hw*0.48;
+          disc(px,pz,0.34,Y.inter+0.01,rgb(0x555650));
+          for(const off of [-0.12,0,0.12])stripe(px+nx*off,pz+nz*off,0.025,0.40,Y.inter+0.012,yaw,rgb(0x363b39));
+        }
+      }
       // Streets without a concrete walk transition through a narrow compacted
       // shoulder, rather than ending in a perfectly sharp asphalt/grass seam.
       if (road.cls === 'residential' && walkSides.length === 0 && lens[i] > 2) {
@@ -910,7 +956,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         let s = Math.max(carry, s0);
         while (s + 4 <= s1) {
           const cx = pts[i][0] + dx * (s + 2), cz = pts[i][1] + dz * (s + 2);
-          stripe(cx, cz, 0.35, 4, Y.mark, yaw, yellow);
+          stripe(cx, cz, 0.17, age===0?4:3.7, Y.mark, yaw, yellow.map((v,k)=>v*(age===0?1:0.76)+col[k]*(age===0?0:0.24)));
           dashCount++;
           s += 10;
         }
@@ -933,7 +979,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         const off = hw - 0.5;
         for (const s of [1, -1]) {
           const cx = mx + nx * off * s, cz = mz + nz * off * s;
-          stripe(cx, cz, 0.25, L, Y.mark, yaw, white);
+          stripe(cx, cz, 0.16, L, Y.mark, yaw, white.map((v,k)=>v*0.72+col[k]*0.28));
         }
       }
     }
@@ -978,6 +1024,11 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
             for (const e of [runs[q] + 0.2, runs[q + 1] - 0.2]) {
               noteFurniture(pts[i][0] + dx * e + nx * off * s,
                 pts[i][1] + dz * e + nz * off * s, 'walk', ri, false);
+            }
+            if(overBase(cx,cz,cx,cz)) {
+              // Slab joints every few metres; enough to read at driving speed.
+              for(let u=-L/2+3;u<L/2-0.5;u+=3.4)
+                stripe(cx+dx*u,cz+dz*u,1.65,0.022,0.124,yaw,rgb(0x817e75));
             }
             sidewalkCount++;
           }
@@ -2687,6 +2738,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     fallen,                 // poles on their way down / lying there
     poleCount,
     // 9. reactive world: where the pavement runs and what is standing on it
+    cemeteryFences, streetClear,
     walks,                  // sidewalk runs, nodes every 5 m
     queryWalks,             // (x, z, r) -> indices into walks
     walkStep: REACT.step,

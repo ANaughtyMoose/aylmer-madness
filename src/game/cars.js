@@ -1057,13 +1057,15 @@ export function loft(mb, s, n, ring, paint) {
     const t = i / n;
     rings.push({ t, z: tToZ(s, t), p: ring(t) });
   }
-  const FACES = ['bottom', 'sideL', 'glassL', 'top', 'glassR', 'sideR'];
+  const beveled=rings[0].p.length===8;
+  const FACES = beveled ? ['bottom','sideL','glassL','glassL','top','glassR','glassR','sideR']
+    : ['bottom', 'sideL', 'glassL', 'top', 'glassR', 'sideR'];
   // Edge k of the ring goes from point k to point k+1 (mod 6):
   // 0: bottom(5->0)... define explicitly for clarity.
-  const EDGE = [[5, 0], [0, 1], [1, 2], [2, 3], [3, 4], [4, 5]];
+  const EDGE = beveled ? [[7,0],[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7]] : [[5, 0], [0, 1], [1, 2], [2, 3], [3, 4], [4, 5]];
   for (let i = 0; i < n; i++) {
     const A = rings[i], B = rings[i + 1];
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < EDGE.length; k++) {
       const [a, b] = EDGE[k];
       const face = FACES[k];
       const p0 = [A.p[a][0], A.p[a][1], A.z], p1 = [A.p[b][0], A.p[b][1], A.z];
@@ -1094,7 +1096,7 @@ export function loft(mb, s, n, ring, paint) {
       const c = paint(face, R.t, q[1], R, [q[0], q[1], R.z]);
       mb.vert(q[0], q[1], R.z, 0, 0, dir, c[0], c[1], c[2]);
     }
-    for (let k = 1; k < 5; k++) {
+    for (let k = 1; k < R.p.length-1; k++) {
       if (dir > 0) mb.tri(base, base + k, base + k + 1);
       else mb.tri(base, base + k + 1, base + k);
     }
@@ -1578,7 +1580,14 @@ export function addDetails(mb, s, opts = {}) {
 
 export function buildCarBody(s, opts = {}) {
   const mb = new MeshBuilder();
-  loft(mb, s, 64, (t) => specRing(s, t), specPaint(s));
+  loft(mb, s, 64, (t) => {
+    const p=specRing(s,t);
+    if(s.id!=='ranger')return p;
+    // A small bevel catches light along the cab and hood shoulders. Retain the
+    // same overall envelope and all existing cockpit/glass profile positions.
+    const d=Math.min(0.045,Math.max(0,(p[2][1]-p[1][1])*0.2));
+    return [p[0],p[1],[p[2][0]+d,p[2][1]-d],p[2],p[3],[p[3][0]-d,p[3][1]-d],p[4],p[5]];
+  }, specPaint(s));
   addDetails(mb, s, opts);
   return mb;
 }

@@ -1,3 +1,4 @@
+import { buildSpare, buildSpareAnchor, buildChainLink, stepSpare, drawSpare } from './game/spare.js';
 import { speedFraction } from './game/speeds.js';
 import { FortierChase, installFortierMeshes, svxHome } from './game/fortier.js';
 const fortier = new FortierChase();
@@ -904,6 +905,7 @@ function worldStages() {
         G.meshes.wheels[c.id] = r.upload((c.buildWheel || buildWheel)(c));
         G.meshes.cones[c.id] = buildHeadlights(r, c);
       }
+      G.meshes.spare={tire:r.upload(buildSpare()),anchor:r.upload(buildSpareAnchor()),link:r.upload(buildChainLink())};
       G.meshes.head = r.upload(buildHead());
       // Photo skins load in the background and replace the lofted models when present.
       G.meshes.skins = {};
@@ -2035,6 +2037,7 @@ function tick(dt) {
   vehicleTick(G, ctl, dt);
   const preImpact = v.impact;
   v.update(dt, ctl, G.phys);
+  if(v.spec.id==='ranger')stepSpare(v,dt);
   // Air and landings. `v.landed` is the vertical speed the springs killed, set
   // for exactly one tick; `v.lastAir` is how long the flight that ended it was.
   if (v.inAir) G.stats.airtime += dt;
@@ -2468,6 +2471,8 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
   if (skin) opts.tex = skin.tex;
   m4.compose(mm, x, y, z, yaw, pitch, roll);
   r.draw(skin ? skin.mesh : G.meshes.cars[spec.id], mm, opts);
+  if(spec.id==='ranger' && G.meshes.spare)drawSpare(r,G.meshes.spare,mm,
+    spec===G.veh.spec && Math.hypot(x-G.veh.x,z-G.veh.z)<0.1 ? G.veh.spareLift || 0 : 0);
 
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
   const hx = spec.track / 2;
@@ -2951,7 +2956,7 @@ requestAnimationFrame(frame);
 
 // Debug hook: lets a console (or a test) step the sim without a live rAF.
 window.AYLMER = {
-  G, hud, input, garage, radio, cinema,
+  G, hud, input, garage, radio, cinema, pause,
   step(dt = STEP) { if (G.mode === 'drive' && !cinema.active) { input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } },
   render() { if (G.mode === 'drive') render(STEP); },
   teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw, spawnY(x, z)); },

@@ -342,7 +342,10 @@ ok('Highway to Hull is a connected expansion, not an isolated road island', () =
 // The ceiling is the measurement plus about 4 %, the same margin the 2.5 M had.
 ok('the detailed two-sector world stays inside the expansion triangle budget', () => {
   const houses = world.stats.residentNear + world.stats.residentFar;
-  assert.ok(r.tris - houses < 3950000, `${(r.tris - houses) | 0} triangles`);
+  // Two-sided residential walks now replace the former 18% one-sided policy.
+  // Common terrain clipping also adds faces but shares their vertices. Retain
+  // the original 340 MB memory ceiling below; allow the measured extra faces.
+  assert.ok(r.tris - houses < 4700000, `${(r.tris - houses) | 0} triangles`);
 });
 
 ok('resident house geometry stays inside the LOD budget', () => {
