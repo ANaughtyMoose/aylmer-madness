@@ -2,8 +2,8 @@
   "arc": [
     {
       "beat": "prologue",
-      "title": "Les clés du Ranger",
-      "what": "School ends. The player's father lends him the keys to the 1993 Ford Ranger for the summer on one condition: he does the family hauling, helps the neighbours when asked, and puts his own gas in it. He meets the crew at the dépanneur on Chemin d'Aylmer and the summer opens with the feeling that it will never end.",
+      "title": "Le Ranger rend service",
+      "what": "School ends. Tom owns the 1993 Ford Ranger and pays for most of its upkeep. He helps the family and neighbours while saving for repairs and university. He meets the crew at the dépanneur on Chemin d'Aylmer and the summer opens with the feeling that it will never end.",
       "who": ["Player", "Ton père", "Sayyad", "Margaret", "Adam"],
       "where": "299 Chemin Fraser driveway; the dépanneur on Chemin d'Aylmer; the Aylmer marina at dusk",
       "playerDoes": "Drives the Ranger for the first time, runs an easy delivery of lawn tools, and cruises down to the marina to meet everyone.",

@@ -108,7 +108,7 @@ def make_venv():
     if not os.path.exists(venv_python()):
         subprocess.check_call([sys.executable, '-m', 'venv', VENV])
     pip = os.path.join(VENV, VENV_BIN, VENV_PIP)
-    subprocess.check_call([pip, 'install', '-q', '--upgrade', 'pip'])
+    subprocess.check_call([venv_python(), '-m', 'pip', 'install', '-q', '--upgrade', 'pip'])
     subprocess.check_call([pip, 'install', '-q', 'numpy', 'laspy[lazrs]'])
     print(f'venv ready. Run the roof pass with:\n'
           f'  {os.path.relpath(venv_python(), ROOT)} tools/lidar_roof.py',

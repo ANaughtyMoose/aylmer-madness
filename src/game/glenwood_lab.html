@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Aylmer Madness — Glenwood bungalows</title>
+<style>
+html,body{margin:0;height:100%;background:#1a2028;color:#fff;font-family:Helvetica,Arial,sans-serif;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#ui{position:fixed;top:14px;left:16px;font-size:13px;line-height:1.7;background:rgba(16,20,26,.78);
+    padding:12px 14px;border-radius:8px;min-width:260px}
+#ui b{font-size:16px;display:block;margin-bottom:6px}
+#ui select,#ui button{font:inherit;background:#242c36;color:#fff;border:1px solid #3a4450;border-radius:4px;padding:3px 6px;margin:2px 0}
+#ui select{width:100%}
+#ui button{cursor:pointer}
+#stats{opacity:.8;margin-top:8px;white-space:pre;font-family:Menlo,Consolas,monospace;font-size:12px}
+label{opacity:.7;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+#hint{position:fixed;bottom:12px;left:16px;font-size:12px;opacity:.55}
+</style></head><body>
+<canvas id="gl"></canvas>
+<div id="ui">
+  <b>Glenwood bungalows</b>
+  <label>focus</label>
+  <select id="focus">
+    <option value="-1">all three</option>
+    <option value="0">1 · carport, grey lower facade</option>
+    <option value="1">2 · picture window, raised entry</option>
+    <option value="2">3 · porch, chimney</option>
+  </select>
+  <label>lod</label>
+  <select id="lod"><option value="0">0 — full</option><option value="1">1</option><option value="2">2 — far</option></select>
+  <label>carport / porch side</label>
+  <select id="side"><option value="1">left, seen from the street (as photographed)</option><option value="-1">right (mirrored)</option></select>
+  <label>view</label>
+  <div>
+    <button data-view="front">front</button><button data-view="back">back</button>
+    <button data-view="left">left</button><button data-view="right">right</button>
+    <button data-view="aerial">aerial</button><button data-view="eye">street eye</button>
+    <button data-view="orbit">orbit</button>
+  </div>
+  <div id="stats"></div>
+</div>
+<div id="hint">drag to orbit · wheel to zoom · URL: ?focus=0&amp;view=front&amp;lod=0&amp;side=-1</div>
+<script type="module" src="./glenwood_lab.js"></script>
+</body></html>

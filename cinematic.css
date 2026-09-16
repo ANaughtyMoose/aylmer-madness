@@ -1,0 +1,20 @@
+#cinematic{position:fixed;inset:0;z-index:100;background:#09252c;color:#fff0d0;display:grid;grid-template-columns:44% 56%;font-family:Arial,sans-serif;overflow:auto}
+#cinematic.hidden{display:none}
+.cinema-art{grid-column:2;grid-row:1;background-color:#183c3d;background-size:cover;background-position:center;min-height:100vh}
+#cinematic[data-art="alternateur"] .cinema-art{background-size:auto 100%;background-position:right center}
+.cinema-copy{grid-column:1;grid-row:1;padding:clamp(24px,4vw,64px);display:flex;flex-direction:column;background:#09252c;box-shadow:16px 0 45px #09252c70;z-index:1}
+.cinema-eyebrow{font-size:13px;letter-spacing:2px;font-weight:bold;margin:0 0 30px;color:#ddbb75}
+#cinema-title{font-size:clamp(32px,4.1vw,72px);line-height:1.02;letter-spacing:-1.5px;margin:0 0 28px;text-transform:uppercase;overflow-wrap:break-word}
+.cinema-body{font-size:clamp(16px,1.45vw,23px);line-height:1.55;white-space:pre-line;margin:0 0 28px}
+.cinema-task{border-top:3px solid #e9b752;padding-top:18px;white-space:pre-line;font-size:18px;line-height:1.5;color:#efc56f}
+.cinema-task:empty{display:none}
+.cinema-copy footer{margin-top:auto;padding-top:32px}
+.cinema-go{background:#efc56f;color:#102b30;border:2px solid #efc56f;border-radius:2px;padding:16px 24px;font-size:18px;font-weight:700;cursor:pointer;min-height:52px}
+.cinema-go:hover{background:#ffe5a9}
+.cinema-go:focus-visible{outline:3px solid white;outline-offset:5px}
+.cinema-note{font-size:13px;line-height:1.5;color:#a8c5c8;margin-bottom:0}
+@media(max-width:1050px){#cinematic{grid-template-columns:48% 52%}.cinema-copy{padding:28px}.cinema-eyebrow{margin-bottom:20px}}
+@media(max-width:700px){#cinematic{display:flex;flex-direction:column}.cinema-art{min-height:32vh;background-position:center}.cinema-copy{flex:1;padding:24px}#cinema-title{font-size:34px;margin-bottom:16px}.cinema-copy footer{padding-top:24px}.cinema-body{font-size:16px}.cinema-eyebrow{margin-bottom:16px}}
+
+#cinematic[data-art="home"] .cinema-art{background-position:left center}
+#cinematic .cinema-note{margin-top:18px}

@@ -768,7 +768,7 @@ actually suits them, and each gives a genuinely different game.
 | Character | Vehicle | Playable | What it can do that others cannot |
 |---|---|---|---|
 | **Tom** | 1993 Ford Ranger XL | ✅ | Hauls — couch, canoe, lumber, bikes, a fridge. Slow. The only cargo bed in the cast. |
-| **Sayyad** | 1988 Honda Civic Si | ✅ | Fast, light, carries nothing. Races pay; deliveries punish. |
+| **Sayyad** | 1987 Honda Civic Si | ✅ | Fast, light, carries nothing. Races pay; deliveries punish. |
 | **Zahra** | **no licence — she is 15** | ✅ | A bike. Paths, the beach, between buildings, kerbs, and no police interest whatsoever. The most different of the five. |
 | **Mike** | **green 1998 Subaru Forester** | ✅ | All-wheel drive: gravel, mud, wet grass, the Chelsea hills. Goes where the others get stuck rather than where they cannot fit. |
 | **Abraham** | **beaten-up ~1999 Toyota Sienna** | ✅ | Seven seats. The people-mover — everybody piles in. Fits his trait: he is the one others want along. |

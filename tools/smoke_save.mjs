@@ -479,7 +479,7 @@ group('the wallet lives in the save');
   localStorage.clear();
   const fs = await import('node:fs');
   const src = fs.readFileSync(new URL('../src/game/money.js', import.meta.url), 'utf8')
-    .split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+    .split(/\r?\n/).map((l) => l.replace(/\/\/.*$/, '')).join('\n');
   ok(!/localStorage/.test(src), 'money.js touches no storage of its own');
   ok(!/aylmer\.money/.test(src), '…and does not know the old key exists');
 
@@ -829,7 +829,7 @@ group('the slot list');
   const html = slotsHTML(rows, 'save');
   ok(html.includes('Rue Principale'), 'the slot list shows the save name');
   ok(html.includes('$250'), 'and the money');
-  ok(html.includes('1988 Honda Civic Si'), 'and the car');
+  ok(html.includes('1987 Honda Civic Si'), 'and the car');
   ok(html.includes('1 ' + t('save.jobs')), 'and how many jobs are done');
   ok(html.includes(save.fmtPlaytime(3720)), 'and the playtime');
   ok(html.includes('25/08/2026'), 'and when it was saved');
@@ -856,7 +856,7 @@ group('the slot list');
     'and every character can be started from the beginning');
   ok(groups.includes('data-slot="zahra.1"') && groups.includes('data-slot="tom.1"'),
     'the slot ids stay qualified, so a click cannot land on the wrong summer');
-  ok(groups.includes('1993 Ford Ranger XL') && groups.includes('1988 Honda Civic Si'),
+  ok(groups.includes('1993 Ford Ranger XL') && groups.includes('1987 Honda Civic Si'),
     'a block names the character\u2019s car');
   ok(!groupsHTML(save.listGroups(), 'load').includes('saveslot'),
     'the Charger screen still cannot write');
@@ -871,7 +871,7 @@ group('no modal dialogs');
   const files = ['src/main.js', 'src/game/options.js', 'src/game/save.js', 'src/game/ui.js', 'src/game/store.js'];
   for (const f of files) {
     const src = fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
-      .split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')   // comments may name them
+      .split(/\r?\n/).map((l) => l.replace(/\/\/.*$/, '')).join('\n')   // comments may name them
       .replace(/hud\.prompt\s*\(/g, '');                            // the HUD's own prompt line
     ok(!/\b(window\.)?(confirm|alert|prompt)\s*\(/.test(src),
       `${f} has no window.confirm / alert`);

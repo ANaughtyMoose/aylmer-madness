@@ -67,7 +67,7 @@ You start with one. The rest you earn or buy, and they do not drive alike.
   passengers**. The "pick up the gang" job re-plans itself into two trips.
 - **1997 Saturn SL, 4-door** (blue) — Margaret's, parked next to yours at
   299 Fraser. She lends it after « Ramasser la gang ». Average at everything.
-- **1988 Honda Civic Si** (red) — Sayyad's, 75 Denise-Friend. His after
+- **1987 Honda Civic Si** (red) — Sayyad's, 75 Denise-Friend. His after
   « Poutine express ». Light, revvy, best grip and turn-in.
 - **1997 Pontiac Sunfire** (teal) — Adam's, out in Deschênes. After « Avant
   minuit ». Quick in a straight line, lazier in corners.
@@ -148,9 +148,11 @@ Petro-Canada / Canadian Tire (4 s, about 20 % of the damage in dollars). Past
 
 ## Air
 
-The ground is not flat any more. The old rail embankment crosses the whole
-town north of chemin d'Aylmer — every street that crosses it is a jump at
-speed (Chemin Fraser at 80 km/h is a second and a half in the air). There are
+The town stands on the real ground: an 8 m LiDAR raster of Aylmer, 47 m of
+relief between the river and the high streets, with grades up to 8 %. Roads,
+kerbs, lawns and every building are draped on it. On top of that the old rail
+embankment crosses the whole town north of chemin d'Aylmer — every street that
+crosses it is a jump at speed (Chemin Fraser at 80 km/h is a second and a half in the air). There are
 loading-dock ramps behind the Galeries that clear the fence, a boat launch at
 the marina that ends in the river, a gravel pile in the arena lot, Auberge
 Symmes' terrace steps, a dirt jump off rue Court, driveable paths and a
@@ -267,7 +269,10 @@ src/game/gearbox.js real gear ratios → rpm for the engine note
 src/game/radio.js   CKOI 102.1 (synthesized loops) and the cassette deck
 src/game/save.js    save slots, autosave, legacy migration
 src/game/options.js the options screen and applySettings()
-src/game/terrain.js the height field: 20 hand-placed ramps, berms, mounds, stairs; per-surface grip
+tools/build_ground.py Quebec LiDAR -> src/game/ground_data.js (8 m raster, 755 KB import)
+src/game/ground.js   decodes that raster into height + gradient arrays
+src/game/terrain.js the height field: the LiDAR ground, plus 20 hand-placed ramps,
+                    berms, mounds and stairs sitting on it; per-surface grip
 src/game/hud.js     gauge speedo, damage bar, objectives, timer, toast queue, rotating minimap with GPS line
 src/game/bigmap.js  full-screen map: pan/zoom, street names, click-to-waypoint
 src/game/ui.js      key legend, tutorial, loading screen, intro card, settings, keyboard diagram
@@ -293,8 +298,9 @@ put you back on the road.
 
 ## Testing
 
-`node tools/smoke*.mjs` — sixteen suites (missions, UI, world, driving, houses,
-atlas, audio, garage, race, react, save, terrain, story, repair, cart) —
+`npm test` (`node tools/run_smoke.mjs`) — every `tools/smoke*.mjs` in turn,
+thirty-nine suites (missions, UI, world, driving, houses, atlas, audio, garage,
+race, react, save, terrain, ground, landmarks, story, repair, cart and the rest) —
 `docs/PLAYTEST.md` is the last new-player playtest — run under plain node (no browser) and bot-play the jobs, the collision solver,
 the world build and the UI plumbing. `node tools/headless.mjs` boots the real
 game in a headless Chrome (start one with `--headless=new

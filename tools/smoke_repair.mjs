@@ -26,11 +26,12 @@ function ok(name, cond, detail = '') {
 }
 const r2 = (v) => Math.round(v * 100) / 100;
 
-// The three spots, far enough apart that nothing overlaps.
+// The historic garage and home; old parts/fuel stores do not repair cars.
 const PLACES = {
   home:  { x: 0, z: 0, label: '299 Chemin Fraser' },
   gas:   { x: 2000, z: 0, label: 'La station' },
   ctire: { x: -2000, z: 0, label: 'Canadian Tire' },
+  norm:  { x: 2000, z: 0, label: 'Garage Caumartin' },
 };
 
 // A wallet with the same surface money.js's has.
@@ -66,7 +67,7 @@ function sit(veh, w, seconds = 20) {
 // ---------------------------------------------------------------- the spots
 
 {
-  ok('there are three places to get it fixed', REPAIR_SPOTS.length === 3,
+  ok('home and the historic garage repair cars', REPAIR_SPOTS.length === 2,
     REPAIR_SPOTS.map((s) => s.key).join(', '));
   ok('the driveway is free and slow, the shops are quick and not',
     REPAIR_SPOTS.find((s) => s.key === 'home').free === true
@@ -87,9 +88,9 @@ function sit(veh, w, seconds = 20) {
   ok('and a clean car is offered nothing', repairSpotAt(v, PLACES) === null);
 
   const w = parked(2010, 0, 40);
-  ok('the Petro-Canada is a repair spot', repairSpotAt(w, PLACES)?.key === 'gas');
+  ok('the historic garage is a repair spot', repairSpotAt(w, PLACES)?.key === 'norm');
   const c = parked(-1990, 0, 40);
-  ok('so is the Canadian Tire', repairSpotAt(c, PLACES)?.key === 'ctire');
+  ok('Canadian Tire is for parts, not repairs', repairSpotAt(c, PLACES) === null);
 }
 
 // ---------------------------------------------------------------- the money
@@ -111,7 +112,7 @@ function sit(veh, w, seconds = 20) {
   const st = { t: 0, key: null };
   const first = updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w });
   ok('the driveway prompt says what it is and what it costs',
-    first.prompt === 'E  —  réparer dans l’entrée (gratuit, 10 s)', first.prompt);
+    first.prompt === 'E — réparer dans ton entrée (gratuit, 10 s)', first.prompt);
   ok('...and nothing happens until you press E', first.working === false && st.key === null);
 
   const run = sit(v, w);
@@ -119,10 +120,10 @@ function sit(veh, w, seconds = 20) {
     `${r2(run.t)} s`);
   ok('...and costs nothing', run.done.cost === 0 && w.value === 80, `wallet ${w.value}`);
   ok('...with the seconds counting down in the prompt',
-    run.prompts.includes('Réparation…  10 s') && run.prompts.includes('Réparation…  6 s')
-    && run.prompts.includes('Réparation…  1 s'));
+    run.prompts.includes('Réparation… 10 s') && run.prompts.includes('Réparation… 6 s')
+    && run.prompts.includes('Réparation… 1 s'));
   ok('...and the toast your father never hears about',
-    run.done.toast === 'Comme neuf.\nTon père a rien vu.', JSON.stringify(run.done.toast));
+    run.done.toast === 'Réparé dans ton entrée.', JSON.stringify(run.done.toast));
   ok('the wrench is tapping the whole time', run.working > 9.5, `${r2(run.working)} s of work`);
 }
 
@@ -133,26 +134,26 @@ function sit(veh, w, seconds = 20) {
   const w = wallet(80);
   const st = { t: 0, key: null };
   const first = updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w });
-  ok('the forecourt prompt is the price', first.prompt === 'E  —  réparer (11 $)', first.prompt);
+  ok('the garage quotes its price and extra', first.prompt === 'E — devis 11 $ (+ 1 $ fournitures; total 12 $)', first.prompt);
 
   const run = sit(v, w);
-  ok('the Petro-Canada takes four seconds', run.done && Math.abs(run.t - 4) < 0.1, `${r2(run.t)} s`);
-  ok('...and charges 20 % of the damage', run.done.cost === 11 && w.value === 69,
+  ok('the historic garage takes four seconds', run.done && Math.abs(run.t - 4) < 0.1, `${r2(run.t)} s`);
+  ok('...and charges its quote plus the supplies extra', run.done.cost === 12 && w.value === 68,
     `paid ${run.done.cost}, wallet ${w.value}`);
-  ok('...and says so', /11 \$/.test(run.done.toast), JSON.stringify(run.done.toast));
+  ok('...and itemizes the final total', /12 \$/.test(run.done.toast), JSON.stringify(run.done.toast));
 
   // The Canadian Tire is the same deal.
-  const c = parked(-2000, 0, 30);
+  const c = parked(2000, 0, 30);
   const cw = wallet(50);
   const crun = sit(c, cw);
-  ok('the Canadian Tire is four seconds and $6', crun.done && Math.abs(crun.t - 4) < 0.1
-    && crun.done.cost === 6 && cw.value === 44, `paid ${crun.done.cost}`);
+  ok('30 damage is a $6 quote and $1 extra', crun.done && Math.abs(crun.t - 4) < 0.1
+    && crun.done.cost === 7 && cw.value === 43, `paid ${crun.done.cost}`);
 
   // Minimum charge.
   const m = parked(2000, 0, 10);
   const mw = wallet(50);
   const mrun = sit(m, mw);
-  ok('a scratch still costs the $5 minimum', mrun.done.cost === 5 && mw.value === 45);
+  ok('a scratch costs the $5 minimum plus $1 extra', mrun.done.cost === 6 && mw.value === 44);
 }
 
 // ---------------------------------------------------------------- broke
@@ -163,7 +164,7 @@ function sit(veh, w, seconds = 20) {
   const st = { t: 0, key: null };
   const r = updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w, press: true });
   ok('broke at the pumps: it refuses', st.key === null && r.working === false);
-  ok('...and points at the driveway', /gratuit/.test(r.prompt) && /18 \$/.test(r.prompt), r.prompt);
+  ok('...and points at the free driveway and $20 invoice', /gratuite/.test(r.prompt) && /20 \$/.test(r.prompt), r.prompt);
   const run = sit(v, w, 12);
   ok('...and holding E all day changes nothing', run.done === null && w.value === 3);
 
@@ -182,7 +183,7 @@ function sit(veh, w, seconds = 20) {
   const st = { t: 0, key: null };
   updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w, press: true });
   for (let i = 0; i < 60; i++) updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w });
-  ok('a second into it, it is running', st.key === 'gas' && st.t > 0.9);
+  ok('a second into it, it is running', st.key === 'norm' && st.t > 0.9);
   v.x = 2600;                                   // drive off
   const r = updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w });
   ok('drive away half done and it resets', st.key === null && st.t === 0 && r.spot === null);
@@ -197,10 +198,10 @@ function sit(veh, w, seconds = 20) {
     && repairHint(st, 5).toast === null && repairHint(st, 24).hint === null);
 
   const a = repairHint(st, 26);
-  ok('crossing 25 % names all three garages',
-    a.toast === 'Ton char est magané — Petro-Can, Canadian Tire, ou ton entrée (E)', a.toast);
+  ok('crossing 25 % names the historic garage and home',
+    a.toast === 'Ton char est magané — Garage Caumartin, 143 Principale, ou ton entrée (E)', a.toast);
   ok('...and the damage bar gets a standing line',
-    a.hint === 'réparer: Petro-Can · Canadian Tire · chez vous', a.hint);
+    a.hint === 'réparer : 143 Principale · chez vous', a.hint);
   ok('...exactly once', repairHint(st, 30).toast === null && repairHint(st, 40).toast === null);
 
   const b = repairHint(st, 61);
@@ -221,12 +222,12 @@ function sit(veh, w, seconds = 20) {
 {
   const v = parked(1900, 0, 40);
   const n = nearestRepair(v, PLACES);
-  ok('the wrench goes on the nearest garage', n.key === 'gas' && n.label === 'Petro-Can',
+  ok('the wrench goes on the nearest garage', n.key === 'norm' && n.label === 'Garage Caumartin',
     `${n.label} at ${Math.round(n.dist)} m`);
   v.x = -100;
   ok('...which from Fraser is your own driveway', nearestRepair(v, PLACES).key === 'home');
   v.x = -1500;
-  ok('...and out west it is the Canadian Tire', nearestRepair(v, PLACES).key === 'ctire');
+  ok('...and out west home is closer than the garage', nearestRepair(v, PLACES).key === 'home');
 }
 
 // ---------------------------------------------------------------- the tow

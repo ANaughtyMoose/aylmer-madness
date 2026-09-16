@@ -44,7 +44,7 @@ the game. The plate on the bumper reads Thomas's real plate, exactly as photogra
 `gemini-inbox/look/cars/ranger/plate_photo.jpg`: **766 NBZ**, « Je me
 souviens », the 2004 Québec design. (His decision, 2026-09-08.)
 
-Variants: (a) the same scene with Sayyad's red 1988 Civic Si beside the Ranger,
+Variants: (a) the same scene with Sayyad's red 1987 Civic Si beside the Ranger,
 (b) blue hour with the headlights on.
 
 # 2 — The Ranger's four views, to spec
@@ -65,7 +65,7 @@ write into `assets/`) and include its output in `redo/cars/REPORT.md`; if it
 measures the truck wrong (the HANDOFF notes it once « measured wide »), say
 what the silhouette did.
 
-Then, only if the Ranger passes: the same four views for `civic` (1988 Civic
+Then, only if the Ranger passes: the same four views for `civic` (1987 Civic
 Si hatch, red), `saturn` (1997 Saturn SL 4-door, blue) and `sunfire` (1997
 Sunfire coupe, teal), the three cars the loader already has folders for.
 

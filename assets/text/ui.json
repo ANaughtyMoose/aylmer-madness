@@ -59,7 +59,10 @@
     { "kind": "joke", "line": "Sayyad prétend que son Civic Si a battu une Porsche, mais la Porsche était stationnée.", "en": "Sayyad claims his Civic Si beat a Porsche, but the Porsche was parked." },
     { "kind": "joke", "line": "Ton truck n'a pas d'air climatisé? Baisse les deux vitres à manivelle pis roule à quatre-vingt-dix.", "en": "No A/C in your truck? Roll both crank windows down and hit ninety." },
     { "kind": "joke", "line": "Si la police t'arrête avec un chargement de canettes vides, dis-leur que tu fais du recyclage communautaire.", "en": "If cops pull you over with a bed full of empty cans, tell them you're doing community recycling." },
-    { "kind": "joke", "line": "La poutine du casse-croûte est prête quand le carton de la boîte commence à devenir transparent.", "en": "Chip truck poutine is ready when the cardboard container starts turning translucent." }
+    { "kind": "joke", "line": "La poutine du casse-croûte est prête quand le carton de la boîte commence à devenir transparent.", "en": "Chip truck poutine is ready when the cardboard container starts turning translucent." },
+    {"kind":"trivia","line":"Le British ? Tom trouve ça pas mal louche.","en":"The British? Tom remembers it as pretty sketchy."},
+    {"kind":"tip","line":"Les réparations : 143 Principale. Prévois un petit extra sur le devis.","en":"Repairs are at 143 Principale. Budget a little extra on top of the quote."},
+    {"kind":"trivia","line":"Sayyad et Zahra adorent Sol, juste à gauche du PFK.","en":"Sayyad and Zahra love Sol, just to the left of PFK."}
   ],
   "pause": [
     "Moteur au ralenti... le tuyau d'échappement vibre contre le pare-chocs.",
@@ -94,7 +97,7 @@
     { "name": "Passeur Interprovincial", "howEarned": "Cross all four Ottawa River bridges (Champlain, Chaudière, Portage, Alexandra) in a single continuous run." },
     { "name": "Légende du Marché By", "howEarned": "Drift the entire cobblestone perimeter of the ByWard Market building without hitting a vendor stand." },
     { "name": "Le Silence de Zahra", "howEarned": "Complete five missions for Zahra without her criticising your gear shifting or your music." },
-    { "name": "VTEC Éteint", "howEarned": "Defeat Sayyad's 1988 Honda Civic Si in the final midnight showdown across Hull." },
+    { "name": "VTEC Éteint", "howEarned": "Defeat Sayyad's 1987 Honda Civic Si in the final midnight showdown across Hull." },
     { "name": "Plein Comme un As", "howEarned": "Cash in twelve full bags of crushed aluminium cans at the recycling depot in a single trip." },
     { "name": "Maître du Parallèle", "howEarned": "Parallel park the pickup with an eleven-foot carpet overhanging the bed, on rue Principale, in under ten seconds." },
     { "name": "Bain de Minuit", "howEarned": "Launch a vehicle off the Aylmer Marina boat ramp and land in the water past the wooden docks." },

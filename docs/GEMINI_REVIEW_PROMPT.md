@@ -76,7 +76,7 @@ that you can **play the game and look at it**, not just read the code.
 - **The cast are real people. Never invent a surname or a fact about them.**
   Tom (the player, 299 chemin Fraser, white 1993 Ford Ranger **XL** — base trim,
   2.3 four-cylinder, five-speed, not an XLT). Sayyad (75 rue Denise-Friend,
-  1988 Civic Si, Hawaiian shirts, chrome cruiser bicycle; in 2004 no glasses, no
+  1987 Civic Si, Hawaiian shirts, chrome cruiser bicycle; in 2004 no glasses, no
   grey hair, slim). Zahra (Sayyad's sister, **15**, at Symmes). Margaret
   (1997 Saturn SL; 2004: slimmer, dark brown hair). Adam Actell (Sunfire,
   Deschênes, out of town). Mike McDonald (129 avenue Frank-Robinson, green
@@ -359,7 +359,7 @@ consistent scale across the four views):
 
 `ranger` 1993 Ford Ranger XL regular cab, white, black steel wheels, black
 plastic mirrors and bumpers, no chrome, whip antenna · `saturn` 1997 Saturn SL
-4-door, blue · `civic` 1988 Honda Civic Si hatchback, red · `sunfire` 1997
+4-door, blue · `civic` 1987 Honda Civic Si hatchback, red · `sunfire` 1997
 Pontiac Sunfire coupe, teal · `forester` 1998 Subaru Forester, green ·
 `sienna` 1999 Toyota Sienna, faded, one mismatched hubcap · `cavalier` 1991
 Chevrolet Cavalier Z24, red · `cutlass` 1987 Oldsmobile Cutlass Ciera, brown ·

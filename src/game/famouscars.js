@@ -103,8 +103,12 @@ export const TEMPO = finish(derive('saturn', {
 // Red gone matte on the roof, an open B16 out of Montréal, and no back seat. It
 // out-ran an RCMP cruiser across the Portage in 2001 and went down a gravel
 // driveway in Deschênes before anybody read the plate.
+//   The shell is the 1987 third-generation Si, same as `civic`. The B16 is a
+// swap — that is the whole point of the car and the reason this one revs to
+// 7600 when the stock 1.5 twelve-valve stops at 6500. Do not "correct" the
+// VTEC out of the flavour; the factory Si never had it, this car does.
 export const SICIVIC = finish(derive('civic', {
-  id: 'sicivic', name: '1988 Honda Civic Si — « la Si »', who: 'Sayyad',
+  id: 'sicivic', name: '1987 Honda Civic Si — « la Si »', who: 'Sayyad',
   body: 0xc0141e, seats: 2,
   flavour: 'Rouge Rio délavé su’ l’toit, un B16 ouvert venu de Montréal, pas de banquette en arrière. Tout le monde en ville connaît le sifflet quand le VTEC embarque proche des Galeries.',
   len: 3.99, wid: 1.67, h: 1.30, wheelbase: 2.50, overhangF: 0.83, wheelR: 0.29,

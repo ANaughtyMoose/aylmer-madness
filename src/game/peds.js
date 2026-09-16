@@ -245,7 +245,10 @@ export class Peds {
     for (let i = 0; i < POOL; i++) {
       this.list.push({
         live: false, wi: -1, s: 0, dir: 1, spd: 1.35, off: 0.55, base: 0.55,
-        x: 0, z: 0, yaw: 0, y: 0, vy: 0, lean: 0,
+        // `y` is where their feet are in the world; `g` is the pavement under
+        // them, which is not zero any more. The two are equal except in the
+        // middle of a dive, and the difference between them is the air.
+        x: 0, z: 0, yaw: 0, y: 0, g: 0, vy: 0, lean: 0,
         state: WALK, t: 0, phase: 0, outfit: 0, grazed: false, grazeT: 0, diveSign: 1,
       });
     }
@@ -349,13 +352,22 @@ export class Peds {
       p.t = p.state === STAND ? 1 + this.rnd() * 3 : 0;
       p.phase = this.rnd() * 6.28;
       p.outfit = (this.rnd() * OUTFITS.length) | 0;
-      p.y = 0; p.vy = 0; p.lean = 0; p.grazed = false; p.grazeT = 0;
+      p.y = p.g = this.groundY(SC.x, SC.z);
+      p.vy = 0; p.lean = 0; p.grazed = false; p.grazeT = 0;
       p.x = SC.x; p.z = SC.z;
       p.yaw = Math.atan2(SC.dx * p.dir, SC.dz * p.dir);
       this.alive++;
       return true;
     }
     return false;
+  }
+
+  // How high the pavement is here. Same call main.js hangs `phys.groundY` off,
+  // reached through the world we were handed; a stub world without a height
+  // field gets the flat town back.
+  groundY(x, z) {
+    const w = this.world;
+    return w && w.groundAt ? w.groundAt(x, z).h : 0;
   }
 
   free() {
@@ -434,7 +446,7 @@ export class Peds {
         p.vy -= 15 * dt;
         p.y += p.vy * dt;
         p.lean = Math.min(1.35, p.lean + dt * 3.6);
-        if (p.y <= 0) { p.y = 0; p.vy = 0; p.state = DOWN; p.t = 0.55 + this.rnd() * 0.5; }
+        if (p.y <= p.g) { p.y = p.g; p.vy = 0; p.state = DOWN; p.t = 0.55 + this.rnd() * 0.5; }
       } else if (p.state === DOWN) {
         p.t -= dt;
         p.lean = 1.45;
@@ -449,6 +461,14 @@ export class Peds {
       p.s = clamp(p.s, 0.5, walk.len - 0.5);
       this.at(p.wi, p.s, p.off, SC);
       p.x = SC.x; p.z = SC.z;
+      // They just moved, so the pavement under them moved too. On foot that IS
+      // their height; mid-dive the arc rides the slope, which keeps the lift
+      // they jumped with whether they are going up the hill or down it.
+      {
+        const g = this.groundY(p.x, p.z);
+        if (p.state === DIVE) p.y += g - p.g; else p.y = g;
+        p.g = g;
+      }
       if (p.state === WALK) p.yaw = Math.atan2(SC.dx * p.dir, SC.dz * p.dir);
       // A near miss counts wherever they are in the sequence — the dive can put
       // them clear before the bumper arrives, and that is still « frôlé ».
@@ -492,7 +512,7 @@ export class Peds {
       const sg = lat >= 0 ? 1 : -1;
       const dot = (t.rx * sg) * SC.nx + (t.rz * sg) * SC.nz;
       p.diveSign = dot < -0.6 ? -1 : 1;
-      p.state = DIVE; p.t = 0; p.vy = 2.4; p.y = 0.01; p.lean = 0;
+      p.state = DIVE; p.t = 0; p.vy = 2.4; p.y = p.g + 0.01; p.lean = 0;
       // face away from what is about to hit them
       p.yaw = Math.atan2(dx, dz);
       if (this.yellT <= 0 && G.audio && G.audio.heille) {
@@ -540,7 +560,9 @@ export class Peds {
         drawn++; shown++;
         continue;
       }
-      const bob = p.state === WALK ? Math.abs(Math.sin(p.phase)) * 0.035 : 0;
+      // The walk bob is a few centimetres ON TOP of the pavement, not a height
+      // above zero — on a hill the two are tens of metres apart.
+      const bob = p.y + (p.state === WALK ? Math.abs(Math.sin(p.phase)) * 0.035 : 0);
       if (d2 > near2) {
         m4.compose(mm, p.x, bob, p.z, p.yaw, 0, 0);
         r.draw(M.whole[p.outfit], mm);

@@ -39,6 +39,9 @@
 
 import { rgb, shade } from '../core/mesh.js';
 import { clamp, mulberry32 } from '../core/math.js';
+import { buildGlenwood, chooseGlenwood, GLENWOOD_STREETS, GLENWOOD_VARIANTS } from './glenwood.js';
+
+export { GLENWOOD_VARIANTS, GLENWOOD_STREETS };
 
 // Decal ladder — must stay between world.js's Y.grass (0) and Y.road (0.05).
 const Y_DRIVE = 0.042;
@@ -734,6 +737,33 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   const id = archetypeOf(attrs);
   const t0 = mb.i.length;
 
+  // ---- Glenwood bungalows (glenwood.js). Decided before the archetype path and
+  // without touching `rng`, so the near and far bakes of a house still agree.
+  // opts.glenwood: undefined = only on GLENWOOD_STREETS, false = never,
+  // true/'auto' = any detached one-storey house, '<variant id>' = forced.
+  const gw = glenwoodPlan(b, attrs, opts);
+  if (gw) {
+    if (opts.addSegment) {
+      const p = b.p;
+      for (let i = 0; i < p.length; i++) {
+        const q = p[(i + 1) % p.length];
+        opts.addSegment(p[i][0], p[i][1], q[0], q[1]);
+      }
+    }
+    const info = buildGlenwood(mb, gw.variant, {
+      fw: gw.fw, D: gw.D, side: gw.side, lod, y0, mats, seed: gw.seed,
+      cap: Number.isFinite(opts.budget) ? opts.budget : GLENWOOD_BUDGET[Math.min(lod, 2)],
+    });
+    return {
+      archetype: gw.variant,
+      attrs: { ...attrs, height: info.height, ridgeHeight: info.ridgeHeight,
+        garage: info.garage, porch: info.porch },
+      tris: (mb.i.length - t0) / 3, streetYaw: gw.streetYaw, front: gw.frontYaw,
+      glenwood: { variant: gw.variant, side: gw.side, clearance: info.clearance,
+        frontage: gw.fw.len, depth: gw.D },
+    };
+  }
+
   if (id === 'flat_block') {
     buildPlain(mb, b, mats, rng, { y: y0, addSegment: opts.addSegment });
     return { archetype: 'flat_block', attrs, tris: (mb.i.length - t0) / 3 };
@@ -845,13 +875,14 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   mb.capPoly(b.p, b.t, y0 + (wallRect ? garageEave : eave), roofCol);
 
   // ---- roofs, one per rect, on the real footprint's oriented rectangles
-  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol, mt);
+  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol, mt, eave);
   if (wing && wing !== garageRect) {
-    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol, mt);
+    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol, mt, eave);
   }
   if (garageRect) {
     roofOn(mb, garageRect, L2M, yaw, y0 + garageEave, Math.max(0.7, roofRise * 0.65),
-      carport ? 'flat' : (attrs.roof === 'flat' ? 'gable' : attrs.roof), spec, roofCol, mt);
+      carport ? 'flat' : (attrs.roof === 'flat' ? 'gable' : attrs.roof), spec, roofCol, mt,
+      garageEave);
   }
   mt.off();
 
@@ -998,6 +1029,32 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   return { archetype: id, attrs, tris: (mb.i.length - t0) / 3, streetYaw, front: front.yaw };
 }
 
+// Same per-lod ceilings tools/smoke_houses.mjs holds every archetype to.
+const GLENWOOD_BUDGET = [160, 80, 48];
+
+// Is this house a Glenwood bungalow, and in which frame? The frame is the street
+// face of the footprint's largest rectangle, found exactly the way buildHouse
+// finds it for every other archetype. Returns null for the ~57k buildings that
+// are not candidates, after one regex test when opts.glenwood is unset.
+export function glenwoodPlan(b, attrs, opts = {}) {
+  const opt = opts.glenwood;
+  if (opt === false || opt === null) return null;
+  if (opt === undefined && !(b.addr && GLENWOOD_STREETS.test(b.addr))) return null;
+  if (attrs.link === 'apartment') return null;
+  const ang = attrs.ridgeYaw;
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const L2M = (u, v) => [b.c[0] + u * ca - v * sa, b.c[1] + u * sa + v * ca];
+  const main = decompose(b.p, b.c, ang).rects[0];
+  const streetYaw = Number.isFinite(opts.streetYaw) ? opts.streetYaw : -ang;
+  const front = frontFace(ang, streetYaw);
+  const fw = faceOf(main, L2M, front);
+  const D = ((main.u1 - main.u0) * (main.v1 - main.v0)) / Math.max(0.1, fw.len);
+  const seed = houseSeed(b, opts.index || 0);
+  const pick = chooseGlenwood(b, attrs, opt, seed, fw.len, D);
+  if (!pick) return null;
+  return { ...pick, fw, D, seed, streetYaw, frontYaw: front.yaw };
+}
+
 // ---------------------------------------------------------------- sub-builders
 
 // Walls from the real polygon; edges that cross the garage rect are split so the
@@ -1122,7 +1179,14 @@ function residentialFence(mb, ext, L2M, front, y0, era, mats) {
 // Roof on one rect of the decomposition, in the requested form. `mt` arms the
 // shingle before the slopes and swaps back to the wall material for the gable
 // ends (which are siding or brick on a real house, not roofing).
-function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt) {
+// `eaveH` is the eave height ABOVE THE HOUSE'S OWN GROUND, which stopped being
+// the same number as `baseY` the day opts.y became something other than zero.
+// The soffit test below is a question about how far the eave is over the
+// driver's head; asked of the absolute height in a town with thirty metres of
+// relief, it comes back yes for every bungalow in Aylmer and ten thousand of
+// them grow an underside nobody can get beneath. Defaulted, so a caller that
+// still works in absolute heights gets the old answer.
+function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt, eaveH = baseY) {
   const w = r.u1 - r.u0, d = r.v1 - r.v0;
   const cm = L2M((r.u0 + r.u1) / 2, (r.v0 + r.v1) / 2);
   const ov = spec.overhang;
@@ -1133,7 +1197,7 @@ function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt) {
   // wall top and the ridge. Two triangles of dark underside close it.
   // (only where you can actually get under it — below ~4.6 m the wall hides the
   // slope from anyone sitting in a car, and 10 000 bungalows do not need it.)
-  if (form !== 'flat' && baseY > 4.6) {
+  if (form !== 'flat' && eaveH > 4.6) {
     mb.capRect(cm[0], cm[1], w + ov * 2, d + ov * 2, baseY + 0.02, yaw, roofCol, true);
   }
   switch (form) {

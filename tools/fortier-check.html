@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>SVX encounter playtest</title><style>body{background:#15272b;color:white;font:16px system-ui}button{padding:12px}iframe{width:1200px;height:760px;border:0}pre{white-space:pre-wrap}</style>
+<button id="run">Start SVX check</button><button id="take">Press E near SVX</button><button id="status">Check chase movement</button><button id="strip">View Loblaws</button><button id="food">View restaurants</button><pre>Test origin only. Your main save is untouched.</pre><iframe src="../index.html?fortier-check=19"></iframe>
+<script type="module">
+const f=document.querySelector('iframe'),out=document.querySelector('pre');let a,initial;
+const wait=async fn=>{for(let i=0;!fn();i++){if(i>900)throw Error('Timed out');await new Promise(r=>setTimeout(r,100));}};
+const check=(p,t)=>{if(!p)throw Error(t);out.textContent+='\nPASS '+t;};
+document.querySelector('#run').onclick=async()=>{try{await wait(()=>f.contentWindow.AYLMER);a=f.contentWindow.AYLMER;f.contentDocument.querySelector('#start').click();f.contentDocument.querySelector('#startconfirm').click();await wait(()=>a.cinema.active);a.cinema.finish();a.cinema.finish();if(a.G.mission)a.G.failMission('Test');a.cinema.finish();await wait(()=>!a.G.seamHold);const p=a.G.parked.svx;check(!!p,'SVX parked at Heritage');a.teleport(p.x+5,p.z,p.yaw);out.textContent+='\nAt Heritage. Press E near SVX to begin.';}catch(e){out.textContent+='\nFAIL '+e.stack;}};
+document.querySelector('#take').onclick=()=>{try{f.contentDocument.querySelector('#resume')?.click();a.input.pressed.add('KeyE');a.step(1/60);check(a.G.carId==='svx','E takes SVX');check(a.fortier().active,'Claude pursuit starts immediately');initial=a.fortier();f.contentWindow.focus();}catch(e){out.textContent+='\nFAIL '+e.stack;}};
+document.querySelector('#status').onclick=()=>{const c=a.fortier();out.textContent+='\n'+JSON.stringify(c);if(initial)check(Math.hypot(c.x-initial.x,c.z-initial.z)>2,'NSX travels');};
+document.querySelector('#strip').onclick=()=>{a.env('day');a.weather('clear');a.teleport(944,-281,Math.PI);f.contentDocument.querySelector('#resume')?.click();f.contentWindow.focus();};
+document.querySelector('#food').onclick=()=>{a.env('day');a.weather('clear');a.teleport(368,-198,Math.PI);f.contentDocument.querySelector('#resume')?.click();f.contentWindow.focus();};
+</script>

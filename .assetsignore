@@ -1,9 +1,16 @@
 # Same format as .gitignore. Everything here stays out of the deploy.
 #
-# Nothing in this list is fetched at runtime: no .js or .html file in src/ or at
-# the root references r.xml, and the only runtime fetches in the whole game are
-# assets/cars/manifest.json, assets/materials/atlas.json, assets/radio/playlist.json
-# and the per-car skin.json files.
+# Nothing in this list is fetched at runtime. Every runtime fetch the game makes
+# is a file under assets/ — the car manifest and the per-car skin.json, the
+# material atlas, the radio playlist, the model manifest and its parts, and the
+# written text in assets/text/ — and no .js or .html file in src/ or at the root
+# references r.xml.
+#
+# data/ is build input, not content. tools/build_map.py turns the OSM extracts
+# in it into src/game/mapdata.js and tools/build_ground.py turns the LiDAR
+# raster into src/game/ground_data.js; the game imports those generated modules
+# and never reads data/. data/raw alone is 2.0 GB of .laz and the raster built
+# from it, and Cloudflare refuses any single file over 25 MiB.
 .git
 .gitignore
 .gitattributes
@@ -14,7 +21,10 @@ node_modules
 tools/
 docs/
 gemini-inbox/
+data/raw/
+data/
 r.xml
 *.md
 *.sh
 *.py
+.planning/
