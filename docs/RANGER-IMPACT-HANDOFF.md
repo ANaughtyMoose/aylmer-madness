@@ -1,11 +1,11 @@
-> **Start with [MACBOOK-HANDOFF.md](MACBOOK-HANDOFF.md)** for the Mac setup, current integration status and next-agent prompt. The owner now wants both PRs merged; the required-review override still awaits explicit approval.
+> **Start with [MACBOOK-HANDOFF.md](MACBOOK-HANDOFF.md)** for the Mac setup, current integration status and next-agent prompt. The owner explicitly approved both administrator merges and retargeting #43 to main. #42 is merged; consult the PR pages for #43 and use main after integration.
 
 # Ranger and breakable roadside objects — recovery checkpoint
 
 Branch: `codex/ranger-impact`. Gameplay commit: `ef4414a`. Based on approved repair commit `ef6fb794d63f1e801eaad833fb4465192933819c` from PR #42.
 
 ## Merge status
-PR #42 remains open. Normal merge was blocked by required approving review; repository auto-merge is disabled. User has been asked whether to use an administrator override. Do not claim it merged or bypass the review requirement without their answer. The follow-up PR targets `codex/aylmer-repairs` to keep its diff separate; retarget to main after #42 merges.
+PR #42 merged as `78a41501687f74ce7ad9219a4d0e37516df489ef`. The owner explicitly authorized the administrator override for both PRs and retargeting #43 to main. Only documentation changed after the locally opened version (`611b3be`); the gameplay comparison passed. Check #43 for its final merge record and continue on main after integration.
 
 ## Implemented
 - Streetlights, utility poles, signal masts, stop signs and small trees retain their own geometry when hit, lose their standing collider, fly, bounce and settle on terrain. Lit signal lenses disappear with the fallen mast.
@@ -23,7 +23,7 @@ PR #42 remains open. Normal merge was blocked by required approving review; repo
 - Owner review of likeness and driving feel. No promise of an exact unseen rear: supplied photos do not show it straight on; black rear steel bumper and aluminum lip follow the owner's description.
 - Debris is bounded arcade physics, not a full rigid-body simulation. It resets when its streamed sector reloads; at most 40 pieces persist. Larger trees retain existing behavior. Heavy props/buildings remain solid.
 - Original personal photos are saved locally in the sibling `ranger-references` folder, outside this public repository. Never add them to Git.
-- The owner subsequently requested merging both PRs with substantial Mac documentation. Automatic approval review rejected an administrator override because explicit bypass approval is still needed. Finish the documentation and request that specific approval; do not bypass the rejection. Never add/change workflows, trigger test runs in Actions, or push tags. Batch pushes.
+- The owner explicitly authorized administrator merges for #42/#43. This does not authorize future review bypasses. Never add/change workflows, trigger test runs in Actions, or push tags. Batch pushes.
 
 ## Claude pickup prompt
-Continue Aylmer Madness on `codex/ranger-impact`. First inspect git status and this handoff; preserve existing work. Check the follow-up PR and PR #42 on GitHub. Do not repeat the old repair task. Handle #42's merge only according to the user's answer about the administrator override, then retarget the follow-up PR to main. Use the owner's supplied Ranger photos locally for requested visual revisions. Run relevant local tests and use the real game for collision/controls checks. Keep the owner informed, update this checkpoint locally, batch-push progress, and leave new changes for review rather than merging them yourself.
+Use the current pickup prompt in MACBOOK-HANDOFF.md. Check the merged PR records and continue on main after #42/#43 integration. Preserve local work, keep private photos outside Git, and do not repeat the completed repairs.
