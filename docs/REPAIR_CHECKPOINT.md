@@ -1,3 +1,5 @@
+> **Current continuation guide (15 September 2026): [MacBook Air handoff](MACBOOK-HANDOFF.md).** This file is a historical snapshot; check current PR status before following its branch or merge instructions.
+
 # Aylmer repair checkpoint — 15 September 2026
 
 Branch: `codex/aylmer-repairs`
