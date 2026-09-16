@@ -4,6 +4,10 @@ An open-world arcade driving game in the spirit of Midtown Madness, set in a
 stylised Aylmer, Québec. Built on a small WebGL2 engine written from scratch for
 this project — no Three.js, no npm, no build step, no assets to download.
 
+## Continuing on a MacBook Air
+
+Start with [the MacBook Air handoff](docs/MACBOOK-HANDOFF.md) for the current PR status, setup, completed changes, verification, save/reference transfer, and a Claude/Codex pickup prompt.
+
 ## Run it
 
 ```sh

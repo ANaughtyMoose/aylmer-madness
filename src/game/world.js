@@ -1,4 +1,5 @@
 import { buildCemeteryFences } from './cemetery.js';
+import { captureFragment, fragmentBuilder, launchFragment } from './breakables.js';
 import { makeSurface, clipHalf } from './surface.js';
 import { FRASER, fraserFootprint, buildFraser } from './fraser.js';
 // Turns mapdata.js (real OpenStreetMap Aylmer) into geometry and collision data.
@@ -1071,6 +1072,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     if (inside && a0 && !inside(a0.poleX, a0.poleZ)) continue;
     for (const a of sig.approaches) {
       const bd = bAt(a.poleX, a.poleZ);
+      const first = bd.i.length;
       // The mast is planted on the ground at its own foot; the head and its
       // three dark lenses hang from it at the height they always did. `headY`
       // is written back onto the approach because signals.js draws the ONE lit
@@ -1088,7 +1090,9 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         bd.box(a.headX + fx * 0.1, a.headY + LAMP_DY[k], a.headZ + fz * 0.1,
           0.3, 0.3, 0.14, lensOff, { yaw: a.headYaw });
       }
-      poleCollider(a.poleX, a.poleZ, 'signal', 6.2);
+      a.broken = false;
+      const mast = addPole(a.poleX, a.poleZ, 'signal', 6.2, bKey(a.poleX, a.poleZ), first, bd.i.length);
+      mast.signal = a;
       stopLine(a.x, a.z, a.dx, a.dz, a.hw, a.yaw);
     }
   }
@@ -1097,11 +1101,12 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   for (const s of STOPS) {
     if (inside && !inside(s.poleX, s.poleZ)) continue;
     const bd = bAt(s.poleX, s.poleZ);
+    const first = bd.i.length;
     const gy = baseAt(s.poleX, s.poleZ).h;
     bd.cyl(s.poleX, gy + 1.15, s.poleZ, 0.065, 2.3, 4, poleCol, 'y', false);
     octagon(bd, s.poleX, gy + 2.34, s.poleZ, 0.47, s.faceYaw, stopRim, 0.0);
     octagon(bd, s.poleX, gy + 2.34, s.poleZ, 0.40, s.faceYaw, stopRed, 0.03);
-    poleCollider(s.poleX, s.poleZ, 'stopsign', 2.3);
+    addPole(s.poleX, s.poleZ, 'stopsign', 2.3, bKey(s.poleX, s.poleZ), first, bd.i.length);
     stopLine(s.x, s.z, s.dx, s.dz, s.hw, s.yaw);
   }
 
@@ -1897,6 +1902,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // for them.
   function tree(x, z, scale, conifer) {
     const bd = bAt(x, z);
+    const first = bd.i.length;
     const g = baseAt(x, z).h;
     const th = 3.0 * scale;
     const pick = tr();
@@ -1917,6 +1923,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
           1.45 * scale, 2.1 * scale, 5, shade(leaf, 0.94 + tr() * 0.14));
       }
     }
+    if (scale <= 1.25) addPole(x, z, 'tree', 9.5 * scale, bKey(x, z), first, bd.i.length);
   }
 
   // Low planting gives the town a second green layer instead of making every
@@ -2038,15 +2045,15 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
     addSegment(x - 0.15, z + 0.15, x - 0.15, z - 0.15);
     return base;
   }
-  // Signal / stop-sign poles are built before the chunk bookkeeping exists and
-  // aren't snappable: register them with no mesh slice (k = null, n = 0).
-  function poleCollider(x, z, kind, h) { addPole(x, z, kind || 'pole', h || 8.4, null, 0, 0); }
   function addPole(x, z, kind, h, k, i0, i1) {
-    const p = { x, z, kind, h, k, i0, n: i1 - i0, seg: poleSegs(x, z), dead: false, mesh: null };
+    const y = baseAt(x, z).h;
+    const p = { x, y, z, kind, h, k, i0, n: i1 - i0, seg: poleSegs(x, z), dead: false, mesh: null,
+      fragment: captureFragment(builders.get(k), i0, i1, x, y, z) };
     poles.push(p);
     const key = gkey(Math.floor(x / SEG_CELL), Math.floor(z / SEG_CELL));
     const bucket = poleGrid.get(key);
     if (bucket) bucket.push(p); else poleGrid.set(key, [p]);
+    return p;
   }
   // Pool of warm light on the tarmac under the lamp head. Unlit, alpha-blended,
   // and only ever drawn after dark — the cheapest streetlight there is. (W7)
@@ -2476,7 +2483,7 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
         if (!arr) continue;
         for (let k = 0; k < arr.length; k++) {
           const p = arr[k];
-          if (p.dead || p.k == null) continue;   // meshless (signal/stop) poles are solid
+          if (p.dead) continue;
           const dx = p.x - x, dz = p.z - z;
           if (dx * dx + dz * dz <= r2) poleOut.push(p);
         }
@@ -2488,18 +2495,22 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // Snap one. (ux, uz) is the direction the car was travelling, so it goes over
   // that way. Everything after this is one animation entry the game draws.
   const fallen = opts.fallen || [];    // shared across slices by sectors.js
-  function snapPole(p, ux, uz) {
+  function snapPole(p, ux, uz, speed) {
     if (p.dead) return null;
     p.dead = true;
+    if (p.signal) p.signal.broken = true;
     for (let k = 0; k < 4; k++) segDead[p.seg + k] = 1;
     if (p.mesh && renderer.blankIndices) renderer.blankIndices(p.mesh, p.i0, p.n);
-    const f = {
-      x: p.x, z: p.z, kind: p.kind, h: p.h,
-      yaw: Math.atan2(ux, uz),    // fall away from the bumper
-      t: 0,                        // 0 -> 1 over half a second
-    };
+    const f = launchFragment(p, ux, uz, speed);
+    f.mesh = renderer.upload(fragmentBuilder(p.fragment));
+    f.min = f.mesh.min; f.max = f.mesh.max;
+    f.owner = free;
+    p.fragment = null;
     fallen.push(f);
-    if (fallen.length > 40) fallen.shift();   // the town only has so many
+    if (fallen.length > 40) {
+      const old = fallen.shift();
+      if (old.mesh && renderer.free) renderer.free(old.mesh);
+    }
     return f;
   }
 
@@ -2680,6 +2691,11 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // enough away). The distant scenery and the signage are shared and stay.
   function free() {
     if (!renderer.free) return;
+    for (let i = fallen.length - 1; i >= 0; i--) {
+      if (fallen[i].owner !== free) continue;
+      if (fallen[i].mesh) renderer.free(fallen[i].mesh);
+      fallen.splice(i, 1);
+    }
     for (const c of chunks) {
       if (c.mesh) renderer.free(c.mesh);
       if (c.near) renderer.free(c.near);

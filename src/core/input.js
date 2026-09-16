@@ -12,6 +12,9 @@ export class Input {
     this.padHorn = false;
     this._rumbleUntil = 0;
     window.addEventListener('keydown', (e) => {
+      // Let native settings sliders consume their own adjustment keys.
+      if (e.target?.tagName === 'INPUT' && e.target.type === 'range'
+          && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(e.code)) return;
       if (e.repeat) return;
       const k = e.code;
       this.keys.add(k);

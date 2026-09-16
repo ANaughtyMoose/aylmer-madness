@@ -2,6 +2,7 @@
 // R3: the poles you took out on the way. Nothing here is on the critical path
 // of the physics; it is all bookkeeping and a handful of extra draws.
 import { MeshBuilder, rgb } from '../core/mesh.js';
+import { stepFragment, fragmentMatrix } from './breakables.js';
 import { m4, clamp } from '../core/math.js';
 import { DAMAGE, buildCarLamps, buildCrumple, buildPuff, CARS } from './cars.js';
 
@@ -14,7 +15,6 @@ const C_TAIL_HOT = new Float32Array([1.0, 0.16, 0.10]);
 const C_REV = new Float32Array([0.95, 0.98, 1.0]);
 const C_STEAM = new Float32Array([0.86, 0.89, 0.93]);
 
-const POLE_FALL = 0.5;        // seconds from upright to flat on the sidewalk
 const PUFFS = 8;              // hard ceiling on steam, so it can never cost a frame
 const REPAIR_SECONDS = 5;
 const REPAIR_RADIUS = 24;
@@ -229,7 +229,7 @@ export class DriveFx {
     const fallen = world && world.fallen;
     if (fallen) {
       for (let i = 0; i < fallen.length; i++) {
-        if (fallen[i].t < 1) fallen[i].t = Math.min(1, fallen[i].t + dt / POLE_FALL);
+        stepFragment(fallen[i], dt, world.groundAt);
       }
     }
     this.puffs.update(dt);
@@ -281,9 +281,8 @@ export class DriveFx {
         const dx = f.x - veh.x, dz = f.z - veh.z;
         if (dx * dx + dz * dz > 400 * 400) continue;
         // ease-out so it accelerates over and then thumps down
-        const e = 1 - (1 - f.t) * (1 - f.t);
-        m4.compose(mm, f.x, 0, f.z, f.yaw, e * (Math.PI / 2 - 0.06), 0);
-        r.draw(this.poleMesh[f.kind] || this.poleMesh.light, mm);
+        fragmentMatrix(mm, f);
+        r.draw(f.mesh || this.poleMesh[f.kind] || this.poleMesh.light, mm);
       }
     }
 

@@ -314,6 +314,7 @@ export class Signals {
       const dx = s.x - camX, dz = s.z - camZ;
       if (dx * dx + dz * dz > DRAW_R2) continue;
       for (const a of s.approaches) {
+        if (a.broken) continue;
         const ph = this._phase(s, a.axis);
         m4.compose(this._mm, a.headX, a.headY + LAMP_DY[ph], a.headZ, a.headYaw, 0, 0);
         // Nudge the lit lens proud of the baked housing so it never z-fights.

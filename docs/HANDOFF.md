@@ -1,3 +1,5 @@
+> **Current continuation guide (15 September 2026): [MacBook Air handoff](MACBOOK-HANDOFF.md).** This file is a historical snapshot; check current PR status before following its branch or merge instructions.
+
 # Handoff — 2026-09-07, end of the Wave 2/3 session
 
 Read this first, then `docs/PLAN.md` (the waves, the settled decisions, the

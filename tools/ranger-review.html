@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><title>Ranger reference review</title>
+<style>body{margin:0;background:#bcc6c7;font:14px system-ui}canvas{width:100vw;height:100vh;display:block}nav{position:fixed;top:12px;left:12px;background:#fff;padding:10px}button{padding:8px}#report{padding:8px}</style>
+<canvas id="gl"></canvas><nav><b>Ranger reference review</b><br><button data-view="0">Front</button><button data-view="3.141593">Rear</button><button data-view="1.570796">Side</button><button data-view="2.6">Bed</button><div id="report"></div></nav>
+<script type="module">
+import {Renderer} from '../src/core/gl.js';
+import {m4} from '../src/core/math.js';
+import {MeshBuilder,rgb} from '../src/core/mesh.js';
+import {CARS,buildCarBody,buildWheel} from '../src/game/cars.js';
+import {buildSpare,buildSpareAnchor,buildChainLink,drawSpare} from '../src/game/spare.js';
+const r=new Renderer(document.querySelector('canvas')),s=CARS.find(c=>c.id==='ranger');
+r.setEnvironment({sky:[.65,.72,.8],ground:[.35,.35,.32],sun:[.95,.92,.85],lightDir:[.3,.9,.3],fog:[.73,.77,.78],fogDensity:.001});
+const body=buildCarBody(s),mesh=r.upload(body),wheel=r.upload(buildWheel(s)),b=new MeshBuilder();
+const spare={tire:r.upload(buildSpare()),anchor:r.upload(buildSpareAnchor()),link:r.upload(buildChainLink())};
+b.box(0,-.06,0,30,.1,30,rgb(0x717674));const floor=r.upload(b),mm=m4.create();
+let yaw=.6,pitch=-.16;
+document.querySelectorAll('button').forEach(el=>el.onclick=()=>{yaw=+el.dataset.view;pitch=el.textContent==='Bed'?-.6:-.16;});
+document.querySelector('#report').textContent=`${body.i.length/3} body triangles · actual game model`;
+function draw(){requestAnimationFrame(draw);const d=6.5;
+r.begin([Math.sin(yaw)*d*Math.cos(pitch),.85-Math.sin(pitch)*d,Math.cos(yaw)*d*Math.cos(pitch)],yaw,pitch,.85);
+m4.identity(mm);r.draw(floor,mm);r.draw(mesh,mm);drawSpare(r,spare,mm,0);
+for(const sx of [-1,1])for(const z of [-s.axleZ,s.axleZ]){m4.compose(mm,sx*s.track/2,s.wheelR,z,0,0,0);r.draw(wheel,mm);}
+r.end();}draw();
+</script>

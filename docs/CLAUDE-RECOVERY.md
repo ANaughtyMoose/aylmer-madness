@@ -1,3 +1,5 @@
+> **Current continuation guide (15 September 2026): [MacBook Air handoff](MACBOOK-HANDOFF.md).** This file is a historical snapshot; check current PR status before following its branch or merge instructions.
+
 # Claude: resume the Aylmer Madness repair pass
 
 ## User authorization and scope

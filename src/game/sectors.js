@@ -230,8 +230,8 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     }
     return poleOut;
   };
-  W.snapPole = (p, ux, uz) => {
-    for (const w of loaded.values()) if (w.poles.includes(p)) return w.snapPole(p, ux, uz);
+  W.snapPole = (p, ux, uz, speed) => {
+    for (const w of loaded.values()) if (w.poles.includes(p)) return w.snapPole(p, ux, uz, speed);
     return null;
   };
   W.roadAt = (x, z) => { for (const w of loaded.values()) if (w.roadAt(x, z)) return true; return false; };
