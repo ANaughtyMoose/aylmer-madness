@@ -9,7 +9,9 @@ Repository: https://github.com/ANaughtyMoose/aylmer-madness
 - Repair PR #42: https://github.com/ANaughtyMoose/aylmer-madness/pull/42 — roads, sidewalks, cemetery, pause audio/UI, campaign order, Glenwood houses and chained spare. Reviewed gameplay head: `ef6fb794d63f1e801eaad833fb4465192933819c`.
 - Follow-up PR #43: https://github.com/ANaughtyMoose/aylmer-madness/pull/43 — flying roadside objects, damage controls and photographed Ranger details. Gameplay commit: `ef4414a`; first published handoff: `611b3be`.
 - Integration path: PR #42 merged as `78a41501687f74ce7ad9219a4d0e37516df489ef`. PR #43 carries the Ranger/impact changes and this guide into `main`. The owner explicitly authorized both administrator merges and retargeting #43 to main, provided the gameplay matches the locally opened version. That comparison passed: all changes since `611b3be` are documentation only. Repository protections remain unchanged. Check the PR pages for the authoritative completed merge records; earlier approval-blocker notes are historical.
-- After both are merged, use `main`. Until then, `codex/ranger-impact` contains both complete change sets and this guide. Do not cherry-pick the Glenwood commits again: they are already integrated.
+- Both PRs are now merged. Use `main` at `e68be00363e9db75d87e7b33caa298e2b5a3c6c6` or later. Do not cherry-pick the Glenwood commits again: they are already integrated.
+
+Audio follow-up: see [AUDIO-HANDOFF.md](AUDIO-HANDOFF.md) for the separate static/mix repair and [the Gemini full-fleet asset brief](GEMINI-AUDIO-SCOUT-PROMPT.md). That follow-up requires its own review.
 
 ## 2. First launch on the Mac
 
