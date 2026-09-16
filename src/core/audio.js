@@ -739,6 +739,10 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
     // which is why a gearchange sounds like the engine going free and not just
     // like the volume being turned down.
     const work = load * clutch;
+    // Disengaging the clutch removes drivetrain load, not combustion. Keep
+    // the firing note audible through launch and shifts so tyre hiss cannot
+    // become the only sound. Load and RPM still change the timbre below.
+    const combustion = 0.65 + 0.35 * clutch;
     // Labouring: a lot of load at not many revs. A truck pulling a hill at 2200
     // is the boomiest, hardest noise it makes, and it is nothing like the same
     // engine at 2200 coasting.
@@ -754,18 +758,21 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
       p.toneLo + (p.toneHi - p.toneLo) * clamp01(work * 0.72 + frac * 0.34) * (1 - over * 0.55),
       at, 0.09);
 
-    n.exhG.gain.setTargetAtTime(cut * clutch * p.exhG * drive * (1 - over * 0.30), at, T);
+    n.exhG.gain.setTargetAtTime(cut * combustion * p.exhG * drive * (1 - over * 0.30), at, T);
     // The intake is the first thing a shut throttle takes away: there is a
     // plate across it.
     n.intG.gain.setTargetAtTime(
-      cut * clutch * p.intG * (0.10 + work * 0.95) * (0.35 + frac * 0.9) * (1 - over * 0.85), at, T);
+      cut * combustion * p.intG * (0.10 + work * 0.95) * (0.35 + frac * 0.9) * (1 - over * 0.85), at, T);
 
     // Intake hiss rises with throttle; exhaust rasp opens up above `raspFrom`.
     n.hiss.frequency.setTargetAtTime(700 + frac * 2400 + throttle * 700, at, T);
-    n.hissG.gain.setTargetAtTime(clutch * p.hissG * (0.05 + throttle * 0.95) * (0.25 + frac), at, T);
+    // Noise is texture under the firing note. In particular the Ranger's
+    // high-load rasp used to feed enough broadband noise into the shaper to
+    // resemble radio static. Preserve its harmonic distortion, trim the noise.
+    n.hissG.gain.setTargetAtTime(clutch * p.hissG * 0.18 * (0.05 + throttle * 0.95) * (0.25 + frac), at, T);
     const rasp = clamp01((r - p.raspFrom) / 1400);
     n.rasp.frequency.setTargetAtTime(300 + firing * 1.2, at, T);
-    n.raspG.gain.setTargetAtTime(clutch * p.raspG * rasp * (0.2 + work * 0.8), at, T);
+    n.raspG.gain.setTargetAtTime(clutch * p.raspG * 0.18 * rasp * (0.2 + work * 0.8), at, T);
 
     // The burble under a shut throttle, tracking the firing note down.
     n.burbF.frequency.setTargetAtTime(110 + firing * 0.55, at, T);
@@ -777,7 +784,7 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
       p.boomDb * (0.45 + work * 0.55 + labour * 0.12) * (1 - over * 0.25), at, 0.08);
 
     // Valvetrain tick: loudest at idle, buried once there is any load on it.
-    n.tickG.gain.setTargetAtTime(p.tickG * (1 - frac * 0.75) * (1 - work * 0.6) * clutch, at, T);
+    n.tickG.gain.setTargetAtTime(p.tickG * (1 - frac * 0.75) * (1 - work * 0.6) * combustion, at, T);
 
     // Rasp waveshaper: dry below half load, gently wet at full chat.
     const wet = clamp01((work - 0.35) / 0.65) * p.rasp * (0.4 + frac * 0.6);
@@ -785,7 +792,7 @@ export function buildEngineVoice(ctx, dest, profile, sharedNoise) {
     n.dry.gain.setTargetAtTime(1 - wet * 0.45, at, 0.1);
 
     // Master level for the voice. Sits under the toasts and the horn.
-    const vol = p.gain * (0.60 + work * 0.28 + frac * 0.20) * (0.35 + clutch * 0.65) * cut;
+    const vol = p.gain * (0.60 + work * 0.28 + frac * 0.20) * combustion * cut;
     n.out.gain.setTargetAtTime(gate * vol * 0.40, at, 0.05);
   }
 

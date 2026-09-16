@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8"><title>Engine clarity check</title>
+<style>body{font:18px system-ui;background:#182029;color:#eee;max-width:950px;margin:32px auto;padding:16px}button{padding:12px}pre{white-space:pre-wrap}audio{display:block;margin:12px 0}</style>
+<h1>Engine clarity check</h1>
+<p>Renders the actual engine and road graph. Compare idle, acceleration and a clutch dip using the samples below. Measurements also filter out bass below 250 Hz to check clarity on small speakers.</p>
+<button id="run">Render and check engine clarity</button><pre id="result">Ready</pre><div id="samples"></div>
+<script type="module">
+import {CARS} from '../src/game/cars.js';
+import '../src/game/vehicles.js';
+import {NSX} from '../src/game/fortiercars.js';
+import {CRUISER} from '../src/game/cops.js';
+const fleet=[...CARS,NSX,CRUISER];
+const baseline=new URLSearchParams(location.search).has('baseline');
+const {buildEngineVoice,RoadDriver,makeNoise,DEFAULT_ENGINE}=await import(baseline?'../out/audio-before-static.js':'../src/core/audio.js');
+const result=document.querySelector('#result');
+function wav(data,rate,label){
+ const bytes=new ArrayBuffer(44+data.length*2),v=new DataView(bytes);
+ const word=(p,s)=>{for(let i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i));};
+ word(0,'RIFF');v.setUint32(4,bytes.byteLength-8,true);word(8,'WAVE');word(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);word(36,'data');v.setUint32(40,data.length*2,true);
+ data.forEach((s,i)=>v.setInt16(44+i*2,Math.round(Math.max(-1,Math.min(1,s))*32767),true));
+ const p=document.createElement('p');p.textContent=label;const a=document.createElement('audio');a.controls=true;a.src=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));document.querySelector('#samples').append(p,a);
+}
+async function render(id,stem,{rpm=4400,speed=110,throttle=1,clutch=1,gate=1,filtered=true,sample=false}={}){
+ const rate=48000,seconds=sample?8:2,ctx=new OfflineAudioContext(1,rate*seconds,rate),p={...DEFAULT_ENGINE,...fleet.find(c=>c.id===id).sound};
+ rpm=Math.min(rpm,p.redline*.85);const dest=ctx.createGain();dest.gain.value=.5;
+ if(filtered){const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=250;dest.connect(hp);hp.connect(ctx.destination);}else dest.connect(ctx.destination);
+ // Deterministic noise, so before/after changes are not random render variance.
+ const noise=makeNoise(ctx);let seed=1987,pink=0;const nd=noise.getChannelData(0);for(let i=0;i<nd.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;pink=pink*.35+(seed/4294967296*2-1)*.65;nd[i]=pink;}
+ const v=buildEngineVoice(ctx,dest,p,noise);
+ if(stem==='tonal')v.nodes.noise.disconnect();
+ if(stem==='noise'){v.nodes.osc.disconnect();v.nodes.tick.disconnect();}
+ if(sample){
+  const road=new RoadDriver(ctx,dest,noise);road.setProfile(p);
+  for(let t=0;t<seconds;t+=1/60){const moving=t>=2,shift=t>=4&&t<4.25,fast=t>=5;const rpm=moving?(fast?p.redline*.85:p.redline*.5):p.idle,speed=moving?(fast?100:50):0,throttle=moving?(fast?1:.3):0;
+   v.set(rpm,throttle*.85,throttle,shift?0:(moving?1:.45),1,t);
+   road.step(1/60,speed,throttle,{kind:'asphalt',rough:0,air:false,bump:0},1,t);
+  }
+ }else{v.set(rpm,throttle*.85+Math.min(.2,speed/400),throttle,clutch,1,0);if(!gate)v.set(0,0,0,1,0,.5);}
+ const b=await ctx.startRendering(),data=b.getChannelData(0),tail=data.subarray(rate);
+ const rms=Math.sqrt(tail.reduce((s,x)=>s+x*x,0)/tail.length);let peak=0;for(const x of data)peak=Math.max(peak,Math.abs(x));
+ if(sample)wav(data,rate,`${id}: idle (0–2s), drive (2–4s), clutch dip (4s), acceleration (5–8s)`);
+ return {rms,peak};
+}
+document.querySelector('#run').onclick=async()=>{try{
+ result.textContent='Rendering…';for(const a of document.querySelectorAll('audio'))URL.revokeObjectURL(a.src);document.querySelector('#samples').replaceChildren();const rows=[];
+ for(const {id} of fleet){
+  const tonal=await render(id,'tonal'),noise=await render(id,'noise'),engaged=await render(id,'tonal',{rpm:2400,speed:50,throttle:.3}),clutch=await render(id,'tonal',{rpm:2400,speed:50,throttle:.3,clutch:0}),off=await render(id,'mix',{gate:0}),mix=await render(id,'mix',{sample:true,filtered:false});
+  const noiseRatio=noise.rms/tonal.rms,clutchRatio=clutch.rms/engaged.rms;
+  rows.push({id,noiseRatio,noiseDbBelowEngine:-20*Math.log10(noiseRatio),clutchRatio,offRms:off.rms,peak:mix.peak,pass:noiseRatio<.15&&clutchRatio>.2&&off.rms<.00001&&mix.peak<1});
+ }
+ result.textContent=JSON.stringify({baseline,pass:rows.every(r=>r.pass),rows},null,2);
+}catch(e){result.textContent=e.stack;}};
+</script>
