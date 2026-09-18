@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="fr-CA" data-prototype="2004">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aylmer 2004 — prototype visuel</title>
+<!-- An inline icon, so a clean boot prints nothing at all in the console.
+     Without it every load ends in a 404 for /favicon.ico, and one real error
+     hidden among noise is an error nobody sees. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2310171c'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23ffc94d'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="cinematic.css">
+<link rel="stylesheet" href="src/prototype/panel.css">
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="topleft">
+    <div id="objective"></div>
+    <div id="sub"></div>
+  </div>
+  <div id="timer" class="hidden">0:00</div>
+  <div id="speedo">
+    <canvas id="gauge" width="132" height="132"></canvas>
+    <div id="speedtext">
+      <div id="kmh">0</div><div id="unit">km/h</div>
+      <div id="carname">—</div>
+    </div>
+  </div>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="street"></div>
+  <div id="toast"></div>
+  <div id="prompt" class="hidden"></div>
+  <div id="tuto" class="hidden"><span class="cap"></span><span class="txt"></span></div>
+  <div id="legend">
+    <button id="legendhead" type="button" aria-controls="legendrows">Afficher les commandes</button>
+    <div id="legendrows"></div>
+  </div>
+  <div id="money">$80</div>
+  <div id="envelope"><div id="envamt">80 $ / 1 200 $</div><div id="envday">sam 26 juin · 72 jours</div></div>
+  <div id="fuel" class="hidden"><b></b><i></i><span>— L</span></div>
+</div>
+
+<div id="menu">
+  <div id="menuinner">
+    <header class="title-scene">
+      <div class="title-copy">
+        <h1>AYLMER<span>MADNESS</span></h1>
+        <p class="tag" id="menutag">Prototype visuel &middot; été 2004 &middot; t&rsquo;as ton permis pis un demi-réservoir</p>
+      </div>
+      <img class="title-art" src="assets/cinema/fraser-2004.png" alt="" fetchpriority="high">
+    </header>
+    <div id="menucols">
+      <div id="menuside">
+        <button id="btnContinue" class="ghost">Continuer</button>
+        <button id="start">EMBARQUE &#9656; nouvelle partie</button>
+        <button id="btnLoad" class="ghost">Charger</button>
+        <button id="btnOptions" class="ghost">Options</button>
+        <button id="btnEnglish" class="ghost">English version &rarr;</button>
+        <a id="btnGarage" class="ghost" href="garage.html">Le garage</a>
+        <div id="contmeta"></div>
+      </div>
+      <div id="menumain">
+        <div id="carspick">Choisis ton char</div>
+        <div id="cars"></div>
+      </div>
+    </div>
+    <div id="erratum"></div>
+    <div id="menukeys"></div>
+  </div>
+  <div id="startpicker" class="hidden" role="dialog" aria-modal="true" aria-labelledby="startpicktitle">
+    <div class="startpanel">
+      <div class="topbar"><button id="startback" class="ghost">&larr; Retour</button></div>
+      <h2 id="startpicktitle">Choisis ton point de départ</h2>
+      <p id="startpickhint" class="tag">Ton char est choisi. Maintenant, choisis où commencer.</p>
+      <div class="startlayout">
+        <canvas id="startmap" width="760" height="520" aria-label="Carte des points de départ"></canvas>
+        <div id="startpoints"></div>
+      </div>
+      <button id="startconfirm" disabled>EMBARQUE</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="bigmap" class="hidden"></canvas>
+
+<div id="pause" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pausetitle">
+  <div class="panel">
+    <h2 id="pausetitle">Pause</h2>
+    <h3 id="pausemission"></h3>
+    <p id="pausebrief"></p>
+    <div id="ptabs"></div>
+    <div id="tabjobs" class="ptab">
+      <div id="jobs"></div>
+      <p class="hint" id="jobshint"></p>
+      <div class="row"><button id="carshome" class="ghost">Remettre les chars chez eux</button></div>
+    </div>
+    <div id="tabsave" class="ptab hidden"></div>
+    <div id="tabopt" class="ptab hidden"></div>
+    <div id="tabkeys" class="ptab hidden"></div>
+    <div class="row">
+      <button id="resume">Continuer</button>
+      <button id="restartmission" hidden>Recommencer la job</button>
+      <button id="mapbtn">Carte</button>
+      <button id="garage">Menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="options" class="hidden">
+  <div class="panel wide">
+    <div class="topbar"><button id="optback2" class="ghost">&larr; Retour</button><span class="hint">Esc</span></div>
+    <h2 id="opttitle">Options</h2>
+    <div id="optbody"></div>
+    <div class="row"><button id="optback">Retour</button></div>
+  </div>
+</div>
+
+<div id="loadscr" class="hidden">
+  <div class="panel wide">
+    <div class="topbar"><button id="loadback2" class="ghost">&larr; Retour</button><span class="hint">Esc</span></div>
+    <h2 id="loadtitle">Charger</h2>
+    <div id="loadbody"></div>
+    <div class="row"><button id="loadback">Retour</button></div>
+  </div>
+</div>
+
+<div id="fps" class="hidden">60 fps</div>
+
+<div id="loading" class="hidden">
+  <div class="lbox">
+    <div class="ltitle">ON BÂTIT AYLMER</div>
+    <div class="lbar"><i></i></div>
+    <div class="lstage">Rues…</div>
+  </div>
+</div>
+
+<div id="seam" class="hidden" aria-live="polite">
+  <div class="sbox">
+    <div class="skicker"></div>
+    <div class="sname"></div>
+    <div class="scap"></div>
+  </div>
+</div>
+
+<div id="intro" class="hidden">
+  <div class="icard">
+    <div class="ititle"></div>
+    <div class="ibrief"></div>
+    <div class="itime"></div>
+    <canvas class="iroute" width="360" height="210"></canvas>
+  </div>
+</div>
+
+<!-- driving agent (R4 / D5): damage bar and reverse indicator. Kept out of
+     #hud on purpose so a rework of the HUD markup doesn't collide with it;
+     both are positioned from the rules at the end of style.css. -->
+<div id="dmgwrap" class="hidden">
+  <span id="dmglabel">DOMMAGE</span>
+  <u id="dmgbar"><i id="dmgfill"></i></u>
+</div>
+<div id="gear" class="hidden">R</div>
+<!-- race agent (G4): the wanted meter. Same corner as the damage bar. -->
+<div id="stars" class="hidden">☆☆☆</div>
+
+<!-- progression agent (Goal C): the radio's one line. Station on the left,
+     what is playing after it. R cycles CKOI -> cassette -> off. Kept outside
+     #hud for the same reason the damage bar is. -->
+<div id="radio" class="hidden">
+  <b id="radiostation">CKOI 102.1</b>
+  <span id="radiotrack"></span>
+</div>
+
+<!-- story agent: the new-game opener (game/story.js). A sibling of the mission
+     intro card that waits for the player instead of a timer — E / Enter /
+     Espace / click turns the page, Escape skips the rest. -->
+<div id="story" class="hidden">
+  <div class="scard">
+    <div class="stitle"></div>
+    <div class="sbody"></div>
+    <div class="sfoot"><span class="sdots"></span><span class="skey"></span></div>
+  </div>
+</div>
+
+<!-- story agent: the heckles (game/heckle.js). Speech bubbles from whoever you
+     just scared, and the friends' dialogue at the start and the end of a job.
+     Two at a time, near the top, out of the toast's way. -->
+<div id="heckles"></div>
+
+<!-- feel agent: where to get it fixed. The hint sits under the damage bar as
+     soon as the car is past 25 %. The repair spots' prompt used to be its own
+     #prompt2 line under #prompt; U8 gave the bottom of the screen a single
+     prompt slot, so it goes through hud.setRepairPrompt() into #prompt now. -->
+<div id="repairhint" class="hidden"></div>
+
+<script type="importmap">{"imports": {"./src/game/story.js": "./src/game/story.js?v=historic-21", "./src/game/buses.js": "./src/game/buses.js?v=historic-21", "./src/game/turntable.js": "./src/game/turntable.js?v=historic-21", "./src/game/cops.js": "./src/game/cops.js?v=historic-21", "./src/game/traffic.js": "./src/game/traffic.js?v=historic-21", "./src/game/homeparking.js": "./src/game/homeparking.js?v=historic-21", "./src/game/missions.js": "./src/game/missions.js?v=historic-21", "./src/game/places.js": "./src/game/places.js?v=historic-21", "./src/game/lifejobs.js": "./src/game/lifejobs.js?v=historic-21", "./src/game/mealshift.js": "./src/game/mealshift.js?v=historic-21", "./src/game/routeprogress.js": "./src/game/routeprogress.js?v=historic-21", "./src/game/cars.js": "./src/game/cars.js?v=historic-21", "./src/game/avatars.js": "./src/game/avatars.js?v=historic-21", "./src/game/speeds.js": "./src/game/speeds.js?v=historic-21", "./src/game/fortier.js": "./src/game/fortier.js?v=historic-21", "./src/game/fortiercars.js": "./src/game/fortiercars.js?v=historic-21", "./src/game/landmarks.js": "./src/game/landmarks.js?v=historic-21", "./src/game/historicstrip.js": "./src/game/historicstrip.js?v=historic-21", "./src/game/tow.js": "./src/game/tow.js?v=historic-21", "./src/game/damage.js": "./src/game/damage.js?v=historic-21", "./src/game/economy.js": "./src/game/economy.js?v=historic-21", "./src/game/oldaylmer.js": "./src/game/oldaylmer.js?v=historic-21", "./src/core/gl.js": "./src/prototype/renderer.js"}}</script>
+<script type="module" src="src/prototype/boot.js"></script>
+</body>
+</html>

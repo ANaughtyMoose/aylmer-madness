@@ -77,14 +77,15 @@ function loadImage(url) {
  */
 export async function loadMaterials(renderer, opts = {}) {
   const base = opts.base || ATLAS_DIR;
+  const stem = opts.stem || renderer?.materialAtlas || 'atlas';
   const manifest = opts.manifest
-    || await fetch(base + 'atlas.json').then((r) => {
-      if (!r.ok) throw new Error('cannot load ' + base + 'atlas.json');
+    || await fetch(base + stem + '.json').then((r) => {
+      if (!r.ok) throw new Error('cannot load ' + base + stem + '.json');
       return r.json();
     });
   let tex = null;
   if (renderer && renderer.texture) {
-    const image = opts.image || await loadImage(base + 'atlas.png');
+    const image = opts.image || await loadImage(base + stem + '.png');
     tex = renderer.texture(image, {
       aniso: opts.aniso === undefined ? 16 : opts.aniso,
       // Cap the mip chain: the atlas cells only have 8 px of bleed, so from
