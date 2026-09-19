@@ -77,14 +77,15 @@ function loadImage(url) {
  */
 export async function loadMaterials(renderer, opts = {}) {
   const base = opts.base || ATLAS_DIR;
+  const stem = opts.stem || renderer?.materialAtlas || 'atlas';
   const manifest = opts.manifest
-    || await fetch(base + 'atlas.json').then((r) => {
-      if (!r.ok) throw new Error('cannot load ' + base + 'atlas.json');
+    || await fetch(base + stem + '.json').then((r) => {
+      if (!r.ok) throw new Error('cannot load ' + base + stem + '.json');
       return r.json();
     });
   let tex = null;
   if (renderer && renderer.texture) {
-    const image = opts.image || await loadImage(base + 'atlas.png');
+    const image = opts.image || await loadImage(base + stem + '.png');
     tex = renderer.texture(image, {
       aniso: opts.aniso === undefined ? 16 : opts.aniso,
       // Cap the mip chain: the atlas cells only have 8 px of bleed, so from
@@ -94,7 +95,9 @@ export async function loadMaterials(renderer, opts = {}) {
       maxLevel: opts.maxLevel === undefined ? 4 : opts.maxLevel,
     });
   }
-  const mats = new Materials(manifest, tex);
+  const effective = renderer?.isPrototype ? prototypeManifest(manifest) : manifest;
+  const mats = new Materials(effective, tex);
+  mats.prototypeStyle=!!renderer?.isPrototype;
   if (opts.current !== false) current = mats;
   return mats;
 }
@@ -356,3 +359,15 @@ export function decal(mb, name, centre, right, up, opts) {
   return materials().decal(mb, name, centre, right, up, opts);
 }
 export function endTex(mb) { return materials().end(mb); }
+
+// Photographic sheets contain many more courses than the original procedural
+// tiles. Keep physical siding/brick size instead of covering houses in tiny lines.
+export function prototypeManifest(manifest) {
+ const tiles=Object.fromEntries(Object.entries(manifest.tiles).map(([name,t])=>[name,{...t}]));
+ for(const [name,t] of Object.entries(tiles)) {
+  if(name.startsWith('vinyl_')||name.startsWith('clapboard_'))t.metres=2.4;
+  else if(name.startsWith('brick_'))t.metres=1.8;
+  else if(name==='cedar')t.metres=2.4;
+ }
+ return {...manifest,tiles};
+}

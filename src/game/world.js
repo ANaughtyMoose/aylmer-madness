@@ -2604,8 +2604,8 @@ export function buildWorld(renderer, mats = MATS, opts = {}) {
   // ------------------------------------------------------------ draw
   // One call from main.js render(): chunk cull + fade-in, the river, the
   // storefront signs, and the lamp pools after dark. Nothing allocates.
-  const noOpts = {};
-  const fadeOpts = { fogMul: 1 };
+  const noOpts = { material: 'world' };
+  const fadeOpts = { fogMul: 1, material: 'world' };
   const waterOpts = { water: true };
   const poolOpts = { alpha: 0.3, unlit: true, colorMul: new Float32Array([1, 0.86, 0.63]) };
   const signOpts = { tex: null };

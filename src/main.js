@@ -7,6 +7,9 @@ import { remainingRoute } from './game/routeprogress.js';
 import { Cinematic, missionClock } from './game/cinematic.js';
 // Aylmer Madness — boot, game loop, camera, mission runner.
 import { Renderer } from './core/gl.js';
+import { environmentAt, HOURS } from './prototype/daylight.js';
+import { advanceSummerClock, applyRecordedWeather } from './prototype/calendar-clock.js';
+const VISUAL_PROTOTYPE = typeof document !== 'undefined' && document.documentElement.dataset.prototype === '2004';
 import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
 import { MeshBuilder, rgb } from './core/mesh.js';
@@ -141,6 +144,7 @@ const DAY_HOLD = 0.45;
 // (0.16 * 600 / 600 is 0.15999999999999992, which is not 0.16. It cost an
 // afternoon.) save.js stores the phase by name, so this is the road back in.
 function phaseClock(name) {
+  if (VISUAL_PROTOTYPE) return (HOURS[name] ?? 13) / 24 * DAY_NIGHT_CYCLE;
   const i = Math.max(0, DAY_KEYS.indexOf(name));
   return (DAY_PHASE[DAY_KEYS[i]] + DAY_WEIGHT[i] * 0.25) * DAY_NIGHT_CYCLE;
 }
@@ -169,7 +173,7 @@ const G = {
   cam: 0,
   camYaw: 0, camPos: [0, 5, 0],
   env: null, envTarget: null,
-  dayClock: DAY_PHASE.day * DAY_NIGHT_CYCLE,
+  dayClock: (VISUAL_PROTOTYPE ? 6/24 : DAY_PHASE.day) * DAY_NIGHT_CYCLE,
   world: null, meshes: null, renderer: null,
   veh: null, traffic: null,
   mission: null,
@@ -1036,6 +1040,12 @@ function enterDrive(save = null, startKey = null) {
   // choosing Zahra started Tom's summer with Zahra's name on the menu. The
   // character was settled at the top of this function; leave it alone.
   calendar.restoreSummer(G, save);
+  if (VISUAL_PROTOTYPE) {
+    if (!save) { G.day=0; G.dayClock=6/24*DAY_NIGHT_CYCLE; }
+    else G.day=Math.floor(G.day);
+    applyRecordedWeather(weather,calendar.dayInfo(G.day),calendar.iso(G.day),true);
+    setCycleEnv(true);
+  }
   fuel.initFuel(G, save);
   if (G.props) {
     G.props.clear();
@@ -1080,6 +1090,12 @@ function enterDrive(save = null, startKey = null) {
   // Playtest #11: a slot carries the job you were in the middle of. Last,
   // because it needs the car, the wallet, the HUD and the stats to exist.
   if (save && save.mission) resumeMission(save.mission);
+  // Mission restoration sets its authored start time; restore the exact visual
+  // clock afterwards so loading an in-progress job does not jump back to dawn.
+  if (VISUAL_PROTOTYPE && Number.isFinite(save?.visualHour)) {
+    G.dayClock = save.visualHour / 24 * DAY_NIGHT_CYCLE;
+    setCycleEnv(true);
+  }
 }
 
 // ---------------------------------------------------------------- story
@@ -1267,6 +1283,10 @@ function cloneEnv(e) {
   };
 }
 function setEnv(key, instant) {
+  if (VISUAL_PROTOTYPE) {
+    // Jobs no longer move the clock. The player keeps the current date/hour.
+    setCycleEnv(true); return;
+  }
   const t = TIME_OF_DAY[key] || TIME_OF_DAY.day;
   G.envKey = TIME_OF_DAY[key] ? key : 'day';
   G.envPinned = G.envKey;      // what updateDayNight re-applies under a mission
@@ -1280,6 +1300,10 @@ function setEnv(key, instant) {
   }
 }
 function cycleEnv() {
+  if (VISUAL_PROTOTYPE) {
+    const env = environmentAt(G.dayClock / DAY_NIGHT_CYCLE * 24, G.day, calendar.dayInfo(G.day));
+    return { env, key: env.key };
+  }
   const p = ((G.dayClock / DAY_NIGHT_CYCLE) % 1 + 1) % 1;
   // Which phase the clock is in, and how far through it.
   let i = 0, acc = 0;
@@ -1305,7 +1329,14 @@ function setCycleEnv(instant = false) {
   G.envPinned = null;               // the clock has the sky back
   // The weather leans the sky BEFORE anything asks how dark it is, so a real
   // thunderstorm at two in the afternoon puts the headlights on by itself.
+  const naturalSun = Math.max(...c.env.sun);
   weather.tintEnv(c.env);
+  if (VISUAL_PROTOTYPE) {
+    const light=Math.min(1,naturalSun*3);
+    c.env.sun=c.env.sun.map(v=>v*light);
+    c.env.sky=c.env.sky.map(v=>v*(.15+.85*light));
+    c.env.fog=c.env.fog.map(v=>v*(.22+.78*light));
+  }
   G.night = nightAmount(c.env) > 0.15;
   G.envTarget = c.env;
   if (instant || !G.env) {
@@ -1314,6 +1345,15 @@ function setCycleEnv(instant = false) {
   }
 }
 function updateDayNight(dt) {
+  if (VISUAL_PROTOTYPE) {
+    const opt = window.AYLMER_VISUAL || {};
+    const next=advanceSummerClock(G,dt,DAY_NIGHT_CYCLE,opt.dayMinutes||24,opt.clockRate??1,calendar.LAST);
+    applyRecordedWeather(weather,calendar.dayInfo(G.day),calendar.iso(G.day));
+    if(next.midnights) { hud.toast(calendar.dayToast(G.day),2800); autosave('midnight'); }
+    setCycleEnv();
+    if(next.end)runEnding();
+    return;
+  }
   G.dayClock = (G.dayClock + dt) % DAY_NIGHT_CYCLE;
   // Under a mission the clock keeps running but the SKY is whatever the job
   // asked for — except that the weather still has to reach it, so the pinned
@@ -1425,6 +1465,7 @@ function applyStage() {
 // Every job and every race costs a day (calendar.js). When the day that
 // arrives is Labour Day, the summer is over and the father counts the envelope.
 function endOfJob() {
+  if (VISUAL_PROTOTYPE) return;
   calendar.spendDay(G, hud);
   if (calendar.isOver(G.day) && !G.summerOver) runEnding();
 }
@@ -1812,7 +1853,7 @@ function handleKeys() {
   // main.js, and the two live in different modules. Kijiji keeps K, which it
   // documented claiming along with U for the garage.
   if (input.hit('KeyV')) {
-    weather.advance();
+    if (!VISUAL_PROTOTYPE) weather.advance();
     hud.toast('MÉTÉO\n' + weather.label + (weather.wet > 0.1 ? '  ·  chaussée mouillée' : ''), 1800);
   }
   // feel agent: while a garage is offering an E, that key is the garage's and
@@ -2369,6 +2410,7 @@ function render(dt) {
     camPitch += shakePitch;
     G.camYaw += Math.sin(G.time * 9.1) * k * 0.5;
   }
+  r.setGameState?.(G);
   r.setEnvironment(G.env);
   // The player's car, one matrix, before anything is drawn: the driver's camera
   // hangs off it and so do the cab and the mirrors.
@@ -2407,7 +2449,7 @@ function render(dt) {
   // which nobody has ever seen from the driver's seat of a real car. Storms
   // made this obvious by turning the lights on in the middle of the afternoon.
   // The driver's seat is inside them too, and more so.
-  if (night > 0.35 && cam.name !== 'hood' && !inCab && G.meshes.cones[v.spec.id]) {
+  if (!VISUAL_PROTOTYPE && night > 0.35 && cam.name !== 'hood' && !inCab && G.meshes.cones[v.spec.id]) {
     coneOpts.alpha = 0.15 * night;
     m4.compose(mm, v.x, v.bodyY, v.z, v.yaw, 0, 0);
     r.draw(G.meshes.cones[v.spec.id], mm, coneOpts);
@@ -2469,6 +2511,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
   drawVehicleExtras(G, spec, x, z, yaw, roll, spin, steer, y);
   const skin = G.meshes.skins[spec.id];
   const opts = tint ? { colorMul: tint } : {};
+  if (VISUAL_PROTOTYPE) opts.material = 'car';
   if (skin) opts.tex = skin.tex;
   m4.compose(mm, x, y, z, yaw, pitch, roll);
   r.draw(skin ? skin.mesh : G.meshes.cars[spec.id], mm, opts);
@@ -2501,7 +2544,7 @@ function drawCar(spec, x, z, yaw, pitch, roll, spin, steer, tint, passengers, y 
   const lift = clamp(y - gy, 0, 4);
   const k = 1 + lift * 0.13;
   m4.compose(mm, x, gy + 0.06, z, yaw, 0, 0, (spec.wid + 0.5) * k, 1, (spec.len + 0.4) * k);
-  r.draw(G.meshes.shadow, mm, { alpha: 0.3 * (1 - lift / 5), unlit: true, colorMul: black });
+  if (!VISUAL_PROTOTYPE) r.draw(G.meshes.shadow, mm, { alpha: 0.3 * (1 - lift / 5), unlit: true, colorMul: black });
 }
 
 function markerList() {
@@ -2936,7 +2979,7 @@ heckle.load().catch(() => {});
 flavour.load().then(() => { if (tipTimer) flavour.showTip(heckle.showGloss); }).catch(() => {});
 // The real summer of 2004, day by day (Environment Canada via Gemini): the date
 // toast gets the weather. Optional; absent is silent.
-calendar.loadSummer().catch(() => {});
+if (!VISUAL_PROTOTYPE) calendar.loadSummer().catch(() => {});
 radio.loadText()
   .then(() => radio.loadExtras())
   .then(() => {
@@ -2959,6 +3002,11 @@ requestAnimationFrame(frame);
 // Debug hook: lets a console (or a test) step the sim without a live rAF.
 window.AYLMER = {
   G, hud, input, garage, radio, cinema, pause,
+  visualClock(hour) {
+    if (!VISUAL_PROTOTYPE) return null;
+    if (Number.isFinite(hour)) { G.dayClock = ((hour % 24 + 24) % 24) / 24 * DAY_NIGHT_CYCLE; setCycleEnv(true); }
+    return G.dayClock / DAY_NIGHT_CYCLE * 24;
+  },
   step(dt = STEP) { if (G.mode === 'drive' && !cinema.active) { input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } },
   render() { if (G.mode === 'drive') render(STEP); },
   teleport(x, z, yaw = 0) { G.veh.reset(x, z, yaw, spawnY(x, z)); },

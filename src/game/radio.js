@@ -1062,6 +1062,7 @@ export class Radio {
    * network request the radio makes, and only for the player's own files.
    */
   async loadTape(base = 'assets/radio/') {
+    if (this.localTape) return true;
     try {
       const res = await fetch(base + 'playlist.json', { cache: 'no-cache' });
       if (!res.ok) return false;
@@ -1070,6 +1071,7 @@ export class Radio {
         .map((t) => (typeof t === 'string' ? { file: t, title: t.replace(/\.[^.]+$/, '') } : t))
         .filter((t) => t && typeof t.file === 'string');
       if (!list.length) return false;
+      if (this.localTape) return true; // A file picker may have won while fetch awaited.
       this.tape = { list, idx: 0, base, el: null, node: null };
       this.tapeReady = true;
       this._emit();
@@ -1077,6 +1079,17 @@ export class Radio {
     } catch (e) {
       return false;
     }
+  }
+
+  /** Install browser-local files without uploading or replacing the server playlist. */
+  useLocalTracks(list) {
+    if (!Array.isArray(list) || !list.length) return false;
+    this._stopSource();
+    if(this.tape?.node)this.tape.node.disconnect();
+    if(this.tape?.el){this.tape.el.removeAttribute('src');this.tape.el.load();}
+    this.localTape=true;this.playbackError='';
+    this.tape={list,idx:0,base:'',el:null,node:null};this.tapeReady=true;
+    this._emit();return true;
   }
 
   // ---- per-frame ------------------------------------------------------
@@ -1275,6 +1288,7 @@ export class Radio {
       const el = new globalThis.Audio();
       el.crossOrigin = 'anonymous';
       el.loop = false;
+      el.addEventListener('error',()=>{this.playbackError='Fichier audio illisible ou introuvable. Choisis un autre fichier.';this._emit();});
       el.addEventListener('ended', () => { if (this.wantOn && this.station === this.tapeIdx) this.next(); });
       this.tape.el = el;
       this.tape.node = this.ctx.createMediaElementSource(el);
@@ -1283,7 +1297,7 @@ export class Radio {
     const url = this.tape.base + t.file;
     if (!this.tape.el.src.endsWith(encodeURI(t.file))) this.tape.el.src = url;
     const p = this.tape.el.play();
-    if (p && p.catch) p.catch(() => { /* autoplay policy; the next E will do it */ });
+    if (p && p.catch) p.then(()=>{this.playbackError='';}).catch(e => { this.playbackError=e.name==='NotAllowedError'?'Clique Écouter pour autoriser le son.':'Lecture impossible : '+e.message; this._emit(); });
     this.on = true;
   }
 

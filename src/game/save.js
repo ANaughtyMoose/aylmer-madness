@@ -318,6 +318,7 @@ export function normalizeSave(raw, slot = '') {
     unlocks: raw.unlocks && typeof raw.unlocks === 'object' ? raw.unlocks : null,
     stats: raw.stats && typeof raw.stats === 'object' ? raw.stats : {},
     timeOfDay: typeof raw.timeOfDay === 'string' ? raw.timeOfDay : 'day',
+    ...(Number.isFinite(raw.visualHour) ? { visualHour: ((raw.visualHour % 24) + 24) % 24 } : {}),
     // 2a's fields, clamped to what the summer can actually mean. `fuel` is
     // null-or-litres on purpose: null is "the tank has never been touched",
     // which is not the same number as an empty one.
@@ -495,6 +496,7 @@ export function snapshot(G, opts = {}) {
     unlocks,
     stats: { ...(G.stats || {}) },
     timeOfDay: G.envKey || 'day',
+    ...(G.renderer?.isPrototype ? { visualHour: G.dayClock / 600 * 24 } : {}),
     // 2a writes these three as the summer runs; here they just get kept.
     day: G.day,
     fuel: G.fuel,

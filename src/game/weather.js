@@ -218,7 +218,7 @@ export class Weather {
   _march(dt) {
     if (this.blend >= 1) {
       this.hold -= dt;
-      if (this.hold <= 0) this._begin(this._pick());
+      if (this.hold <= 0 && !this.historical) this._begin(this._pick());
     } else {
       this.blend = Math.min(1, this.blend + dt / this.transT);
     }
