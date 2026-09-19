@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {advanceSummerClock,applyRecordedWeather,recordedWeather} from '../src/prototype/calendar-clock.js';
+import {environmentAt} from '../src/prototype/daylight.js';
+import {Weather} from '../src/game/weather.js';
+import {Radio} from '../src/game/radio.js';
+import {prototypeManifest} from '../src/game/materials.js';
+const g={day:0,dayClock:150,summerOver:false};
+advanceSummerClock(g,1080);assert.equal(g.day,1);assert.equal(g.dayClock,0,'18 minutes from 06:00 to midnight');
+advanceSummerClock(g,1440);assert.equal(g.day,2);assert.equal(g.dayClock,0);
+advanceSummerClock(g,2880,600,48);assert.equal(g.day,3);
+advanceSummerClock(g,999,600,24,0);assert.equal(g.day,3);
+const last={day:72,dayClock:0,summerOver:false};assert.equal(advanceSummerClock(last,1439).end,false);assert.equal(advanceSummerClock(last,1).end,true,'finish after a full Labour Day');
+const rows=JSON.parse(readFileSync('assets/text/summer2004.json'));assert.equal(rows.length,73);
+const weather=new Weather();
+for(let d=0;d<73;d++){
+ const info=rows[d];assert.equal(info.date,new Date(Date.UTC(2004,5,26+d)).toISOString().slice(0,10));
+ applyRecordedWeather(weather,info,info.date,true);
+ for(let n=0;n<500;n++)weather._march(1);
+ assert.equal(weather.key,recordedWeather(info),'recorded sky cannot drift randomly');
+ const hour=t=>+t.split(':')[0]+t.split(':')[1]/60;
+ for(const time of [info.sunrise,info.sunset])assert.ok(Math.abs(environmentAt(hour(time),d,info).lightDir[1])<1e-8,'solar horizon follows daily record');
+ assert.ok(environmentAt(0,d,info).sun.every(v=>v===0));
+}
+const raw=JSON.parse(readFileSync('assets/materials/atlas.real.json'));
+const revised=prototypeManifest(raw);assert.equal(revised.tiles.vinyl_white.metres,2.4);assert.equal(raw.tiles.vinyl_white.metres,.6,'original atlas remains unchanged');
+assert.equal(revised.tiles.window_2pane.metres,raw.tiles.window_2pane.metres);
+const radio=Object.create(Radio.prototype);Object.assign(radio,{_stopSource(){},_emit(){}});
+radio.useLocalTracks([{file:'blob:test',title:'Aircheck'}]);assert.equal(radio.localTape,true);assert.equal(radio.tape.list[0].title,'Aircheck');
+assert.equal(await radio.loadTape(),true,'boot playlist cannot replace local tracks');
+console.log('PASS: full days/midnight/last day, 73 dated weather records, recorded sunrise/sunset, material scale isolation, local radio playlist.');

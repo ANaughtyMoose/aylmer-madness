@@ -12,6 +12,8 @@ window.AYLMER_VISUAL={dayMinutes:24,clockRate:1};
 try {
  const saved=JSON.parse(storage.getItem('visual-options')||'{}');
  if([12,24,48].includes(saved.dayMinutes))window.AYLMER_VISUAL.dayMinutes=saved.dayMinutes;
+ const calendar=await import('../game/calendar.js');
+ await calendar.loadSummer();
  await import('../main.js');
  await import('./panel.js');
 } catch(e) {

@@ -1,4 +1,4 @@
-// Rendering-only clock. Campaign dates still advance through the existing job rules.
+// Continuous summer lighting; calendar-clock.js owns date progression.
 export const HOURS = { morning: 7, day: 13, dusk: 20.5, night: 0 };
 export const wrapHour = h => ((h % 24) + 24) % 24;
 const clamp = v => Math.max(0, Math.min(1, v));
@@ -16,17 +16,23 @@ const KEYS = [
   [21.5,0x1d2c4b,0x40455e,0x202532,0xff9b6a,0],
   [24,0x101c36,0x19243a,0x121623,0x99b4e0,0],
 ];
-export function environmentAt(hour, day=0) {
-  const h=wrapHour(hour);
+export function environmentAt(hour, day=0, record=null) {
+  const local=wrapHour(hour);
+  const parse=t=>{const [h,m]=String(t).split(':').map(Number);return h+m/60;};
+  const rise=parse(record?.sunrise),set=parse(record?.sunset);
+  // Map the recorded dawn/dusk to palette anchors; the night interval wraps.
+  const valid=Number.isFinite(rise)&&Number.isFinite(set)&&set>rise;
+  const h=valid ? (local>=rise&&local<=set ? 5.5+(local-rise)/(set-rise)*15 : wrapHour(20.5+((local-set+24)%24)/(24-set+rise)*9)) : local;
   let i=0; while(i<KEYS.length-2 && h>=KEYS[i+1][0])i++;
   const a=KEYS[i],b=KEYS[i+1],v=clamp((h-a[0])/(b[0]-a[0])),t=v*v*(3-2*v);
   // Approximate summer solar path at 45.4 N. World +z points south, +x east.
   const latitude=45.4*Math.PI/180, declination=(23.4-8*clamp(day/72))*Math.PI/180;
-  const angle=(h-13)*Math.PI/12;
+  const halfDay=Math.acos(-Math.tan(latitude)*Math.tan(declination));
+  const angle=valid ? (local>=rise&&local<=set ? -halfDay+2*halfDay*(local-rise)/(set-rise) : halfDay+((local-set+24)%24)/(24-set+rise)*(2*Math.PI-2*halfDay)) : (h-13)*Math.PI/12;
   const sun=[-Math.cos(declination)*Math.sin(angle),
     Math.sin(latitude)*Math.sin(declination)+Math.cos(latitude)*Math.cos(declination)*Math.cos(angle),
     Math.sin(latitude)*Math.cos(declination)*Math.cos(angle)-Math.cos(latitude)*Math.sin(declination)];
-  const intensity=a[5]+(b[5]-a[5])*t;
+  const intensity=(a[5]+(b[5]-a[5])*t)*clamp(sun[1]/.12);
   return {sky:mix(rgb(a[1]),rgb(b[1]),t),fog:mix(rgb(a[2]),rgb(b[2]),t),ground:mix(rgb(a[3]),rgb(b[3]),t),
     sun:mix(rgb(a[4]),rgb(b[4]),t).map(c=>c*intensity),lightDir:sun,fogDensity:0.00105,
     key:h<5.5||h>=21.5?'night':h<9?'morning':h>=19?'dusk':'day'};

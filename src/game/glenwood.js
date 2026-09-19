@@ -28,6 +28,7 @@
 // houses.js already lets stand proud of a footprint leave it — eave overhang,
 // front steps, walks and the driveway decal.
 
+import {buildPhotoGlenwood} from '../prototype/glenwood-houses.js';
 import { rgb, shade } from '../core/mesh.js';
 import { clamp } from '../core/math.js';
 
@@ -135,6 +136,7 @@ const SPEC = {
 //   side  -1 / +1: which end (local x) gets the carport or porch
 // Returns { height, ridgeHeight, clearance, garage, porch }.
 export function buildGlenwood(mb, variant, ctx) {
+  if(ctx.mats?.prototypeStyle && (!Number.isFinite(ctx.cap)||ctx.cap>=[160,80,48][Math.min(ctx.lod,2)]))return buildPhotoGlenwood(mb,variant,ctx);
   const S = SPEC[variant];
   const { fw, D, side: s, lod, mats, seed } = ctx;
   const y0 = ctx.y0 || 0;

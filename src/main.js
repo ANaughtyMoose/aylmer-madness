@@ -7,7 +7,8 @@ import { remainingRoute } from './game/routeprogress.js';
 import { Cinematic, missionClock } from './game/cinematic.js';
 // Aylmer Madness — boot, game loop, camera, mission runner.
 import { Renderer } from './core/gl.js';
-import { environmentAt, HOURS, advanceClock } from './prototype/daylight.js';
+import { environmentAt, HOURS } from './prototype/daylight.js';
+import { advanceSummerClock, applyRecordedWeather } from './prototype/calendar-clock.js';
 const VISUAL_PROTOTYPE = typeof document !== 'undefined' && document.documentElement.dataset.prototype === '2004';
 import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
@@ -172,7 +173,7 @@ const G = {
   cam: 0,
   camYaw: 0, camPos: [0, 5, 0],
   env: null, envTarget: null,
-  dayClock: (VISUAL_PROTOTYPE ? 13/24 : DAY_PHASE.day) * DAY_NIGHT_CYCLE,
+  dayClock: (VISUAL_PROTOTYPE ? 6/24 : DAY_PHASE.day) * DAY_NIGHT_CYCLE,
   world: null, meshes: null, renderer: null,
   veh: null, traffic: null,
   mission: null,
@@ -1039,6 +1040,12 @@ function enterDrive(save = null, startKey = null) {
   // choosing Zahra started Tom's summer with Zahra's name on the menu. The
   // character was settled at the top of this function; leave it alone.
   calendar.restoreSummer(G, save);
+  if (VISUAL_PROTOTYPE) {
+    if (!save) { G.day=0; G.dayClock=6/24*DAY_NIGHT_CYCLE; }
+    else G.day=Math.floor(G.day);
+    applyRecordedWeather(weather,calendar.dayInfo(G.day),calendar.iso(G.day),true);
+    setCycleEnv(true);
+  }
   fuel.initFuel(G, save);
   if (G.props) {
     G.props.clear();
@@ -1277,8 +1284,7 @@ function cloneEnv(e) {
 }
 function setEnv(key, instant) {
   if (VISUAL_PROTOTYPE) {
-    // A story beat may start at night; time then continues instead of pinning.
-    G.dayClock = phaseClock(key);
+    // Jobs no longer move the clock. The player keeps the current date/hour.
     setCycleEnv(true); return;
   }
   const t = TIME_OF_DAY[key] || TIME_OF_DAY.day;
@@ -1295,7 +1301,7 @@ function setEnv(key, instant) {
 }
 function cycleEnv() {
   if (VISUAL_PROTOTYPE) {
-    const env = environmentAt(G.dayClock / DAY_NIGHT_CYCLE * 24, G.day);
+    const env = environmentAt(G.dayClock / DAY_NIGHT_CYCLE * 24, G.day, calendar.dayInfo(G.day));
     return { env, key: env.key };
   }
   const p = ((G.dayClock / DAY_NIGHT_CYCLE) % 1 + 1) % 1;
@@ -1323,7 +1329,14 @@ function setCycleEnv(instant = false) {
   G.envPinned = null;               // the clock has the sky back
   // The weather leans the sky BEFORE anything asks how dark it is, so a real
   // thunderstorm at two in the afternoon puts the headlights on by itself.
+  const naturalSun = Math.max(...c.env.sun);
   weather.tintEnv(c.env);
+  if (VISUAL_PROTOTYPE) {
+    const light=Math.min(1,naturalSun*3);
+    c.env.sun=c.env.sun.map(v=>v*light);
+    c.env.sky=c.env.sky.map(v=>v*(.15+.85*light));
+    c.env.fog=c.env.fog.map(v=>v*(.22+.78*light));
+  }
   G.night = nightAmount(c.env) > 0.15;
   G.envTarget = c.env;
   if (instant || !G.env) {
@@ -1334,8 +1347,12 @@ function setCycleEnv(instant = false) {
 function updateDayNight(dt) {
   if (VISUAL_PROTOTYPE) {
     const opt = window.AYLMER_VISUAL || {};
-    G.dayClock = advanceClock(G.dayClock, dt, DAY_NIGHT_CYCLE, opt.dayMinutes || 24, opt.clockRate ?? 1);
-    setCycleEnv(); return;
+    const next=advanceSummerClock(G,dt,DAY_NIGHT_CYCLE,opt.dayMinutes||24,opt.clockRate??1,calendar.LAST);
+    applyRecordedWeather(weather,calendar.dayInfo(G.day),calendar.iso(G.day));
+    if(next.midnights) { hud.toast(calendar.dayToast(G.day),2800); autosave('midnight'); }
+    setCycleEnv();
+    if(next.end)runEnding();
+    return;
   }
   G.dayClock = (G.dayClock + dt) % DAY_NIGHT_CYCLE;
   // Under a mission the clock keeps running but the SKY is whatever the job
@@ -1448,6 +1465,7 @@ function applyStage() {
 // Every job and every race costs a day (calendar.js). When the day that
 // arrives is Labour Day, the summer is over and the father counts the envelope.
 function endOfJob() {
+  if (VISUAL_PROTOTYPE) return;
   calendar.spendDay(G, hud);
   if (calendar.isOver(G.day) && !G.summerOver) runEnding();
 }
@@ -1835,7 +1853,7 @@ function handleKeys() {
   // main.js, and the two live in different modules. Kijiji keeps K, which it
   // documented claiming along with U for the garage.
   if (input.hit('KeyV')) {
-    weather.advance();
+    if (!VISUAL_PROTOTYPE) weather.advance();
     hud.toast('MÉTÉO\n' + weather.label + (weather.wet > 0.1 ? '  ·  chaussée mouillée' : ''), 1800);
   }
   // feel agent: while a garage is offering an E, that key is the garage's and
@@ -2961,7 +2979,7 @@ heckle.load().catch(() => {});
 flavour.load().then(() => { if (tipTimer) flavour.showTip(heckle.showGloss); }).catch(() => {});
 // The real summer of 2004, day by day (Environment Canada via Gemini): the date
 // toast gets the weather. Optional; absent is silent.
-calendar.loadSummer().catch(() => {});
+if (!VISUAL_PROTOTYPE) calendar.loadSummer().catch(() => {});
 radio.loadText()
   .then(() => radio.loadExtras())
   .then(() => {

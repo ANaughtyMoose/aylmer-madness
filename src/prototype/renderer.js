@@ -1,5 +1,6 @@
 // Three.js adapter for Aylmer's existing immediate-mode renderer API.
 // The simulation, world builders, coordinates, car meshes and collisions stay original.
+import {SIDING_GLSL} from './siding.js';
 import * as THREE from '../../vendor/prototype/three.module.min.js';
 import { m4, extractFrustum, aabbInFrustum } from '../core/math.js';
 export const WHITE = new Float32Array([1,1,1]);
@@ -11,6 +12,7 @@ const MAP = `#ifdef USE_MAP
  if(amRect.z>0.0)amUV=amRect.xy+fract(vMapUv)*amRect.zw;
  vec4 sampledDiffuseColor=textureGrad(map,amUV,dFdx(vMapUv)*(amRect.z>0.0?amRect.zw:vec2(1.0)),dFdy(vMapUv)*(amRect.z>0.0?amRect.zw:vec2(1.0)));
  if(amRect.z>0.0)sampledDiffuseColor.a=1.0;
+ ${SIDING_GLSL}
  diffuseColor*=sampledDiffuseColor;
  #endif`;
 function extend(material,role,uniforms) {
@@ -25,7 +27,7 @@ function extend(material,role,uniforms) {
   s.fragmentShader=s.fragmentShader.replace('#include <map_fragment>',MAP);
   if(role==='world')s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
    // Only upward-facing ground receives projected grain; cars/signs use other roles.
-   float up=smoothstep(0.72,0.95,amNormal.y);
+   float up=smoothstep(0.72,0.95,amNormal.y)*(1.0-step(0.001,amRect.z));
    float grass=step(vColor.r*1.25,vColor.g)*step(vColor.b*1.3,vColor.g);
    float road=(1.0-step(0.095,max(vColor.r,max(vColor.g,vColor.b))))*(1.0-grass);
    float concrete=step(0.30,vColor.r)*step(0.30,vColor.g)*(1.0-step(0.60,vColor.r))*(1.0-grass);
