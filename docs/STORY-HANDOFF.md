@@ -10,6 +10,7 @@ The Codex checkout remains the home of the 2004 visual prototype only, branch `c
 
 | File | What it is | Author |
 |---|---|---|
+| `docs/STORY-BACKLOG.md` | **The work list.** Both blocking decisions in depth, every pending change, and what to do first when you reopen | Claude |
 | `docs/STORY-MISSION-INVENTORY.json` | The structural constraint: 28 campaign missions, 5 arc beats, the gates | Codex |
 | `docs/STORY-DIRECTION-AND-MISSION-CARDS.md` | Codex's story pass, assessed and partly superseded | Codex |
 | `docs/STORY-LEDGER.md` | The living canon: confirmed facts, wrong facts, do-not-reintroduce, open questions, Tom's exact phrases | Claude |
@@ -61,7 +62,9 @@ Listed in full in STORY-LEDGER.md section 2. The big ones: ten father lines that
 6. Whether Rudy is named in the opener at all.
 7. The two Margaret missions in ledger 5a: who is waiting at 299 Fraser in `gang`, and what becomes of `dames`.
 
-## Next actions, in order
+## Next actions
+
+The full work list, including the two blocking decisions worked through in depth, is in `docs/STORY-BACKLOG.md`. Its opening section says what to do first. Summary:
 
 1. Build the story editor from `ANTIGRAVITY-TOOL-PROMPT.md`, then use it instead of marking up Markdown by hand.
 2. Tom marks up `STORY-SCRIPT-DRAFT-v0.md` with keep, tweak, wrong or more story.
