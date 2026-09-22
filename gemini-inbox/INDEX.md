@@ -74,3 +74,56 @@ Over 25 high-resolution screenshots capturing bug reproductions, landmark visits
 - **Playtest Log:** `playtest-gemini-01-menu.jpg` through `playtest-gemini-09-pause.jpg`.
 - **Cast Houses:** `playtest-gemini-05-tom-house.jpg`, `playtest-gemini-05-sayyad-house.jpg`, `playtest-gemini-05-mike-house.jpg`, `playtest-gemini-05-russell-house.jpg`, `playtest-gemini-05-abraham-house.jpg`.
 - **Landmarks & Sectors:** `playtest-gemini-06-galeries.jpg`, `playtest-gemini-06-marina.jpg`, `playtest-gemini-06-symmes.jpg`, `playtest-gemini-07-parliament.jpg`, `playtest-gemini-08-map.jpg`.
+
+---
+
+### 4. Look & Feel Pass: Summer 2004 (Part C)
+- **[LOOK.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/LOOK.md):** Complete visual overhaul design document, asset catalogue, integration diffs, before/after audit, and visual proofs.
+- **[showcase.html](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/showcase.html):** Interactive WebGL 3D showcase rendering houses, golden-hour atmosphere, botanical trees, and street furniture.
+- **[houses_lab.html](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/houses_lab.html):** Architectural house material lab testing the 2048² atlas against engine archetypes.
+- **[materials/out/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/materials/out/):** Master 2048² material atlas (`atlas.png` + `atlas.json`) with 12 seamless materials and 15 decals.
+- **[facades/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/facades/):** 12 orthogonal, shadow-free, rectified building facades (299 Fraser, Symmes Inn, British Hotel, etc.).
+- **[props/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/props/):** 11 cutout sprites of native Outaouais flora (Sugar Maples, White Pine, Birch, Sumac) and Gatineau municipal infrastructure (`props.json`).
+- **[atmosphere/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/atmosphere/):** 3 equirectangular 2048x1024 sky panoramas and `lighting.json` presets (golden hour, midday, dusk, overcast).
+- **[surfaces/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/surfaces/):** 8 seamless 512² road, sidewalk, paver, gravel, and lawn textures (`surfaces.json`).
+- **[MARINA.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/MARINA.md):** Architectural and topographical specification of Aylmer Marina & Parc des Cèdres based on Google Maps and aerial drone photography, seasonal summer calibration, and drop-in `landmarks.js` replacement code.
+- **[screenshots/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/screenshots/):** High-resolution visual proof screenshots.
+
+---
+
+### 5. Asset Scouting: Summer 2004 (Part D)
+- **[CATALOGUE.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/assets/CATALOGUE.md):** Comprehensive vetted catalogue across 6 categories (Vehicles, Trees & Greenery, Street Furniture, Buildings, Textures, Sounds). **Licence is strictly the first column**, sorted by fit descending.
+- **[catalogue.json](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/assets/catalogue.json):** Machine-readable JSON catalogue with relative paths and mesh metadata, formatted for `tools/gltf2mesh.mjs`.
+- **[GAPS.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/assets/GAPS.md):** Detailed gap analysis and hand-building / procedural specifications for 2004 Outaouais regional items.
+- **[STATUS.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/assets/STATUS.md):** Final scouting mission report, polygon budget audit, licensing compliance review, and converter hand-off.
+- **[src/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/assets/src/):** 100+ local downloaded source assets (glTF 2.0 `.glb`, seamless 1024² `.jpg` textures + normal maps, and 44.1kHz `.wav`/`.ogg` audio) with license files alongside each pack.
+
+---
+
+### 6. Historical Calendar & Weather: Summer 2004 (Part E)
+- **[summer2004.json](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/data/summer2004.json):** Full 73-day historical simulation dataset (Saturday 26 June 2004 to Monday 6 September 2004) for Aylmer / Ottawa CDA / Macdonald-Cartier (Environment Canada stations 6105976 & 6106000), complete with NOAA solar calculations, hourly weather states, peak humidex, wind force classifications, and dated Outaouais/Ottawa regional historical events.
+- **[palette2004.json](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/data/palette2004.json):** Sky and ambient light RGB triplets in [0, 1] across dawn, noon, golden hour, and dusk for the six primary sky conditions, sampled from authentic Ottawa Valley photographic records.
+
+---
+
+### 7. Driver's-Seat Interiors Pass: Summer 2004 (BACKLOG C6)
+- **[INTERIORS.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/INTERIORS.md):** Complete design document, comedy rationale, vehicle specification matrix, engine integration guide, and visual proofs for all 15 vehicle cockpits.
+- **[RANGER-HANDOFF.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/RANGER-HANDOFF.md):** Detailed design and engineering hand-off for Claude on Tom's starting 1993 Ford Ranger XL, photoreal visual benchmarks, verified reality checklist, and proposed WebGL2 rendering approaches.
+- **[showcase.html](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/showcase.html):** Interactive cockpit viewer with rotatable steering wheel physics, wiper animation, cluster night backlighting, and 2004 Outaouais radio station simulation.
+- **[interiors.json](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/interiors.json):** Master manifest linking plates, wheels, glass, camera offsets (`eyeHeightM`, `eyeBackM`), and regional comedy details.
+- **[plates/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/plates/):** 15 albedo 2048×768 cockpit interior plates with transparent windshield viewports and period-accurate dashboards.
+- **[wheels/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/wheels/):** 15 transparent 1024×1024 steering wheels and bicycle handlebars formatted for runtime rotation.
+- **[glass/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/glass/):** 15 512×512 windshield dirt layers with dual wiper sweep arc boundaries and star stone chips.
+- **[screenshots/](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/interiors/screenshots/):** High-resolution visual proof composites under golden-hour lighting.
+
+---
+
+### 8. The Cinematic Pass: Summer 2004 (PR #33)
+- **[STATUS.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/cinema/STATUS.md):** Executive status, delivery matrix, and master copy-paste integration tables for the engine agent.
+- **[COLDOPEN.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/cinema/COLDOPEN.md):** Full shot-by-shot storyboard of the 8-second cold open sequence at 299 Chemin Fraser, father's French voiceover lines, and camera keyframes table.
+- **[keys.json](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/cinema/coldopen/keys.json):** Precise mathematical camera keyframes (`{t, pos, target, fov, ease}`) in car-local metres ($+Z$ fwd, $+Y$ up, $+X$ driver left).
+- **[GRADE.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/cinema/GRADE.md):** 16-point filmic tone curves, white point calibration, 3-column split-toning matrices (35mm Kodak Vision2 film stock), lens rules, and physical solar ephemeris for Aylmer at 45.4° N.
+- **[BEATS.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/cinema/BEATS.md):** 1440×900 HUD mockups for the 2004 Nokia flip-phone incoming call, the 1.5s mission-passed envelope slide, seam crossing card, and Labour Day endings.
+- **[SOUND.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/cinema/SOUND.md):** Master audio cue sheet detailing engine synthesis, radio stations, and CC0 Foley samples with exact dBFS levels and ducking matrix.
+- **[FEEL.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/FEEL.md):** Live runtime tuning report for vehicle physics, suspension weight transfer, handbrake slide, and chase camera damping.
+- **[STYLE.md](file:///Users/thomaslever/Desktop/Coding%20Projects/aylmer-madness/gemini-inbox/look/ui/STYLE.md):** 2004 Outaouais aesthetic bible, color palette, typography hierarchy, and photocopy calque mode.
