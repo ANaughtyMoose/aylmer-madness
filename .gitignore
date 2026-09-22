@@ -44,16 +44,15 @@ references/story/*
 !references/story/README.md
 
 # Gemini's working directories. The tracked reports in gemini-inbox/*.md are the
-# output; everything below is 1.7 GB of raw input, renders and scratch that is
-# re-generatable and has no business in git history.
+# output; everything below is raw input, renders and scratch that is
+# re-generatable and has no business in git history. (The Kernel demo-video
+# pipeline that was also sitting here moved to ../kernel-demo-video on
+# 22 September 2026; the mp4 rule stays so it cannot come back.)
 gemini-inbox/look/
 gemini-inbox/assets/
 gemini-inbox/redo/
 gemini-inbox/interiors/
-gemini-inbox/build_kernel/
 gemini-inbox/build_workdir/
-gemini-inbox/video_pipeline/
-gemini-inbox/voiceover_clips/
 gemini-inbox/*.mp4
 
 # Scratch copies of the calendar data at the repo root. The real files are the
