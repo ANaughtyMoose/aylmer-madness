@@ -1,0 +1,227 @@
+{
+  "note": "Runtime definitions as of 2026-09-21; arc titles/briefs can be overridden by assets/text/arc.json. Arc gates interleave with campaign; listed campaign order is not a single unconditional sequence.",
+  "campaign": [
+    {
+      "order": 1,
+      "id": "alternateur",
+      "title": "L’alternateur",
+      "brief": "La lumière de batterie clignote. Ton alternateur est commandé au Canadian Tire des Galeries d’Aylmer. Prends ton Ranger : on commence par une commission sans chrono pour apprendre à conduire."
+    },
+    {
+      "order": 2,
+      "id": "dep",
+      "title": "Run au dep",
+      "brief": "Slush bleue pour tout le monde, pis on redescend au parc."
+    },
+    {
+      "order": 3,
+      "id": "gang",
+      "title": "Ramasser la gang",
+      "brief": "Margaret, Sayyad pis Adam veulent chill au parc. Devine qui a le char. Ça te donne les clés du char à Margaret."
+    },
+    {
+      "order": 4,
+      "id": "sayyad",
+      "title": "Réveiller Sayyad",
+      "brief": "Il répond pas au téléphone depuis mardi. On va sonner autrement."
+    },
+    {
+      "order": 5,
+      "id": "poutine",
+      "title": "Poutine express",
+      "brief": "Sayyad a une envie pis pas de char à midi. Deux grosses au food court des Galeries, sauce à part, pis ça refroidit vite. Ça te donne les clés du char à Sayyad."
+    },
+    {
+      "order": 6,
+      "id": "curfew",
+      "title": "Avant minuit",
+      "brief": "Le feu est éteint à la marina. Ton père se couche jamais avant toi. Ça te donne les clés du char à Adam."
+    },
+    {
+      "order": 7,
+      "id": "cv",
+      "title": "Distribuer les CV",
+      "brief": "Ta mère a imprimé douze copies. Faut en placer trois aujourd'hui."
+    },
+    {
+      "order": 8,
+      "id": "divan",
+      "title": "Le divan de Mike",
+      "brief": "Sa mère veut le divan dehors. Mike veut le divan dans l’arbre."
+    },
+    {
+      "order": 9,
+      "id": "school",
+      "title": "Première période",
+      "brief": "Tu t'es réveillé à 8h52. Le cours d'anglais est à 9h."
+    },
+    {
+      "order": 10,
+      "id": "tour",
+      "title": "Le tour de ville",
+      "brief": "Coucher de soleil, réservoir plein. Cinq spots, pas une seconde de trop."
+    },
+    {
+      "order": 11,
+      "id": "canot",
+      "title": "Le canot à 45 piasses",
+      "brief": "Vente de garage sur Wychwood. Un canot. Quarante-cinq piasses."
+    },
+    {
+      "order": 12,
+      "id": "highwayhull",
+      "title": "Highway to Hull",
+      "brief": "La 148 est ouverte. On va voir si Hull est vraiment si loin que ça."
+    },
+    {
+      "order": 13,
+      "id": "chelsea",
+      "title": "La run de Chelsea",
+      "brief": "Heritage est derrière toi. La 105 monte encore jusqu’à Chelsea."
+    },
+    {
+      "order": 14,
+      "id": "suis",
+      "title": "Suis Sayyad",
+      "brief": "Sayyad connaît un chemin pour la plage. Il te le montre une fois, pis il t’attend pas."
+    },
+    {
+      "order": 15,
+      "id": "dames",
+      "title": "La tournée des dames",
+      "brief": "Margaret a le bingo de l’église pis pas de char. Elle parle. Tu conduis."
+    },
+    {
+      "order": 16,
+      "id": "vitres",
+      "title": "La vitre de Norm",
+      "brief": "Norm a commandé une vitre au Canadian Tire. Elle rentre pas dans son char. Elle rentre dans ton truck, à plat, si tu la casses pas."
+    },
+    {
+      "order": 17,
+      "id": "seme",
+      "title": "Sème-les",
+      "brief": "Mike a une théorie: la police d’Aylmer lâche après deux rues si tu connais les rues. Il veut que tu la testes. Lui, il regarde."
+    },
+    {
+      "order": 18,
+      "id": "sunfire",
+      "title": "Le Sunfire d’Adam",
+      "brief": "Adam a laissé le Sunfire « au bord de l’eau, proche du belvédère, là où on était l’an passé » pis il est reparti à Mayo en bus. Y a pas de GPS pour ça."
+    },
+    {
+      "order": 19,
+      "id": "quatre",
+      "title": "Quatre à ramener",
+      "brief": "Fin de veillée chez Mike. Sayyad, Margaret, Adam pis Tyler dans le truck. Ramène-les, dans l’ordre que tu veux."
+    },
+    {
+      "order": 20,
+      "id": "racedave",
+      "title": "Adam jusqu’aux Galeries",
+      "brief": "Adam a fait quarante minutes depuis Mayo pour dire que son Sunfire est plus vite que ton char. Adam dit ben des affaires."
+    },
+    {
+      "order": 21,
+      "id": "racecivic",
+      "title": "La Civic de Sayyad à la marina",
+      "brief": "Sayyad a mis des jantes. Il veut que tout le monde le sache."
+    },
+    {
+      "order": 22,
+      "id": "circuit",
+      "title": "Circuit du Vieux-Aylmer",
+      "brief": "Trois tours. Principale, Frank-Robinson, du Patrimoine, Bancroft. Margaret pis Adam embarquent."
+    },
+    {
+      "order": 23,
+      "id": "blitz",
+      "title": "Blitz: le tour de l’île",
+      "brief": "Six points dans la ville, un chrono, pis quinze secondes à chaque fois."
+    },
+    {
+      "order": 24,
+      "id": "golfcart",
+      "title": "Le cart du Club",
+      "brief": "Le kid du pro shop dit que les carts des membres arrêtent pas de disparaître."
+    },
+    {
+      "order": 25,
+      "id": "margaretdental",
+      "title": "Les dents à finir",
+      "brief": "Margaret travaille comme technicienne dentaire chez le Dr Morin, sur Principale. Va chercher la boîte de prothèses : elle peut finir le travail à la maison pour un petit extra."
+    },
+    {
+      "order": 26,
+      "id": "solerrand",
+      "title": "Un arrêt chez Sol",
+      "brief": "Sayyad et Zahra adorent Sol, le magasin d’aliments naturels à gauche du PFK. Va chercher leur commande au 195 Principale."
+    },
+    {
+      "order": 27,
+      "id": "stvincent",
+      "title": "Une bouchée à la fois",
+      "brief": "Le Ranger reste au stationnement de l’Hôpital St. Vincent, sur Cambridge. À l’intérieur, tu aides au repas en soins palliatifs : un corridor occupé, des fauteuils électriques et du monde qui prend son temps."
+    },
+    {
+      "order": 28,
+      "id": "russellroyal",
+      "title": "Russell est encore congédié",
+      "brief": "Russell appelle du Royal Ottawa. Encore les carts de golf. Encore une dernière chance qui était vraiment la dernière. Va le chercher, puis ramène-le au 299 Fraser. Il paie le gaz."
+    }
+  ],
+  "arc": [
+    {
+      "id": "arckeys",
+      "beat": "prologue",
+      "title": "Le Ranger rend service",
+      "brief": "Avec ton Ranger, tu peux rendre service à la famille et aux amis. Les mêmes détours, un peu de gaz, pis chacun fait sa part."
+    },
+    {
+      "id": "arcbache",
+      "beat": "turn1",
+      "title": "La bâche bleue",
+      "brief": "La Saint-Jean s’installe à la plage. T’es devenu le camion de la ville au complet."
+    },
+    {
+      "id": "arcsurchauffe",
+      "beat": "turn2",
+      "title": "La surchauffe du pont",
+      "brief": "Canicule de juillet. Un divan, le pont Champlain, l’heure de pointe. Ça va bien aller."
+    },
+    {
+      "id": "arcveillee",
+      "beat": "turn3",
+      "title": "La dernière veillée",
+      "brief": "Les lettres d’acceptation sont arrivées. Un convoi, les ponts, pis du take-out à Nepean Point."
+    },
+    {
+      "id": "arcdernier",
+      "beat": "epilogue",
+      "title": "Le dernier voyage",
+      "brief": "Fin août, première fraîche. Les dernières boîtes de Mike, la gare, pis un tour de Principale."
+    }
+  ],
+  "gates": {
+    "arckeys": {
+      "jobs": 1,
+      "after": null
+    },
+    "arcbache": {
+      "jobs": 3,
+      "after": "arckeys"
+    },
+    "arcsurchauffe": {
+      "jobs": 6,
+      "after": "arcbache"
+    },
+    "arcveillee": {
+      "jobs": 10,
+      "after": "arcsurchauffe"
+    },
+    "arcdernier": {
+      "jobs": 14,
+      "after": "arcveillee"
+    }
+  }
+}
