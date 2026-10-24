@@ -1,0 +1,4273 @@
+{
+  "schema": "aylmer-visual-wave-1",
+  "written": "2026-10-06",
+  "plan": "docs/visual-wave/PLAN.md",
+  "base": "claude/quality-review-2026-09-29 after Phase 0 (fix/look-on-qr) merges",
+  "effortScale": {
+    "S": "under 1 hour",
+    "M": "a few hours",
+    "L": "a day or more"
+  },
+  "estimatedAgentDays": 27.5,
+  "globalBudgets": {
+    "framePmsP95": 16.7,
+    "gpuCpuMsP95Med": 12.0,
+    "macMiniProxyGpuMs": 8.0,
+    "trisPerFrame": 450000,
+    "drawsPerFrame": 400,
+    "clipPctNoon": 0.5,
+    "smokeWorld": {
+      "townTris": 4760000,
+      "houseTris": 1300000,
+      "vertexMB": "345 until V1-05 sets a new ceiling"
+    },
+    "rules": [
+      "no new shader programs",
+      "no new per-vertex attributes",
+      "no discard on foliage",
+      "no per-frame allocations",
+      "every feature behind a look flag",
+      "no em dashes"
+    ]
+  },
+  "poseSets": {
+    "core": [
+      "fraser_front",
+      "mike_lawn",
+      "denise_friend",
+      "arial",
+      "principale_british",
+      "principale_strip",
+      "galeries_lot",
+      "marina_quay"
+    ],
+    "chase": [
+      "chase_fraser",
+      "chase_principale",
+      "chase_lucerne_golden",
+      "chase_galeries",
+      "chase_chemin_aylmer",
+      "hood_hull_bridge"
+    ],
+    "allday": [
+      "fraser_front",
+      "principale_strip",
+      "chase_lucerne_golden"
+    ],
+    "perf8": [
+      "perf_fraser_drive",
+      "perf_mike_lawn",
+      "perf_principale_british",
+      "perf_principale_east",
+      "perf_galeries_lot",
+      "perf_marina",
+      "perf_chemin_aylmer_long",
+      "perf_hull_bridge"
+    ]
+  },
+  "envs": {
+    "morning": "07:00 clear",
+    "noon": "13:00 clear",
+    "haze": "14:00 haze",
+    "golden": "19:30 clear",
+    "dusk": "20:45 clear",
+    "night": "23:30 clear",
+    "overcast": "12:00 overcast",
+    "rain": "16:00 rain",
+    "storm": "16:30 storm"
+  },
+  "waves": [
+    {
+      "wave": 0,
+      "theme": "Seams and tools (no visual change)",
+      "tasks": [
+        "V0-01",
+        "V0-02",
+        "V0-03",
+        "V0-04",
+        "V0-05"
+      ]
+    },
+    {
+      "wave": 1,
+      "theme": "Light, air, sky and texture sources",
+      "tasks": [
+        "V1-01",
+        "V1-02",
+        "V1-03",
+        "V1-04",
+        "V1-05",
+        "V1-06",
+        "V1-07"
+      ]
+    },
+    {
+      "wave": 2,
+      "theme": "The street: ground, roads, walks, canopy, wires, grounding, furniture, parked cars",
+      "tasks": [
+        "V2-01",
+        "V2-02",
+        "V2-03",
+        "V2-04",
+        "V2-05",
+        "V2-06",
+        "V2-07",
+        "V2-08",
+        "V2-09",
+        "V2-10"
+      ]
+    },
+    {
+      "wave": 3,
+      "theme": "Buildings, glass, Principale, landmarks, car paint, water, colour tune 1",
+      "tasks": [
+        "V3-01",
+        "V3-02",
+        "V3-03",
+        "V3-04",
+        "V3-05",
+        "V3-06",
+        "V3-07"
+      ]
+    },
+    {
+      "wave": 4,
+      "theme": "Night lights, headlights, particles, car details",
+      "tasks": [
+        "V4-01",
+        "V4-02",
+        "V4-03",
+        "V4-04"
+      ]
+    },
+    {
+      "wave": 5,
+      "theme": "Post, rain and storm, HUD, menu, tiers",
+      "tasks": [
+        "V5-01",
+        "V5-02",
+        "V5-03",
+        "V5-04",
+        "V5-05"
+      ]
+    },
+    {
+      "wave": 6,
+      "theme": "Optional high tier and final polish",
+      "tasks": [
+        "V6-01",
+        "V6-02",
+        "V6-03",
+        "V6-04",
+        "V6-05"
+      ]
+    }
+  ],
+  "tomInputs": {
+    "T1": "Ship index.html / gl.js as the one renderer, port the prototype look, retire prototype.html after wave 3 (D1)",
+    "T2": "Approve 'remembered realism with 2004-game discipline' (D2)",
+    "T3": "Review the Phase 0 pairs so Phase 0 merges (D8)",
+    "T4": "Approve about 43 agent tasks across 7 waves",
+    "T5": "Golden hour over Lac Deschenes as the signature look for menu and finale (D4)",
+    "T6": "Nights readable or truly dark (D5)",
+    "T7": "Speed blur on the high tier: yes or no",
+    "T8": "Bloom-lite, grain and digicam photo mode on high (D6)",
+    "T9": "Real-time near sun shadows on high if 2 ms or less (D15)",
+    "T10": "Season drift June to August (D3)",
+    "T11": "Principale 2004: lamps, both-curb parking, shop names (D13)",
+    "T12": "Car paint: showroom gleam or period-dull",
+    "T13": "HUD and menu style: 2004 retail-box energy or quiet modern",
+    "T14": "15-minute review gate after each wave"
+  },
+  "tasks": [
+    {
+      "id": "V0-01",
+      "wave": 0,
+      "title": "Shader modules and renderer seams",
+      "roadmap": [
+        "V2 prep"
+      ],
+      "goal": "Split the one gl.js program into chunk modules so later tasks each own one chunk; add the uniform registry, material routing, a second sampler, dynamic meshes and a GPU timer. No visual change.",
+      "files": [
+        "src/core/gl.js",
+        "src/core/shaders/**"
+      ],
+      "creates": [
+        "src/core/shaders/index.js",
+        "src/core/shaders/common.js",
+        "src/core/shaders/light.js",
+        "src/core/shaders/tonemap.js",
+        "src/core/shaders/fog.js",
+        "src/core/shaders/sky.js",
+        "src/core/shaders/water.js",
+        "src/core/shaders/material.js",
+        "src/core/shaders/glass.js",
+        "src/core/shaders/car.js",
+        "src/core/shaders/decal.js",
+        "src/core/shaders/wire.js",
+        "src/core/shaders/corona.js",
+        "src/core/shaders/dynlights.js",
+        "src/core/shaders/wet.js",
+        "src/core/shaders/post.js",
+        "src/core/shaders/digicam.js",
+        "src/core/shaders/shadow.js"
+      ],
+      "reads": [
+        "src/core/mesh.js",
+        "src/main.js (render)",
+        "src/prototype/renderer.js, nature.js, facade.js, siding.js (reference implementation, read only)"
+      ],
+      "inputs": {
+        "references": "none",
+        "palette": "none"
+      },
+      "flag": "none",
+      "acceptance": [
+        "gl.js assembles exactly one program from shaders/index.js; every chunk file listed exists (empty stubs allowed) with an exported GLSL string and UNIFORMS table",
+        "r.uniform(name, value) sets any chunk uniform; unknown names throw in dev",
+        "opts.material routes to a uMaterial int (world, sky, water, car, decal, wire, sprite, particle); opts.water and opts.sky still work",
+        "uTex2 bound via opts.tex2; a face samples it when aRect.x >= 2.0 (rect offset by 2); nothing uses it yet",
+        "r.uploadDynamic(maxVerts) and r.updateDynamic(mesh, builder) work with no per-frame allocation (smoke test added in tools/smoke_shaders.mjs)",
+        "r.gpuMs reports the last frame's GPU time via EXT_disjoint_timer_query_webgl2 when available, null otherwise",
+        "gradeLight() moves to shaders/light.js unchanged",
+        "Identity proof instead of a look change: captures of the core and chase sets at noon, golden and night before and after are pixel-identical (max channel diff <= 1/255, SwiftShader capture)",
+        "node tools/smoke_world.mjs prints the same vertex and triangle counts as before, to the unit",
+        "npm test all pass; both entries boot with 0 console errors (tools/headless.mjs until boot.mjs exists)",
+        "Report written to docs/visual-wave/reports/V0-01.md"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "L",
+      "depends": [],
+      "tomInput": [
+        "T1",
+        "T3",
+        "T4"
+      ],
+      "status": "done",
+      "index": 0,
+      "ports": {
+        "CMP_SRV_PORT": 8200,
+        "CMP_CDP_PORT": 9400
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v0-01",
+      "branch": "vis/v0-01",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V0-01 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V0-01 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V0-02",
+      "wave": 0,
+      "title": "World seams: buildWorld into section modules",
+      "roadmap": [
+        "P3 prep"
+      ],
+      "goal": "Move the sections of world.js buildWorld into src/game/world/*.js over a shared build context, pre-create stubs for every future world emitter, and add a postBuild bake hook, with identical output.",
+      "files": [
+        "src/game/world.js",
+        "src/game/world/**"
+      ],
+      "creates": [
+        "src/game/world/ctx.js",
+        "src/game/world/emitters.js",
+        "src/game/world/roads.js",
+        "src/game/world/walks.js",
+        "src/game/world/landcover.js",
+        "src/game/world/water.js",
+        "src/game/world/trees.js",
+        "src/game/world/furniture.js",
+        "src/game/world/distant.js",
+        "src/game/world/commercial.js",
+        "src/game/world/headlights.js",
+        "src/game/world/wires.js",
+        "src/game/world/contact.js",
+        "src/game/world/shadowdecals.js",
+        "src/game/world/yards.js"
+      ],
+      "reads": [
+        "tools/smoke_world.mjs",
+        "src/game/houses.js",
+        "src/game/terrain.js",
+        "src/game/surface.js"
+      ],
+      "inputs": {
+        "references": "none",
+        "palette": "none"
+      },
+      "flag": "none",
+      "acceptance": [
+        "world.js keeps its public exports (buildWorld, nightAmount, buildHeadlights, HOUSE_NEAR, MARINA_*, clipRoads, baseHeightAt) and becomes an orchestrator under 900 lines",
+        "Sections 2 water, 3 areas, 4 roads, 4a-4c, 6 trees, 7 street furniture, 8 distant scenery and the commercial facade helpers each live in their own module; roads and walks are separate modules",
+        "emitters.js lists the stub modules (wires, contact, shadowdecals, yards) which emit nothing today; ctx.postBuild(fn) runs after every builder is filled and before upload",
+        "ctx exposes trees (x, z, height, crown radius, kind), poles, house footprints and lots, road segments, so later tasks read them instead of re-deriving",
+        "The random streams (mulberry32 seeds and draw order) are preserved, so every prop lands where it did",
+        "Identity proof instead of a look change: captures of the core and chase sets at noon, golden and night before and after are pixel-identical (max channel diff <= 1/255, SwiftShader capture)",
+        "node tools/smoke_world.mjs prints the same vertex and triangle counts as before, to the unit",
+        "npm test all pass; both entries boot with 0 console errors (tools/headless.mjs until boot.mjs exists)",
+        "Report written to docs/visual-wave/reports/V0-02.md"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "L",
+      "depends": [],
+      "tomInput": [
+        "T3"
+      ],
+      "status": "done",
+      "index": 1,
+      "ports": {
+        "CMP_SRV_PORT": 8201,
+        "CMP_CDP_PORT": 9401
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v0-02",
+      "branch": "vis/v0-02",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V0-02 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V0-02 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V0-03",
+      "wave": 0,
+      "title": "Look hooks, flags and env extraction in main.js",
+      "roadmap": [
+        "V3 prep"
+      ],
+      "goal": "Give every later look feature a module and a hook so no later task edits main.js: environment code into look/envcycle.js, frame hooks, look flags, AYLMER.time and AYLMER.look, and stubs for each per-frame feature.",
+      "files": [
+        "src/main.js",
+        "src/game/look/**"
+      ],
+      "creates": [
+        "src/game/look/envcycle.js",
+        "src/game/look/flags.js",
+        "src/game/look/frame.js",
+        "src/game/look/carshadow.js",
+        "src/game/look/timecycle.js",
+        "src/game/look/aobake.js",
+        "src/game/look/particles.js",
+        "src/game/look/coronas.js",
+        "src/game/look/headlights.js",
+        "src/game/look/parkedfleet.js",
+        "src/game/look/photomode.js",
+        "src/game/look/tiers.js",
+        "src/game/look/season.js"
+      ],
+      "reads": [
+        "src/game/missions.js (TIME_OF_DAY)",
+        "src/prototype/daylight.js",
+        "src/game/weather.js",
+        "src/game/damage.js (DriveFx)"
+      ],
+      "inputs": {
+        "references": "none",
+        "palette": "none"
+      },
+      "flag": "none",
+      "acceptance": [
+        "cloneEnv, setEnv, cycleEnv, setCycleEnv and the env part of updateDayNight live in look/envcycle.js with unchanged behaviour in both entries",
+        "render() calls frame.beforeSky, frame.afterWorld, frame.perCar (called from drawCar, owns the blob shadow via look/carshadow.js, same pixels), frame.afterTransparent and frame.post; tick() calls frame.tick(dt)",
+        "flags.js parses ?look=a,-b from the URL, exposes isOn(flag) and AYLMER.look({flag: bool}); unknown flags warn once",
+        "AYLMER.time(hour) pins the clock (both entries) and AYLMER.weather(name) still works, so captures can request any environment",
+        "Each stub module exports init(G, r), tick(dt), draw(r, G) as no-ops and is wired, so later tasks only fill them in",
+        "Identity proof instead of a look change: captures of the core and chase sets at noon, golden and night before and after are pixel-identical (max channel diff <= 1/255, SwiftShader capture)",
+        "node tools/smoke_world.mjs prints the same vertex and triangle counts as before, to the unit",
+        "npm test all pass; both entries boot with 0 console errors (tools/headless.mjs until boot.mjs exists)",
+        "Report written to docs/visual-wave/reports/V0-03.md"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [],
+      "tomInput": [
+        "T3"
+      ],
+      "status": "done",
+      "index": 2,
+      "ports": {
+        "CMP_SRV_PORT": 8202,
+        "CMP_CDP_PORT": 9402
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v0-03",
+      "branch": "vis/v0-03",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V0-03 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V0-03 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V0-04",
+      "wave": 0,
+      "title": "QA tools: poses, capture, look-diff, perf, boot, ownership",
+      "roadmap": [
+        "P1.4",
+        "P1.5",
+        "P1.7",
+        "P2.7"
+      ],
+      "goal": "One command per loop step so every agent verifies the same way: named poses, capture with environments and flags, look-diff with metrics, Metal perf with a lock and GPU timer, boot gate, owned-files check, and vis-check that runs a task's whole loop.",
+      "files": [
+        "tools/aylmer-compare/capture.mjs",
+        "tools/aylmer-compare/capture_lighting.mjs",
+        "tools/aylmer-compare/build_index.mjs",
+        "tools/aylmer-compare/poses.json",
+        "tools/aylmer-compare/README.md",
+        "tools/qa/**"
+      ],
+      "creates": [
+        "tools/aylmer-compare/poses.json",
+        "tools/qa/vis-check.mjs",
+        "tools/qa/look-diff.mjs",
+        "tools/qa/perf.mjs",
+        "tools/qa/boot.mjs",
+        "tools/qa/owned-files.mjs"
+      ],
+      "reads": [
+        "references/places/_manifest/core-refs.json",
+        "docs/visual-wave/PLAN.md section 4 and 5",
+        "docs/visual-wave/tasks.json",
+        "tools/headless.mjs",
+        "tools/measure_memory.mjs"
+      ],
+      "inputs": {
+        "references": "references/places (in ~/Desktop/Coding Projects/aylmer-madness, gitignored; CMP_REF_ROOT)",
+        "palette": "assets/look/palette.json once V0-05 lands"
+      },
+      "flag": "none",
+      "acceptance": [
+        "poses.json holds the 8 eye poses, the 6 chase poses and perf8 from PLAN section 4 with x, y, z, yaw, pitch, fov, camera mode; the sets core, chase, allday and perf8 resolve",
+        "capture.mjs takes --poses=, --env=(morning,noon,haze,golden,dusk,night,overcast,rain,storm), --look=, --tag=, --out= and per-agent ports from CMP_SRV_PORT and CMP_CDP_PORT; chase poses draw the car; the HUD, peds and avatars are hidden under devCam",
+        "look-diff.mjs writes contact sheets (before | after | ref), clipped-pixel % per shot, region means for tagged regions vs palette.json, and a pixel-diff mask, into the task's report folder",
+        "perf.mjs boots headless Chrome on Metal (never SwiftShader), takes tools/qa/.perf.lock, holds each pose 600 frames per env per tier, and records p50/p95/p99 interval, GPU ms from r.gpuMs, tris, draws, JS heap and gpuBytes into docs/qa/perf/<stamp>.json",
+        "boot.mjs: both entries reach the menu and drive with 0 console errors and W moves the truck 10 m or more",
+        "owned-files.mjs --task=<id> fails if git diff touches a path outside the task's files globs in docs/visual-wave/tasks.json",
+        "vis-check.mjs --task=<id> --tag=<t> runs capture for the task's poseSets and envs and, with --full, look-diff, smoke_world, perf and owned-files",
+        "Every tool closes the Chrome and server it started, uses a throwaway profile, and pops no window",
+        "Identity proof instead of a look change: captures of the core and chase sets at noon, golden and night before and after are pixel-identical (max channel diff <= 1/255, SwiftShader capture)",
+        "node tools/smoke_world.mjs prints the same vertex and triangle counts as before, to the unit",
+        "npm test all pass; both entries boot with 0 console errors (tools/headless.mjs until boot.mjs exists)",
+        "Report written to docs/visual-wave/reports/V0-04.md"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [],
+      "tomInput": [],
+      "status": "done",
+      "index": 3,
+      "ports": {
+        "CMP_SRV_PORT": 8203,
+        "CMP_CDP_PORT": 9403
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v0-04",
+      "branch": "vis/v0-04",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V0-04 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V0-04 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V0-05",
+      "wave": 0,
+      "title": "Palette calibration and art bible data",
+      "roadmap": [
+        "P2.6"
+      ],
+      "goal": "Turn ROADMAP 2.5 into measured data: sample the 2009 references at matching regions (lawn, road, walk, siding, brick, roof, canopy, sky zenith and horizon) into a palette file with on-screen targets and linear albedos, plus a material reference board for the texture and vegetation agents.",
+      "files": [
+        "assets/look/palette.json",
+        "assets/look/README.md",
+        "docs/visual-wave/ART-BIBLE.md"
+      ],
+      "creates": [
+        "assets/look/palette.json",
+        "assets/look/README.md",
+        "docs/visual-wave/ART-BIBLE.md"
+      ],
+      "reads": [
+        "docs/ROADMAP.md section 2",
+        "references/places (in ~/Desktop/Coding Projects/aylmer-madness, gitignored; CMP_REF_ROOT)",
+        "aylmer-madness/references/places/_feedback/analysis/*.md",
+        "assets/text/palette2004.json"
+      ],
+      "inputs": {
+        "references": "2009 crops (60b6f207_*) only for colour; never the 2026 claudechat_* screenshots",
+        "palette": "ROADMAP 2.5 as the starting point"
+      },
+      "flag": "none",
+      "acceptance": [
+        "palette.json has every ROADMAP 2.5 entry with srgbTarget (noon, clear, on screen), linearAlbedo (0.03 to 0.80, white vinyl <= 0.75), tolerance, and the reference crop and pixel rect each was sampled from",
+        "At least 3 samples per material from different refs, with the spread recorded; Gemini (gemini_analyze) cross-checks the colour families",
+        "ART-BIBLE.md (one page) lists per material: colour family, texel density, wear rules, what not to do; per time of day: the colour script row; links to the crops (paths only, crops stay gitignored)",
+        "No em dashes; nothing from references is committed",
+        "Identity proof instead of a look change: captures of the core and chase sets at noon, golden and night before and after are pixel-identical (max channel diff <= 1/255, SwiftShader capture)",
+        "node tools/smoke_world.mjs prints the same vertex and triangle counts as before, to the unit",
+        "npm test all pass; both entries boot with 0 console errors (tools/headless.mjs until boot.mjs exists)",
+        "Report written to docs/visual-wave/reports/V0-05.md"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [],
+      "tomInput": [],
+      "status": "done",
+      "index": 4,
+      "ports": {
+        "CMP_SRV_PORT": 8204,
+        "CMP_CDP_PORT": 9404
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v0-05",
+      "branch": "vis/v0-05",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V0-05 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V0-05 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V1-01",
+      "wave": 1,
+      "title": "Linear light, filmic curve and grade",
+      "roadmap": [
+        "V2",
+        "P2.1"
+      ],
+      "goal": "Light and fog in linear space with an inline filmic curve, grade (lift, gamma, gain, saturation, warmth) and sRGB encode at the end of the same fragment shader, the sky through the same curve with a 1/255 dither, and the albedo ceiling.",
+      "files": [
+        "src/core/shaders/light.js",
+        "src/core/shaders/tonemap.js",
+        "src/core/shaders/common.js"
+      ],
+      "reads": [
+        "src/prototype/renderer.js, nature.js, facade.js, siding.js (reference implementation, read only)",
+        "docs/ROADMAP.md 2.4 V2",
+        "assets/look/palette.json"
+      ],
+      "inputs": {
+        "references": "core set 2009 refs",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "linear",
+      "acceptance": [
+        "Vertex colours and texels decoded sRGB to linear; ambient, sun and fog applied in linear; filmic curve (port of the prototype ACES plus grade) then sRGB encode",
+        "Grade uniforms exposed through the registry (uExposure, uLift, uGamma, uGain, uSat, uWarmth) with neutral defaults so V1-02 can drive them",
+        "gradeLight() retired or reduced to a pass-through once the curve does its job; dusk, night and storm stay readable",
+        "Noon clipped pixels under 0.5 % at every core pose (white siding no longer clips)",
+        "Lawn, road, walk and siding region means within tolerance of palette.json at noon",
+        "Before: node tools/qa/vis-check.mjs --task=V1-01 --tag=before (flag OFF via --look=-linear)",
+        "After: node tools/qa/vis-check.mjs --task=V1-01 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V1-01 clean",
+        "Report written to docs/visual-wave/reports/V1-01.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.15,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-01",
+        "V0-04",
+        "V0-05"
+      ],
+      "tomInput": [
+        "T2"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 5,
+      "ports": {
+        "CMP_SRV_PORT": 8205,
+        "CMP_CDP_PORT": 9405
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v1-01",
+      "branch": "vis/v1-01",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase",
+          "allday"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night",
+          "overcast"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V1-01 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V1-01 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V1-02",
+      "wave": 1,
+      "title": "Timecycle: the colour script as data",
+      "roadmap": [
+        "V3",
+        "P2.2",
+        "P2.5"
+      ],
+      "goal": "A GTA-style timecycle: keyframes per hour times weather in assets/look/timecycle.json, interpolated 4 times a second, driving sun, ambient (world and objects), sky top and bottom, sun core and corona, sprite brightness, shadow intensity, fog colour, density and start, cloud colours, water colour, exposure and grade; weather.js supplies weather rows instead of tinting.",
+      "files": [
+        "src/game/look/timecycle.js",
+        "src/game/look/envcycle.js",
+        "assets/look/timecycle.json",
+        "src/game/weather.js"
+      ],
+      "reads": [
+        "src/prototype/daylight.js (the prototype keys and solar path at 45.4 N)",
+        "src/game/missions.js TIME_OF_DAY",
+        "assets/text/palette2004.json",
+        "docs/ROADMAP.md 2.3",
+        "https://gtamods.com/wiki/Timecyc.dat"
+      ],
+      "inputs": {
+        "references": "ROADMAP 2.3 colour script; dated summer-2004 weather in calendar.js",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "timecycle",
+      "acceptance": [
+        "9 keys a day (05:00 blue hour, 06:30, 09:00, 13:00, 17:00, 19:30 golden, 20:45 dusk, 22:30, 01:00) times 6 weathers (clear, haze, cloudy, overcast, rain, storm); missing weather rows fall back to clear plus a documented tint",
+        "Sun direction from the real solar path for the date (port daylight.js), golden hour sun low over Lac Deschenes in the west",
+        "Mission time-of-day pins (missions.js keys) map to hours, so every mission still opens at the right light",
+        "Interpolation runs at 4 Hz with smoothstep, no allocation per call, and no snap when the weather changes",
+        "Headlights and night flags (nightAmount) still flip at the same moments within 2 minutes of game time",
+        "Each environment's contact sheet matches its ROADMAP 2.3 row (Claude and Gemini both agree per row)",
+        "Before: node tools/qa/vis-check.mjs --task=V1-02 --tag=before (flag OFF via --look=-timecycle)",
+        "After: node tools/qa/vis-check.mjs --task=V1-02 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V1-02 clean",
+        "Report written to docs/visual-wave/reports/V1-02.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-03",
+        "V0-05"
+      ],
+      "tomInput": [
+        "T6"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 6,
+      "ports": {
+        "CMP_SRV_PORT": 8206,
+        "CMP_CDP_PORT": 9406
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v1-02",
+      "branch": "vis/v1-02",
+      "verify": {
+        "poseSets": [
+          "allday",
+          "chase"
+        ],
+        "envs": [
+          "morning",
+          "noon",
+          "haze",
+          "golden",
+          "dusk",
+          "night",
+          "overcast",
+          "rain",
+          "storm"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V1-02 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V1-02 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V1-03",
+      "wave": 1,
+      "title": "Sky model and clouds",
+      "roadmap": [
+        "V4",
+        "P2.3"
+      ],
+      "goal": "A sky that is in every frame and reads as summer in the Outaouais: per-pixel gradient with horizon brightening, a warm Mie glow round the sun, a dimmer anti-sun side, a 2 to 3 octave fbm cloud deck plus a few long cirrus streaks lit from the sun side, the sun core and corona, stars at night and an orange town glow low over Hull and Ottawa.",
+      "files": [
+        "src/core/shaders/sky.js",
+        "src/game/sky.js"
+      ],
+      "reads": [
+        "src/prototype/renderer.js, nature.js, facade.js, siding.js (reference implementation, read only)",
+        "docs/ROADMAP.md 2.3"
+      ],
+      "inputs": {
+        "references": "2009 ref skies (pale, hazy horizon, cirrus); MM3 and GTA SA skies",
+        "palette": "noon zenith #5F8FC8, horizon #D6DEE2, golden sun #F7B26A"
+      },
+      "flag": "sky2",
+      "acceptance": [
+        "The 28 octagon puffs are gone on med and high (low tier may keep a cheap cloud ring); no hard edge on the horizon at any pitch",
+        "Clouds and the sky gradient read their colours from the timecycle uniforms; overcast and storm fill the deck",
+        "No banding (dither on), no visible tiling, and the sky costs under 0.3 ms GPU at med on the Air",
+        "Thumbnail test: the sky alone at 160x90 reads as hazy July, not a flat blue box",
+        "Before: node tools/qa/vis-check.mjs --task=V1-03 --tag=before (flag OFF via --look=-sky2)",
+        "After: node tools/qa/vis-check.mjs --task=V1-03 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V1-03 clean",
+        "Report written to docs/visual-wave/reports/V1-03.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.3,
+        "trisFrame": 2000,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-01",
+        "V0-04"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 7,
+      "ports": {
+        "CMP_SRV_PORT": 8207,
+        "CMP_CDP_PORT": 9407
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v1-03",
+      "branch": "vis/v1-03",
+      "verify": {
+        "poseSets": [
+          "allday",
+          "chase"
+        ],
+        "envs": [
+          "morning",
+          "noon",
+          "golden",
+          "dusk",
+          "night",
+          "overcast",
+          "storm"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V1-03 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V1-03 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V1-04",
+      "wave": 1,
+      "title": "Aerial perspective, height fog and forest-edge rings",
+      "roadmap": [
+        "V5",
+        "P2.4"
+      ],
+      "goal": "Fog that is air: its colour is the sky horizon in the view direction plus sun-side inscatter, it thins with height, it is applied in linear light; the distant mesh gets forest-edge rings on the Gatineau hills and the Ontario shore so the town stops being an island in empty sky.",
+      "files": [
+        "src/core/shaders/fog.js",
+        "src/game/world/distant.js"
+      ],
+      "reads": [
+        "src/prototype/renderer.js, nature.js, facade.js, siding.js (reference implementation, read only)",
+        "src/game/terrain.js",
+        "docs/ROADMAP.md 2.4 V5"
+      ],
+      "inputs": {
+        "references": "2009 refs with long views (Principale strip, Chemin d'Aylmer); lake horizon photos",
+        "palette": "noon horizon haze #D6DEE2"
+      },
+      "flag": "aerial",
+      "acceptance": [
+        "Fog colour matches the sky horizon at the far plane in every environment (no visible seam between distant ground and sky)",
+        "Draw-distance edge invisible at med (720 m) and low (520 m) in the chase poses",
+        "Forest rings: low-poly, at most 20k triangles total in the distant mesh, silhouettes the right height (20 to 30 m crowns on the hill line)",
+        "Haze is strongest at humid noon and warm at golden hour, per ROADMAP 2.3",
+        "Before: node tools/qa/vis-check.mjs --task=V1-04 --tag=before (flag OFF via --look=-aerial)",
+        "After: node tools/qa/vis-check.mjs --task=V1-04 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V1-04 clean",
+        "Report written to docs/visual-wave/reports/V1-04.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.1,
+        "trisFrame": 20000,
+        "vertexMB": 2,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-01",
+        "V0-02",
+        "V0-04"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 8,
+      "ports": {
+        "CMP_SRV_PORT": 8208,
+        "CMP_CDP_PORT": 9408
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v1-04",
+      "branch": "vis/v1-04",
+      "verify": {
+        "poseSets": [
+          "chase",
+          "allday"
+        ],
+        "envs": [
+          "morning",
+          "noon",
+          "haze",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V1-04 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V1-04 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V1-05",
+      "wave": 1,
+      "title": "Vertex packing: buy back memory for geometry",
+      "roadmap": [
+        "perf"
+      ],
+      "goal": "Pack the uploaded vertex layout (position f32x3, normal snorm8x4, colour unorm8x4, uv and rect only where used, half floats where precise enough) so the whole-map vertex buffers drop from about 341 MB to 220 MB or less, and make smoke_world measure real bytes.",
+      "files": [
+        "src/core/gl.js",
+        "tools/smoke_world.mjs"
+      ],
+      "reads": [
+        "src/core/mesh.js",
+        "src/core/shaders/common.js (attribute declarations, read only)",
+        "tools/measure_memory.mjs"
+      ],
+      "inputs": {
+        "references": "none",
+        "palette": "none"
+      },
+      "flag": "vpack",
+      "acceptance": [
+        "Pixel diff vs flag off under 1/255 on 99.5 % of pixels at every core and chase pose (colour quantisation is the only allowed difference)",
+        "smoke_world's memory test computes bytes from what upload() actually allocates (renderer gpuBytes) and keeps its ceiling; the new measured number and the new ceiling (measurement plus 4 %) are written in the test comment",
+        "Whole-map vertex memory 220 MB or less; the freed MB are recorded in the report so the lead can allocate them to wave 2",
+        "Upload time per sector not worse by more than 10 %",
+        "Before: node tools/qa/vis-check.mjs --task=V1-05 --tag=before (flag OFF via --look=-vpack)",
+        "After: node tools/qa/vis-check.mjs --task=V1-05 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V1-05 clean",
+        "Report written to docs/visual-wave/reports/V1-05.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": -120,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-01"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 9,
+      "ports": {
+        "CMP_SRV_PORT": 8209,
+        "CMP_CDP_PORT": 9409
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v1-05",
+      "branch": "vis/v1-05",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V1-05 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V1-05 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V1-06",
+      "wave": 1,
+      "title": "Facade atlas v2",
+      "roadmap": [
+        "P3.11 textures"
+      ],
+      "goal": "Rebuild the house atlas at 2004-plus clarity: siding courses, brick with mortar and per-brick tint, stone, stucco, clapboard, cedar shakes, three shingle families, doors, garage doors, porch rails and window frames, at 128 texels per metre for walls, from CC0 or generated sources, with successive-halving mips.",
+      "files": [
+        "tools/make_atlas.py",
+        "assets/textures/*.png",
+        "assets/textures/sources.json",
+        "assets/textures/LICENSES.md",
+        "assets/materials/atlas.png",
+        "assets/materials/atlas.json",
+        "assets/materials/atlas.real.png",
+        "assets/materials/atlas.real.json"
+      ],
+      "reads": [
+        "src/game/materials.js",
+        "src/game/materials_stub.js",
+        "src/prototype/facade.js",
+        "docs/visual-wave/ART-BIBLE.md"
+      ],
+      "inputs": {
+        "references": "material reference board (V0-05); ambientCG and Poly Haven CC0 only",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "atlas2",
+      "acceptance": [
+        "Same 26 cell names and atlas.json schema (existing UVs keep working); new cells may be added at the end",
+        "Each tiled cell is seamless, average colour matches materials_stub TILES within 6 per channel (or the table is updated in the report for V3-01 to adopt)",
+        "Texel density: brick and siding at 128 per metre at their documented repeat; no visible mip shimmer at 30 to 150 m in a slow pan capture",
+        "Every source has a CC0 line in LICENSES.md; smoke_atlas and smoke_models pass",
+        "Before: node tools/qa/vis-check.mjs --task=V1-06 --tag=before (flag OFF via --look=-atlas2)",
+        "After: node tools/qa/vis-check.mjs --task=V1-06 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V1-06 clean",
+        "Report written to docs/visual-wave/reports/V1-06.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V0-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 10,
+      "ports": {
+        "CMP_SRV_PORT": 8210,
+        "CMP_CDP_PORT": 9410
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v1-06",
+      "branch": "vis/v1-06",
+      "verify": {
+        "poseSets": [
+          "core"
+        ],
+        "envs": [
+          "noon",
+          "golden"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V1-06 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V1-06 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V1-07",
+      "wave": 1,
+      "title": "Ground atlas: roads, walks, lawns, gravel",
+      "roadmap": [
+        "P3.7 textures"
+      ],
+      "goal": "A second 2048 atlas for everything you drive and walk on: asphalt in 3 wear grades, crack-seal lines, patches, worn lane paint, concrete walk with 1.5 m joints, rolled curb, Principale brick pavers, grass healthy and dry, gravel, dirt, sand, parking stall lines, manholes and sewer grates.",
+      "files": [
+        "tools/make_ground_atlas.py",
+        "assets/textures/ground/**",
+        "assets/materials/ground.png",
+        "assets/materials/ground.json"
+      ],
+      "creates": [
+        "tools/make_ground_atlas.py",
+        "assets/materials/ground.png",
+        "assets/materials/ground.json"
+      ],
+      "reads": [
+        "tools/make_atlas.py",
+        "src/prototype/nature.js (GROUND ideas)",
+        "docs/visual-wave/ART-BIBLE.md"
+      ],
+      "inputs": {
+        "references": "2009 refs of Fraser, Principale, Galeries lot; ambientCG CC0 asphalt and concrete",
+        "palette": "asphalt worn #5E5E5F, tar seam #3A3A3C, walk #B3AEA3, pavers #9A5E4A, lawn #6B7440, dry #9A8E58"
+      },
+      "flag": "none",
+      "acceptance": [
+        "ground.json uses the atlas.json schema with tiled and decal cells; every tiled cell seamless; decals have alpha",
+        "96 to 128 texels per metre for road and walk; mips by successive halving; no high-frequency noise that shimmers at 60 km/h (slow pan capture once V2-01 binds it; until then a turntable sheet)",
+        "Average colours within tolerance of palette.json after the V1-01 curve",
+        "CC0 or generated sources only, listed in assets/textures/ground/LICENSES.md",
+        "Before: node tools/qa/vis-check.mjs --task=V1-07 --tag=before (flag OFF via --look=-none)",
+        "After: node tools/qa/vis-check.mjs --task=V1-07 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V1-07 clean",
+        "Report written to docs/visual-wave/reports/V1-07.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V0-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "index": 11,
+      "ports": {
+        "CMP_SRV_PORT": 8211,
+        "CMP_CDP_PORT": 9411
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v1-07",
+      "branch": "vis/v1-07",
+      "verify": {
+        "poseSets": [
+          "core"
+        ],
+        "envs": [
+          "noon"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V1-07 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V1-07 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-01",
+      "wave": 2,
+      "title": "Road surface",
+      "roadmap": [
+        "P3.7"
+      ],
+      "goal": "The road fills a third of every frame: asphalt from the ground atlas with large-scale vertex-colour variation, lighter wheel tracks, crack-seal lines, one patch per block, salt-faded paint, crosswalks on commercial streets, manholes and sewer grates; Principale keeps no centre dashes.",
+      "files": [
+        "src/game/world/roads.js"
+      ],
+      "reads": [
+        "assets/materials/ground.json",
+        "src/game/world/ctx.js",
+        "docs/visual-wave/ART-BIBLE.md",
+        "Tom's street note 4 (no oil blobs, no tar snakes across the full width)"
+      ],
+      "inputs": {
+        "references": "Principale strip_02, Fraser, Galeries 2009 refs",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "roads2",
+      "acceptance": [
+        "Roads sample the ground atlas (uTex2) in one draw per chunk; no new draw calls",
+        "Wheel tracks and seams follow the lane, never cross the full width; no oil-blob decals (Tom's note)",
+        "Rubric line 5 (street) up by 1 or more on the Principale and Fraser pairs",
+        "Road region mean within palette tolerance at noon; no shimmer in a 60 km/h pan",
+        "Before: node tools/qa/vis-check.mjs --task=V2-01 --tag=before (flag OFF via --look=-roads2)",
+        "After: node tools/qa/vis-check.mjs --task=V2-01 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-01 clean",
+        "Report written to docs/visual-wave/reports/V2-01.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.3,
+        "trisFrame": 15000,
+        "vertexMB": 12,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V1-01",
+        "V1-05",
+        "V1-07"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 12,
+      "ports": {
+        "CMP_SRV_PORT": 8212,
+        "CMP_CDP_PORT": 9412
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-01",
+      "branch": "vis/v2-01",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-01 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-01 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-02",
+      "wave": 2,
+      "title": "Sidewalks, rolled curbs and Principale pavers",
+      "roadmap": [
+        "P3.7",
+        "Tom note 3"
+      ],
+      "goal": "Rolled concrete curbs, sidewalks with joints every 1.5 m, slabs that run continuously across driveways and service lanes (a flush apron, never a dead end), a per-street walk policy (none, one side, both), and the 4.5 m brick-paver walk on Rue Principale running up to the wall.",
+      "files": [
+        "src/game/world/walks.js"
+      ],
+      "reads": [
+        "docs/design/VISUAL-PLAN.md 7c item 3",
+        "assets/materials/ground.json",
+        "src/game/world/ctx.js"
+      ],
+      "inputs": {
+        "references": "Principale comm_13, strip_02, strip_05; Fraser and Glenwood refs",
+        "palette": "walk #B3AEA3, pavers #9A5E4A"
+      },
+      "flag": "walks2",
+      "acceptance": [
+        "No sidewalk ends mid-block at a service crossing in the Fraser, Glenwood and Principale chase poses",
+        "Curbs read as rolled (a profile of 3 to 4 quads), with contact darkening at the gutter",
+        "Principale pavers between x -950 and -150 and nowhere else; peds still walk the runs (smoke_spine and peds tests pass)",
+        "Before: node tools/qa/vis-check.mjs --task=V2-02 --tag=before (flag OFF via --look=-walks2)",
+        "After: node tools/qa/vis-check.mjs --task=V2-02 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-02 clean",
+        "Report written to docs/visual-wave/reports/V2-02.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.1,
+        "trisFrame": 12000,
+        "vertexMB": 10,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V1-05",
+        "V1-07"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 13,
+      "ports": {
+        "CMP_SRV_PORT": 8213,
+        "CMP_CDP_PORT": 9413
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-02",
+      "branch": "vis/v2-02",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-02 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-02 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-03",
+      "wave": 2,
+      "title": "Lawns and land cover",
+      "roadmap": [
+        "P3 ground"
+      ],
+      "goal": "Lawns that read as Aylmer in July: tiled grass with a large-scale variation that kills the tiling, dry edges along curbs and drives, darker grass under each crown, mower stripes on a few kept lawns, gravel shoulders, beach sand, parks and the cemetery.",
+      "files": [
+        "src/game/world/landcover.js"
+      ],
+      "reads": [
+        "src/game/world/ctx.js (trees list)",
+        "assets/materials/ground.json",
+        "src/game/surface.js",
+        "src/game/terrain.js"
+      ],
+      "inputs": {
+        "references": "Fraser, Denise-Friend, Arial 2009 refs",
+        "palette": "lawn #6B7440, dry #9A8E58"
+      },
+      "flag": "lawns2",
+      "acceptance": [
+        "Lawn region mean within palette tolerance; no visible tile repeat at 20 to 200 m in the chase poses",
+        "Under-crown darkening matches ctx.trees positions (checked in one aerial capture)",
+        "No change to the physics ground (smoke_ground, smoke_terrain, smoke_landmark_ground pass)",
+        "Before: node tools/qa/vis-check.mjs --task=V2-03 --tag=before (flag OFF via --look=-lawns2)",
+        "After: node tools/qa/vis-check.mjs --task=V2-03 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-03 clean",
+        "Report written to docs/visual-wave/reports/V2-03.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.2,
+        "trisFrame": 0,
+        "vertexMB": 4,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V1-01",
+        "V1-07"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 14,
+      "ports": {
+        "CMP_SRV_PORT": 8214,
+        "CMP_CDP_PORT": 9414
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-03",
+      "branch": "vis/v2-03",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "overcast"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-03 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-03 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-04",
+      "wave": 2,
+      "title": "Tree kit and the canopy",
+      "roadmap": [
+        "P3.2",
+        "P3.3"
+      ],
+      "goal": "The canopy is the town: sugar and silver maples and ash (13 to 22 m, forked trunk, 3 to 6 opaque lump crowns, 3 colour families, darker undersides), spruce tiers, white cedar, white pine, birch; street trees every 12 to 16 m on every road class with houses; a back-yard canopy of 15 to 30 m trees behind residential frontages; a cheap far LOD.",
+      "files": [
+        "src/game/trees2004.js",
+        "src/game/world/trees.js"
+      ],
+      "creates": [
+        "src/game/trees2004.js"
+      ],
+      "reads": [
+        "src/game/vegetation.js (prototype species and palettes)",
+        "assets/models/tree-*.json (CC0 Kenney silhouettes)",
+        "docs/ROADMAP.md 2.6",
+        "src/game/fraser.js (Tom's ruling: spruce on the left)"
+      ],
+      "inputs": {
+        "references": "Fraser, Denise-Friend, Arial, Principale 2009 refs; ART-BIBLE vegetation",
+        "palette": "maple sunlit #5A6E34, shade #34452A, spruce and cedar #2E4130"
+      },
+      "flag": "trees2",
+      "acceptance": [
+        "Opaque crowns only (no discard, no alpha cards); per-vertex colour variation baked; average 120 tris or less per near tree, 24 or less far",
+        "Knock-down, debris and collider behaviour unchanged (smoke_breakables, smoke_world pass)",
+        "Rubric line 4 (vegetation) up by 1.5 or more on Fraser, Denise-Friend, Arial and Principale",
+        "Tom's 299 Fraser rulings preserved (spruce on the left, the red maple)",
+        "Before: node tools/qa/vis-check.mjs --task=V2-04 --tag=before (flag OFF via --look=-trees2)",
+        "After: node tools/qa/vis-check.mjs --task=V2-04 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-04 clean",
+        "Report written to docs/visual-wave/reports/V2-04.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 1.2,
+        "trisFrame": 140000,
+        "vertexMB": 45,
+        "drawsFrame": 10
+      },
+      "model": "opus",
+      "effort": "L",
+      "depends": [
+        "V1-01",
+        "V1-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "index": 15,
+      "ports": {
+        "CMP_SRV_PORT": 8215,
+        "CMP_CDP_PORT": 9415
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-04",
+      "branch": "vis/v2-04",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-04 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-04 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-05",
+      "wave": 2,
+      "title": "Hedges, fences, drives and yard life",
+      "roadmap": [
+        "P3.4",
+        "P3.9"
+      ],
+      "goal": "Lots read as owned: white-cedar hedges (1.4 x 1.8 m, jittered) on side lot lines and beside drives, fences only on real rear and side lot lines (not three-sided boxes), gravel drives for pre-1970 houses and cracked asphalt for the rest, drives that reach the curb, front walks that end at the drive, and yard props (chairs, a net, a trailer, wood piles) from the existing kit.",
+      "files": [
+        "src/game/houses.js",
+        "src/game/world/yards.js"
+      ],
+      "reads": [
+        "docs/design/VISUAL-PLAN.md 7c and 8 (residentialFence, driveway, frontWalk limits)",
+        "src/game/world/ctx.js",
+        "src/game/streetprops.js (read only)"
+      ],
+      "inputs": {
+        "references": "Arial, Fraser, Denise-Friend 2009 refs",
+        "palette": "spruce and cedar #2E4130"
+      },
+      "flag": "yards2",
+      "acceptance": [
+        "In houses.js only driveway(), residentialFence(), frontWalk() and their helpers change; walls, roofs and windows untouched (V3-01 owns those next wave)",
+        "smoke_houses budget holds (mean and worst triangles per house within the test limits)",
+        "Drives reach the asphalt edge on 95 % or more of sampled houses (logged by a check in the report)",
+        "Rubric line 7 (life) up by 1 or more on Arial, Fraser and Denise-Friend",
+        "Before: node tools/qa/vis-check.mjs --task=V2-05 --tag=before (flag OFF via --look=-yards2)",
+        "After: node tools/qa/vis-check.mjs --task=V2-05 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-05 clean",
+        "Report written to docs/visual-wave/reports/V2-05.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.4,
+        "trisFrame": 40000,
+        "vertexMB": 15,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V1-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 16,
+      "ports": {
+        "CMP_SRV_PORT": 8216,
+        "CMP_CDP_PORT": 9416
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-05",
+      "branch": "vis/v2-05",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-05 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-05 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-06",
+      "wave": 2,
+      "title": "Hydro-Quebec poles and overhead wires",
+      "roadmap": [
+        "P3.1"
+      ],
+      "goal": "Wires across the sky, as in every real photo: creosoted cedar poles with crossarms, pale insulators and a transformer can on about 1 pole in 4; 3 to 6 sagging lines per span (sag span/60) drawn with a minimum on-screen width of about 1.2 px; cobra-head streetlight arms on main roads; snapping a pole still drops it and its spans.",
+      "files": [
+        "src/game/world/furniture.js",
+        "src/game/world/wires.js",
+        "src/core/shaders/wire.js"
+      ],
+      "reads": [
+        "src/game/world/ctx.js (poles)",
+        "src/game/damage.js (fallen poles, read only)",
+        "docs/ROADMAP.md 2.6"
+      ],
+      "inputs": {
+        "references": "Principale strip_02, Galeries, Fraser, Arial refs (pole spacing, crossarm count)",
+        "palette": "hydro pole #5A4A3A"
+      },
+      "flag": "wires",
+      "acceptance": [
+        "No wire shimmer or aliasing crawl in a 60 km/h chase capture (min-width in the vertex shader, fades with distance)",
+        "Poles and wires never cast decal shadows; spans hidden by blankIndices when a pole snaps (smoke_breakables and smoke_world pass)",
+        "Rubric line 5 up by 1 or more on Principale, Galeries, Fraser",
+        "Before: node tools/qa/vis-check.mjs --task=V2-06 --tag=before (flag OFF via --look=-wires)",
+        "After: node tools/qa/vis-check.mjs --task=V2-06 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-06 clean",
+        "Report written to docs/visual-wave/reports/V2-06.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.3,
+        "trisFrame": 25000,
+        "vertexMB": 8,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-01",
+        "V0-02",
+        "V1-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 17,
+      "ports": {
+        "CMP_SRV_PORT": 8217,
+        "CMP_CDP_PORT": 9417
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-06",
+      "branch": "vis/v2-06",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night",
+          "overcast"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-06 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-06 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-07",
+      "wave": 2,
+      "title": "Baked AO and contact strips",
+      "roadmap": [
+        "V6",
+        "P3.5"
+      ],
+      "goal": "The biggest grounding effect without shadows, the MM3 and GTA prelight way: per-vertex AO baked into vertex colour on buildings (wall bases, inside corners, under eaves), and dark contact strips where walls, curbs, poles, hedges and fences meet the ground.",
+      "files": [
+        "src/game/look/aobake.js",
+        "src/game/world/contact.js"
+      ],
+      "reads": [
+        "src/game/world/ctx.js and emitters.js (postBuild hook)",
+        "src/prototype/renderer.js (grounded walls)",
+        "src/game/houses.js (read only)"
+      ],
+      "inputs": {
+        "references": "2009 refs: wall bases, eaves",
+        "palette": "none"
+      },
+      "flag": "ao",
+      "acceptance": [
+        "Bake runs in ctx.postBuild with no new vertex attributes; added sector build time under 15 %",
+        "Overcast shots no longer look flat: rubric line 6 up on 4 of the 8 core pairs and none down",
+        "Contact strips are opaque or dithered, never alpha-blended",
+        "Before: node tools/qa/vis-check.mjs --task=V2-07 --tag=before (flag OFF via --look=-ao)",
+        "After: node tools/qa/vis-check.mjs --task=V2-07 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-07 clean",
+        "Report written to docs/visual-wave/reports/V2-07.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.05,
+        "trisFrame": 20000,
+        "vertexMB": 10,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-02",
+        "V1-01",
+        "V1-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 18,
+      "ports": {
+        "CMP_SRV_PORT": 8218,
+        "CMP_CDP_PORT": 9418
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-07",
+      "branch": "vis/v2-07",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "overcast"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-07 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-07 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-08",
+      "wave": 2,
+      "title": "Moving tree and house shadow decals",
+      "roadmap": [
+        "V7",
+        "P3.6"
+      ],
+      "goal": "Long golden-hour shadows for almost nothing: a soft dark ellipse per big tree and a skewed footprint per house, offset in the vertex shader by sun direction times height, so they lengthen at golden hour and shrink at noon; batched per chunk.",
+      "files": [
+        "src/game/world/shadowdecals.js",
+        "src/core/shaders/decal.js"
+      ],
+      "reads": [
+        "src/game/world/ctx.js (trees, footprints)",
+        "src/game/look/timecycle.js (shadow intensity, read only)"
+      ],
+      "inputs": {
+        "references": "golden-hour photos of Aylmer streets if Tom has them; otherwise ROADMAP 2.3",
+        "palette": "none"
+      },
+      "flag": "shadowdecals",
+      "acceptance": [
+        "Shadow direction matches the sun (checked against the car blob and the timecycle sun vector) at 4 hours",
+        "Shadow strength follows the timecycle shadowIntensity; gone in overcast and at night",
+        "One draw per chunk or fewer; dithered or multiply blend with no sorting artefacts",
+        "Before: node tools/qa/vis-check.mjs --task=V2-08 --tag=before (flag OFF via --look=-shadowdecals)",
+        "After: node tools/qa/vis-check.mjs --task=V2-08 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-08 clean",
+        "Report written to docs/visual-wave/reports/V2-08.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.4,
+        "trisFrame": 30000,
+        "vertexMB": 8,
+        "drawsFrame": 40
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V0-01",
+        "V0-02",
+        "V1-02",
+        "V1-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 19,
+      "ports": {
+        "CMP_SRV_PORT": 8219,
+        "CMP_CDP_PORT": 9419
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-08",
+      "branch": "vis/v2-08",
+      "verify": {
+        "poseSets": [
+          "chase",
+          "allday"
+        ],
+        "envs": [
+          "morning",
+          "noon",
+          "golden",
+          "overcast"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-08 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-08 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-09",
+      "wave": 2,
+      "title": "Street furniture polish",
+      "roadmap": [
+        "P3.9"
+      ],
+      "goal": "Readable, regional street furniture: green Canada Post community boxes, galvanised mailboxes on posts, Gatineau-red hydrants, blue and green bins, newspaper boxes, ARRET stop signs, signal housings with visors, STO bus-stop signs and benches, each with a clean silhouette and baked shading.",
+      "files": [
+        "src/game/streetprops.js",
+        "src/game/signals.js"
+      ],
+      "reads": [
+        "docs/ROADMAP.md 2.6",
+        "src/game/world/ctx.js"
+      ],
+      "inputs": {
+        "references": "Galeries, Principale, Fraser refs",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "props2",
+      "acceptance": [
+        "Knock-over behaviour and blankIndices slices unchanged (smoke_groundprops, smoke_breakables, smoke_signs pass)",
+        "Stop signs read ARRET at 30 m; signals keep their lit-lamp logic",
+        "Per-prop triangles within 1.3x of today's",
+        "Before: node tools/qa/vis-check.mjs --task=V2-09 --tag=before (flag OFF via --look=-props2)",
+        "After: node tools/qa/vis-check.mjs --task=V2-09 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-09 clean",
+        "Report written to docs/visual-wave/reports/V2-09.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.1,
+        "trisFrame": 10000,
+        "vertexMB": 3,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V1-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 20,
+      "ports": {
+        "CMP_SRV_PORT": 8220,
+        "CMP_CDP_PORT": 9420
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-09",
+      "branch": "vis/v2-09",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-09 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-09 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V2-10",
+      "wave": 2,
+      "title": "Parked fleet",
+      "roadmap": [
+        "P3.8"
+      ],
+      "goal": "Streets and lots that are used: period cars (Caravans, Sunfires, Civics, F-150s, Corollas) in about 60 % of drives, one per 40 m of residential curb, lots about 30 % full with stall lines; instanced from the existing car meshes and distance-culled.",
+      "files": [
+        "src/game/look/parkedfleet.js"
+      ],
+      "reads": [
+        "src/game/cars.js and famouscars.js (meshes, read only)",
+        "src/game/world/ctx.js (drives, curbs, parking polygons)",
+        "src/game/traffic.js (avoid collisions with traffic lanes)"
+      ],
+      "inputs": {
+        "references": "Fraser, Galeries, Principale refs",
+        "palette": "period paint colours (ART-BIBLE)"
+      },
+      "flag": "parked",
+      "acceptance": [
+        "Parked cars are solid to the player (colliders) or deliberately kept off the drivable lanes; no car on a sidewalk or in a road lane",
+        "Draws: cars beyond 160 m merged into per-chunk static meshes or culled; total added draws within budget at the Galeries pose",
+        "Tom's story cars (G.parked) never duplicated or hidden; smoke_traffic, smoke_homeparking pass",
+        "Before: node tools/qa/vis-check.mjs --task=V2-10 --tag=before (flag OFF via --look=-parked)",
+        "After: node tools/qa/vis-check.mjs --task=V2-10 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V2-10 clean",
+        "Report written to docs/visual-wave/reports/V2-10.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.6,
+        "trisFrame": 60000,
+        "vertexMB": 10,
+        "drawsFrame": 60
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V0-03",
+        "V1-05"
+      ],
+      "tomInput": [
+        "T11"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 21,
+      "ports": {
+        "CMP_SRV_PORT": 8221,
+        "CMP_CDP_PORT": 9421
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v2-10",
+      "branch": "vis/v2-10",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V2-10 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V2-10 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V3-01",
+      "wave": 3,
+      "title": "House facades, roofs and trim",
+      "roadmap": [
+        "P3.11",
+        "VISUAL-PLAN 15"
+      ],
+      "goal": "Houses that read as Aylmer vernacular: the atlas v2 at true scale, fascia and corner boards, chimneys on about 1 in 3 gables, 0.1 m window reveals, porches and steps where the archetype has them, roof tint variance, and the cheapest prototype HOUSE_GLSL ideas ported (lapped courses fading to average at distance).",
+      "files": [
+        "src/game/houses.js",
+        "src/core/shaders/material.js"
+      ],
+      "reads": [
+        "src/prototype/facade.js (HOUSE_GLSL)",
+        "src/game/glenwood.js (read only)",
+        "assets/materials/atlas.json",
+        "docs/visual-wave/ART-BIBLE.md"
+      ],
+      "inputs": {
+        "references": "all residential 2009 refs; VISUAL-PLAN 7b",
+        "palette": "white vinyl #E2DED2, cream #D9CDAE, brick #8A4F3C, shingle #4A4744"
+      },
+      "flag": "facades2",
+      "acceptance": [
+        "smoke_houses triangle budget holds (mean and worst within limits); resident house tris under 1.3 M in smoke_world",
+        "Rubric lines 2 (materials) and 3 (openings) up by 1 or more averaged over the residential pairs",
+        "No shimmer of courses at 40 to 150 m; brick tint varies per house",
+        "Before: node tools/qa/vis-check.mjs --task=V3-01 --tag=before (flag OFF via --look=-facades2)",
+        "After: node tools/qa/vis-check.mjs --task=V3-01 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V3-01 clean",
+        "Report written to docs/visual-wave/reports/V3-01.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.5,
+        "trisFrame": 25000,
+        "vertexMB": 15,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "L",
+      "depends": [
+        "V1-06",
+        "V2-05",
+        "V2-07"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 22,
+      "ports": {
+        "CMP_SRV_PORT": 8222,
+        "CMP_CDP_PORT": 9422
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v3-01",
+      "branch": "vis/v3-01",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V3-01 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V3-01 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V3-02",
+      "wave": 3,
+      "title": "Glass and windows, day and night",
+      "roadmap": [
+        "V8",
+        "P3.10"
+      ],
+      "goal": "Windows become the main sign of life on a street: dark glass reflecting the sky gradient by the reflected view vector with Fresnel, curtain and blind variation, interior darkness with depth, at night about 45 % of rooms lit warm incandescent and a few blue TV flickers; storefront glass gets a cheap fake interior.",
+      "files": [
+        "src/core/shaders/glass.js",
+        "src/game/materials.js",
+        "src/game/materials_stub.js"
+      ],
+      "reads": [
+        "src/prototype/facade.js (amWindowPane)",
+        "src/prototype/renderer.js (GLASS)",
+        "assets/materials/atlas.json (window cells)"
+      ],
+      "inputs": {
+        "references": "Todd Hido night streets (ROADMAP 2.8) for the night mood; 2009 day refs",
+        "palette": "none"
+      },
+      "flag": "glass",
+      "acceptance": [
+        "Glass is detected by atlas cell or material code, never by colour guessing (the VISUAL-PLAN 6 known limit is fixed)",
+        "Night: lit fraction 40 to 50 % by hash, stable frame to frame, windows dim and off after 01:00 in a share of houses",
+        "Rubric line 3 up on the residential pairs; night chase poses read as Todd Hido, not as a blue wash (Claude and Gemini agree)",
+        "Before: node tools/qa/vis-check.mjs --task=V3-02 --tag=before (flag OFF via --look=-glass)",
+        "After: node tools/qa/vis-check.mjs --task=V3-02 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V3-02 clean",
+        "Report written to docs/visual-wave/reports/V3-02.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.3,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V1-01",
+        "V1-02",
+        "V1-06"
+      ],
+      "tomInput": [
+        "T6"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 23,
+      "ports": {
+        "CMP_SRV_PORT": 8223,
+        "CMP_CDP_PORT": 9423
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v3-02",
+      "branch": "vis/v3-02",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase",
+          "allday"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "dusk",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V3-02 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V3-02 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V3-03",
+      "wave": 3,
+      "title": "Rue Principale and commercial frontages",
+      "roadmap": [
+        "P4.1 visual",
+        "VISUAL-PLAN 13"
+      ],
+      "goal": "The strip is the town's face: port the prototype FACADE_GLSL storefronts (kickplate, mullioned glazing, door bay, sign band, upper-floor punched windows, parapet coping) to the ship renderer, fabric awnings, sign boards with the 2004 names, and the Principale streetscape rhythm (street trees from V2-04, lamps per D13).",
+      "files": [
+        "src/game/world/commercial.js",
+        "src/game/signage.js",
+        "src/game/historicstrip.js",
+        "src/game/oldaylmer.js"
+      ],
+      "reads": [
+        "src/prototype/facade.js (FACADE_GLSL)",
+        "docs/principale-photo-pass.md",
+        "references principale-storefronts*"
+      ],
+      "inputs": {
+        "references": "principale-storefronts, -east, -west, british-hotel, tim-hortons-principale",
+        "palette": "brick #8A4F3C, limestone #8F8A7E, pavers #9A5E4A"
+      },
+      "flag": "principale2",
+      "acceptance": [
+        "No blank dark slab frontages remain on Principale (the comm_24 north and south shots)",
+        "Sign names only from Tom's list or the existing 2004-checked data (period2004.js, historicstrip.js); none invented",
+        "Principale pairs rubric mean up by 1 or more (it scored 1 of 5); smoke_principale, smoke_signs, smoke_historic_mall pass",
+        "Before: node tools/qa/vis-check.mjs --task=V3-03 --tag=before (flag OFF via --look=-principale2)",
+        "After: node tools/qa/vis-check.mjs --task=V3-03 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V3-03 clean",
+        "Report written to docs/visual-wave/reports/V3-03.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.4,
+        "trisFrame": 30000,
+        "vertexMB": 10,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "L",
+      "depends": [
+        "V1-06",
+        "V2-01",
+        "V2-02",
+        "V2-04"
+      ],
+      "tomInput": [
+        "T11"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 24,
+      "ports": {
+        "CMP_SRV_PORT": 8224,
+        "CMP_CDP_PORT": 9424
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v3-03",
+      "branch": "vis/v3-03",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V3-03 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V3-03 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V3-04",
+      "wave": 3,
+      "title": "Landmark materials pass",
+      "roadmap": [
+        "P4.5",
+        "P4.6",
+        "P4.7",
+        "P4.8"
+      ],
+      "goal": "Hero places get the new materials, AO and windows so they lead the look instead of lagging it: 299 Fraser, Mike's at 129 Frank-Robinson, the British Hotel, the Auberge Symmes, Glenwood bungalows, the palais and Saint-Paul if built. Materials and shading only; massing is Phase 4.",
+      "files": [
+        "src/game/landmarks.js",
+        "src/game/fraser.js",
+        "src/game/glenwood.js"
+      ],
+      "reads": [
+        "src/game/houses.js (read only)",
+        "references for each landmark",
+        "docs/REVIEW-CHECKPOINT.md (Tom's rulings per place)"
+      ],
+      "inputs": {
+        "references": "landmark slugs in references/places",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "landmarks2",
+      "acceptance": [
+        "Flat dark window panels replaced by glass-material windows on every hero building",
+        "Tom's place rulings untouched (Fraser door, gravel drive, no cross-members on ground-floor panes)",
+        "smoke_landmarks, smoke_glenwood, smoke_walls pass; landmark pair scores up, none down",
+        "Before: node tools/qa/vis-check.mjs --task=V3-04 --tag=before (flag OFF via --look=-landmarks2)",
+        "After: node tools/qa/vis-check.mjs --task=V3-04 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V3-04 clean",
+        "Report written to docs/visual-wave/reports/V3-04.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.1,
+        "trisFrame": 8000,
+        "vertexMB": 3,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V2-07",
+        "V3-02 contract (glass material code, published at wave start)"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 25,
+      "ports": {
+        "CMP_SRV_PORT": 8225,
+        "CMP_CDP_PORT": 9425
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v3-04",
+      "branch": "vis/v3-04",
+      "verify": {
+        "poseSets": [
+          "core"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V3-04 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V3-04 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V3-05",
+      "wave": 3,
+      "title": "Car paint: env-map gloss",
+      "roadmap": [
+        "cars"
+      ],
+      "goal": "The hero car gleams like MM2 and Midnight Club: a runtime sphere map built once per timecycle tick from the sky gradient plus a skyline and tree band, a Fresnel clear-coat, a sun specular, per-car age and dirt factors (the Ranger a little yellowed, the SC2 navy), separate glass, chrome and rubber responses via material codes.",
+      "files": [
+        "src/core/shaders/car.js",
+        "src/game/cars.js"
+      ],
+      "reads": [
+        "src/game/vehicles.js",
+        "src/game/carskin.js (read only)",
+        "src/game/look/timecycle.js (read only)"
+      ],
+      "inputs": {
+        "references": "Tom's car photos if any; period paint references",
+        "palette": "Ranger white #ECEAE3, SC2 navy #1E2A47"
+      },
+      "flag": "carpaint",
+      "acceptance": [
+        "Reflections track the environment (golden hour warm, night dark with lamp glints) and are stable (no swimming at speed)",
+        "Material codes ride in existing attributes; car vertex memory unchanged or lower",
+        "smoke_vehicles, smoke_vehicle_spec_layers, smoke_garage pass; the garage turntable shows the new paint",
+        "Before: node tools/qa/vis-check.mjs --task=V3-05 --tag=before (flag OFF via --look=-carpaint)",
+        "After: node tools/qa/vis-check.mjs --task=V3-05 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V3-05 clean",
+        "Report written to docs/visual-wave/reports/V3-05.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.2,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 1
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V1-01",
+        "V1-02"
+      ],
+      "tomInput": [
+        "T12"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 26,
+      "ports": {
+        "CMP_SRV_PORT": 8226,
+        "CMP_CDP_PORT": 9426
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v3-05",
+      "branch": "vis/v3-05",
+      "verify": {
+        "poseSets": [
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night",
+          "rain"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V3-05 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V3-05 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V3-06",
+      "wave": 3,
+      "title": "Water: Lac Deschenes and the marina",
+      "roadmap": [
+        "2.6 water",
+        "P4.11 visual"
+      ],
+      "goal": "The lake takes the sky: Fresnel blend between the timecycle water colour and the reflected sky gradient, a sun glitter path at golden hour, tea-brown shallows at the beach, a wet band on the shore, small waves; marina masts, docks and boats get the new materials.",
+      "files": [
+        "src/core/shaders/water.js",
+        "src/game/world/water.js",
+        "src/game/marina.js"
+      ],
+      "reads": [
+        "src/core/shaders/sky.js (read only)",
+        "references marina-parc-des-cedres",
+        "docs/design/VISUAL-PLAN.md 8"
+      ],
+      "inputs": {
+        "references": "marina-parc-des-cedres refs; lake horizon photos",
+        "palette": "lake #5A7178, shallows #4A4636"
+      },
+      "flag": "water2",
+      "acceptance": [
+        "Golden hour from chase_lucerne_golden shows a glitter path toward the sun; the lake horizon blends into the haze",
+        "No z-fighting at the shore; the water never sinks under the grass (the one-sided swell rule kept)",
+        "Marina pair scores up; smoke_world and marina-related smoke pass",
+        "Before: node tools/qa/vis-check.mjs --task=V3-06 --tag=before (flag OFF via --look=-water2)",
+        "After: node tools/qa/vis-check.mjs --task=V3-06 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V3-06 clean",
+        "Report written to docs/visual-wave/reports/V3-06.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.3,
+        "trisFrame": 5000,
+        "vertexMB": 2,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V1-02",
+        "V1-03"
+      ],
+      "tomInput": [
+        "T5"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 27,
+      "ports": {
+        "CMP_SRV_PORT": 8227,
+        "CMP_CDP_PORT": 9427
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v3-06",
+      "branch": "vis/v3-06",
+      "verify": {
+        "poseSets": [
+          "core",
+          "chase_lucerne_golden"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "dusk",
+          "night",
+          "storm"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V3-06 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V3-06 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V3-07",
+      "wave": 3,
+      "title": "Colour script tune 1",
+      "roadmap": [
+        "P2.6",
+        "P2.2 review"
+      ],
+      "goal": "Now that the materials exist, tune timecycle.json and palette.json so every environment matches its ROADMAP 2.3 row and the region means land within tolerance; produce Tom's review sheet of the colour script at 6 times of day.",
+      "files": [
+        "assets/look/timecycle.json",
+        "assets/look/palette.json"
+      ],
+      "reads": [
+        "all wave 2 and 3 reports",
+        "docs/ROADMAP.md 2.3 and 2.5",
+        "references/places (in ~/Desktop/Coding Projects/aylmer-madness, gitignored; CMP_REF_ROOT)"
+      ],
+      "inputs": {
+        "references": "2009 crops; ROADMAP film and photo references for light only",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "timecycle",
+      "acceptance": [
+        "Runs last in wave 3 (after V3-01 to V3-06 merge) on the merged tree",
+        "Region means within tolerance at noon for all core pairs; clipped pixels under 0.5 %",
+        "Claude and Gemini rubric line 6 at 4 or more for each environment on the allday set",
+        "A one-page review sheet for Tom (contact sheet of 6 times of day x 3 poses) in the report",
+        "Before: node tools/qa/vis-check.mjs --task=V3-07 --tag=before (flag OFF via --look=-timecycle)",
+        "After: node tools/qa/vis-check.mjs --task=V3-07 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V3-07 clean",
+        "Report written to docs/visual-wave/reports/V3-07.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V3-01",
+        "V3-02",
+        "V3-03",
+        "V3-04",
+        "V3-05",
+        "V3-06"
+      ],
+      "tomInput": [
+        "T5",
+        "T6"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 28,
+      "ports": {
+        "CMP_SRV_PORT": 8228,
+        "CMP_CDP_PORT": 9428
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v3-07",
+      "branch": "vis/v3-07",
+      "verify": {
+        "poseSets": [
+          "allday",
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "morning",
+          "noon",
+          "haze",
+          "golden",
+          "dusk",
+          "night",
+          "overcast",
+          "rain",
+          "storm"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V3-07 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V3-07 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V4-01",
+      "wave": 4,
+      "title": "Sodium night and coronas",
+      "roadmap": [
+        "P6.1"
+      ],
+      "goal": "Night belongs to sodium orange: lamp heads that glow, soft sodium pools on the asphalt, GTA-style additive corona sprites on lamps, signals and porch lights with a depth or raycast occlusion fade, sized by the timecycle sprite brightness, and the town glow.",
+      "files": [
+        "src/game/world/furniture.js",
+        "src/game/look/coronas.js",
+        "src/core/shaders/corona.js"
+      ],
+      "reads": [
+        "src/game/signals.js (read only)",
+        "src/game/houses.js porch lamps (read only)",
+        "src/prototype/renderer.js (sodium pools)"
+      ],
+      "inputs": {
+        "references": "Todd Hido; Tom's night ruling (T6)",
+        "palette": "sodium #FF9A2E, night fill #1B2236"
+      },
+      "flag": "coronas",
+      "acceptance": [
+        "Coronas never pop through walls (occlusion fade over 0.2 s); at most 1 draw for all coronas",
+        "Pools follow lamp positions; lamps come on with the timecycle, not a hard switch",
+        "Night readable per Tom's T6 answer; rubric line 6 at night up by 1 or more",
+        "Before: node tools/qa/vis-check.mjs --task=V4-01 --tag=before (flag OFF via --look=-coronas)",
+        "After: node tools/qa/vis-check.mjs --task=V4-01 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V4-01 clean",
+        "Report written to docs/visual-wave/reports/V4-01.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.4,
+        "trisFrame": 8000,
+        "vertexMB": 2,
+        "drawsFrame": 4
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V2-06",
+        "V3-07"
+      ],
+      "tomInput": [
+        "T6",
+        "T11"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 29,
+      "ports": {
+        "CMP_SRV_PORT": 8229,
+        "CMP_CDP_PORT": 9429
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v4-01",
+      "branch": "vis/v4-01",
+      "verify": {
+        "poseSets": [
+          "chase",
+          "allday"
+        ],
+        "envs": [
+          "dusk",
+          "night",
+          "rain"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V4-01 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V4-01 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V4-02",
+      "wave": 4,
+      "title": "Headlights and tail lights",
+      "roadmap": [
+        "VISUAL-PLAN 7c item 8"
+      ],
+      "goal": "Headlights that light the road: a projected warm ground wash for the player and up to 5 nearby cars (uniform array, falloff and cone in the fragment shader), lens coronas, red tail and brake lights; the two translucent wedges retired; the hood and driver cams never get a screen wash.",
+      "files": [
+        "src/game/world/headlights.js",
+        "src/game/look/headlights.js",
+        "src/core/shaders/dynlights.js"
+      ],
+      "reads": [
+        "src/main.js (cones logic, read only)",
+        "src/game/damage.js buildCarLamps (read only)",
+        "src/game/look/coronas.js API"
+      ],
+      "inputs": {
+        "references": "Tom's note 8 (headlight position and glow)",
+        "palette": "halogen 3200 K"
+      },
+      "flag": "headlights2",
+      "acceptance": [
+        "Headlight beams sit at the real lamp positions per car (Tom's note 8)",
+        "No screen wash in hood or driver cams; storms at 16:00 turn the lights on as before",
+        "Cost at night with 6 lit cars within budget",
+        "Before: node tools/qa/vis-check.mjs --task=V4-02 --tag=before (flag OFF via --look=-headlights2)",
+        "After: node tools/qa/vis-check.mjs --task=V4-02 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V4-02 clean",
+        "Report written to docs/visual-wave/reports/V4-02.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.4,
+        "trisFrame": 2000,
+        "vertexMB": 0,
+        "drawsFrame": 6
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V4-01 corona API (published at wave start)",
+        "V3-05"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 30,
+      "ports": {
+        "CMP_SRV_PORT": 8230,
+        "CMP_CDP_PORT": 9430
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v4-02",
+      "branch": "vis/v4-02",
+      "verify": {
+        "poseSets": [
+          "chase"
+        ],
+        "envs": [
+          "dusk",
+          "night",
+          "rain",
+          "storm"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V4-02 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V4-02 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V4-03",
+      "wave": 4,
+      "title": "Particles: smoke, dust, sparks",
+      "roadmap": [
+        "feel"
+      ],
+      "goal": "One dynamic particle pool (r.uploadDynamic) for camera-facing soft quads: tyre smoke on burnouts and slides, gravel and grass dust by surface, sparks on scrapes, debris chips, damage smoke and steam (replacing DriveFx puffs), cold-morning exhaust; dithered alpha, sorted cheaply, no per-frame allocation.",
+      "files": [
+        "src/game/look/particles.js",
+        "src/game/damage.js"
+      ],
+      "reads": [
+        "src/game/debris.js",
+        "src/game/surface.js",
+        "src/core/gl.js dynamic API"
+      ],
+      "inputs": {
+        "references": "Burnout 3 and MM2 smoke and spark feel",
+        "palette": "dust from the ground palette"
+      },
+      "flag": "particles",
+      "acceptance": [
+        "Exposes emit(kind, x, y, z, vx, vy, vz, n) for V5-02 rain spray; at most 2 draws for all particles; 0 allocations per frame (heap sampling in the report)",
+        "Effects triggered by real physics events in a scripted drive (AYLMER.step): burnout, gravel drive, wall scrape, a crash",
+        "smoke_driving, smoke_repair, smoke_breakables pass",
+        "Before: node tools/qa/vis-check.mjs --task=V4-03 --tag=before (flag OFF via --look=-particles)",
+        "After: node tools/qa/vis-check.mjs --task=V4-03 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V4-03 clean",
+        "Report written to docs/visual-wave/reports/V4-03.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.4,
+        "trisFrame": 8000,
+        "vertexMB": 1,
+        "drawsFrame": 2
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V0-01",
+        "V0-03"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 31,
+      "ports": {
+        "CMP_SRV_PORT": 8231,
+        "CMP_CDP_PORT": 9431
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v4-03",
+      "branch": "vis/v4-03",
+      "verify": {
+        "poseSets": [
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V4-03 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V4-03 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V4-04",
+      "wave": 4,
+      "title": "Car details: wheels, plates, glass, wear",
+      "roadmap": [
+        "cars"
+      ],
+      "goal": "Cars that read as 2004 Quebec at a glance: rims, tyre sidewalls and hubcaps per model, Quebec plates (Je me souviens) and dealer stickers as decals, tinted glass with simple interior silhouettes, chrome trim, the Ranger's wear and rust on the cowl seam kept.",
+      "files": [
+        "src/game/cars.js",
+        "src/game/vehiclekit.js",
+        "src/game/carskin.js",
+        "src/game/cardecals.js"
+      ],
+      "creates": [
+        "src/game/cardecals.js"
+      ],
+      "reads": [
+        "src/game/famouscars.js",
+        "src/game/cockpit.js (read only)",
+        "docs/visual-wave/reports/V3-05.md"
+      ],
+      "inputs": {
+        "references": "Tom's car photos; period plate design",
+        "palette": "Ranger white #ECEAE3, SC2 navy #1E2A47"
+      },
+      "flag": "cardetail",
+      "acceptance": [
+        "Per-car triangles within 1.25x of today's; wheel draw count unchanged",
+        "The SC2 stays the 1997 coupe (fixed headlights, 2 doors); story cars recognisable from the chase cam",
+        "smoke_vehicles, smoke_vehicle_spec_layers, smoke_cockpit, smoke_garage pass",
+        "Before: node tools/qa/vis-check.mjs --task=V4-04 --tag=before (flag OFF via --look=-cardetail)",
+        "After: node tools/qa/vis-check.mjs --task=V4-04 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V4-04 clean",
+        "Report written to docs/visual-wave/reports/V4-04.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.1,
+        "trisFrame": 6000,
+        "vertexMB": 1,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V3-05"
+      ],
+      "tomInput": [
+        "T12"
+      ],
+      "status": "todo",
+      "index": 32,
+      "ports": {
+        "CMP_SRV_PORT": 8232,
+        "CMP_CDP_PORT": 9432
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v4-04",
+      "branch": "vis/v4-04",
+      "verify": {
+        "poseSets": [
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V4-04 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V4-04 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V5-01",
+      "wave": 5,
+      "title": "Post pipeline: offscreen target and bloom-lite",
+      "roadmap": [
+        "V10",
+        "P6.3"
+      ],
+      "goal": "An offscreen MSAA target with a blit, then on the high tier a low-res dual-Kawase bloom-lite (lamps, sun glints, wet roads, headlights), a faint vignette and very fine grain; med and low keep the direct path or the plain blit.",
+      "files": [
+        "src/core/gl.js",
+        "src/core/shaders/post.js"
+      ],
+      "reads": [
+        "src/game/look/frame.js (post hook)",
+        "src/game/look/tiers.js"
+      ],
+      "inputs": {
+        "references": "MC3 and Burnout 3 bloom, restrained",
+        "palette": "none"
+      },
+      "flag": "bloom",
+      "acceptance": [
+        "High tier cost 1.5 ms or less on the Air (perf8 at high); med unchanged within 0.2 ms",
+        "Bloom never washes daytime white siding (threshold in linear light, after the curve check)",
+        "Speed blur only if Tom said yes (T7), behind its own flag",
+        "Before: node tools/qa/vis-check.mjs --task=V5-01 --tag=before (flag OFF via --look=-bloom)",
+        "After: node tools/qa/vis-check.mjs --task=V5-01 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V5-01 clean",
+        "Report written to docs/visual-wave/reports/V5-01.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.2,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 6
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V4-01"
+      ],
+      "tomInput": [
+        "T7",
+        "T8"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 33,
+      "ports": {
+        "CMP_SRV_PORT": 8233,
+        "CMP_CDP_PORT": 9433
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v5-01",
+      "branch": "vis/v5-01",
+      "verify": {
+        "poseSets": [
+          "chase",
+          "allday"
+        ],
+        "envs": [
+          "golden",
+          "dusk",
+          "night",
+          "rain"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V5-01 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V5-01 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V5-02",
+      "wave": 5,
+      "title": "Rain, wet roads and the July storm",
+      "roadmap": [
+        "P6.2"
+      ],
+      "goal": "Storms look like themselves: wet roads darker with a sky sheen and noise puddles, rain streaks in 3D near the camera (replacing or joining the 2D canvas), spray behind cars through the particle API, lightning as a 2-frame flash with thunder delayed by distance, and a green-grey storm look from the timecycle.",
+      "files": [
+        "src/game/weather.js",
+        "src/core/shaders/wet.js"
+      ],
+      "reads": [
+        "src/game/look/particles.js API",
+        "src/game/audio.js thunder hook (read only)",
+        "src/game/look/timecycle.js"
+      ],
+      "inputs": {
+        "references": "July thunderstorm row in ROADMAP 2.3",
+        "palette": "storm base #4A5550"
+      },
+      "flag": "wet",
+      "acceptance": [
+        "Wetness follows weather.js wetness (dries over about 20 s), and grip and brake multipliers are unchanged (smoke_brakes passes)",
+        "Lightning flash never exceeds 2 frames and respects a reduced-flash option",
+        "Rain cost within budget at perf8 rain",
+        "Before: node tools/qa/vis-check.mjs --task=V5-02 --tag=before (flag OFF via --look=-wet)",
+        "After: node tools/qa/vis-check.mjs --task=V5-02 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V5-02 clean",
+        "Report written to docs/visual-wave/reports/V5-02.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.5,
+        "trisFrame": 6000,
+        "vertexMB": 0,
+        "drawsFrame": 3
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V4-03",
+        "V3-07"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 34,
+      "ports": {
+        "CMP_SRV_PORT": 8234,
+        "CMP_CDP_PORT": 9434
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v5-02",
+      "branch": "vis/v5-02",
+      "verify": {
+        "poseSets": [
+          "chase",
+          "allday"
+        ],
+        "envs": [
+          "rain",
+          "storm",
+          "overcast"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V5-02 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V5-02 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V5-03",
+      "wave": 5,
+      "title": "HUD polish",
+      "roadmap": [
+        "ux"
+      ],
+      "goal": "A HUD with 2004 energy that stays legible at 60 km/h: speedometer, minimap frame and dots, mission card and toasts, days-left counter; French first; scales with resolution; colours from the palette.",
+      "files": [
+        "src/game/hud.js",
+        "style.css",
+        "cinematic.css"
+      ],
+      "reads": [
+        "src/game/ui.js (read only)",
+        "src/game/i18n.js",
+        "docs/review/ux-controls.md"
+      ],
+      "inputs": {
+        "references": "MM2, GTA SA and MC3 HUDs (style only, no copied assets)",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "hud2",
+      "acceptance": [
+        "Captures with the HUD on (a hudOn mode in capture) at 1280x800 and 2560x1600; text 12 px or larger equivalent; contrast WCAG AA on the HUD panels",
+        "No layout shift between French and English; smoke_ui, smoke_lang pass",
+        "HUD draw cost under 0.5 ms CPU per frame",
+        "Before: node tools/qa/vis-check.mjs --task=V5-03 --tag=before (flag OFF via --look=-hud2)",
+        "After: node tools/qa/vis-check.mjs --task=V5-03 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V5-03 clean",
+        "Report written to docs/visual-wave/reports/V5-03.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.1,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V0-04"
+      ],
+      "tomInput": [
+        "T13"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 35,
+      "ports": {
+        "CMP_SRV_PORT": 8235,
+        "CMP_CDP_PORT": 9435
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v5-03",
+      "branch": "vis/v5-03",
+      "verify": {
+        "poseSets": [
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V5-03 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V5-03 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V5-04",
+      "wave": 5,
+      "title": "Menu and title art",
+      "roadmap": [
+        "D4"
+      ],
+      "goal": "The first screen sells the summer: a golden-hour hero render over Lac Deschenes (rendered in-engine with the new look, not painted), the logo, menu typography, and the garage turntable lit by the timecycle.",
+      "files": [
+        "index.html",
+        "src/game/ui.js",
+        "assets/cinema/**",
+        "src/game/turntable.js",
+        "src/game/garage.js"
+      ],
+      "reads": [
+        "docs/design/INTRO-SEQUENCE.md",
+        "src/game/look/photomode.js (read only)"
+      ],
+      "inputs": {
+        "references": "Tom's D4 answer; retail-box era menus for energy only",
+        "palette": "golden sun #F7B26A"
+      },
+      "flag": "menu2",
+      "acceptance": [
+        "Boot to menu still 2 s or less on the Air (qb-boot); the hero image is under 400 KB",
+        "smoke_start, smoke_shell, smoke_garage pass; no em dash in any new string",
+        "Tom has a menu screenshot in the wave report",
+        "Before: node tools/qa/vis-check.mjs --task=V5-04 --tag=before (flag OFF via --look=-menu2)",
+        "After: node tools/qa/vis-check.mjs --task=V5-04 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V5-04 clean",
+        "Report written to docs/visual-wave/reports/V5-04.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V3-07"
+      ],
+      "tomInput": [
+        "T5",
+        "T13"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 36,
+      "ports": {
+        "CMP_SRV_PORT": 8236,
+        "CMP_CDP_PORT": 9436
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v5-04",
+      "branch": "vis/v5-04",
+      "verify": {
+        "poseSets": [
+          "chase_lucerne_golden"
+        ],
+        "envs": [
+          "golden"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V5-04 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V5-04 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V5-05",
+      "wave": 5,
+      "title": "Performance tiers for every look feature",
+      "roadmap": [
+        "V9",
+        "2.7"
+      ],
+      "goal": "Every look flag mapped to low, med and high per ROADMAP 2.7; first-boot auto-detect from the GPU string and a 2 s timing probe; an options row; a feature that breaks its tier budget is switched off for that tier.",
+      "files": [
+        "src/game/options.js",
+        "src/game/look/tiers.js"
+      ],
+      "reads": [
+        "src/game/look/flags.js",
+        "all wave reports (costs)",
+        "docs/qa/perf/*.json"
+      ],
+      "inputs": {
+        "references": "none",
+        "palette": "none"
+      },
+      "flag": "tiers",
+      "acceptance": [
+        "perf8 at low, med and high: each tier holds 16.7 ms p95 on the Air, GPU+CPU 12 ms at med",
+        "Changing tier at runtime needs no rebuild except for geometry flags, which take effect on the next sector build and say so",
+        "smoke_ui and smoke_storage pass; old saved quality settings still load",
+        "Before: node tools/qa/vis-check.mjs --task=V5-05 --tag=before (flag OFF via --look=-tiers)",
+        "After: node tools/qa/vis-check.mjs --task=V5-05 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V5-05 clean",
+        "Report written to docs/visual-wave/reports/V5-05.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V4-01",
+        "V4-02",
+        "V4-03"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 37,
+      "ports": {
+        "CMP_SRV_PORT": 8237,
+        "CMP_CDP_PORT": 9437
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v5-05",
+      "branch": "vis/v5-05",
+      "verify": {
+        "poseSets": [
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "night",
+          "rain"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V5-05 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V5-05 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V6-01",
+      "wave": 6,
+      "title": "Near sun shadows (high tier, optional)",
+      "roadmap": [
+        "V11",
+        "P6.4"
+      ],
+      "goal": "One stabilised 2048 px sun shadow map near the player, 60 to 80 m, fading out, high tier only; poles and wires never cast; ships only if it costs 2 ms or less on the Air.",
+      "files": [
+        "src/core/gl.js",
+        "src/core/shaders/shadow.js"
+      ],
+      "reads": [
+        "src/prototype/renderer.js (near shadows with fade)",
+        "src/game/world/shadowdecals.js (hand-off at range)"
+      ],
+      "inputs": {
+        "references": "none",
+        "palette": "none"
+      },
+      "flag": "sunshadow",
+      "acceptance": [
+        "2 ms or less at high on the Air at perf8, or the flag ships off with the measurement in the report",
+        "No shadow acne or peter-panning at the car and the close walls; decals fade where real shadows take over",
+        "Before: node tools/qa/vis-check.mjs --task=V6-01 --tag=before (flag OFF via --look=-sunshadow)",
+        "After: node tools/qa/vis-check.mjs --task=V6-01 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V6-01 clean",
+        "Report written to docs/visual-wave/reports/V6-01.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 40
+      },
+      "model": "opus",
+      "effort": "L",
+      "depends": [
+        "V5-01",
+        "V5-05"
+      ],
+      "tomInput": [
+        "T9"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 38,
+      "ports": {
+        "CMP_SRV_PORT": 8238,
+        "CMP_CDP_PORT": 9438
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v6-01",
+      "branch": "vis/v6-01",
+      "verify": {
+        "poseSets": [
+          "chase",
+          "core"
+        ],
+        "envs": [
+          "morning",
+          "noon",
+          "golden"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V6-01 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V6-01 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V6-02",
+      "wave": 6,
+      "title": "2004 digicam photo mode",
+      "roadmap": [
+        "V12",
+        "P6.5"
+      ],
+      "goal": "A photo mode and an intro grade that feel like a 2004 compact camera: CCD highlights, cyan-green shadows, JPEG softness, an orange date stamp on real dates only; saves a PNG.",
+      "files": [
+        "src/core/shaders/digicam.js",
+        "src/game/look/photomode.js"
+      ],
+      "reads": [
+        "src/core/shaders/post.js",
+        "src/game/calendar.js",
+        "docs/design/INTRO-SEQUENCE.md"
+      ],
+      "inputs": {
+        "references": "Tom's own 2004 photos (look only, private, never committed)",
+        "palette": "none"
+      },
+      "flag": "digicam",
+      "acceptance": [
+        "Off by default; no cost when off; the date stamp shows the in-game date and only dates inside the summer",
+        "The saved image is written via a download, never into the repo",
+        "Before: node tools/qa/vis-check.mjs --task=V6-02 --tag=before (flag OFF via --look=-digicam)",
+        "After: node tools/qa/vis-check.mjs --task=V6-02 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V6-02 clean",
+        "Report written to docs/visual-wave/reports/V6-02.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 1
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V5-01"
+      ],
+      "tomInput": [
+        "T8"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 39,
+      "ports": {
+        "CMP_SRV_PORT": 8239,
+        "CMP_CDP_PORT": 9439
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v6-02",
+      "branch": "vis/v6-02",
+      "verify": {
+        "poseSets": [
+          "chase"
+        ],
+        "envs": [
+          "noon",
+          "golden",
+          "night"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V6-02 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V6-02 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V6-03",
+      "wave": 6,
+      "title": "Final colour script and review pack",
+      "roadmap": [
+        "P2.2",
+        "qb-lookscore"
+      ],
+      "goal": "The last tune of timecycle and palette across all 9 environments and all poses on the full feature set, and the review pack for Tom: the compare page plus a private artifact with every pair and the score table vs run 0.",
+      "files": [
+        "assets/look/timecycle.json",
+        "assets/look/palette.json"
+      ],
+      "reads": [
+        "all reports",
+        "references/places/_feedback/LATEST.md"
+      ],
+      "inputs": {
+        "references": "references/places (in ~/Desktop/Coding Projects/aylmer-madness, gitignored; CMP_REF_ROOT)",
+        "palette": "assets/look/palette.json (from V0-05) and docs/ROADMAP.md section 2.5"
+      },
+      "flag": "timecycle",
+      "acceptance": [
+        "qb-lookscore mean 4.0 or more (Claude and Gemini averaged) or a written gap list per place",
+        "qb-clip under 0.5 % at noon; no pair drops vs the last wave without a Tom ruling",
+        "Every Tom comment from earlier gates either addressed or listed as open",
+        "Before: node tools/qa/vis-check.mjs --task=V6-03 --tag=before (flag OFF via --look=-timecycle)",
+        "After: node tools/qa/vis-check.mjs --task=V6-03 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V6-03 clean",
+        "Report written to docs/visual-wave/reports/V6-03.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V6-01",
+        "V6-02",
+        "V6-04"
+      ],
+      "tomInput": [
+        "T14"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 40,
+      "ports": {
+        "CMP_SRV_PORT": 8240,
+        "CMP_CDP_PORT": 9440
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v6-03",
+      "branch": "vis/v6-03",
+      "verify": {
+        "poseSets": [
+          "allday",
+          "core",
+          "chase"
+        ],
+        "envs": [
+          "morning",
+          "noon",
+          "haze",
+          "golden",
+          "dusk",
+          "night",
+          "overcast",
+          "rain",
+          "storm"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V6-03 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V6-03 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V6-04",
+      "wave": 6,
+      "title": "Final perf and tier tuning on three machines",
+      "roadmap": [
+        "P8.2",
+        "qb-headroom"
+      ],
+      "goal": "Hold 60 fps everywhere with the full look: perf8 at every tier on the MacBook Air, the Mac mini and one older laptop; tune the tier table and any feature constants; fix any regression found.",
+      "files": [
+        "src/game/look/tiers.js",
+        "src/game/options.js"
+      ],
+      "reads": [
+        "docs/qa/perf/*.json",
+        "all reports"
+      ],
+      "inputs": {
+        "references": "none",
+        "palette": "none"
+      },
+      "flag": "tiers",
+      "acceptance": [
+        "Air at med: p95 interval 16.7 ms or less, GPU+CPU 12 ms or less, tris 450k or less, draws 400 or less at every perf8 pose",
+        "A 20-minute soak (measure_memory.mjs) shows no new heap growth over the wave 0 baseline",
+        "Tier table and measurements recorded in docs/qa/perf/HISTORY.md",
+        "Before: node tools/qa/vis-check.mjs --task=V6-04 --tag=before (flag OFF via --look=-tiers)",
+        "After: node tools/qa/vis-check.mjs --task=V6-04 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V6-04 clean",
+        "Report written to docs/visual-wave/reports/V6-04.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "opus",
+      "effort": "M",
+      "depends": [
+        "V6-01"
+      ],
+      "tomInput": [],
+      "status": "todo",
+      "creates": [],
+      "index": 41,
+      "ports": {
+        "CMP_SRV_PORT": 8241,
+        "CMP_CDP_PORT": 9441
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v6-04",
+      "branch": "vis/v6-04",
+      "verify": {
+        "poseSets": [
+          "perf8"
+        ],
+        "envs": [
+          "noon",
+          "night",
+          "rain"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V6-04 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V6-04 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "V6-05",
+      "wave": 6,
+      "title": "Season shift, June to Labour Day (optional)",
+      "roadmap": [
+        "P3.12",
+        "D3"
+      ],
+      "goal": "The summer visibly passes: lawns and leaves drift from fresh late-June yellow-green to darker leaves and drought-yellow curb edges in August, driven by the calendar day, applied at sector build and as a small uniform tint.",
+      "files": [
+        "src/game/look/season.js",
+        "src/game/world/landcover.js",
+        "src/game/trees2004.js"
+      ],
+      "reads": [
+        "src/game/calendar.js",
+        "assets/look/palette.json"
+      ],
+      "inputs": {
+        "references": "May and June 2009 refs vs late-summer photos",
+        "palette": "lawn healthy and dry entries"
+      },
+      "flag": "season",
+      "acceptance": [
+        "Only if Tom said yes to T10; otherwise the task closes as skipped",
+        "22 June, 15 July and 25 August captures of 3 core poses show a gradual, subtle drift; no rebuild hitch when the day changes",
+        "Before: node tools/qa/vis-check.mjs --task=V6-05 --tag=before (flag OFF via --look=-season)",
+        "After: node tools/qa/vis-check.mjs --task=V6-05 --tag=after, then node tools/qa/look-diff.mjs --a=before --b=after",
+        "Read every contact sheet; score the affected rubric lines (ROADMAP 5.3) and the 160x90 thumbnail test; no line drops; Gemini second opinion for colour or light changes",
+        "Pixel diff on out-of-scope poses changes under 1 % of pixels",
+        "node tools/smoke_world.mjs passes (town tris < 4.76 M, houses < 1.3 M, vertex MB under the current ceiling)",
+        "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med under the perf lock: p95 interval <= 16.7 ms, p95 GPU+CPU <= 12 ms (8 ms on the Mac mini proxy), tris <= 450k, draws <= 400, and this task's budget delta not exceeded",
+        "npm test all pass; node tools/qa/boot.mjs 0 console errors on index.html and prototype.html; node tools/qa/owned-files.mjs --task=V6-05 clean",
+        "Report written to docs/visual-wave/reports/V6-05.md with numbers and image paths; status set in tasks.json"
+      ],
+      "budget": {
+        "gpuMsMed": 0.0,
+        "trisFrame": 0,
+        "vertexMB": 0,
+        "drawsFrame": 0
+      },
+      "model": "sonnet",
+      "effort": "M",
+      "depends": [
+        "V2-03",
+        "V2-04"
+      ],
+      "tomInput": [
+        "T10"
+      ],
+      "status": "todo",
+      "creates": [],
+      "index": 42,
+      "ports": {
+        "CMP_SRV_PORT": 8242,
+        "CMP_CDP_PORT": 9442
+      },
+      "worktree": "~/Desktop/Coding Projects/wt-vis-v6-05",
+      "branch": "vis/v6-05",
+      "verify": {
+        "poseSets": [
+          "core"
+        ],
+        "envs": [
+          "noon"
+        ],
+        "commands": [
+          "node tools/qa/vis-check.mjs --task=V6-05 --tag=before",
+          "node tools/qa/vis-check.mjs --task=V6-05 --tag=after --full",
+          "npm test"
+        ]
+      }
+    },
+    {
+      "id": "A-05",
+      "wave": "A",
+      "title": "Finite wall and roof camera collision",
+      "goal": "Keep the final rendered chase eye clear of actual finite opaque surfaces, with honest ray and framing evidence.",
+      "files": [
+        "src/game/camclip.js",
+        "src/game/camera-colliders.js",
+        "src/main.js",
+        "src/game/world.js",
+        "src/game/world/buildings.js",
+        "src/game/world/draw.js",
+        "src/game/world/roads.js",
+        "src/game/world/heightfield.js",
+        "src/game/cemetery.js",
+        "src/game/fraser.js",
+        "src/game/sectors.js",
+        "src/game/landmarks.js",
+        "tools/smoke_camclip.mjs",
+        "tools/smoke_camera_world.mjs",
+        "tools/qa/camera.mjs",
+        "tools/qa/camera-poses.json",
+        "tools/review/harness.mjs",
+        "tools/review/page-agent.js",
+        "tools/review/plans/camera.json",
+        "docs/qa/rf/A-05.md"
+      ],
+      "status": "done",
+      "flag": "none",
+      "acceptance": [
+        "Camera-to-focus ray clear in at least 99 percent of sampled crash and freeRoam frames; cops beat captured as well.",
+        "Actual final eye spheres clear and new reproducible poses at review locations 174 and 270 visually inspected.",
+        "All smoke, both-entry boot, source-geometry memory and before/after comparison gates pass without raising budgets."
+      ],
+      "verify": {
+        "poseSets": [
+          "chase_fraser",
+          "chase_principale"
+        ],
+        "envs": [
+          "noon"
+        ],
+        "commands": [
+          "node tools/smoke_camclip.mjs",
+          "node tools/smoke_camera_world.mjs",
+          "node tools/qa/owned-files.mjs --task=A-05 --base=fix/look-on-qr",
+          "npm test",
+          "node tools/qa/boot.mjs --entries=index,prototype"
+        ]
+      },
+      "ownershipNote": "Lead approved narrow source-capture and final-render hooks. Roads ownership is limited to passing the camera index into cemetery generation. Performance baselines remain A-11; loading changes remain A-10."
+    },
+    {
+      "id": "A-10",
+      "wave": "A",
+      "title": "Smooth destination loading and quiet golf notifications",
+      "goal": "Prepare far sectors without long main-thread stalls, preserve exact world behavior, mute golf stunt notifications and resolve the proven Sayyad obstacle.",
+      "files": [
+        "src/game/jumps.js",
+        "src/game/setpieces/golfnuit.js",
+        "src/game/mission-notifications.js",
+        "src/game/world/worker-packet.js",
+        "src/game/world/worker-queries.js",
+        "tools/smoke_mission_notifications.mjs",
+        "tools/smoke_sector_worker.mjs",
+        "docs/qa/rf/A-10.md",
+        "src/game/world.js",
+        "src/game/world/upload.js",
+        "src/game/world/roads.js",
+        "src/game/world/reactive.js",
+        "src/game/sectors.js",
+        "src/main.js",
+        "src/game/sidejobs.js",
+        "tools/review/harness.mjs",
+        "tools/review/page-agent.js",
+        "tools/smoke_review.mjs",
+        "tools/smoke_sectors.mjs",
+        "src/game/world/sector-worker.js",
+        "src/game/world/sector-client.js",
+        "tools/review/raw-timing.js",
+        "tools/smoke_raw_timing.mjs",
+        "tools/review/plans/loading.json",
+        "tools/qa/lib/capture-run.mjs",
+        "tools/qa/boot.mjs",
+        "tools/qa/camera.mjs",
+        "tools/qa/hud-overlap.mjs"
+      ],
+      "status": "done",
+      "flag": "none",
+      "acceptance": [
+        "Whole-beat raw frame maximum at most 250 ms for golfcart, chelsea and nuittim, including setup, loading and first draw; no discarded long intervals.",
+        "No stunt or jump-damage notification during golfnuit; normal dialogue, physics, payouts and later repair hints preserved.",
+        "Sayyad obstacle identified from runtime collision evidence and fixed narrowly; both-entry boot, all smokes and visual comparisons pass with unchanged budgets.",
+        "At most two resident GPU sectors and one pending worker bake; cancellation frees owned pending resources and exact camera geometry survives transfer."
+      ],
+      "verify": {
+        "poseSets": [
+          "denise_friend",
+          "chase_fraser",
+          "chase_principale",
+          "chase_galeries"
+        ],
+        "envs": [
+          "noon"
+        ],
+        "commands": [
+          "node tools/smoke_sector_worker.mjs",
+          "node tools/smoke_mission_notifications.mjs",
+          "node tools/smoke_raw_timing.mjs",
+          "node tools/smoke_sectors.mjs",
+          "node tools/qa/owned-files.mjs --task=A-10 --base=fix/look-on-qr",
+          "npm test",
+          "node tools/qa/boot.mjs --entries=index,prototype"
+        ]
+      },
+      "ownershipNote": "Lead approved the CPU bake/transfer/upload and readiness seams after A-05 merged green. Root owns all 28 task paths after the agent handoff; registry is lead-owned. Capture-run, boot, camera and HUD overlap changes are limited to awaiting destination readiness before stepping, capturing or starting a mission. Sidejobs changes are limited to the proven doughnut-zone issue. Renderer/reactive/setpiece extensions require measured need and explicit lead ownership update; performance baseline tools remain A-11."
+    },
+    {
+      "id": "A-11",
+      "wave": "A",
+      "title": "Valid Metal baseline and frame-time creep diagnosis",
+      "goal": "Measure every performance row with honest timer ownership, diagnose creep from evidence and verify a continuous 30-minute soak.",
+      "files": [
+        "tools/qa/perf.mjs",
+        "tools/measure_memory.mjs",
+        "tools/qa/lib/perf-core.mjs",
+        "tools/qa/lib/perf-instrument.mjs",
+        "tools/qa/lib/perf-runtime.mjs",
+        "tools/smoke_perf_tools.mjs",
+        "docs/visual-wave/reports/PERF-CREEP.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "Complete fresh-page Metal baseline for perf8 at noon, night and rain on low, med and high: 72 rows with unchanged budgets.",
+        "Creep cause identified from measured heap or GL resource series, with fix owner assigned; historical causes are not inferred from a tool defect alone.",
+        "Continuous eligible 30-minute post-fix soak has p50 drift at most 10 percent, with comparable workload and instrumentation retention.",
+        "Full npm and both-entry zero-error boot pass; query-on and query-off controls are accurate and no WebGL query-target errors are masked."
+      ],
+      "verify": {
+        "poseSets": [
+          "perf8"
+        ],
+        "envs": [
+          "noon",
+          "night",
+          "rain"
+        ],
+        "commands": [
+          "node tools/smoke_perf_tools.mjs",
+          "npm test",
+          "node tools/qa/boot.mjs --entries=index,prototype",
+          "node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=low,med,high --fresh",
+          "node tools/measure_memory.mjs --soak-min=30 --window-seconds=60 --warmup-seconds=60"
+        ]
+      },
+      "ownershipNote": "Seven tools/report paths only. Lead owns this registry. No game renderer changes. Final performance evidence runs after A-10 is merged green. Earlier short GPU timing measurements are invalidated by the discovered nested timer conflict and retained only as tool startup diagnostics."
+    },
+    {
+      "id": "B-14",
+      "wave": "B",
+      "title": "Privacy fence and public-build scan",
+      "goal": "Fence private files out of git and the public build, add a scan that fails on any private path, surname or section 3 string, and record the f3e3da8 perf baseline.",
+      "files": [
+        ".gitignore",
+        "tools/build-public.mjs",
+        "tools/qa/privacy-scan.mjs",
+        "tools/smoke_privacy.mjs",
+        "docs/STORY-LEDGER.md",
+        "docs/roadmap.json"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "git check-ignore references/x.md CODEX-CHARACTERS.md docs/STORY-LEDGER.md docs/roadmap.json prints all four.",
+        "git ls-files docs/STORY-LEDGER.md docs/roadmap.json prints nothing and both files are still on disk.",
+        "The scan passes on the current public build.",
+        "A planted references file, a planted ledger surname and a planted section 3 string each make it fail (smoke).",
+        "The perf baseline JSON is saved in the private folder."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "node tools/smoke_privacy.mjs",
+          "node tools/build-public.mjs && node tools/qa/privacy-scan.mjs --dir=<out>",
+          "node tools/qa/privacy-scan.mjs --worktrees",
+          "node tools/qa/owned-files.mjs --task=B-14 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "docs/STORY-LEDGER.md and docs/roadmap.json are listed only so untracking them from the index (files stay on disk) passes owned-files; their content is not edited."
+    },
+    {
+      "id": "B-15",
+      "wave": "B",
+      "title": "Shared rule checks: language per speaker, the sister grep, public places",
+      "goal": "Tag every line by speaker and check language strictly against a frozen allowlist, grep every game-visible string for the story rules, and check task coordinates against private addresses.",
+      "files": [
+        "tools/smoke_lang.mjs",
+        "tools/smoke_story_rules.mjs",
+        "tools/qa/public-place.mjs",
+        "tools/lang-allowlist.json",
+        "tools/run_smoke.mjs"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_lang passes on the current head with the allowlist and fails on a planted French line for a main-cast speaker (story.js:350 and hangout.json:66 are on the allowlist with owners B-06 and E-07).",
+        "smoke_story_rules passes on the head and fails on a planted test string.",
+        "public-place.mjs fails a planted coordinate 5 m from a private address and prints no address.",
+        "The allowlist count is in the report (it may only shrink from here)."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "node tools/smoke_lang.mjs && node tools/smoke_story_rules.mjs",
+          "node tools/qa/public-place.mjs --selftest",
+          "node tools/qa/owned-files.mjs --task=B-15 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "tools/run_smoke.mjs: band test removal only."
+    },
+    {
+      "id": "B-02",
+      "wave": "B",
+      "title": "Harness vehicle truth, script beats, audio log, Ranger rerun",
+      "goal": "Make every harness beat prove it runs in the intended vehicle, add script beats, the ranger-rerun plan, a gap analyser, a vehicle column and an audio log.",
+      "files": [
+        "tools/review/harness.mjs",
+        "tools/review/page-agent.js",
+        "tools/review/compare.mjs",
+        "tools/review/plans/*",
+        "tools/review/gaps.mjs",
+        "tools/review/README.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "On the current head the new assert flags every beat after golfcart as wrong vehicle (golfcart, arcsurchauffe, stvincent only, as a 3-beat sample).",
+        "A sample script beat runs.",
+        "gaps.mjs on 20261013-002218-full reproduces canot's 113 s worst gap.",
+        "compare.mjs diffs 13 Oct against a sample pack including the vehicle column.",
+        "The audio log has one row per second on the sample."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "node tools/review/harness.mjs --plan quick",
+          "node tools/review/harness.mjs --plan ranger-rerun --only golfcart,arcsurchauffe,stvincent --columns both",
+          "node tools/review/gaps.mjs --pack=20261013-002218-full",
+          "node tools/review/compare.mjs --a=20261013-002218-full --b=<sample>",
+          "node tools/qa/owned-files.mjs --task=B-02 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Browser commands run through qa-slot.sh. tools/review/beats/ is outside the glob by design."
+    },
+    {
+      "id": "B-13a",
+      "wave": "B",
+      "title": "Audio creep fix and the soak",
+      "goal": "No Web Audio automation is scheduled while the AudioContext is suspended, pending automation is cancelled on suspend, and an automation event counter reaches the review telemetry.",
+      "files": [
+        "src/core/audio.js",
+        "src/core/ambience.js",
+        "tools/smoke_audio.mjs",
+        "tools/review/beats/B-13a.mjs",
+        "docs/qa/rf/B-13a.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_audio: suspend then resume leaves 0 pending automation events.",
+        "smoke_audio: the automation counter stays flat across a 10 min synthetic suspend.",
+        "Once, at the end, in the quiet window: the 30 min soak has p50 drift at most 10 percent across the 30 windows and the automation count flat."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "node tools/smoke_audio.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/measure_memory.mjs --soak-min=30 --window-seconds=60 --warmup-seconds=60 --pose=chase_fraser --env=noon --tier=med",
+          "node tools/qa/owned-files.mjs --task=B-13a --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merge 1 of 8. Soak runs once at the end, in the quiet window, through qa-slot.sh."
+    },
+    {
+      "id": "B-13b",
+      "wave": "B",
+      "title": "The stvincent hitch, the teleports and the smoke_react flake",
+      "goal": "Kill the 683 ms stvincent hitch, fix the cause of the bot's 5 teleports there, and make smoke_react timing-robust.",
+      "files": [
+        "src/game/setpieces/sauna.js",
+        "src/game/setpieces/sauna_heat.js",
+        "tools/review/page-agent.js",
+        "tools/smoke_react.mjs",
+        "tools/review/beats/B-13b.mjs",
+        "docs/qa/rf/B-13b.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "Harness stvincent: max raw frame at most 250 ms (was 683).",
+        "Harness stvincent: teleports at most 1.",
+        "smoke_react passes 5 of 5 in full npm test runs."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only stvincent",
+          "node tools/qa/owned-files.mjs --task=B-13b --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merge 2 of 8. tools/review/page-agent.js was B-02's in B0; B-02 merged (04901ca) and released it, so B-13b owns it in B1 per the plan."
+    },
+    {
+      "id": "B-01a",
+      "wave": "B",
+      "title": "Never stranded: golf night ends and Y tow",
+      "goal": "Every golf-night end returns the player to the vehicle they came in, and Y tow from a borrowed vehicle returns the owned vehicle; exports ownVehicleStatus() and returnToOwnVehicle(reason).",
+      "files": [
+        "src/game/setpieces/golfnuit.js",
+        "src/game/setpieces/cartkit.js",
+        "src/game/tow.js",
+        "tools/smoke_cart.mjs",
+        "tools/smoke_tow.mjs",
+        "tools/review/beats/B-01a.mjs",
+        "docs/qa/rf/B-01a.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_cart: golfnuit ended by each of the 5 end kinds at 30 m, 300 m and 1,500 m from the Ranger leaves the player in the Ranger within 3 s of the end card (15 of 15).",
+        "smoke_tow: Y from the cart, a bike and the Civic loaner each returns the owned vehicle (calling tow.js directly).",
+        "smoke_homeparking green."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "node tools/smoke_cart.mjs",
+          "node tools/smoke_tow.mjs",
+          "node tools/smoke_homeparking.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only golfcart,arcsurchauffe --columns both",
+          "node tools/qa/owned-files.mjs --task=B-01a --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merge 3 of 8. Y handler call site is B-12a's (src/main.js)."
+    },
+    {
+      "id": "B-01b",
+      "wave": "B",
+      "title": "Never stranded: job-start swap or refusal on every job",
+      "goal": "Every timed, cargo or race job started in a cart, bike or loaner swaps to the owned car at the pillar or refuses with a narrator line and a GPS line; exports ensureOwnVehicle(mission); garage hand-back puts you in the owned car.",
+      "files": [
+        "src/game/setpieces/royal.js",
+        "src/game/jobready.js",
+        "src/game/garage.js",
+        "tools/smoke_jobready.mjs",
+        "tools/review/beats/B-01b.mjs",
+        "docs/qa/rf/B-01b.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_jobready: each of 10 timed or cargo jobs passed to ensureOwnVehicle from the cart swaps or refuses with the line; none returns start in cart.",
+        "smoke_jobready: the garage hand-back test returns the owned car."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "node tools/smoke_jobready.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only stvincent,russellroyal,racecivic --columns both",
+          "node tools/qa/owned-files.mjs --task=B-01b --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merge 4 of 8. startMission call site is B-12a's. The stvincent French line (story.js:350) is B-06's, not B-01b's."
+    },
+    {
+      "id": "B-07",
+      "wave": "B",
+      "title": "Fair pay and fair fails: escape pays, story fails keep the day",
+      "goal": "Escape pays by stars (20, 60, 180 $) through money.js's API, main story fails never cost a day, and the fail toast state lives in retry.js with clearFailToast().",
+      "files": [
+        "src/game/cops.js",
+        "src/game/retry.js",
+        "src/game/calendar.js",
+        "tools/smoke_retry.mjs",
+        "tools/review/beats/B-07.mjs",
+        "docs/qa/rf/B-07.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_retry: escape pay table exact for 1, 2, 3 stars.",
+        "smoke_retry: calendar day unchanged after a fail on each of the 10 main missions; day still moves after a racecivic fail.",
+        "smoke_retry: clearFailToast() empties the state.",
+        "smoke_homeparking green."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "node tools/smoke_retry.mjs",
+          "node tools/smoke_homeparking.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan ranger-rerun --only cops,racecivic,arcsurchauffe --columns both",
+          "node tools/qa/owned-files.mjs --task=B-07 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merge 5 of 8. money.js is called through its existing API only, not edited. hud.js renders retry.js state; wiring is B-12a's."
+    },
+    {
+      "id": "B-03",
+      "wave": "B",
+      "title": "Style chain pays live",
+      "goal": "New style.js: near misses, oncoming metres, handbrake slides and airtime feed one x1 to x3 chain paying live tips with toasts; lift the 8/9/5 and 22 $ caps; big chains request an English main-cast friend line via speakerLines.",
+      "files": [
+        "src/game/style.js",
+        "src/game/reactive.js",
+        "src/game/missionkit.js",
+        "src/game/economy.js",
+        "tools/smoke_style.mjs",
+        "tools/review/beats/B-03.mjs",
+        "docs/qa/rf/B-03.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_style: chain rises on synthetic events, decays at 3 s, caps at x3, pays by the table, no pay at under 50 km/h closing.",
+        "Every friend line it can pick is tagged main cast and English (smoke_lang).",
+        "A scripted clean alternateur and canot with synthetic style events pays 40 to 90 $ more than without.",
+        "Per-frame cost at most 0.10 ms."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "node tools/smoke_style.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only speedRun,alternateur",
+          "node tools/qa/owned-files.mjs --task=B-03 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merge 6 of 8. jumps.js (AirScorer) and traffic.js are imported only, not edited. Per-frame cap 0.10 ms."
+    },
+    {
+      "id": "B-09",
+      "wave": "B",
+      "title": "Trauma shake and capped hitstop on an event ladder",
+      "goal": "New pure feel.js: trauma by event, shake = trauma squared on simplex noise, hitstop 40 to 100 ms capped at one per 0.5 s and never stacked with slow-mo; writes feel.offset and feel.hitstops to review telemetry.",
+      "files": [
+        "src/game/feel.js",
+        "tools/smoke_feel.mjs",
+        "tools/review/beats/B-09.mjs",
+        "docs/qa/rf/B-09.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_feel: offsets bounded (max 0.35 m, 2.5 degrees).",
+        "smoke_feel: decay to under 5 percent within 1.5 s.",
+        "smoke_feel: hitstop never exceeds 100 ms or fires twice in 0.5 s; slow-mo and hitstop never overlap.",
+        "Per-frame cost at most 0.05 ms."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "node tools/smoke_feel.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/feel_a06.mjs",
+          "node tools/qa/owned-files.mjs --task=B-09 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merge 7 of 8. Camera and time-scale application is B-12a's. Per-frame cap 0.05 ms."
+    },
+    {
+      "id": "B-12a",
+      "wave": "B",
+      "title": "Integration owner B1: src/main.js, src/game/hud.js",
+      "goal": "Single owner of both hot files in B1: wire style, feel, ensureOwnVehicle, returnToOwnVehicle, clearFailToast and style toasts, then run every B1 After-integration check on the merged head.",
+      "files": [
+        "src/main.js",
+        "src/game/hud.js",
+        "tools/review/beats/B-12a.mjs",
+        "docs/qa/rf/B-12a.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "Every B1 contract export has a call site (grep list in the report).",
+        "Every B1 After-integration check passes on the merged head, each listed with its metric key.",
+        "0 console errors on the beats run.",
+        "Quiet-window perf8 med p95 at most 16.7 ms and GPU plus CPU under 12 ms at noon, night, rain, within the B allotment."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/hud-overlap.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only golfcart,arcsurchauffe,speedRun,crash,cops --columns fresh",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med --fresh",
+          "node tools/qa/owned-files.mjs --task=B-12a --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B1, merges last. Sole owner of src/main.js and src/game/hud.js in B1; wins any contract question. Quiet-window perf with AYLMER_QA_SLOTS=1."
+    },
+    {
+      "id": "B-05",
+      "wave": "B",
+      "title": "Forgiving doughnuts; canot without dead air",
+      "goal": "Half-turns count, a slide break under 1.2 s keeps the lap, chalk ring and progress arc, doughnuts from rest reach 8 km/h; cut canot gaps over 60 s with existing narrator French lines only.",
+      "files": [
+        "src/game/sidejobs.js",
+        "src/game/stunts.js",
+        "src/game/props.js",
+        "tools/smoke_doughnut.mjs",
+        "tools/review/beats/B-05.mjs",
+        "docs/qa/rf/B-05.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_doughnut: scripted input from rest completes 3 doughnuts in at most 45 s; a 1 s break keeps progress; half-turns move the meter.",
+        "Harness sayyad: done in both columns (was bot-abandon), damage collected at most 10 (was 22).",
+        "gaps.mjs: canot worst gap at most 45 s, no gap over 60 s."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs --entries=index,prototype",
+          "node tools/smoke_doughnut.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only sayyad,canot --columns both",
+          "node tools/review/gaps.mjs --pack=<new>",
+          "node tools/qa/owned-files.mjs --task=B-05 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B2, merge order B-05, B-04, B-08, B-10, B-11, B-06, B-12b. No new cast lines."
+    },
+    {
+      "id": "B-04",
+      "wave": "B",
+      "title": "The garnotte ramp on the alternateur GPS line",
+      "goal": "Move la rampe de garnotte onto the alternateur route centreline (or add a waypoint over it) so following blue goes airborne within 40 s of control; keep the callout timed to it.",
+      "files": [
+        "src/game/jumps.js",
+        "src/game/missions.js",
+        "tools/smoke_firstminute.mjs",
+        "tools/review/beats/B-04.mjs",
+        "docs/qa/rf/B-04.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_firstminute: alternateur route polyline passes within 1.5 m of the ramp lip; a bot on the GPS line at 60 to 70 km/h gets at least 1.0 s of air with jump slow-mo, within 40 s of control.",
+        "public-place.mjs passes for the moved ramp.",
+        "Harness alternateur: first air at most 60 s after control in both columns; alternateur still at most 4.5 min."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs --entries=index,prototype",
+          "node tools/smoke_firstminute.mjs",
+          "node tools/qa/public-place.mjs --task=B-04",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan quick",
+          "node tools/qa/owned-files.mjs --task=B-04 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B2, merge order B-05, B-04, B-08, B-10, B-11, B-06, B-12b. Callout timing wiring in main.js is B-12b's (contract note)."
+    },
+    {
+      "id": "B-08",
+      "wave": "B",
+      "title": "Hush the street during scripted scenes; cut the chore lines",
+      "goal": "Scene hush in heckle.js raised by nuittim and the finale; cut ambient chore lines without touching racingtext.js police-radio lines; tabarnak in at most 1 heckle in 4.",
+      "files": [
+        "src/game/heckle.js",
+        "src/game/peds.js",
+        "assets/text/ambient.json",
+        "assets/text/heckles.json",
+        "src/game/setpieces/nuittim.js",
+        "src/game/arc.js",
+        "tools/smoke_heckle_queue.mjs",
+        "tools/review/beats/B-08.mjs",
+        "docs/qa/rf/B-08.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_heckle_queue: 0 heckles or ambient lines while the hush flag is up across 1,000 simulated seconds of nuittim.",
+        "Harness nuittim: 0 PASSANT lines between the first and last poison-control toast.",
+        "Ambient chore lines down by at least half (count in report); racingtext.js police-radio line count unchanged.",
+        "Swear words in at most 25% of heckles across both files (smoke count); smoke_lang green."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs --entries=index,prototype",
+          "node tools/smoke_heckle_queue.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only nuittim,arcbache --columns both",
+          "node tools/qa/owned-files.mjs --task=B-08 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B2, merge order B-05, B-04, B-08, B-10, B-11, B-06, B-12b. src/game/arc.js: finale hush flag only. Sole owner of ambient.json and heckles.json in B2."
+    },
+    {
+      "id": "B-10",
+      "wave": "B",
+      "title": "Card art tinted by the job's time of day",
+      "goal": "cinematic.js picks a night, dusk, rain or day grade of the shared painting from each job's time of day and weather; nuittim never opens on noon.",
+      "files": [
+        "src/game/cinematic.js",
+        "assets/cinema/tints/**",
+        "tools/smoke_cinematic.mjs",
+        "tools/review/beats/B-10.mjs",
+        "docs/qa/rf/B-10.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_cinematic: every main mission card maps to its tint; nuittim card mean luminance at most 25% of the noon card; golfcart card has the rain grade.",
+        "Harness card shots for nuittim, golfcart, arcbache differ from alternateur (look-diff score below the unchanged threshold)."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs --entries=index,prototype",
+          "node tools/smoke_cinematic.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only alternateur,golfcart,nuittim",
+          "node tools/qa/owned-files.mjs --task=B-10 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B2, merge order B-05, B-04, B-08, B-10, B-11, B-06, B-12b. New paintings stay in E-05."
+    },
+    {
+      "id": "B-11",
+      "wave": "B",
+      "title": "First launch in 30 s; cast cards on first appearance",
+      "goal": "One continuous cinematic first launch (cold open, title over live Aylmer, hand-off) ending on S pour reculer with the Ranger nose-in; showCastCardOnce(id) exported; Revoir l'intro plays the full film.",
+      "files": [
+        "src/game/intro/opening.js",
+        "src/game/intro/shots.js",
+        "tools/smoke_opening.mjs",
+        "tools/review/beats/B-11.mjs",
+        "docs/qa/rf/B-11.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "smoke_opening: each of the 10 cards fires exactly once across a scripted campaign; Revoir l'intro plays all 10.",
+        "smoke_homeparking green (hand-off still opens on S pour reculer).",
+        "Input-gated screens before control at most 1; no shot or card used twice.",
+        "Harness boot beat, first launch: newGameToControlSecs at most 40 (was 144); second launch control still at most 17 s."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs --entries=index,prototype",
+          "node tools/smoke_opening.mjs",
+          "node tools/smoke_homeparking.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan quick",
+          "node tools/qa/owned-files.mjs --task=B-11 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B2, merge order B-05, B-04, B-08, B-10, B-11, B-06, B-12b. showCastCardOnce wired at mission start by B-12b. Contact sheet goes by absolute path to aylmer-madness/references/review/opening-2026-10/ only."
+    },
+    {
+      "id": "B-06",
+      "wave": "B",
+      "title": "HUD trim and the new HUD slots",
+      "goal": "Fade the top-left sub line, Tab chip only early and on pause, plate the timer, fix doubled FROLES digits, add chain readout, wrong-vehicle chip, own-truck marker and fail toast slots; stvincent Tom line to narrator French with English version proposed.",
+      "files": [
+        "src/game/hud.js",
+        "src/game/story.js",
+        "style.css",
+        "tools/qa/hud-overlap.mjs",
+        "assets/text/story.proposed.json",
+        "tools/review/beats/B-06.mjs",
+        "docs/qa/rf/B-06.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "hud-overlap: 0 overlapping HUD boxes in 40 sampled frames from the B1 gate beats.",
+        "Shots 030, 057, 058 poses: at most 2 text layers top-left after 5 s; Tab chip absent from every gameplay frame after 2 min.",
+        "Chain readout visible within 200 ms of a style event; wrong-vehicle chip shows in a cart at a timed pillar.",
+        "smoke_lang: story.js:350 off the allowlist. Per-frame cost at most 0.10 ms."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs --entries=index,prototype",
+          "node tools/qa/hud-overlap.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only alternateur,sayyad,speedRun",
+          "node tools/qa/owned-files.mjs --task=B-06 --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B2, merge order B-05, B-04, B-08, B-10, B-11, B-06, B-12b. Owns src/game/hud.js in B2 (plan note: the one shift where hot files split); B-12b may not edit hud.js. Main-cast English line goes to story.proposed.json only."
+    },
+    {
+      "id": "B-12b",
+      "wave": "B",
+      "title": "Integration owner B2 and wave B acceptance: src/main.js",
+      "goal": "Owner of src/main.js in B2: wire showCastCardOnce, the hush flag, B-04 callout timing and any B2 contract note, then run every wave B After-integration check on the merged head.",
+      "files": [
+        "src/main.js",
+        "tools/review/beats/B-12b.mjs",
+        "docs/qa/rf/B-12b.md"
+      ],
+      "status": "in-progress",
+      "flag": "none",
+      "acceptance": [
+        "Every B contract export has a call site (grep list).",
+        "Each wave B feature listed with metric key and value from one quiet-window run of freeRoam, alternateur, speedRun, crash, golfcart and a cold first launch.",
+        "0 console errors.",
+        "Quiet-window perf8 med p95 at most 16.7 ms and GPU plus CPU under 12 ms at noon, night and rain, within the 0.4 ms B allotment."
+      ],
+      "verify": {
+        "commands": [
+          "npm test",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/boot.mjs --entries=index,prototype",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/hud-overlap.mjs",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan quick",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/review/harness.mjs --plan full --only freeRoam,alternateur,speedRun,crash,golfcart --columns fresh",
+          "zsh \"/Users/thomaslever/Desktop/Coding Projects/aylmer-madness/references/review/qa-slot.sh\" node tools/qa/perf.mjs --poses=perf8 --env=noon,night,rain --tier=med --fresh",
+          "node tools/qa/owned-files.mjs --task=B-12b --base=fix/look-on-qr"
+        ]
+      },
+      "ownershipNote": "Shift B2, merge order B-05, B-04, B-08, B-10, B-11, B-06, B-12b. Merges last. Owns src/main.js only; hud.js is B-06's in B2. Quiet-window perf with AYLMER_QA_SLOTS=1."
+    }
+  ]
+}

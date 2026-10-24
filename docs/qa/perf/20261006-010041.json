@@ -1,0 +1,902 @@
+{
+ "schema": "aylmer-perf",
+ "version": 1,
+ "stamp": "20261006-010041",
+ "commit": "ca9da987c13e",
+ "task": "V0-04",
+ "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+ "machine": {
+  "model": "Apple M4",
+  "cores": 10,
+  "memGB": 16,
+  "loadavg": [
+   42.3,
+   45.2,
+   50.6
+  ]
+ },
+ "params": {
+  "poses": "perf8",
+  "env": "noon,night,rain",
+  "tiers": [
+   "med"
+  ],
+  "frames": 600,
+  "gpuBar": 12
+ },
+ "budgets": {
+  "p95IntervalMs": 16.7,
+  "p95GpuPlusCpuMs": 12,
+  "trisFrame": 450000,
+  "drawsFrame": 400
+ },
+ "note": "interval is uncapped frame-to-frame time (no vsync in headless); gpuMs is an EXT_disjoint_timer_query_webgl2 TIME_ELAPSED around r.begin..r.end",
+ "results": [
+  {
+   "pose": "chase_fraser",
+   "env": "noon",
+   "tier": "med",
+   "frames": 738,
+   "interval": {
+    "p50": 2.4,
+    "p95": 4.52,
+    "p99": 6.2
+   },
+   "gpuMs": {
+    "p50": 1.245,
+    "p95": 2.778,
+    "p99": 3.795
+   },
+   "cpuMs": {
+    "p50": 0.4,
+    "p95": 2.2,
+    "p99": 3.362
+   },
+   "gpuPlusCpu": {
+    "p50": 1.869,
+    "p95": 3.991,
+    "p99": 6.263
+   },
+   "gpuSamples": 670,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 154877,
+   "draws": 113,
+   "jsHeapMB": 1084.2,
+   "gpuBytesMB": 293.5,
+   "seconds": 1.8,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "chase_fraser",
+   "env": "night",
+   "tier": "med",
+   "frames": 703,
+   "interval": {
+    "p50": 1.9,
+    "p95": 4.4,
+    "p99": 5.899
+   },
+   "gpuMs": {
+    "p50": 1.442,
+    "p95": 3.282,
+    "p99": 3.838
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 1.5,
+    "p99": 2.071
+   },
+   "gpuPlusCpu": {
+    "p50": 1.858,
+    "p95": 3.737,
+    "p99": 4.564
+   },
+   "gpuSamples": 630,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 154987,
+   "draws": 121,
+   "jsHeapMB": 1070.7,
+   "gpuBytesMB": 293.5,
+   "seconds": 1.7,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "chase_fraser",
+   "env": "rain",
+   "tier": "med",
+   "frames": 648,
+   "interval": {
+    "p50": 2.3,
+    "p95": 4.5,
+    "p99": 5.6
+   },
+   "gpuMs": {
+    "p50": 1.408,
+    "p95": 3.216,
+    "p99": 3.653
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.5,
+    "p99": 1.2
+   },
+   "gpuPlusCpu": {
+    "p50": 1.7,
+    "p95": 3.46,
+    "p99": 3.929
+   },
+   "gpuSamples": 581,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 154877,
+   "draws": 117,
+   "jsHeapMB": 1075.8,
+   "gpuBytesMB": 293.5,
+   "seconds": 1.6,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "mike_lawn",
+   "env": "noon",
+   "tier": "med",
+   "frames": 671,
+   "interval": {
+    "p50": 3,
+    "p95": 3.9,
+    "p99": 5.3
+   },
+   "gpuMs": {
+    "p50": 1.471,
+    "p95": 3.89,
+    "p99": 5.329
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 1.817,
+    "p95": 4.307,
+    "p99": 5.659
+   },
+   "gpuSamples": 667,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 149285,
+   "draws": 121,
+   "jsHeapMB": 1078.2,
+   "gpuBytesMB": 293.5,
+   "seconds": 2.1,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "mike_lawn",
+   "env": "night",
+   "tier": "med",
+   "frames": 692,
+   "interval": {
+    "p50": 3.4,
+    "p95": 4.2,
+    "p99": 5.11
+   },
+   "gpuMs": {
+    "p50": 1.565,
+    "p95": 3.855,
+    "p99": 5.707
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.5,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 1.908,
+    "p95": 4.182,
+    "p99": 6.021
+   },
+   "gpuSamples": 687,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 150263,
+   "draws": 136,
+   "jsHeapMB": 1075.4,
+   "gpuBytesMB": 293.6,
+   "seconds": 2.5,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "mike_lawn",
+   "env": "rain",
+   "tier": "med",
+   "frames": 636,
+   "interval": {
+    "p50": 3.7,
+    "p95": 4.7,
+    "p99": 5.962
+   },
+   "gpuMs": {
+    "p50": 1.366,
+    "p95": 3.307,
+    "p99": 5.296
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 1.676,
+    "p95": 3.607,
+    "p99": 5.596
+   },
+   "gpuSamples": 633,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 149285,
+   "draws": 119,
+   "jsHeapMB": 1067.2,
+   "gpuBytesMB": 293.6,
+   "seconds": 2.5,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "principale_british",
+   "env": "noon",
+   "tier": "med",
+   "frames": 603,
+   "interval": {
+    "p50": 3.9,
+    "p95": 5.095,
+    "p99": 6.299
+   },
+   "gpuMs": {
+    "p50": 1.319,
+    "p95": 4.41,
+    "p99": 5.254
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 1.619,
+    "p95": 4.709,
+    "p99": 5.472
+   },
+   "gpuSamples": 601,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 151915,
+   "draws": 108,
+   "jsHeapMB": 1075.6,
+   "gpuBytesMB": 293.6,
+   "seconds": 2.5,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "principale_british",
+   "env": "night",
+   "tier": "med",
+   "frames": 660,
+   "interval": {
+    "p50": 4.2,
+    "p95": 5.2,
+    "p99": 5.5
+   },
+   "gpuMs": {
+    "p50": 1.399,
+    "p95": 5.001,
+    "p99": 5.405
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 1.691,
+    "p95": 5.221,
+    "p99": 5.641
+   },
+   "gpuSamples": 658,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 152095,
+   "draws": 122,
+   "jsHeapMB": 1080.5,
+   "gpuBytesMB": 293.6,
+   "seconds": 2.9,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "principale_british",
+   "env": "rain",
+   "tier": "med",
+   "frames": 606,
+   "interval": {
+    "p50": 4.7,
+    "p95": 5.6,
+    "p99": 5.8
+   },
+   "gpuMs": {
+    "p50": 1.542,
+    "p95": 5.113,
+    "p99": 5.475
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.4,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 1.758,
+    "p95": 5.315,
+    "p99": 5.661
+   },
+   "gpuSamples": 605,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 151915,
+   "draws": 110,
+   "jsHeapMB": 1091.3,
+   "gpuBytesMB": 293.6,
+   "seconds": 2.9,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "principale_strip",
+   "env": "noon",
+   "tier": "med",
+   "frames": 639,
+   "interval": {
+    "p50": 5.2,
+    "p95": 5.9,
+    "p99": 6.1
+   },
+   "gpuMs": {
+    "p50": 2.212,
+    "p95": 5.098,
+    "p99": 5.416
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 2.443,
+    "p95": 5.297,
+    "p99": 5.63
+   },
+   "gpuSamples": 638,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 165958,
+   "draws": 144,
+   "jsHeapMB": 1087.8,
+   "gpuBytesMB": 293.6,
+   "seconds": 3.3,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "principale_strip",
+   "env": "night",
+   "tier": "med",
+   "frames": 627,
+   "interval": {
+    "p50": 6,
+    "p95": 6.5,
+    "p99": 8.425
+   },
+   "gpuMs": {
+    "p50": 2.354,
+    "p95": 5.237,
+    "p99": 5.545
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 2.656,
+    "p95": 5.525,
+    "p99": 5.845
+   },
+   "gpuSamples": 626,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 165830,
+   "draws": 152,
+   "jsHeapMB": 1080.1,
+   "gpuBytesMB": 293.6,
+   "seconds": 3.7,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "principale_strip",
+   "env": "rain",
+   "tier": "med",
+   "frames": 648,
+   "interval": {
+    "p50": 6.3,
+    "p95": 6.9,
+    "p99": 7.254
+   },
+   "gpuMs": {
+    "p50": 2.348,
+    "p95": 5.3,
+    "p99": 5.713
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 2.646,
+    "p95": 5.563,
+    "p99": 5.955
+   },
+   "gpuSamples": 647,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 165610,
+   "draws": 144,
+   "jsHeapMB": 1075.8,
+   "gpuBytesMB": 293.6,
+   "seconds": 4.1,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "galeries_lot",
+   "env": "noon",
+   "tier": "med",
+   "frames": 623,
+   "interval": {
+    "p50": 6.5,
+    "p95": 7,
+    "p99": 7.458
+   },
+   "gpuMs": {
+    "p50": 1.953,
+    "p95": 4.858,
+    "p99": 5.061
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.3,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 2.208,
+    "p95": 5.144,
+    "p99": 5.299
+   },
+   "gpuSamples": 622,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 127879,
+   "draws": 95,
+   "jsHeapMB": 1095.6,
+   "gpuBytesMB": 293.6,
+   "seconds": 4.1,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "galeries_lot",
+   "env": "night",
+   "tier": "med",
+   "frames": 646,
+   "interval": {
+    "p50": 7,
+    "p95": 7.6,
+    "p99": 10.08
+   },
+   "gpuMs": {
+    "p50": 2.087,
+    "p95": 5.014,
+    "p99": 5.233
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 2.384,
+    "p95": 5.235,
+    "p99": 5.538
+   },
+   "gpuSamples": 645,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 128039,
+   "draws": 114,
+   "jsHeapMB": 1090.6,
+   "gpuBytesMB": 293.6,
+   "seconds": 4.6,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "galeries_lot",
+   "env": "rain",
+   "tier": "med",
+   "frames": 628,
+   "interval": {
+    "p50": 7.4,
+    "p95": 10.6,
+    "p99": 15.57
+   },
+   "gpuMs": {
+    "p50": 2.004,
+    "p95": 4.98,
+    "p99": 5.233
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.5
+   },
+   "gpuPlusCpu": {
+    "p50": 2.281,
+    "p95": 5.21,
+    "p99": 5.448
+   },
+   "gpuSamples": 627,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 127879,
+   "draws": 107,
+   "jsHeapMB": 1085.4,
+   "gpuBytesMB": 293.6,
+   "seconds": 4.9,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "marina_quay",
+   "env": "noon",
+   "tier": "med",
+   "frames": 646,
+   "interval": {
+    "p50": 7.5,
+    "p95": 8.3,
+    "p99": 12.456
+   },
+   "gpuMs": {
+    "p50": 1.784,
+    "p95": 4.686,
+    "p99": 4.914
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.3,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 2.007,
+    "p95": 4.895,
+    "p99": 5.123
+   },
+   "gpuSamples": 645,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 100977,
+   "draws": 87,
+   "jsHeapMB": 1077.6,
+   "gpuBytesMB": 293.6,
+   "seconds": 4.9,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "marina_quay",
+   "env": "night",
+   "tier": "med",
+   "frames": 628,
+   "interval": {
+    "p50": 7.8,
+    "p95": 8.3,
+    "p99": 8.922
+   },
+   "gpuMs": {
+    "p50": 1.8,
+    "p95": 4.678,
+    "p99": 4.859
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.3,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 2.032,
+    "p95": 4.903,
+    "p99": 5.114
+   },
+   "gpuSamples": 627,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 101037,
+   "draws": 94,
+   "jsHeapMB": 1079.3,
+   "gpuBytesMB": 293.6,
+   "seconds": 5,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "marina_quay",
+   "env": "rain",
+   "tier": "med",
+   "frames": 649,
+   "interval": {
+    "p50": 8.1,
+    "p95": 8.7,
+    "p99": 9.1
+   },
+   "gpuMs": {
+    "p50": 1.796,
+    "p95": 4.677,
+    "p99": 4.895
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.3,
+    "p99": 0.3
+   },
+   "gpuPlusCpu": {
+    "p50": 2.029,
+    "p95": 4.871,
+    "p99": 5.074
+   },
+   "gpuSamples": 648,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 100977,
+   "draws": 89,
+   "jsHeapMB": 1075.4,
+   "gpuBytesMB": 293.6,
+   "seconds": 5.3,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "chase_chemin_aylmer",
+   "env": "noon",
+   "tier": "med",
+   "frames": 621,
+   "interval": {
+    "p50": 8.4,
+    "p95": 9.5,
+    "p99": 28.934
+   },
+   "gpuMs": {
+    "p50": 2.181,
+    "p95": 5.12,
+    "p99": 5.298
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.4,
+    "p99": 0.781
+   },
+   "gpuPlusCpu": {
+    "p50": 2.452,
+    "p95": 5.357,
+    "p99": 5.599
+   },
+   "gpuSamples": 620,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 146362,
+   "draws": 116,
+   "jsHeapMB": 179.2,
+   "gpuBytesMB": 293.6,
+   "seconds": 5.8,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "chase_chemin_aylmer",
+   "env": "night",
+   "tier": "med",
+   "frames": 608,
+   "interval": {
+    "p50": 8.8,
+    "p95": 9.4,
+    "p99": 9.694
+   },
+   "gpuMs": {
+    "p50": 2.248,
+    "p95": 5.153,
+    "p99": 5.317
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.7
+   },
+   "gpuPlusCpu": {
+    "p50": 2.526,
+    "p95": 5.395,
+    "p99": 5.621
+   },
+   "gpuSamples": 607,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 145816,
+   "draws": 127,
+   "jsHeapMB": 178.9,
+   "gpuBytesMB": 293.6,
+   "seconds": 5.3,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "chase_chemin_aylmer",
+   "env": "rain",
+   "tier": "med",
+   "frames": 637,
+   "interval": {
+    "p50": 9.1,
+    "p95": 9.9,
+    "p99": 10.265
+   },
+   "gpuMs": {
+    "p50": 2.212,
+    "p95": 5.116,
+    "p99": 5.406
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.3,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 2.475,
+    "p95": 5.361,
+    "p99": 5.687
+   },
+   "gpuSamples": 636,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 145434,
+   "draws": 118,
+   "jsHeapMB": 178.5,
+   "gpuBytesMB": 293.6,
+   "seconds": 5.8,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "hood_hull_bridge",
+   "env": "noon",
+   "tier": "med",
+   "frames": 601,
+   "interval": {
+    "p50": 8.9,
+    "p95": 10,
+    "p99": 10.3
+   },
+   "gpuMs": {
+    "p50": 1.682,
+    "p95": 4.571,
+    "p99": 4.78
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.3,
+    "p99": 0.3
+   },
+   "gpuPlusCpu": {
+    "p50": 1.914,
+    "p95": 4.776,
+    "p99": 5.079
+   },
+   "gpuSamples": 600,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 18119,
+   "draws": 111,
+   "jsHeapMB": 1037.5,
+   "gpuBytesMB": 222.3,
+   "seconds": 5.3,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "hood_hull_bridge",
+   "env": "night",
+   "tier": "med",
+   "frames": 617,
+   "interval": {
+    "p50": 9.4,
+    "p95": 10.3,
+    "p99": 10.7
+   },
+   "gpuMs": {
+    "p50": 1.729,
+    "p95": 4.561,
+    "p99": 4.777
+   },
+   "cpuMs": {
+    "p50": 0.3,
+    "p95": 0.4,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 2.004,
+    "p95": 4.755,
+    "p99": 5.047
+   },
+   "gpuSamples": 616,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 17675,
+   "draws": 119,
+   "jsHeapMB": 182.7,
+   "gpuBytesMB": 222.3,
+   "seconds": 5.8,
+   "pass": true,
+   "fails": []
+  },
+  {
+   "pose": "hood_hull_bridge",
+   "env": "rain",
+   "tier": "med",
+   "frames": 627,
+   "interval": {
+    "p50": 9.9,
+    "p95": 10.775,
+    "p99": 11
+   },
+   "gpuMs": {
+    "p50": 1.71,
+    "p95": 4.614,
+    "p99": 4.791
+   },
+   "cpuMs": {
+    "p50": 0.2,
+    "p95": 0.3,
+    "p99": 0.4
+   },
+   "gpuPlusCpu": {
+    "p50": 1.96,
+    "p95": 4.831,
+    "p99": 5.04
+   },
+   "gpuSamples": 626,
+   "gpuDisjoint": 0,
+   "gameGpuMs": null,
+   "tris": 17539,
+   "draws": 110,
+   "jsHeapMB": 178.1,
+   "gpuBytesMB": 222.3,
+   "seconds": 6.2,
+   "pass": true,
+   "fails": []
+  }
+ ],
+ "pageErrors": [],
+ "fatal": null
+}

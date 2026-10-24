@@ -1,0 +1,24 @@
+Use Gemini Deep Research to find PUBLIC audio recordings for personal research in a driving-game prototype set in Aylmer, Quebec, June 26–September 6, 2004. No distribution planned. Do not contact anybody, send messages, register accounts or spend money. If suitable recordings cannot be found, say so clearly.
+
+Prioritize CHEZ 106, English CBC Radio One and French Radio-Canada Première chaîne, including Ottawa–Gatineau local and nationally carried shows. Also research the musical feel of Live 88.5. Live launched in December 2005: do not invent 2004 recordings or change the game's year. Keep later Live recordings separate from a possible music selection restricted to releases available by summer 2004.
+
+Canadian music is essential, especially the Tragically Hip. Seek period playlists/airchecks and strong Canadian rock representation. Verify historical CanCon rules per station/service before quoting percentages; don't apply a single commercial-radio quota to CBC. Label proposed music sequences as reconstructions.
+
+Search YouTube directly and through web search, Internet Archive, archived station/show sites, podcast directories and RSS enclosures. Search English/French terms: aircheck, unscoped, off-air, station ID, radio commercials, enregistrement radio, bande témoin, habillage, indicatif and publicité radio. Prefer complete programmes. For commercial stations, find FUNNY authentic period Canadian/Quebec/Ottawa commercials, with date evidence. Do not add commercial ad blocks to CBC programmes.
+
+RSS may republish old episodes with modern dynamically inserted ads, intros or edits. Separate original broadcast date from RSS publication/reissue date. Check enclosure URLs, duration, notes and available audio/transcripts; audit every break as well as the opening/closing. Label modern-ad status verified/suspected/unknown. Don't claim to have listened unless you actually could. Broadcast time checks need not match the game clock; normal-speed audio is accepted.
+
+Investigate these leads:
+- https://archive.org/details/wiretap and https://fourble.co.uk/podcast/wiretap have season-one episode/audio links and an RSS option. Collection metadata begins July 3, 2004; verify individual episodes rather than assigning that date to the whole collection. Media playback and modern-ad status have not been verified.
+- https://podcasts.apple.com/ca/podcast/s1e07-broken-telephone/id1530859807?i=1000490387467 lists Broken Telephone, August 14, 2004. Cross-check its file.
+- https://www.souverains.qc.ca/abla-farhoud is indexed as a 2004 Macadam tribus/Radio-Canada report. Access previously encountered a verification page. Do not bypass it.
+- McMaster Pirate Archive lists period Ottawa ads, but catalogue entries aren't playable audio. With outreach prohibited, prioritize existing online recordings.
+
+Return up to 12 concrete results. Give direct page URL, actual media URL or RSS enclosure if found, station/show, place, original date/confidence, duration, language, full/scoped/clip, music/ads/speech contents, modern-ad status and next local-use step. Classify: playback verified; media link found but untested; catalogue only; dead link. Exclude Ottawa Kansas. Separate summer-2004 finds from earlier/later material.
+
+Finish with the best immediately usable English/French shows, CHEZ findings or explicit failure, funny ad shortlist or explicit failure, period Canadian music evidence, and a failed-search log. No invented links, dates, files or claims. AI voices/recreated ads/modern nostalgia playlists are not authentic broadcasts.
+
+
+USER UPDATE: Excellent 2002–2003 recordings are acceptable fallbacks, but summer 2004 remains first choice. Rank exact-period audio first, then 2003 and 2002. This does not authorize later audio. Keep actual dates visible.
+
+CORRECTION TO PREVIOUS GEMINI REPORT: Do not repeat unsupported claims of exact 2004 CKCU/CHUO holdings, playable CBC/SRC or cable simulcasts, estimated durations, archive prices, Sears summer airing dates, or universal logger-tape destruction. A station homepage or contact address is not a recording. For every verified result provide an item-specific page and actual media/enclosure URL where available. Return fewer results rather than fill a table with guesses. No outreach and no clock-stripping plan.

@@ -1,3 +1,5 @@
+> **Separate visual prototype (18 September 2026): [running log](PROTOTYPE-SESSION-LOG.md) · [active backlog](PROTOTYPE-BACKLOG.md). Branch `codex/2004-graphics-prototype`, draft PR #45. These changes are separate from production.**
+
 > **Current continuation guide (15 September 2026): [MacBook Air handoff](MACBOOK-HANDOFF.md).** This file is a historical snapshot; check current PR status before following its branch or merge instructions.
 
 # Handoff — 2026-09-07, end of the Wave 2/3 session
