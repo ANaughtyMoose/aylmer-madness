@@ -1,0 +1,57 @@
+{
+  "_doc": "Fail card gag lines, one pool per fail reason (src/game/retry.js classifyFail). Language rule: a line with no `who` is the narrator and is Quebec French; a line with `who` is a main-cast bubble and is English. No em dashes. Tested by tools/smoke_retry.mjs.",
+  "card": {
+    "title": "RATÉ",
+    "free": "R : on recommence l’étape, gratis ({s} s)",
+    "paid": "R : on recommence l’étape ({s} s). Ça coûte la journée.",
+    "back": "Retour à l’étape : {stage}",
+    "kept": "La paye d’avant reste dans tes poches."
+  },
+  "reasons": {
+    "tow": [
+      { "fr": "Le gars de la remorque connaît ton char par cœur. Y te fait même pu signer." },
+      { "fr": "Remorqué. Le Ranger a l’air content de se reposer un peu." },
+      { "who": "Sayyad", "en": "Technically the truck finished the job. Just not the part where it moves." }
+    ],
+    "late": [
+      { "fr": "Trop tard. L’horloge du tableau de bord avance de dix minutes, pis c’était pas assez." },
+      { "fr": "T’arrives pile à temps pour voir que c’est fini." },
+      { "who": "Margaret", "en": "Tom. It’s a clock. It only goes one way." }
+    ],
+    "police": [
+      { "fr": "Le policier t’a dit « bonne soirée ». Ça sonnait pas comme une bonne soirée." },
+      { "fr": "Une contravention, c’est un souvenir d’Aylmer que tu payes toi-même." },
+      { "who": "Zahra", "en": "You pulled over so politely he almost said sorry." }
+    ],
+    "clock": [
+      { "fr": "Le chrono a gagné. Ça fait des années qu’y s’entraîne." },
+      { "fr": "Zéro seconde. Le chrono a même pas eu chaud." },
+      { "who": "Sayyad", "en": "In fairness the clock was never going to lose. It is a clock." }
+    ],
+    "rival": [
+      { "fr": "Y est arrivé avant toi, pis y va le dire à tout le monde." },
+      { "fr": "Deuxième. Personne se souvient du deuxième, sauf le deuxième." },
+      { "who": "Zahra", "en": "Next time I get out and handle it. With the nails." }
+    ],
+    "lost": [
+      { "fr": "Perdu de vue. Dans Aylmer. Faut le faire." },
+      { "who": "Sayyad", "en": "To be fair, every car on Principale is beige." }
+    ],
+    "caught": [
+      { "fr": "Pogné. Tu vas la raconter autrement au cégep." },
+      { "who": "Sayyad", "en": "Okay. New theory. Next time we run faster." }
+    ],
+    "broke": [
+      { "fr": "Ça a fait un bruit. Le genre de bruit que ta mère entend de la cuisine." },
+      { "who": "Margaret", "en": "Tom, what was that noise? No. Don't tell me." }
+    ],
+    "heat": [
+      { "fr": "Le cèdre sentait bon. Toi, moins." },
+      { "who": "Sayyad", "en": "So the science says less water. Or less sauna. Probably both." }
+    ],
+    "other": [
+      { "fr": "Ça s’est pas passé comme prévu. Rien se passe comme prévu dans un Ranger." },
+      { "fr": "On va mettre ça sur le compte de l’expérience." }
+    ]
+  }
+}

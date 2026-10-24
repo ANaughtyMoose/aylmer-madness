@@ -1,0 +1,171 @@
+{
+ "name": "ranger-rerun",
+ "about": "B-02: the second half of the full pack again, for valid Ranger evidence after the 13 Oct pack drove the golf cart from golf night on. Reload through Balade libre, golf night itself (the cause, so the played column carries what it leaves), stvincent onward with the optional jobs and both races, then speed, the ramps, two crashes, cops at 2 and 4 stars, both courses and free roam. Every beat asserts the Ranger at its start (harness: wrong vehicle); the fresh column always starts in the Ranger.",
+ "entry": "index.html",
+ "vehicle": "ranger",
+ "beats": [
+  {
+   "do": "boot",
+   "via": "free",
+   "about": "reload through Balade libre for the seeded missions"
+  },
+  {
+   "do": "mission",
+   "id": "golfcart",
+   "stageTimeout": 150,
+   "hour": 22,
+   "about": "set piece: golf night"
+  },
+  {
+   "do": "mission",
+   "id": "stvincent",
+   "stageTimeout": 150
+  },
+  {
+   "do": "mission",
+   "id": "nuittim",
+   "stageTimeout": 150,
+   "hour": 22,
+   "about": "set piece: la nuit du Tim"
+  },
+  {
+   "do": "mission",
+   "id": "school",
+   "stageTimeout": 150,
+   "hour": 5
+  },
+  {
+   "do": "mission",
+   "id": "russellroyal",
+   "stageTimeout": 150,
+   "hour": 5,
+   "about": "set piece: Royal Ottawa"
+  },
+  {
+   "do": "mission",
+   "id": "curfew",
+   "stageTimeout": 150
+  },
+  {
+   "do": "mission",
+   "id": "margaretdental",
+   "stageTimeout": 150,
+   "maxSecs": 600,
+   "about": "Dr Morin rush"
+  },
+  {
+   "do": "mission",
+   "id": "dep",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "gang",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "solerrand",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "racecivic",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "racedave",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "highwayhull",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "chelsea",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "circuit",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "mission",
+   "id": "blitz",
+   "stageTimeout": 150,
+   "maxSecs": 600
+  },
+  {
+   "do": "speedRun",
+   "seconds": 12,
+   "frames": 14
+  },
+  {
+   "do": "jumps",
+   "seconds": 45,
+   "about": "every ramp from its run-up on a fresh truck: take-off speed, air against the table, landing damage (A-12; C-03 checks against it)"
+  },
+  {
+   "do": "crash",
+   "seconds": 7
+  },
+  {
+   "do": "crash",
+   "seconds": 7,
+   "side": -1,
+   "place": "home"
+  },
+  {
+   "do": "cops",
+   "heat": 2,
+   "seconds": 40
+  },
+  {
+   "do": "cops",
+   "heat": 4,
+   "seconds": 40
+  },
+  {
+   "do": "course",
+   "id": "bz_vieux",
+   "index": 0,
+   "stageTimeout": 150
+  },
+  {
+   "do": "course",
+   "id": "cp_ruelles",
+   "mode": "checkpoint",
+   "stageTimeout": 150
+  },
+  {
+   "do": "freeRoam",
+   "places": [
+    "principale",
+    "marina",
+    "beach",
+    "home"
+   ],
+   "maxKmh": 80
+  },
+  {
+   "do": "mission",
+   "id": "arcdernier",
+   "stageTimeout": 150,
+   "about": "finale: free drive to four of the summer places (nearest first, lit on the map), home, phone, brochure, end cards, summer-end screen (S4-SUMMER)",
+   "tourN": 4,
+   "maxSecs": 900
+  }
+ ]
+}

@@ -405,8 +405,6 @@ while cur_date <= end_date:
         else:
             sky = "clear"
 
-    note = NOTES.get(dt_str)
-    events = EVENTS.get(dt_str, [])
     
     day_obj = {
         "date": dt_str,
@@ -419,8 +417,6 @@ while cur_date <= end_date:
         "sky": sky,
         "humidex": max_hmdx,
         "wind": wind_desc,
-        "note": note,
-        "events": events,
         "confidence": "high"
     }
     calendar_days.append(day_obj)

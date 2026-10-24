@@ -14,6 +14,7 @@
 // the 3.2 MB of mapdata stays unread.
 import { carById, Vehicle } from '../src/game/cars.js';
 import { buildTerrain, featureBounds, FEATURES, SURF, FLAT } from '../src/game/terrain.js';
+import { timingCheck } from './timing-gate.mjs';
 
 let pass = 0, fail = 0;
 const out = [];
@@ -130,6 +131,9 @@ const groundAt = terrain.groundAt;
   // it produces is a partial drop a car could get stuck half way down.
   let cliffs = 0, tallest = 0, offPad = 0;
   for (const f of FEATURES) {
+    // The marina's `abs` pads (quays, breakwaters) stand in the basin: their
+    // faces drop into water the car cannot drive in, and are meant to be tall.
+    if (f.abs) continue;
     const b = featureBounds(f, 2);
     for (const axis of [0, 1]) {
       const a0 = axis ? b.z0 : b.x0, a1 = axis ? b.z1 : b.x1;
@@ -388,22 +392,44 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
 // constant, so it now stops scrabbling sooner and covers 47.40 m instead of
 // 46.07. THE RANGER ROW IS UNTOUCHED TO THE LAST DIGIT, again, and that is
 // still the whole point: it declares no block, so none of this reaches it.
+//
+// Rebaselined a FOURTH time, for the two Saturn rows only (6 Oct 2026):
+// Margaret's car became the 1997 SC2 it really is. The sourced five-speed
+// (4.063 final, 2.056 second) and a twin-cam torque curve that does not fill
+// in until 60 % of the band put more of the 5 s in the soft part of the curve,
+// so it covers 41.98 m of tarmac instead of 42.67, and with less speed in
+// hand it comes round a little less far on grass. Ranger, Civic and Sunfire
+// rows are untouched to the last digit.
+//
+// A FIFTH time, and additive only (S3-RANGER, 20 Oct 2026). The Ranger got a
+// feel row of its own, because it is the truck the player drives for most of
+// the summer and it was the one car with nothing to feel (red team feel.md,
+// finding 8). The two `ranger` rows below are NOT rebaselined: they now pin
+// the bare sheet (the Ranger with `feel` taken off), which is the pre-FEEL
+// path to the last digit, exactly what they always proved. The truck as it
+// drives now is pinned beside them as `ranger+feel`: a slightly softer launch
+// and two shift cuts leave it 0.38 m short on tarmac after 5 s.
 
 {
   const REF = {
     'road/ranger': [0, 39.086020339, 0, 15.10366738, 0, 1, 0, -0.034946719, 0],
     'road/civic': [0, 47.403041051, 0, 19.606611227, 0, 1, 0, -0.034845976, 0],
-    'road/saturn': [0, 42.672258933, 0, 16.928490268, 0, 1, 0, -0.032794667, 0],
+    'road/saturn': [0, 41.978336765, 0, 16.78408947, 0, 1, 0, -0.032811265, 0],
     'road/sunfire': [0, 47.628785187, 0, 18.658972425, 0, 1, 0, -0.039140525, 0],
     'grass/ranger': [-8.906805509, 16.796348942, -1.011796229, 7.236878419, 0.372345805, 0.81, 0, -0.017148101, -0.048907851],
     'grass/civic': [-13.949619298, 14.052830887, -1.594292575, 8.562245876, 0.565141584, 0.81, 0, -0.017768968, -0.06399078],
-    'grass/saturn': [-11.475750528, 16.015632114, -1.274411492, 7.845229255, 0.459056741, 0.81, 0, -0.017328463, -0.053506701],
+    'grass/saturn': [-10.820363179, 15.701925782, -1.237912942, 7.601816758, 0.432669688, 0.81, 0, -0.016389668, -0.048843089],
     'grass/sunfire': [-15.657218949, 17.651077416, -1.485889648, 9.666992295, 0.77171989, 0.81, 0, -0.023205926, -0.08368666],
+    'road/ranger+feel': [0, 38.707254679, 0, 14.797110329, 0, 1, 0, -0.035184323, 0],
+    'grass/ranger+feel': [-8.792265272, 16.889855856, -0.996009509, 7.238018315, 0.381955867, 0.81, 0, -0.017147653, -0.047941249],
   };
+  // `ranger` is the bare sheet, `ranger+feel` the truck as it ships.
+  const sheetOf = (id) => (id === 'ranger' ? Object.assign(Object.create(carById('ranger')), { feel: undefined })
+    : carById(id === 'ranger+feel' ? 'ranger' : id));
   let worst = 0, worstKey = '';
   for (const [name, world] of [['road', flat], ['grass', flatGrass]]) {
-    for (const id of ['ranger', 'civic', 'saturn', 'sunfire']) {
-      const v = new Vehicle(carById(id));
+    for (const id of ['ranger', 'ranger+feel', 'civic', 'saturn', 'sunfire']) {
+      const v = new Vehicle(sheetOf(id));
       v.reset(0, 0, 0);
       v.onRoad = world.roadAt();
       const c = ctl({ throttle: 1, steer: name === 'grass' ? 0.35 : 0 });
@@ -479,7 +505,7 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
   const t0 = process.hrtime.bigint();
   for (let r = 0; r < 200; r++) for (let i = 0; i < pts.length; i += 2) sink += groundAt(pts[i], pts[i + 1]).h;
   const ns = Number(process.hrtime.bigint() - t0) / (200 * pts.length / 2);
-  ok('groundAt stays inside its 200 ns budget', ns < 200,
+  timingCheck(ok, (l) => out.push(l), 'groundAt stays inside its 200 ns budget', ns < 200,
     `${ns.toFixed(0)} ns/call (sink ${r2(sink)})`);
 }
 
@@ -601,10 +627,16 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
     let worst = 0, worstWhere = '', kindMismatch = 0, n = 0;
     let worstN = 0, down = 0, raised = 0, dug = 0;
     for (const [tag, T, step] of [['hill', hillT, 0.37], ['plane', planeT, 0.83]]) {
+      // `abs` pads are altitudes by design (evalPad): the marina quays and
+      // breakwaters. Their footprint is left out of this sweep.
+      const absB = FEATURES.filter((q) => q.abs).map((q) => featureBounds(q, 3));
+      const inAbs = (x, z) => absB.some((q) => x >= q.x0 && x <= q.x1 && z >= q.z0 && z <= q.z1);
       for (const f of FEATURES) {
+        if (f.abs) continue;
         const b = featureBounds(f, 3);
         for (let x = b.x0; x <= b.x1; x += step) {
           for (let z = b.z0; z <= b.z1; z += step) {
+            if (inAbs(x, z)) continue;
             const g = T.groundAt(x, z);
             const gh = g.h, gk = g.kind;
             if (tag === 'hill') {
@@ -806,7 +838,7 @@ function launch(id, x, z, yaw, speed, frames, c = CTL, world = hills) {
       flatNs = Math.min(flatNs, time(groundAt));
       hillNs = Math.min(hillNs, time(hillG));
     }
-    ok('a bilinear of the raster costs less than the features on top of it',
+    timingCheck(ok, (l) => out.push(l), 'a bilinear of the raster costs less than the features on top of it',
       hillNs < 2.5 * flatNs && hillNs < 400,
       `${hillNs.toFixed(0)} ns/call with the hill against ${flatNs.toFixed(0)} flat, `
       + `${(hillNs / flatNs).toFixed(2)}x (sink ${r2(sink)})`);

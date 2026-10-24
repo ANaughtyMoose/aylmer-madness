@@ -12,7 +12,8 @@ const ok = (name, fn) => {
   catch (e) { failed++; console.log('FAIL ' + name + '\n     ' + (e.message || e)); }
 };
 
-const { MISSIONS, ALL_MISSIONS, missionPayout } = await import('../src/game/missions.js');
+const { MISSIONS, ALL_MISSIONS, RETIRED_MISSIONS, missionPayout } = await import('../src/game/missions.js');
+const { isRetired } = await import('../src/game/campaign.js');
 const { VERB_MISSIONS } = await import('../src/game/verbjobs.js');
 const verbs = await import('../src/game/verbs.js');
 const ambush = await import('../src/game/ambush.js');
@@ -29,17 +30,23 @@ const fakeG = (x = 0, z = 0) => ({
 });
 const ctx = { carId: 'ranger', carName: 'Ranger', seats: 2, money: 0 };
 
-ok('V1 six verb jobs, in the arrays, valid, paid', () => {
-  assert.equal(VERB_MISSIONS.length, 6);
+// RESTRUCTURE (29 Sept 2026, Tom's approved ten-mission plan): all the verb
+// jobs (suis, vitres, seme, sunfire, quatre) are cut from the summer on
+// purpose (campaign.js RETIRED). Their defs stay valid for old saves and are in
+// neither list; the verbs themselves (V2 on) are still the engine other jobs use.
+ok('V1 five verb jobs, kept valid for old saves, retired from both arrays', () => {
+  // six until « dames » was cut by Tom, 6 Oct 2026 (its id stays in RETIRED)
+  assert.equal(VERB_MISSIONS.length, 5);
   for (const d of VERB_MISSIONS) {
     assert.ok(PLACES[d.giver], `${d.id}: giver ${d.giver}`);
     assert.ok(['morning', 'day', 'dusk', 'night'].includes(d.timeOfDay), d.id);
     const st = d.build(ctx);
     assert.ok(st.length >= 1 && st.every((s) => s.text), `${d.id}: stages`);
-    assert.ok(missionPayout(d, ctx) >= 30, `${d.id} pays ${missionPayout(d, ctx)}`);
-    assert.ok(MISSIONS.includes(d) && ALL_MISSIONS.includes(d), `${d.id} in both arrays`);
+    assert.ok(isRetired(d.id), `${d.id} is retired`);
+    assert.ok(!MISSIONS.includes(d) && !ALL_MISSIONS.includes(d), `${d.id} in neither array`);
+    assert.ok(RETIRED_MISSIONS.includes(d), `${d.id} kept in RETIRED_MISSIONS`);
   }
-  assert.equal(ALL_MISSIONS.length, MISSIONS.length + 5, 'the arc parity the arc suite pins');
+  assert.equal(ALL_MISSIONS.length, MISSIONS.length, 'every job is listed from the start; the story lock decides');
   assert.equal(new Set(ALL_MISSIONS.map((d) => d.id)).size, ALL_MISSIONS.length, 'unique ids');
   // a third at most stay plain deliveries: count defs whose stages are all plain go/load
   const plain = ALL_MISSIONS.filter((d) => d.build(ctx).every((s) => !s.onTick && !s.condition && !s.race && !d.race && !d.mode)).length;

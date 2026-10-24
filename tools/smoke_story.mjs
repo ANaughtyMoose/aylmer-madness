@@ -97,7 +97,7 @@ group('the Sayyad job reads like instructions');
     'stage 2 names the count in the objective', donuts.text);
   ok(/Espace/.test(donuts.sub) && /A\/D/.test(donuts.sub),
     'stage 2 names the handbrake and the wheel', donuts.sub);
-  ok(/300 m/.test(escape.text) && /25 s/.test(escape.text),
+  ok(/300 m/.test(escape.text) && new RegExp(`${escape.time} s`).test(escape.text) && escape.time === 30,
     'stage 3 says how far and how long', escape.text);
   // ...and the live counter in the prompt.
   const meter = { count: 1, state: () => ({ sliding: false, progress: 0.4 }) };
@@ -186,6 +186,12 @@ group('GOAL A — a friend’s car under your feet');
   // Neither does one on the other side of the street.
   const far = fakeG(0, 0, [], { civic: { x: 40, z: 0, yaw: 0 } });
   ok(carUnderfoot(far) === null, 'and it has to be within reach');
+  // A car you do not have: sold only when it has a price.
+  G.veh.vLong = 0;
+  const locked = freeRoamLines(G, { has: () => false, cost: () => 0 });
+  ok(locked.kind !== 'buy' && !/acheter|0 \$/.test(locked.text), 'a locked car with no price is not « acheter … · 0 $ »', locked.text);
+  const forSale = freeRoamLines(G, { has: () => false, cost: () => 450 });
+  ok(forSale.kind === 'buy' && /450 \$/.test(forSale.text), 'one with a price is for sale', forSale.text);
 }
 
 group('distances read the way a person says them');
@@ -296,6 +302,11 @@ group('the settings remember it');
 // ---------------------------------------------------------------- 5. friends
 
 group('the friends have something to say');
+// RESTRUCTURE (29 Sept 2026): the Saint-Jean, the sauna drive and the finale
+// are main missions now, so they are in MISSIONS from the first frame. Their
+// lines live in arc.js ARC_LINES and are merged into FRIEND_LINES by
+// registerArcLines(), which main.js fires at boot; do the same here.
+await (await import('../src/game/arc.js')).registerArcLines();
 {
   for (const m of MISSIONS) {
     const s = friendLines(m.id, 'start'), e = friendLines(m.id, 'end');
@@ -308,7 +319,7 @@ group('the friends have something to say');
     .reduce((n, e) => n + (e.start || []).length + (e.end || []).length, 0);
   ok(total >= 28, `${total} lines of dialogue in all`);
   ok(friendLines('nope').length === 0, 'a job with nobody attached says nothing');
-  ok(friendLines('sayyad', 'end').some(([, t]) => /scratches la Civic/.test(t)),
+  ok(friendLines('sayyad', 'end').some(([, t]) => /Scratch the Civic/.test(t)),
     'Sayyad says the thing about the Civic');
 }
 

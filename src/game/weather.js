@@ -137,7 +137,7 @@ export class Weather {
     this.lastPuddle = '';       // which cell, so one puddle fires once
     this.splash = 0;            // overlay burst
     // Wet spec cache: one clone per car spec per 5 % of wetness.
-    this._spec = new Map();
+    this._spec = new WeakMap();   // base sheet -> { bucket, spec }
     this.view = null;           // the overlay, built on first update with a DOM
     this.snd = null;            // the audio chain, built on first update
   }
@@ -218,7 +218,7 @@ export class Weather {
   _march(dt) {
     if (this.blend >= 1) {
       this.hold -= dt;
-      if (this.hold <= 0) this._begin(this._pick());
+      if (this.hold <= 0 && !this.historical) this._begin(this._pick());
     } else {
       this.blend = Math.min(1, this.blend + dt / this.transT);
     }
@@ -299,11 +299,18 @@ export class Weather {
     if (g > 0.995 && b > 0.995) return spec;
     // 5 % buckets: one allocation every few seconds instead of sixty a second.
     const bucket = Math.round(g * 20) * 32 + Math.round(b * 20);
-    let hit = this._spec.get(spec.id);
-    if (hit && hit.bucket === bucket && hit.base === spec) return hit.spec;
-    const wetSpec = { ...spec, grip: spec.grip * g, brake: spec.brake * b };
-    hit = { bucket, base: spec, spec: wetSpec };
-    this._spec.set(spec.id, hit);
+    // Keyed by the base sheet itself, not its id: a race rival in a stock
+    // Ranger and the player in a tuned one are two sheets with one id, and an
+    // id key would throw each one's clone away every tick for the other.
+    let hit = this._spec.get(spec);
+    if (hit && hit.bucket === bucket) return hit.spec;
+    // Upgrade sheets inherit stock fields; spreading would drop those fields.
+    // `dirBrake` is the floor under the S-key stop (cars.js): it has to get wet
+    // too, or rain changes nothing about how far a car takes to stop.
+    const dir = spec.dirBrake != null ? spec.dirBrake : Math.max(spec.brake, 8);   // 8 = cars.js DIR_BRAKE
+    const wetSpec = Object.assign(Object.create(spec), { grip: spec.grip * g, brake: spec.brake * b, dirBrake: dir * b });
+    hit = { bucket, spec: wetSpec };
+    this._spec.set(spec, hit);
     return wetSpec;
   }
 
@@ -493,7 +500,7 @@ export class Weather {
     this.snd = false;
     const a = this.audio;
     if (!a || !a.ok || !a.ctx) { this.snd = null; return null; }   // try again later
-    const ctx = a.ctx, dest = a.fx || a.master;
+    const ctx = a.ctx, dest = a.ambienceBus || a.fx || a.master;
     if (!dest) { this.snd = null; return null; }
     const buf = a.noiseBuf || makeNoise(ctx, 2);
     const src = ctx.createBufferSource();
@@ -513,7 +520,7 @@ export class Weather {
     const sprayF = ctx.createBiquadFilter();
     sprayF.type = 'highpass'; sprayF.frequency.value = 3800;
     const sprayG = ctx.createGain(); sprayG.gain.value = 0;
-    src.connect(sprayF); sprayF.connect(sprayG); sprayG.connect(dest);
+    src.connect(sprayF); sprayF.connect(sprayG); sprayG.connect(a.fx || dest);
 
     src.start();
     this.snd = { ctx, dest, buf, src, rainG, rainF, roofG, sprayG, sprayF };
@@ -527,8 +534,8 @@ export class Weather {
     const gate = a.enabled && this.enabled && (!G || G.mode === 'drive') ? 1 : 0;
     const t = s.ctx.currentTime;
     const kmh = G && G.veh ? Math.abs(G.veh.speedKmh || 0) : 0;
-    s.rainG.gain.setTargetAtTime(gate * this.rain * 0.085, t, 0.35);
-    s.roofG.gain.setTargetAtTime(gate * this.rain * 0.055, t, 0.35);
+    s.rainG.gain.setTargetAtTime(gate * this.rain * (a.inCab ? 0.035 : 0.070), t, 0.35);
+    s.roofG.gain.setTargetAtTime(gate * this.rain * (a.inCab ? 0.050 : 0.015), t, 0.35);
     s.sprayG.gain.setTargetAtTime(gate * this.wet * clamp(kmh / 80, 0, 1) * 0.05, t, 0.20);
     s.rainF.frequency.setTargetAtTime(1700 + this.rain * 1400, t, 0.5);
   }

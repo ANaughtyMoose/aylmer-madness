@@ -1,6 +1,7 @@
 // Architecture and 2004 uses from Tom's photo set. Street View camera labels
 // can differ from the parcel: use the pictured building, not the camera point.
 import {rgb} from '../core/mesh.js';
+import { tagGlass } from './world/glasstag.js';   // s5-reflect
 export function oldAylmerSites({rectRing,walls,lot}) {
   const sites=[];
   const add=(key,x,z,ids,build,signs=[],r=45)=>sites.push({key,cx:x,cz:z,r,near:340,hide:ids.map(id=>({id,at:[x,z]})),build:K=>build(frame(K,x,z,key==='clocklibrary'?0:z>-130?Math.PI:0)),site:()=>{},signs});
@@ -14,7 +15,7 @@ export function oldAylmerSites({rectRing,walls,lot}) {
       walls(K,rectRing(q[0],q[1],w,d,a),0,h,{mat,tint:mat?K.mats.tint(mat):rgb(col),bar:0xeee7d8},()=>rows);
     };
     const roof=(u,v,w,d,y,h,col,kind='hip')=>{const q=p(u,v);if(kind==='gable')K.mb.roof(q[0],y,q[1],d,w,h,rgb(col),Math.PI/2-a,.35);else K.mb[kind](q[0],y,q[1],w,d,h,rgb(col),-a,.35);};
-    const win=(u,y,v,w,h)=>{box(u,y,v,w+.2,h+.2,.12,0xe5dfcf);box(u,y,v+.09,w,h,.1,0x34454a);box(u,y,v+.16,.065,h,.05,0xe5dfcf);};
+    const win=(u,y,v,w,h)=>{box(u,y,v,w+.2,h+.2,.12,0xe5dfcf);const g0=K.mb.vertCount;box(u,y,v+.09,w,h,.1,0x34454a);if(!K.mats?.prototypeStyle)tagGlass(K.mb,g0);box(u,y,v+.16,.065,h,.05,0xe5dfcf);};   // s5-reflect: glass tag
     const door=(u,v,y=1.2)=>win(u,y,v,1.2,2.2);
     const arch=(u,y,v,w,h)=>{
       for(const [pad,col,depth]of [[.14,0xd0cbb9,0],[0,0x34454a,.03]]){
@@ -65,12 +66,21 @@ export function oldAylmerSites({rectRing,walls,lot}) {
     F.win(0,8.1,7.4,.8,1.2);F.box(2,.4,8,3,.8,2,0x81715d);F.win(2,2,7.8,2.2,2.4);
     F.box(-2,2.7,8,3,.2,2,0xf0e6ce);F.roof(-2,8,3.6,2.4,2.8,1,0xe5dfcc,'gable');F.door(-2,7.1);
     F.box(0,.12,11,13,.24,4,0x8c785b);for(let u=-5;u<=5;u+=5){F.box(u,.8,11,1.1,.1,1.1,0x76654f);F.box(u,.4,11,.1,.8,.1,0x373c36);}
-  },[sign(-400,-110,5,'PIZZA · GELATO','#486244',3.1,.8,'',Math.PI)]);
+  },[sign(-400,-110,5,'JIMMY’S PIZZA','#7a2c24',3.95,.7,'GELATO',Math.PI)]);
   add('mocaloca',-471,-103,[473653355],F=>{
     F.wall(0,0,11,13,7,0xa85a44,F.rows(2));F.roof(0,0,12,14,7,3.5,0x49705b);
     F.box(0,8.2,4,3.5,2.2,3,0xc6c4af);F.win(0,8.4,5.6,2,1.4);F.roof(0,4,4,3.8,9.3,1,0x52755f,'gable');
     F.porch(11,7.4);F.roof(0,7.4,12,3.2,3.6,.7,0x47765b);F.door(3,6.6);
-  },[sign(-471,-110.9,5,'MOCA-LOCA','#405c45',3.6,.8,'CAFÉ',Math.PI)]);
+  },[sign(-471,-110.9,5,'MOCA-LOCA','#405c45',3.95,.7,'CAFÉ',Math.PI)]);
+  // Bamboo (Tom spells it Bamboo; the 2009 photo set reads BAMBOU on the same
+  // red-brick block, comm_24_north, OSM 473653910). The block stays; it gains
+  // the red and yellow awnings from that photo and a fascia sign. No address.
+  add('bamboo',-848,-101,[],F=>{
+    const aw=(x,col)=>F.K.mb.box(x,3.0,-99.7,7,.22,1.7,rgb(col),{yaw:.098});
+    aw(-853,0xa5302c);aw(-845,0xd9ae35);
+    // The block's own wall collides already (world.js); these four stretches of its street face repeat it so the site carries colliders like every other.
+    if(F.K.seg)for(let i=0;i<4;i++){const x0=-860.5+i*6.65,x1=x0+6.65,z=x=>-99.7-(x+860.5)*.0977;F.K.seg(x0,z(x0),x1,z(x1));}
+  },[sign(-848,-100.8,14,'BAMBOO','#8f2b27',3.9,1.1,'',-.098)],30);
   add('garage143',-514,-152,[473653344],F=>{
     F.wall(0,0,14,12,4.2,0xd4d2c4);F.box(0,4.3,0,14.4,.65,12.4,0xb14c49);
     F.box(4.5,2.6,1,4,5.2,10,0xd5d2c2);F.box(4.5,5.3,1,4.4,.4,10.4,0xb14c49);
@@ -84,9 +94,16 @@ export function oldAylmerSites({rectRing,walls,lot}) {
     F.door(-3,12.1);F.door(3,12.1);F.steps(0,12.8,10);F.box(0,1,16,4,.4,2,0x8f9387);
     for(const u of [-1,0,1]){const q=F.p(u,16);F.K.mb.cyl(q[0],2,q[1],.35,1.7,7,rgb(0x58685e));F.K.mb.cyl(q[0],3.05,q[1],.4,.6,7,rgb(0x58685e));}
   },[sign(-662,-62.4,7,'ANCIENNE BIBLIOTHÈQUE','#4d5c4d',3.4,1.1,'FERMÉE — DÉGÂTS D’EAU',Math.PI)]);
-  add('aydelu',-661,3,[68609642],F=>{F.wall(0,0,29,27,4.4,0x9c4f3c);F.roof(0,0,30,28,4.4,6,0x82674e,'gable');F.door(9,13.6);},[sign(-661,-11,8,'BINGO','#e8dfc6',4.6,1.4,'AYDELU',Math.PI)]);
+  // s1-hotel (20 Oct 2026): was 29 m wide at (-661, 3), which put its north wall
+  // 2 m into Rue du Patrimoine (the bz_vieux line) and its west wall across the
+  // lane at (-669, 7). Fitted to its OSM footprint (68609642, x -673 to -640,
+  // z -9.1 to 24.7) between that lane and the one on its east side; same height,
+  // roof and street face. tools/smoke_landmark_roads.mjs holds it there.
+  add('aydelu',-653.9,4.5,[68609642],F=>{F.wall(0,0,26,27,4.4,0x9c4f3c);F.roof(0,0,27,28,4.4,6,0x82674e,'gable');F.door(9,13.6);},[sign(-654,-9.5,8,'BINGO','#e8dfc6',4.6,1.4,'AYDELU',Math.PI)]);
   add('galaxie',-670,48,[68609238],F=>{F.wall(0,0,38,36,4.5,0xd8d7c9,F.rows(1));F.box(0,4.5,0,39,.4,37,0xbbbdb3);F.porch(9,19);F.roof(0,19,10,5,3.6,2.8,0xbec2b7,'gable');F.door(0,18.1);},[sign(-670,27,9,'GALAXIE','#325986',4,1.6,'SALLE DE QUILLES · BOWLING',Math.PI)]);
-  add('frankarena',-606,79,[68609092],F=>{F.wall(0,0,35,79,4,0xa7664b);F.wall(0,0,35,79,7.2,0x718f9a,[{y0:4.2,y1:6,w:1.5,gap:3,margin:4}]);F.box(0,2,40,35,4,.2,0xa7664b);F.roof(0,0,36,80,7.2,2.5,0x6a8e9f,'gable');F.door(0,40.2);},[sign(-606,38.5,10,'ARÉNA FRANK-ROBINSON','#42667f',3.4,1,'PATINAGE',Math.PI)],65);
+  // s1-hotel (20 Oct 2026): 0.5 m west of where it was, so its east wall clears
+  // the end of Rue Lord-Aylmer (it stood 0.4 m into the street's asphalt).
+  add('frankarena',-606.5,79,[68609092],F=>{F.wall(0,0,35,79,4,0xa7664b);F.wall(0,0,35,79,7.2,0x718f9a,[{y0:4.2,y1:6,w:1.5,gap:3,margin:4}]);F.box(0,2,40,35,4,.2,0xa7664b);F.roof(0,0,36,80,7.2,2.5,0x6a8e9f,'gable');F.door(0,40.2);},[sign(-606,38.5,10,'ARÉNA FRANK-ROBINSON','#42667f',3.4,1,'PATINAGE',Math.PI)],65);
   add('duchesnay',-655,134,[93974633],F=>{F.wall(0,0,52,64,10,0xbac3c3);F.roof(0,0,53,65,10,2,0xafbdbe,'gable');F.wall(0,30,49,8,3.6,0xa76451,F.rows(1));F.box(0,3.7,34.2,50,.2,.3,0xa33931);F.door(12,34.2);},[sign(-655,99.5,19,'ARÉNA ISABELLE-ET-PAUL-DUCHESNAY','#334453',3.9,1,'92',Math.PI)],65);
   add('morin',-1107,-44,[463458616],F=>{F.wall(-3,-2,7,15,5.5,0xb9bfc0,F.rows(2));F.roof(-3,-2,8,16,5.5,3,0x687372,'gable');F.wall(4,0,7,18,3.6,0xc6cbca,F.rows(1));F.box(4,3.7,0,7.3,.25,18.3,0xcbd0cc);for(const u of [-4,1]){F.door(u,9.1);F.roof(u,9.5,2.3,2,2.7,1,0x697672,'gable');}for(const v of [-3,1])F.box(-.8,6.3,v,1.1,.2,1.8,0x9eafb0);},[sign(-1107,-55,4.6,'Dr MORIN','#264a3e',1.7,1.3,'DENTISTE',Math.PI)]);
   add('clocklibrary',-742,-126.5,[1474477281],F=>{
@@ -105,6 +122,6 @@ export function oldAylmerSites({rectRing,walls,lot}) {
     for(let u=-3;u<.8;u+=1.2)F.box(u,.95,8,.08,.8,.1,0x678061);
   }});
   sites.find(s=>s.key==='solpfk').site=K=>lot(K,75,-191,43,38,0,{rows:2});
-  sites.find(s=>s.key==='garage143').site=K=>lot(K,-514,-140,20,9,0,{rows:1});
+  sites.find(s=>s.key==='garage143').site=K=>lot(K,-514,-140,20,9,0,{rows:0});
   return sites;
 }

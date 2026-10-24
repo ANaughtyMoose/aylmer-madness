@@ -3,12 +3,14 @@
 // There is no browser in here, so anything that touches WebGL is stubbed. What
 // this actually checks is the stuff that is easy to break and expensive to find
 // by driving around: mission wiring, the stage model, the doughnut accumulator,
-// the canoe's water constraint, and the couch's arc.
+// the canoe's water constraint, and the couch lift.
 import { MISSIONS, TIME_OF_DAY } from '../src/game/missions.js';
 import { PLACES, resolvePlaces } from '../src/game/places.js';
 import { MAP } from '../src/game/mapdata.js';
 import { CARS } from '../src/game/cars.js';
-import { DoughnutMeter, COUCH, couchLaunch, couchSim, CouchFlight } from '../src/game/stunts.js';
+import { DoughnutMeter } from '../src/game/stunts.js';
+import { LIFT, couchInMaple } from '../src/game/sidejobs.js';
+import { COUCH as MAPLE_COUCH } from '../src/game/landmarks.js';
 import { Boat, PADDLE, currentToward } from '../src/game/boat.js';
 import {
   Props, buildPropMeshes, ISLAND, ISLAND_CLOSE, PADDLE_LAUNCH, MIKE_TREE, YARD_SALE, islandLandAt,
@@ -262,47 +264,16 @@ group('canoe');
 
 group('the couch');
 {
-  const tree = MIKE_TREE;
-  // Aimed dead at the trunk from 2.75 m, doing 40 km/h.
-  const shoot = (kmh, sideOffset = 0, back = 2.75) => {
-    const speed = kmh / 3.6;
-    const yaw = 0.7;                              // any heading works
-    const fx = Math.sin(yaw), fz = Math.cos(yaw);
-    const rx = Math.cos(yaw), rz = -Math.sin(yaw);
-    const car = {
-      x: tree.x - fx * back + rx * sideOffset,
-      z: tree.z - fz * back + rz * sideOffset,
-      yaw, vLong: speed,
-    };
-    const launch = couchLaunch(car, tree);
-    return { launch, sim: launch.ok ? couchSim(launch, tree) : null };
-  };
-
-  const at40 = shoot(40);
-  ok(at40.launch.ok, 'a 40 km/h hit launches the couch');
-  ok(at40.sim.stuck, 'and it sticks in the crown');
-  const dCrown = Math.hypot(at40.sim.x - tree.x, at40.sim.y - tree.crownY, at40.sim.z - tree.z);
-  ok(dCrown <= tree.crownR + 1e-9,
-    `landing point is inside the crown (${dCrown.toFixed(2)} m <= ${tree.crownR})`);
-  ok(at40.sim.y > 3.5, 'and it is up in the tree, not on the grass', 'y=' + at40.sim.y.toFixed(2));
-
-  ok(!shoot(34).launch.ok && shoot(34).launch.reason === 'slow', 'under 35 km/h nothing happens');
-  ok(shoot(36).sim.stuck, '36 km/h is enough');
-  ok(!shoot(75).sim.stuck, 'far too fast and it sails clean over');
-  ok(shoot(40, 1.0).sim.stuck, 'a slightly off-centre hit is forgiven');
-  ok(shoot(40, 2.2, 2.0).launch.ok, 'clipping the edge of the trunk still launches it');
-  ok(!shoot(40, 2.2, 2.0).sim.stuck, 'but it spins off sideways onto the lawn');
-  ok(!shoot(40, 0, 6).launch.ok && shoot(40, 0, 6).launch.reason === 'far',
-    'driving past at a distance does nothing');
-
-  // The animated version agrees with the closed-form one and terminates.
-  const fl = new CouchFlight(at40.launch, tree);
-  let steps = 0;
-  while (!fl.done && steps < 1000) { fl.update(1 / 60); steps++; }
-  ok(fl.done, 'CouchFlight terminates');
-  ok(fl.stuck === at40.sim.stuck, 'CouchFlight agrees with couchSim');
-  ok(near(fl.y, at40.sim.y, 1e-9), 'and lands in the same place');
-  ok(COUCH.minKmh === 35, 'the minimum is still 35 km/h');
+  // The TRUE version: lifted in off the truck, not launched (ledger s.1).
+  ok(Math.hypot(LIFT.x - MAPLE_COUCH.x, LIFT.z - MAPLE_COUCH.z) < 0.01, 'the lift spot is straight under where the couch ends up');
+  ok(Math.hypot(LIFT.x - MIKE_TREE.x, LIFT.z - MIKE_TREE.z) > MIKE_TREE.trunkR + 1.2, 'and clear of the trunk, so a truck fits');
+  ok(LIFT.secs >= 2 && LIFT.secs <= 5, `a short hold (${LIFT.secs} s)`);
+  ok(couchInMaple({ done: new Set() }) === false, 'before the job the maple is empty');
+  ok(couchInMaple({ done: new Set(['divan']) }) === true, 'after it, the couch is up there');
+  ok(couchInMaple({ done: new Set(['divan']), mission: { def: { id: 'divan' }, couch: { up: false } } }) === false,
+    'a replay takes it down until you lift it again');
+  ok(couchInMaple({ done: new Set(), mission: { def: { id: 'divan' }, couch: { up: true } } }) === true,
+    'and it is up the moment the lift finishes');
 }
 
 // ---------------------------------------------------------------- 5. props
@@ -474,10 +445,13 @@ group('playthrough: le canot a 45 piasses');
 {
   const G = makeG();
   const def = MISSIONS.find((d) => d.id === 'canot');
+  let repairAt = null;
   const res = play(G, def, (G2, m, st) => {
     if (st.kind === 'buy') { park(G2, PLACES[st.at]); G2.wantStart = true; return; }
     if (st.kind === 'repair') {
-      park(G2, PLACES.beach);
+      // Restructure (29 Sept): the Bondo is done at the marina, not the beach.
+      repairAt = st.at;
+      park(G2, PLACES[st.at]);
       const r = m.repair;
       if (!r || !r.on) { G2.wantStart = true; return; }
       // Tap only when the cursor is actually in the green.
@@ -498,6 +472,7 @@ group('playthrough: le canot a 45 piasses');
   });
   ok(res.done, 'the canoe job completes', res.failed || '');
   ok(res.log.join(',') === 'buy,buy,repair,paddle', 'stages ran in order: ' + res.log.join(','));
+  ok(repairAt === 'marina', 'the Bondo is done at the marina (restructure), got ' + repairAt);
   // 45 for the canoe, 21 for the Bondo, and the gars campé sur l'île gives you
   // 90 for it when you land — every job has to pay something now.
   ok(G.wallet.value === 80 - 45 - 21 + 90, `canoe -45, Bondo -21, sold on the island +90 (left: ${G.wallet.value})`);
@@ -542,7 +517,9 @@ group('playthrough: reveiller Sayyad');
   });
   ok(res.done, 'Sayyad wakes up', res.failed || '');
   ok(res.log.join(',') === 'drive,doughnuts,escape', 'stages: ' + res.log.join(','));
-  ok(G.hud.toasts.some((t) => t.includes('C’EST QUOI CE BRUIT-LÀ')), 'and he says his line');
+  // Canon (Tom, 28 Sept 2026): he sleeps through it, then is suddenly awake
+  // and talking fast; the window line is now his, in franglais.
+  ok(G.hud.toasts.some((t) => t.includes('Sayyad, à la fenêtre') && t.includes('Two minutes')), 'and he says his line');
   ok(G.props.list.filter((p) => p.id.startsWith('job:')).length === 0, 'the lit windows are cleaned up');
   ok(G.wallet.value === 100, `he pays back the 20 $ he owed (${G.wallet.value})`);
 }
@@ -567,49 +544,67 @@ group('playthrough: Sayyad, but you dawdle');
   ok(!res.done && /plaque/.test(res.failed || ''), 'the neighbours call: ' + res.failed);
 }
 
-group('playthrough: le divan de Mike');
-{
-  const G = makeG();
-  const def = MISSIONS.find((d) => d.id === 'divan');
-  const res = play(G, def, (G2, m, st) => {
-    if (st.kind === 'load') { park(G2, PLACES.mike); G2.wantStart = true; return; }
-    if (st.kind === 'couch' && m.couch && m.couch.loaded) {
-      // Line up 2.75 m short of the trunk at 40 km/h.
-      const yaw = 0.8, fx = Math.sin(yaw), fz = Math.cos(yaw);
-      G2.veh.yaw = yaw;
-      G2.veh.x = MIKE_TREE.x - fx * 2.75;
-      G2.veh.z = MIKE_TREE.z - fz * 2.75;
-      G2.veh.vLong = 40 / 3.6;
-    }
-  }, 60 * 120);
-  ok(res.done, 'the couch ends up in the tree', res.failed || '');
-  ok(G.hud.toasts.some((t) => t.includes('OSTIE')), 'Mike is pleased');
-  ok(G.props.list.filter((p) => p.id.startsWith('job:')).length === 0, 'the couch props are cleaned up');
+// Park so the bed (or, on a car with no bed, the roof) is under the fork.
+function parkUnder(G, spot, yaw = 1.2) {
+  const v = G.veh, sp = v.spec;
+  const lz = sp.bed ? -(sp.wheelbase / 2 + (sp.len - sp.wheelbase - sp.overhangF)) + sp.len * (sp.bed[0] + sp.bed[1]) / 2 : -0.15;
+  v.yaw = yaw; v.vLong = 0; v.vLat = 0;
+  v.x = spot.x - Math.sin(yaw) * lz; v.z = spot.z - Math.cos(yaw) * lz;
 }
 
-group('playthrough: three misses and Mike gives up');
-{
+for (const carId of ['saturn', 'ranger']) {
+  group('playthrough: le divan de Mike (' + carId + ')');
   const G = makeG();
+  G.veh.spec = CARS.find((c) => c.id === carId);
   const def = MISSIONS.find((d) => d.id === 'divan');
+  const said = [];
+  G.heckle = { line(who, text) { said.push(who + ': ' + text); return text; } };
+  let held = 0, drove = false, sawBar = false;
+  G.input.down = (...codes) => codes.includes('KeyE') && G.eHeld;
   const res = play(G, def, (G2, m, st) => {
     if (st.kind === 'load') { park(G2, PLACES.mike); G2.wantStart = true; return; }
-    if (st.kind === 'couch' && m.couch) {
-      if (m.couch.loaded) {
-        // Way too fast, and off-centre: it sails over every time.
-        const yaw = 0.8, fx = Math.sin(yaw), fz = Math.cos(yaw);
-        const rx = Math.cos(yaw), rz = -Math.sin(yaw);
-        G2.veh.yaw = yaw;
-        G2.veh.x = MIKE_TREE.x - fx * 2.0 + rx * 2.2;
-        G2.veh.z = MIKE_TREE.z - fz * 2.0 + rz * 2.2;
-        G2.veh.vLong = 40 / 3.6;
-      } else if (m.couch.rest) {
-        // Drive back to it and reload.
-        G2.veh.x = m.couch.rest.x; G2.veh.z = m.couch.rest.z; G2.veh.vLong = 0;
-        G2.wantStart = true;
-      }
+    if (st.kind !== 'lift' || !m.couch) return;
+    // Parked a few metres short first: nothing happens, however long E is held.
+    if (!drove && held < 60) { parkUnder(G2, { x: LIFT.x + 4, z: LIFT.z }); G2.eHeld = true; held++; return; }
+    if (!drove) { ok(m.couch.p === 0, 'holding E short of the spot does nothing'); drove = true; held = 0; }
+    parkUnder(G2, LIFT);
+    // Hold half way, let go, then drive off: it comes back down into the bed.
+    if (held < 90) { G2.eHeld = true; held++; return; }
+    if (held === 90) {
+      ok(m.couch.p > 0.4 && m.couch.rising, `half way up after 1.5 s (${m.couch.p.toFixed(2)})`);
+      G2.veh.vLong = 3; G2.eHeld = true; held++; return;
     }
-  }, 60 * 120);
-  ok(!res.done && /au chemin/.test(res.failed || ''), 'after three tries Mike quits: ' + res.failed);
+    if (held === 91) {
+      ok(m.couch.p === 0 && !m.couch.rising && G2.props.has('job:couch'), 'drive off mid-lift and it drops back on the truck');
+      held++; return;
+    }
+    G2.eHeld = true;
+    if ((G2.hud.prompts[G2.hud.prompts.length - 1] || '').includes('Tiens E')) sawBar = true;
+  }, 60 * 60);
+  ok(res.done, 'the couch ends up in the tree', res.failed || '');
+  ok(res.log.join(',') === 'load,lift', 'stages: ' + res.log.join(','));
+  ok(sawBar, 'the prompt says to hold E, with a bar');
+  ok(said.some((l) => /^Sayyad: /.test(l) && /On three/.test(l)), 'Sayyad counts it off, in English', said.join(' | '));
+  ok(!said.some((l) => /—/.test(l)), 'no em dash in the new lines');
+  ok(/passer l’été/.test(res.m.stages[1].toast), 'and it stays there all summer');
+  ok(G.props.list.filter((p) => p.id.startsWith('job:')).length === 0, 'the couch props are cleaned up');
+  ok(G.wallet.value === 110, `Mike's mother pays 30 $ (${G.wallet.value})`);
+}
+
+group('playthrough: the couch never flies');
+{
+  // Ramming the maple at 40 km/h was the old, false version. Now it does nothing.
+  const G = makeG();
+  const def = MISSIONS.find((d) => d.id === 'divan');
+  G.input.down = () => false;
+  const res = play(G, def, (G2, m, st) => {
+    if (st.kind === 'load') { park(G2, PLACES.mike); G2.wantStart = true; return; }
+    const yaw = 0.8;
+    G2.veh.yaw = yaw; G2.veh.x = MIKE_TREE.x - Math.sin(yaw) * 2.75; G2.veh.z = MIKE_TREE.z - Math.cos(yaw) * 2.75;
+    G2.veh.vLong = 40 / 3.6;
+  }, 60 * 20);
+  ok(!res.done && /ran out of steps at stage 1/.test(res.failed || ''), 'ramming the tree does not finish the job (or fail it)', res.failed);
+  ok(!G.props.list.some((p) => /flying/.test(p.id)), 'and nothing is launched');
 }
 
 group('hud text meters');

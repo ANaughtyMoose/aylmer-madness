@@ -1,36 +1,165 @@
 {
   "dialogue": [
-    { "who": "Zahra", "when": "start", "line": "Mon frère pense qu'il est un génie de la mécanique, mais il a oublié de serrer la moitié des écrous." },
-    { "who": "Zahra", "when": "start", "line": "Si on prend ton pick-up, promets-moi que tu vas pas mettre ta cassette de rap québécois." },
-    { "who": "Zahra", "when": "start", "line": "J'ai besoin que tu viennes chercher des boîtes pour l'école, pis fais pas le tour de la ville pour rien." },
-    { "who": "Zahra", "when": "start", "line": "Monte les vitres, j'veux pas arriver à la marina avec les cheveux pleins de poussière de gravelle." },
-    { "who": "Zahra", "when": "start", "line": "Sayyad m'a dit de te surveiller parce que tu chauffes comme un fermier pressé." },
-    { "who": "Zahra", "when": "start", "line": "Dépêche-toi, le club vidéo ferme dans vingt minutes pis j'ai pas l'intention de payer les retards." },
-    { "who": "Zahra", "when": "start", "line": "Tu sais que ton clignotant gauche clignote deux fois plus vite que le droit? Ton ampoule est morte." },
-    { "who": "Zahra", "when": "start", "line": "J'ai apporté mes propres sangles, parce que tes vieilles cordes à linge jaunes me font honte." },
-    { "who": "Zahra", "when": "start", "line": "On va chercher le stock à mon amie à Deschênes, pis coupe pas par la piste cyclable cette fois." },
-    { "who": "Zahra", "when": "start", "line": "Fais attention aux policiers sur Allumettières, y'en a deux cachés derrière les clôtures de chantier." },
-    { "who": "Zahra", "when": "start", "line": "C'est quoi cette odeur-là dans ta cabine? T'as oublié des frites sous le siège passager?" },
-    { "who": "Zahra", "when": "start", "line": "Embarque, j'ai calculé le trajet le plus court pis c'est pas par le boulevard des Galeries." },
-    { "who": "Zahra", "when": "end", "line": "Pas pire... j'avoue que t'as évité le fossé avec plus de talent que mon frère." },
-    { "who": "Zahra", "when": "end", "line": "Tiens, tes dix piastres pour le gaz. Achète-toi un vrai sapin sent-bon pour le rétroviseur." },
-    { "who": "Zahra", "when": "end", "line": "On est arrivés en un seul morceau, mais mes oreilles bourdonnent encore à cause de ton silencieux." },
-    { "who": "Zahra", "when": "end", "line": "Le stock est intact dans la boîte. J'suis presque impressionnée, mais dis-le pas trop fort." },
-    { "who": "Zahra", "when": "end", "line": "La prochaine fois, apprends à rétrograder en deuxième sans faire grincer les engrenages." },
-    { "who": "Zahra", "when": "end", "line": "Parfait, décharge ça là-bas contre le mur pis essaye de pas renverser la boîte de manuels." },
-    { "who": "Zahra", "when": "end", "line": "J'te donne un 7 sur 10 pour la conduite, mais un 3 sur 10 pour le confort de tes sièges en vinyle." },
-    { "who": "Zahra", "when": "end", "line": "Merci pour le lift. Si Sayyad demande où on était, dis-lui qu'on magasinait des pièces d'auto." },
-    { "who": "Zahra", "when": "end", "line": "T'as réussi à traverser le pont sans te faire coller par la police, c'est presque un miracle." },
-    { "who": "Zahra", "when": "end", "line": "Oublie pas de débarrer le tailgate avant d'essayer de tirer dessus comme un sauvage." },
-    { "who": "Zahra", "when": "end", "line": "On a fini à temps. Tu peux retourner faire le frais avec tes amis au dépanneur." },
-    { "who": "Zahra", "when": "end", "line": "Bonne job. Au moins avec toi, la livraison arrive la même journée." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Sayyad passe trois heures à polir son Civic pour aller faire deux tours du stationnement des Galeries." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Mon frère pense qu'il est dans un film de chars juste parce qu'il a mis un collant sur son pare-brise." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Il prétend que son moteur développe 200 chevaux, mais il est pas capable de monter la côte de l'Auberge sans caler." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Sayyad a dépensé toute sa paye d'été dans un silencieux chromé alors que son plancher est percé par la rouille." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Chaque fois qu'il parle de son « projet de char », ma mère soupire et va arroser ses tomates pour pas crier." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Il dit à tout le monde qu'il a battu la police sur le pont Portage, mais le policier tournait juste pour aller au Tim Hortons." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Si Sayyad mettait autant d'énergie dans ses cours que dans ses changements d'huile, il aurait 100% partout." },
-    { "who": "Zahra", "when": "about-sayyad", "line": "Écoute-le pas quand il te donne des conseils de conduite : il a reculé dans le bac de recyclage de la ville la semaine passée." }
-  ]
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "My brother thinks he's a mechanical genius. He forgot half the bolts."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "If we take your truck, promise me you'll change that tape."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "There's a cat on your hood. Don't start it. Do NOT."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "Sayyad said to watch you. You drive like a rushed farmer."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "The video store closes in twenty minutes. I'm not paying late fees."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "Your left signal blinks twice as fast. The bulb's dead."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "Don't touch the radio. I have nails, and I will use them."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "Wrong way. Shortest is not by the Galeries. Turn around."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "What is that smell in here? Fries under the seat again?"
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "Don't pull out too fast, I have a coffee."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "I brought my own straps. Your yellow clothesline is embarrassing."
+    },
+    {
+      "who": "Zahra",
+      "when": "start",
+      "line": "Cut through the bike path again and I'll tell my mother."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Not bad. You missed the ditch better than my brother does."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Here, ten bucks for gas. Buy a real air freshener."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "We're in one piece. My ears are still ringing from your muffler."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Seven out of ten. Minus one for the pothole. Six."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Next time, learn to downshift without grinding the gears."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Perfect. Unload it by the wall and don't drop the box."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Seven for the driving. Three for your vinyl seats."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Thanks for the lift. If Sayyad asks, we were shopping for parts."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "The corner cat likes me. Just so you know."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Unlock the tailgate before you yank on it like a savage."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "We made it on time. Go show off at the dep."
+    },
+    {
+      "who": "Zahra",
+      "when": "end",
+      "line": "Good job. With you, at least it arrives the same day."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "My brother sleeps until noon, then talks until midnight."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "He has a theory about everything. Everything. Ask him about toast."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "He's polite with my mom and every grown-up. It's suspicious."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "Don't take his driving tips. He has a theory about those too."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "He explained the Mac to our mother. Twice. She nodded twice."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "Honk all you want. He sleeps through everything."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "Every sentence has the word Mac in it. I counted."
+    },
+    {
+      "who": "Zahra",
+      "when": "about-sayyad",
+      "line": "He says the Civic is fast. He also says Macs don't crash."
+    }
+  ],
+  "_": "Zahra's get-in, get-out and about-her-brother lines, merged by story.js applyDialogue. English (Tom, 6 Oct and 20 Oct 2026); rewritten 20 Oct (S1-ENGLISH). Canon: she is 16, Sayyad's sister, loves cats, goes for you with her nails, corrects people (tic « Wrong. »)."
 }

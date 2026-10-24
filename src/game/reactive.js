@@ -10,12 +10,29 @@ import { buildStreetProps, KINDS } from './streetprops.js';
 import { Debris } from './debris.js';
 import { Peds } from './peds.js';
 import { m4 } from '../core/math.js';
+import { style, FRIEND_LINES, LABEL, laneSide } from './style.js';
+import { styleTipsPaying } from './missionkit.js';
+import { friendLines } from './story.js';
+import { heckle } from './heckle.js';
+import { missionNotificationAllowed } from './mission-notifications.js';
 
 const IDENT = m4.identity(m4.create());
+
+// One step's tips as one line: « +12 $ FRÔLÉ x3 », or, when two land in the
+// same step, « +21 $ FRÔLÉ + CONTRESENS x3 ».
+export function tipText(r) {
+  const t = r.toasts;
+  if (t.length === 1) return t[0].text;
+  const kinds = [];
+  for (const x of t) { const l = LABEL[x.kind]; if (l && kinds.indexOf(l) < 0) kinds.push(l); }
+  const mult = t[t.length - 1].text.match(/x(\d)$/);
+  return `+${r.pay} $ ${kinds.join(' + ')}${mult ? ' x' + mult[1] : ''}`;
+}
 
 const STREAK_HOLD = 4.0;      // seconds before a run of smashed props lapses
 const STREAK_AT = [5, 10, 20, 35];
 const SMOKE_EVERY = 0.045;    // seconds between tyre puffs while sliding
+const SMOKE_FROM = 0.30;      // the `squeal` the smoke starts at (S3-RANGER)
 const SCRAPE_EVERY = 3;       // frames between wall-scrape probes
 // The tailpipe. `SOOT_IDLE` is the interval between wisps off a diesel sitting
 // at a light, `SOOT_LOAD` the interval under full load, and both are divided by
@@ -60,6 +77,10 @@ export class Reactive {
     this.el = null;
     this.G = null;
     this.stats = null;
+    // B-03: the style chain (style.js) rides on this tick, after traffic.js
+    // has logged this step's near misses. One instance for the session.
+    this.style = style;
+    this._friendFor = null; this._friend = null;
   }
 
   // The one place G.stats is filled in, so nothing else has to know it exists.
@@ -75,6 +96,60 @@ export class Reactive {
     s.pedsAlive = this.peds.stats.alive;
     s.debris = this.debris.stats.bodies;
     this.stats = s;
+    // Set once, not every frame, so a check that lends the HUD a stand-in
+    // chain for a moment (the B-06 beat) is not overwritten under it.
+    if (!G.style) G.style = this.style;
+    // The wrong-side lookup keeps one list of long edges per road graph; build
+    // it on the first drive frame, not the first time you cross the line at 50.
+    if (G.traffic && this._laneNet !== G.traffic) { this._laneNet = G.traffic; laneSide(G.traffic, 0, 0, 1, 0); }
+  }
+
+  // ---------------------------------------------------------------- style (B-03)
+
+  // Who rides along on this job and has chain lines: the first main-cast
+  // speaker of the job's own start lines (story.js FRIEND_LINES) with a pool
+  // in style.js, and only while somebody is actually in the passenger seat.
+  friendFor(G) {
+    const m = G.mission;
+    const id = m && m.def ? m.def.id : null;
+    if (id !== this._friendFor) {
+      this._friendFor = id;
+      this._friend = null;
+      if (id) for (const [who] of friendLines(id, 'start')) if (FRIEND_LINES[who]) { this._friend = who; break; }
+    }
+    return this._friend && G.veh && G.veh.passengers > 0 ? this._friend : null;
+  }
+
+  // Sense, score, pay and show one step of the chain. Tips go straight into the
+  // wallet and, on a job, onto the job's own ledger as `m.styleTips` (never
+  // `m.paid`: a failed job hands back its pay, not the tips you earned on it).
+  styleStep(dt, G, v) {
+    const traffic = G.traffic;
+    this.style.attach(this.stats);
+    const hb = G.input && typeof G.input.handbrake === 'boolean' ? G.input.handbrake : undefined;
+    const ev = this.style.sense(dt, v, traffic && traffic.nearMisses, traffic && traffic.cars, hb, traffic);
+    const paying = styleTipsPaying(G);
+    const r = this.style.tick(dt, ev, { paying, friend: G.mission ? this.friendFor(G) : null });
+    // Traffic near misses are counted on the chain (G.stats.styleNear), never on
+    // G.stats.nearMiss: that counter is pedestrian grazes, and cops.js reads it
+    // as dangerous driving (code review B-03, major 2). Threading traffic well
+    // must not draw police heat; jumps.js's « frôlé en l'air » keeps its old input.
+    if (r.pay > 0 && G.wallet) {
+      G.wallet.add(r.pay);
+      if (G.mission) G.mission.styleTips = (G.mission.styleTips || 0) + r.pay;
+    }
+    // One toast for the step, in the chain's own slot under the readout
+    // (hud.styleTip, B-06), never the one shared toast slot: a run of near
+    // misses must not queue seconds of tips ahead of stage toasts and the FINI
+    // card (code review B-03, major 1). A tip that pays nothing is not shown;
+    // the readout still says STYLE xN.
+    if (r.pay > 0 && r.toasts.length && missionNotificationAllowed(G, 'stunt')) {
+      const hud = G.hud;
+      if (hud && typeof hud.styleTip === 'function') hud.styleTip(tipText(r), 1100);
+      if (G.audio && G.audio.blip) G.audio.blip(660 + 110 * this.style.mult, 0.06, 'triangle', 0.08);
+    }
+    if (r.friend) heckle.line(r.friend.who, r.friend.line, 3000, { group: 'friend' });
+    this.style.statsInto(this.stats);
   }
 
   // ---------------------------------------------------------------- callbacks
@@ -105,6 +180,7 @@ export class Reactive {
     this.scrapes(dt, G, v);
     this.peds.update(dt, G);
     this.debris.update(dt);
+    this.styleStep(dt, G, v);
 
     if (this.streakT > 0) {
       this.streakT -= dt;
@@ -185,9 +261,11 @@ export class Reactive {
   }
 
   // Tyre smoke: the car already works out how much the tyres are giving up
-  // (`skid`, 0..1), so this only has to put it on the ground behind the rears.
+  // (`squeal`, 0..1, S3-RANGER; `skid` for anything that has no squeal), so
+  // this only has to put it on the ground behind the rears.
   tyres(dt, v) {
-    if (v.skid < 0.30 || Math.abs(v.vLong) < 3) { this.smokeT = 0; return; }
+    const sq = v.squeal != null ? v.squeal : v.skid;
+    if (sq < SMOKE_FROM || Math.hypot(v.vLong, v.vLat || 0) < 3) { this.smokeT = 0; return; }
     this.smokeT -= dt;
     if (this.smokeT > 0) return;
     this.smokeT = SMOKE_EVERY;
@@ -246,6 +324,45 @@ export class Reactive {
     }
   }
 
+  // S3-CRASH: the head-on that fires the crash slow-mo (main.js) is the show.
+  // Sixteen shards off the nose and three or four parts of the car itself (a
+  // panel in its own paint, the bumper, a hubcap or two), thrown sideways and
+  // back off the impact so they tumble in front of the side camera rather
+  // than into the wall. `speed` is the road speed before the hit (m/s): after
+  // it the truck is nearly stopped. Pools are fixed (debris.js), so a show
+  // costs at most 4 bodies and 16 glass slots and allocates nothing.
+  crashShow(v, speed) {
+    if (!v || !v.spec) return 0;
+    const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+    const lx = Math.cos(v.yaw), lz = -Math.sin(v.yaw);   // local +X, the driver's left
+    const nose = v.spec.len * 0.45, y = v.y || 0;
+    const px = v.x + fx * nose, pz = v.z + fz * nose;
+    const sp = Math.min(30, Math.max(8, speed || 0));
+    this.debris.glassBurst(px, y + 0.75, pz, fx * sp * 0.6, fz * sp * 0.6, 16);
+    const hex = v.spec.body;
+    if (hex !== undefined) {
+      if (!this.paint3) this.paint3 = new Float32Array(3);
+      this.paint3[0] = ((hex >> 16) & 255) / 255; this.paint3[1] = ((hex >> 8) & 255) / 255; this.paint3[2] = (hex & 255) / 255;
+    }
+    const parts = Math.random() < 0.5 ? 3 : 4;
+    const kinds = ['panel', 'bumper', 'hubcap', 'hubcap'];
+    let n = 0;
+    for (let i = 0; i < parts; i++) {
+      const k = i % 2 ? -1 : 1;                           // alternate sides
+      const out = 0.55 + Math.random() * 0.35, back = 0.15 + Math.random() * 0.25;
+      const vx = (lx * k * out - fx * back) * sp, vz = (lz * k * out - fz * back) * sp;
+      const b = this.debris.spawn(kinds[i], px + lx * k * 0.6, pz + lz * k * 0.6, vx, vz, y + 0.3);
+      if (!b) continue;
+      if (kinds[i] === 'panel' && hex !== undefined) b.tint = this.paint3;
+      n++;
+    }
+    this.showFrame = this.frame;
+    // Not G.stats (that one is saved): a tally for AYLMER.feel() and the checks.
+    if (!this.show) this.show = { count: 0, parts: 0, glass: 16 };
+    this.show.count++; this.show.parts = n;
+    return n;
+  }
+
   // Sparks: a jump in the damage number is a bang (glass with it if it was a
   // big one), and a wall you are still grinding along keeps throwing them.
   scrapes(dt, G, v) {
@@ -258,7 +375,8 @@ export class Reactive {
       const px = v.x + fx * nose, pz = v.z + fz * nose;
       const n = Math.min(10, 3 + (rise | 0));
       for (let i = 0; i < n; i++) this.debris.spark(px, (v.y || 0) + 0.45, pz, v.vx, v.vz);
-      if (rise > 2.2) this.debris.glassBurst(px, (v.y || 0) + 0.7, pz, v.vx, v.vz, 7);
+      // S3-CRASH: a crash show already threw its glass this frame.
+      if (rise > 2.2 && this.showFrame !== this.frame) this.debris.glassBurst(px, (v.y || 0) + 0.7, pz, v.vx, v.vz, 7);
     }
     if (this.frame % SCRAPE_EVERY) return;
     if (v.speedKmh < 22 || !G.world || !G.world.querySegments) return;
@@ -306,8 +424,16 @@ export class Reactive {
     this.el.style.display = on ? 'block' : 'none';
     if (!on) return;
     const s = this.stats;
-    const txt = `FRÔLÉS ${s.nearMiss}\nCASSÉS ${s.propsSmashed}`
-      + (this.streak > 1 ? `  ×${this.streak}` : '');
+    const st = this.style.hudState();
+    const tips = (G.mission && G.mission.styleTips) || 0;
+    // FRÔLÉS on the panel is every near miss you see: pedestrian grazes
+    // (G.stats.nearMiss) plus the chain's traffic ones (styleNear). Display only.
+    const txt = `FRÔLÉS ${(s.nearMiss || 0) + (s.styleNear || 0)}\nCASSÉS ${s.propsSmashed}`
+      + (this.streak > 1 ? `  ×${this.streak}` : '')
+      // On a job: what the chain paid on it. In free roam the tip line under
+      // the readout shows each payment; the panel keeps only the chain.
+      + (G.mission ? (st.on || tips ? `\nSTYLE ${tips} $${st.on ? `  x${st.mult}` : ''}` : '')
+        : (st.on ? `\nSTYLE x${st.mult}` : ''));
     if (txt !== this._txt) { this.el.textContent = txt; this._txt = txt; }
   }
 

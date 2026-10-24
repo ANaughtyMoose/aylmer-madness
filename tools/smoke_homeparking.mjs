@@ -55,9 +55,37 @@ const saturn=fraserParking(world,PLACES.home,carById('saturn'),1);
 assert.equal(placementReason(world,ranger,carById('ranger')),null);
 assert.equal(placementReason(world,saturn,carById('saturn')),null);
 assert.ok(Math.hypot(ranger.x-saturn.x,ranger.z-saturn.z)>5.5);
-for (let i=0;i<=7;i++) {
- const spot={...ranger,x:ranger.x+Math.sin(ranger.yaw)*i,z:ranger.z+Math.cos(ranger.yaw)*i};
- assert.equal(placementReason(world,spot,carById('ranger')),null,`departure clearance at ${i}m`);
+// Tom backs out of the driveway (6 Oct): the Ranger is parked nose-in, toward the
+// house. Reversing to the street stays clear of the Saturn and every building.
+// (A stray W may tap the Saturn: Tom, 6 Oct, a feature.)
+{
+  const { FRASER } = await import('../src/game/fraser.js');
+  const R=carById('ranger'), S=carById('saturn');
+  // Separating-axis test on two oriented rectangles.
+  const corners=(c,sp)=>{const hw=sp.wid/2,hl=sp.len/2,s=Math.sin(c.yaw),k=Math.cos(c.yaw);
+    return [[-hw,-hl],[hw,-hl],[hw,hl],[-hw,hl]].map(([a,b])=>[c.x+a*k+b*s,c.z-a*s+b*k]);};
+  const overlap=(A,B)=>{
+    for (const P of [A,B]) for (let i=0;i<4;i++){
+      const [x1,z1]=P[i],[x2,z2]=P[(i+1)%4],nx=z2-z1,nz=x1-x2;
+      const pa=A.map(([x,z])=>x*nx+z*nz), pb=B.map(([x,z])=>x*nx+z*nz);
+      if (Math.max(...pa)<Math.min(...pb)||Math.max(...pb)<Math.min(...pa)) return false;
+    }
+    return true;
+  };
+  const fwd=[Math.sin(ranger.yaw),Math.cos(ranger.yaw)];
+  const toHouse=[-Math.sin(FRASER.yaw),-Math.cos(FRASER.yaw)];
+  assert.ok(fwd[0]*toHouse[0]+fwd[1]*toHouse[1]>0.99,'the Ranger is parked nose-in, forward points at the house');
+  assert.ok(!overlap(corners(ranger,R),corners(saturn,S)),'Ranger and Saturn do not overlap at spawn');
+  // Reverse toward the street (i metres backwards), checked while still on the lot.
+  for (let i=0;i<=8;i++){
+    const spot={...ranger,x:ranger.x-fwd[0]*i,z:ranger.z-fwd[1]*i};
+    assert.ok(!overlap(corners(spot,R),corners(saturn,S)),`reversing ${i} m does not touch the Saturn`);
+    assert.ok(!(placementReason(world,spot,R)||'').includes('building'),`reversing ${i} m does not touch a building`);
+  }
+  // A stray W may tap the Saturn (a joke, not a bug), so there is no clearance
+  // assertion forward. The Saturn sits behind the truck, toward the house.
+  const toSat=[saturn.x-ranger.x,saturn.z-ranger.z];
+  assert.ok(toSat[0]*fwd[0]+toSat[1]*fwd[1]>3,'the Saturn is ahead of the nose, up the drive');
 }
 const bike=fraserParking(world,PLACES.home,carById('dbike') || {id:'dbike',wid:0.6,len:1.8},0);
 assert.ok(!world.roadAt(bike.x,bike.z), "Bicycle is off the road");

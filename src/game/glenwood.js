@@ -28,6 +28,8 @@
 // houses.js already lets stand proud of a footprint leave it — eave overhang,
 // front steps, walks and the driveway decal.
 
+import { drapeRot } from './houses.js';
+import {buildPhotoGlenwood} from '../prototype/glenwood-houses.js';
 import { rgb, shade } from '../core/mesh.js';
 import { clamp } from '../core/math.js';
 
@@ -135,6 +137,7 @@ const SPEC = {
 //   side  -1 / +1: which end (local x) gets the carport or porch
 // Returns { height, ridgeHeight, clearance, garage, porch }.
 export function buildGlenwood(mb, variant, ctx) {
+  if(ctx.mats?.prototypeStyle && (!Number.isFinite(ctx.cap)||ctx.cap>=[160,80,48][Math.min(ctx.lod,2)]))return buildPhotoGlenwood(mb,variant,ctx);
   const S = SPEC[variant];
   const { fw, D, side: s, lod, mats, seed } = ctx;
   const y0 = ctx.y0 || 0;
@@ -272,7 +275,8 @@ export function buildGlenwood(mb, variant, ctx) {
       mb.post(p[0], y0, p[2], 0.16, uAt(postX), trim, tanYaw);
     }
     const dc = P(cx, 0, (setback + 2 - D + 0.3) / 2);
-    mb.flatRot(dc[0], dc[2], cw - 0.3, setback + 2 + D - 0.3, y0 + Y_DRIVE, -frontYaw + Math.PI / 2, asphalt);
+    const hb = P(cx, 0, -D);   // the back of the carport stays on the slab's footing
+    drapeRot(mb, dc[0], dc[2], cw - 0.3, setback + 2 + D - 0.3, y0 + Y_DRIVE, -frontYaw + Math.PI / 2, asphalt, ctx.groundAt, hb[0], hb[2]);
     if (variant === 'glenwood_picture' && detail && room(4)) {
       // the privacy screen at the back of the carport in the reference
       const zc = -D * 0.5, pc = shade(0xd2d3cf, 1);
@@ -283,7 +287,8 @@ export function buildGlenwood(mb, variant, ctx) {
   } else if (room(2)) {
     const dx = bFar - s * 1.9;
     const dc = P(dx, 0, (setback + 2 - D * 0.6) / 2);
-    mb.flatRot(dc[0], dc[2], 3.0, setback + 2 + D * 0.6, y0 + Y_DRIVE, -frontYaw + Math.PI / 2, asphalt);
+    const hb = P(dx, 0, -D * 0.6);
+    drapeRot(mb, dc[0], dc[2], 3.0, setback + 2 + D * 0.6, y0 + Y_DRIVE, -frontYaw + Math.PI / 2, asphalt, ctx.groundAt, hb[0], hb[2]);
   }
 
   // ---- entrance: door, steps, railings, walk

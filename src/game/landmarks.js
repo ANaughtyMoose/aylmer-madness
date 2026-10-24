@@ -44,6 +44,7 @@ import { PLACES } from './places.js';
 import { TILES } from './materials_stub.js';
 import { historicSites } from './historicstrip.js';
 import { oldAylmerSites } from './oldaylmer.js';
+import { tagGlass } from './world/glasstag.js';   // s5-reflect
 
 // How far the detailed bake reaches, camera to building centre. Bigger than
 // HOUSE_NEAR (200 m) because a school is 90 m long: at 200 m it still fills a
@@ -108,6 +109,25 @@ function edgeNormals(ring) {
     out.push([(-ez / L) * sg, (ex / L) * sg]);
   }
   return out;
+}
+
+// Where a ray from (cx, cz) along (nx, nz) leaves the ring: the farthest edge
+// crossing, its point and that edge's outward normal. For a builder that has
+// to put a door ON the street wall rather than at a hand-measured offset.
+function ringFace(ring, cx, cz, nx, nz) {
+  const N = edgeNormals(ring), n = ring.length;
+  let best = null;
+  for (let i = 0; i < n; i++) {
+    const a = ring[i], b = ring[(i + 1) % n];
+    const ex = b[0] - a[0], ez = b[1] - a[1];
+    const den = nx * ez - nz * ex;
+    if (Math.abs(den) < 1e-9) continue;
+    const ax = a[0] - cx, az = a[1] - cz;
+    const t = (ax * ez - az * ex) / den, u = (ax * nz - az * nx) / den;
+    if (t > 0 && u >= 0 && u <= 1 && (!best || t > best.t))
+      best = { t, x: cx + nx * t, z: cz + nz * t, nx: N[i][0], nz: N[i][1] };
+  }
+  return best || { t: 0, x: cx, z: cz, nx, nz };
 }
 
 // Mitred offset of a closed ring, `d` metres outward (negative pulls in). The
@@ -177,7 +197,11 @@ function kit(mb, mats, detail, ox, oz) {
   return { mb, mats, detail, ox, oz, seg: null };
 }
 function on(K, name, opts) {
-  K.mats.tile(K.mb, name, { ox: K.ox, oz: K.oz, oy: 0, ...(opts || {}) });
+  // vOffset 1000: the prototype renderer's wall sentinel (see houses.js
+  // matKit): grounding and foundation from the pavement up. Texture phase is
+  // unchanged, and the original renderer never gets it.
+  K.mats.tile(K.mb, name, { ox: K.ox, oz: K.oz, oy: 0,
+    ...(K.mats.prototypeStyle ? { vOffset: 1000 } : null), ...(opts || {}) });
 }
 function off(K) { K.mats.end(K.mb); }
 function tint(K, name, k = 1) { return K.mats.tint(name, k); }
@@ -244,6 +268,7 @@ function wallRow(K, ax, az, bx, bz, nx, nz, y0, y1, rows, spec) {
       mb.vert(...P(o.u1, o.y1, 0.03), nx, 0, nz, hi);
       mb.vert(...P(o.u0, o.y1, 0.03), nx, 0, nz, hi);
       mb.tri(b, b + 1, b + 2); mb.tri(b, b + 2, b + 3);
+      if (!K.mats?.prototypeStyle) tagGlass(mb, b);   // s5-reflect
     }
     if (spec.mat) on(K, spec.mat);
     return;
@@ -285,6 +310,7 @@ function wallRow(K, ax, az, bx, bz, nx, nz, y0, y1, rows, spec) {
     mb.vert(b1[0], b1[1], b1[2], nx, 0, nz, lo);
     mb.vert(b2[0], b2[1], b2[2], nx, 0, nz, hi);
     mb.vert(b3[0], b3[1], b3[2], nx, 0, nz, hi);
+    if (!K.mats?.prototypeStyle) tagGlass(mb, g);   // s5-reflect
     mb.tri(g, g + 1, g + 2); mb.tri(g, g + 2, g + 3);
     const t = 0.05, dd = rd - 0.05;
     // Frosted / spandrel lower panel — the opaque band across the bottom of a
@@ -429,8 +455,16 @@ function drum(K, cx, cz, r, y0, y1, segs, opts = {}) {
     mb.vert(cx + c1 * r, y1, cz + s1 * r, c1, 0, s1, hi);
     mb.vert(cx + c0 * r, y1, cz + s0 * r, c0, 0, s0, hi);
     mb.tri(v, v + 1, v + 2); mb.tri(v, v + 2, v + 3);
-    if (K.seg && i % 2 === 0) {
-      K.seg(cx + c0 * r, cz + s0 * r, cx + Math.cos(a1 + a1 - a0) * r, cz + Math.sin(a1 + a1 - a0) * r);
+  }
+  // Colliders on the glass the near bake draws (s1-hotel, 20 Oct 2026). They
+  // used to be every other chord of THIS call's polygon, and bakeColliders walks
+  // the far kit (9 sides): 80-degree chords standing 2 m inside the glass you
+  // see. One per facet of the 16-sided near drum keeps them within 6 cm of it.
+  if (K.seg) {
+    const cs = Math.max(segs, 16);
+    for (let i = 0; i < cs; i++) {
+      const a0 = (i / cs) * Math.PI * 2, a1 = ((i + 1) / cs) * Math.PI * 2;
+      K.seg(cx + Math.cos(a0) * r, cz + Math.sin(a0) * r, cx + Math.cos(a1) * r, cz + Math.sin(a1) * r);
     }
   }
   const steel = flat(opts.steel || 0x8e9296);
@@ -965,6 +999,29 @@ function buildSymmesInn(K, ring, tris) {
   const sc = tint(K, 'shingle_grey', 0.94);
   mb.roof(AS.cx, EAVE + 0.3, AS.cz + 6, 19.6, 17.2, 4.4, sc, 0, 0.55,
     { onGable: () => { on(K, stone); }, gableCol: st });
+  // The rear wing. Ring 463458618 is an L: behind the front block an 8.3 m
+  // wing runs back to z -73.8, skewed about 0.12 rad off the block, and with
+  // only the front gable its walls rose to the eave with a flat cap on them.
+  // A matching gable (same pitch, ridge down the wing) carries back from the
+  // wing's rear wall and dies into the main roof, so its other end is hidden.
+  {
+    const rear = [-1517.65, -73.35], neck = [-1516.3, -62.1];          // wall midpoints
+    const ax = neck[0] - rear[0], az = neck[1] - rear[1], al = Math.hypot(ax, az);
+    const ux = ax / al, uz = az / al, run = al + 3.5;                    // 3.5 m under the main roof
+    const wcx = rear[0] + ux * run / 2, wcz = rear[1] + uz * run / 2, ww = 8.26;
+    on(K, 'shingle_grey');                       // the main roof's gables left stone armed
+    mb.roof(wcx, EAVE + 0.3, wcz, run, ww, 4.4 * (ww / 2) / 8.6, sc, Math.atan2(-uz, ux), 0.55,
+      { onGable: () => { on(K, stone); }, gableCol: st });
+    off(K);
+    // Soffits: the slopes are one-sided, so from the lawn the overhangs were
+    // see-through and both roofs looked as if they hovered over the walls.
+    const rect = (cx, cz, a, b, ex, ez) => [[cx - ex * a - ez * b, cz - ez * a + ex * b],
+      [cx + ex * a - ez * b, cz + ez * a + ex * b], [cx + ex * a + ez * b, cz + ez * a - ex * b],
+      [cx - ex * a + ez * b, cz - ez * a - ex * b]];
+    const soffit = flat(0xd8d0bf);
+    capDown(mb, rect(AS.cx, AS.cz + 6, 9.8 + 0.55, 8.6 + 0.55, 1, 0), [0, 1, 2, 0, 2, 3], EAVE + 0.3, soffit);
+    capDown(mb, rect(wcx, wcz, run / 2 + 0.55, ww / 2 + 0.55, ux, uz), [0, 1, 2, 0, 2, 3], EAVE + 0.3, soffit);
+  }
   off(K);
   for (const s of [-1, 1]) {
     mb.tower(AS.cx + s * 8.6, EAVE + 0.3, AS.cz + 6, 1.5, 1.1, 4.6, flat(0x9a8b78),
@@ -1007,8 +1064,8 @@ function siteSymmesInn(K) {
 
 // --- E. L'Hôtel British, 71 rue Principale, Vieux-Aylmer -------------------
 // The other stone inn on the old strip, and the one a local names before the
-// church. Rubble limestone, quoined corners, a two-storey wooden gallery across
-// the whole front, twelve-pane sashes, and a swinging sign over the sidewalk.
+// church. Rubble limestone, quoined corners, a bare stone street front with no
+// veranda or gallery (Tom's ruling), sashes, and no blade sign (Tom, 6 Oct).
 const BR = { id: 473653913, cx: -916, cz: -112, yaw: -0.1135 };
 
 function buildBritish(K, ring, tris) {
@@ -1050,24 +1107,65 @@ function buildBritish(K, ring, tris) {
       { yaw: -BR.yaw, noBottom: true });
   }
 
-  // The old pub in Tom's photograph has a bare stone street wall and
-  // a dark recessed entry, without the later-style verandah.
-  mb.panel(BR.cx + nx * 19.95, 1.6, BR.cz + nz * 19.95, 3.1, 3.3, nx, nz, rgb(0x18201d));
-  const sx=BR.cx+tx*10+nx*20.5, sz=BR.cz+tz*10+nz*20.5;
-  mb.box(sx,5.3,sz,2.1,4.2,.22,rgb(0xa74734),{yaw:-BR.yaw+Math.PI/2});
-  mb.box(sx,5.3,sz,1.7,3.8,.25,rgb(0xc5a344),{yaw:-BR.yaw+Math.PI/2});
-  mb.box(sx,5.3,sz,.23,2.5,.3,rgb(0x375a72),{yaw:-BR.yaw+Math.PI/2});
-  // The front door: a dressed stone surround, a transom over it and a pair of
-  // leaves. A 2.2 x 3.0 slab of green paint is not a door.
-  mb.panel(BR.cx + nx * 19.9, 1.66, BR.cz + nz * 19.9, 2.5, 3.4, nx, nz, flat(DRESS, 1.1), null, 0.02);
-  mb.panel(BR.cx + nx * 19.9, 1.32, BR.cz + nz * 19.9, 1.9, 2.5, nx, nz, flat(0x25402f), null, 0.04);
-  mb.panel(BR.cx + nx * 19.9, 2.85, BR.cz + nz * 19.9, 1.9, 0.55, nx, nz, flat(0x3f5a68), null, 0.04);
-  mb.panel(BR.cx + nx * 19.9, 1.32, BR.cz + nz * 19.9, 0.06, 2.4, nx, nz, flat(TRIMC), null, 0.05);
-  steps(K, BR.cx + nx * 23.4, BR.cz + nz * 23.4, nx, nz, 4.0, 3, 0.16, 0.42, DRESS);
-  if (K.detail) {                                   // the swinging sign's bracket
-    const sx = BR.cx + tx * 13.6 + nx * 23.0, sz = BR.cz + tz * 13.6 + nz * 23.0;
-    mb.cyl(sx, 2.9, sz, 0.08, 5.8, 6, flat(0x2b2f31), 'y', false);
-    mb.box(sx + nx * 0.9, 5.4, sz + nz * 0.9, 1.9, 0.08, 0.08, flat(0x2b2f31), { yaw: -BR.yaw + Math.PI / 2 });
+  // No blade sign: Tom's 6 Oct ruling, there never was one on the British.
+  // The front door, on the bare stone street wall of Tom's photograph: a
+  // dressed stone surround, a transom and a pair of leaves in a shallow
+  // recess, three steps down to the lawn. Everything is measured from the
+  // ring's real street face (where the centre's normal ray leaves the ring),
+  // not from a hand offset off BR.cz: 19.9 m put the old door 2.4 m out in
+  // front of the wall, behind a floating 3.1 x 3.3 black slab.
+  // The street front is two nearly collinear OSM edges, and walls() keeps a
+  // 1.7 m margin clear of windows at each end of an edge, so the only
+  // windowless stretch of the front is around their shared vertex: the door
+  // goes there (1.6 m along from the ray), with the two edges' mean normal.
+  let fr = ringFace(ring, BR.cx, BR.cz, nx, nz);
+  {
+    const N = edgeNormals(ring), n = ring.length;
+    let k = -1, kd = 2.5;
+    for (let i = 0; i < n; i++) {
+      const d = Math.hypot(ring[i][0] - fr.x, ring[i][1] - fr.z);
+      if (d < kd) { kd = d; k = i; }
+    }
+    if (k >= 0) {
+      const p = N[(k - 1 + n) % n], q = N[k], mx = p[0] + q[0], mz = p[1] + q[1], ml = Math.hypot(mx, mz) || 1;
+      if (p[0] * q[0] + p[1] * q[1] > 0.95) fr = { x: ring[k][0], z: ring[k][1], nx: mx / ml, nz: mz / ml };
+    }
+  }
+  const fnx = fr.nx, fnz = fr.nz, ftx = fnz, ftz = -fnx;
+  const dX = fr.x, dZ = fr.z, SILL = 0.48;          // top of the third step
+  const jambYaw = Math.atan2(fnx, fnz);
+  // Jambs and lintel stand proud of the wall, so the door reads as set back
+  // into the masonry rather than painted on it.
+  for (const s of [-1, 1]) {
+    mb.box(dX + ftx * s * 1.11, 1.8, dZ + ftz * s * 1.11, 0.28, 3.6, 0.36, flat(DRESS, 1.1), { yaw: jambYaw });
+  }
+  mb.box(dX, 3.75, dZ, 2.5, 0.38, 0.4, flat(DRESS, 1.1), { yaw: jambYaw });
+  // The recess: a dark reveal behind the leaves, then the doors and transom.
+  mb.panel(dX, SILL + 1.5, dZ, 1.94, 3.0, fnx, fnz, flat(0x2a2722), null, 0.02);
+  mb.panel(dX, SILL + 1.2, dZ, 1.8, 2.4, fnx, fnz, flat(0x25402f), null, 0.04);
+  mb.panel(dX, SILL + 2.72, dZ, 1.8, 0.5, fnx, fnz, flat(0x3f5a68), null, 0.04);
+  mb.panel(dX, SILL + 1.2, dZ, 0.06, 2.3, fnx, fnz, flat(TRIMC), null, 0.05);
+  steps(K, dX, dZ, fnx, fnz, 2.6, 3, 0.16, 0.42, DRESS);
+  // A short front walk from the bottom step to the town sidewalk (Tom, 6 Oct):
+  // the same grey as world.js's sidewalk slabs (C.walk), 0.12 m thick, running
+  // along the door normal until it meets the slab's inner edge. The road's
+  // distance is measured from the door to the nearest Rue Principale segment.
+  {
+    let best = Infinity, hw = 5;
+    for (const r of MAP.roads) {
+      if (r.name !== 'Rue Principale') continue;
+      for (let i = 0; i + 1 < r.pts.length; i++) {
+        const ax = r.pts[i][0], az = r.pts[i][1], bx = r.pts[i + 1][0], bz = r.pts[i + 1][1];
+        const ex = bx - ax, ez = bz - az, t = Math.max(0, Math.min(1, ((dX - ax) * ex + (dZ - az) * ez) / (ex * ex + ez * ez || 1)));
+        const d = Math.hypot(dX - (ax + ex * t), dZ - (az + ez * t));
+        if (d < best) { best = d; hw = r.w / 2; }
+      }
+    }
+    const from = 3 * 0.42 - 0.02, to = best - (hw + 0.4);     // bottom tread -> into the slab
+    if (best < 60 && to - from > 1) {
+      const L = to - from;
+      mb.box(dX + fnx * (from + L / 2), 0.06, dZ + fnz * (from + L / 2), 2.6, 0.12, L, flat(0xa9a49a), { yaw: jambYaw });
+    }
   }
   bikeRack(K, BR.cx - tx * 13 + nx * 24, BR.cz - tz * 13 + nz * 24, BR.yaw, 4);
   dumpster(K, BR.cx - nx * 22, BR.cz - nz * 22, BR.yaw, 0x4a4f45);
@@ -1075,7 +1173,6 @@ function buildBritish(K, ring, tris) {
 
 function siteBritish(K) {
   lot(K, -940, -140, 20, 26, BR.yaw, { rows: 2 });
-  K.mb.flatRot(-916, -88, 34, 4.6, 0.035, -BR.yaw, flat(0xb0aa9e));   // the sidewalk
 }
 
 // --- F. La marina d'Aylmer et son phare ------------------------------------
@@ -1086,11 +1183,27 @@ function siteBritish(K) {
 // westward (checked against MAP.water); the only dry ground is the breakwater
 // spit at x -1810..-1795 and the shore wedge at z -36..-24. The phare stands on
 // the spit where the real one does, everything else is on the shore.
-const MA = { cx: -1803, cz: -45 };
-const MA_CAP = { cx: -1740, cz: -32, yaw: 0.16 };
+// Since the marina pass (world.js shapeRiver, terrain.js marinaPads, marina.js)
+// the breakwater is a riprap arm 1.5 m over the water and the basin is cut to
+// -1.8, so the site's one footing no longer fits both buildings: each is lifted
+// to the ground under its own centre (`ground: true`, so that is the pads).
+// The capitainerie moved off the south arm to the east quay, where the aerial
+// has the clubhouse: 10 m back from the quay face, deck toward the water.
+const MA = { cx: -1801, cz: -41 };
+const MA_CAP = { cx: -1684.6, cz: -106.4, yaw: -2.165 };
+
+// Raise the vertices a build added since `from` by dy.
+function liftFrom(mb, from, dy) {
+  if (!dy) return;
+  for (let i = from * STRIDE + 1; i < mb.v.length; i += STRIDE) mb.v[i] += dy;
+}
+function footing(K, x, z) {
+  return K.heightAt ? K.heightAt(x, z) - (K.y0 || 0) : 0;
+}
 
 function buildMarina(K) {
   const mb = K.mb;
+  const lhFrom = mb.vertCount;
   const WHITE = 0xf0ece2, RED = 0xb3352c;
   const segs = K.detail ? 14 : 8;
   const w = flat(WHITE), r = flat(RED);
@@ -1112,48 +1225,55 @@ function buildMarina(K) {
   mb.cyl(MA.cx, 13.6, MA.cz, 1.6, 0.22, segs, flat(0x2b2e31));
   mb.cone(MA.cx, 13.7, MA.cz, 1.45, 1.6, segs, flat(0x2b2e31));
   mb.panel(MA.cx, 1.75, MA.cz + 2.4, 1.0, 2.1, 0, 1, flat(0x2f4436), null, 0.02);
+  liftFrom(mb, lhFrom, footing(K, MA.cx, MA.cz));
+  const capFrom = mb.vertCount;
 
   // ---- la capitainerie: clapboard, green trim, a deck on the water side
   const CY = MA_CAP.yaw, cs = Math.sin(CY), cc = Math.cos(CY);
   const cap = rectRing(MA_CAP.cx, MA_CAP.cz, 13, 8, CY), ct = fanTris(4);
   const rows = [{ y0: 1.1, y1: 2.6, w: 1.2, gap: 1.1, margin: 1.1, mullions: 1, sill: 0.12 }];
-  walls(K, cap, 0.25, 3.5,
-    { mat: 'clapboard_white', tint: tint(K, 'clapboard_white'), rows,
-      jamb: 0x2f5540, reveal: 0.2, bar: WHITE }, (i, L) => (L > 5 ? rows : null));
-  band(K, cap, ct, 0, 0.25, 0.12, 0x8f8b81);
+  // Tom (29 Sep): the capitainerie sat at the water's surface. The real one is
+  // up on the promenade, so it stands on a stone base with steps to the lot.
+  // Since the marina pass the whole building is lifted onto the east quay
+  // (liftFrom below, which already puts it 1.35 m over the water), so the base
+  // only needs to be a low plinth: 0.3 m, not the 1 m it had on the old site.
+  const QY = 0.3;
+  mb.box(MA_CAP.cx, QY / 2, MA_CAP.cz, 15.5, QY, 10.5, flat(0x9c978b), { yaw: -CY, noBottom: true });
+  for (const s of [-1, 1]) {                       // steps down to the lot, south side
+    const sx = MA_CAP.cx - cs * 5.9 + cc * s * 3.5, sz = MA_CAP.cz + cc * 5.9 + cs * s * 3.5;
+    mb.box(sx, QY * 0.33, sz, 2.2, QY * 0.66, 1.2, flat(0x8f8b81), { yaw: -CY, noBottom: true });
+  }
+  const rowsQ = rows.map((r) => ({ ...r, y0: r.y0 + QY, y1: r.y1 + QY }));
+  walls(K, cap, 0.25 + QY, 3.5 + QY,
+    { mat: 'clapboard_white', tint: tint(K, 'clapboard_white'), rows: rowsQ,
+      jamb: 0x2f5540, reveal: 0.2, bar: WHITE }, (i, L) => (L > 5 ? rowsQ : null));
+  band(K, cap, ct, QY, 0.25, 0.12, 0x8f8b81);
   on(K, 'shingle_grey');
-  mb.roof(MA_CAP.cx, 3.5, MA_CAP.cz, 13.6, 8.6, 2.2, tint(K, 'shingle_grey', 0.95), -CY, 0.5,
+  mb.roof(MA_CAP.cx, 3.5 + QY, MA_CAP.cz, 13.6, 8.6, 2.2, tint(K, 'shingle_grey', 0.95), -CY, 0.5,
     { onGable: () => { off(K); }, gableCol: flat(0xe8e2d4) });
   off(K);
   // the deck is on the harbour side, which is north
   const dx = MA_CAP.cx + cs * 5.6, dz = MA_CAP.cz - cc * 5.6;
-  canopy(K, dx, 2.9, dz, 13, 3.2, CY, 0x2f5540, K.detail ? 3 : 0);
-  mb.flatRot(dx, dz, 13, 3.4, 0.42, -CY, flat(0x9a7c58));
-  railing(K, dx - cs * 1.7 - cc * 6.4, 0.42, dz + cc * 1.7 - cs * 6.4,
+  canopy(K, dx, 2.9 + QY, dz, 13, 3.2, CY, 0x2f5540, K.detail ? 3 : 0);
+  mb.flatRot(dx, dz, 13, 3.4, 0.42 + QY, -CY, flat(0x9a7c58));
+  for (let i = 0; i < 4; i++) {                    // the deck's piles
+    const t = -5.5 + i * 3.67;
+    mb.post(dx + cc * t - cs * 1.4, 0, dz + cs * t + cc * 1.4, 0.22, 0.42 + QY, flat(0x6f5b45));
+  }
+  railing(K, dx - cs * 1.7 - cc * 6.4, 0.42 + QY, dz + cc * 1.7 - cs * 6.4,
     dx - cs * 1.7 + cc * 6.4, dz + cc * 1.7 + cs * 6.4, 0.95, 0x2f5540);
 
-  // ---- the piles the docks are tied to, out in the basin, and a picnic table
-  // on the point. They stand in water on purpose: that is what a pile is.
-  for (let i = 0; i < 10; i++) {
-    const a = -0.5 + i * 0.24;
-    mb.cyl(MA_CAP.cx - 22 + Math.cos(a) * 18, 1.1, MA_CAP.cz - 26 + Math.sin(a) * 18,
-      0.16, 2.8, K.detail ? 5 : 4, flat(0x6f5b45), 'y', false);
-  }
-  mb.box(-1786, 0.75, -32, 2.2, 0.08, 0.9, flat(0x9a7c58));
-  if (!K.detail) return;
-  for (const s of [-1, 1]) {
-    mb.box(-1786, 0.42, -32 + s * 0.78, 2.2, 0.07, 0.34, flat(0x9a7c58));
-    mb.post(-1786.9, 0, -32 + s * 0.5, 0.09, 0.75, flat(0x6f5b45));
-    mb.post(-1785.1, 0, -32 + s * 0.5, 0.09, 0.75, flat(0x6f5b45));
-  }
+  // (The piles and the picnic table that stood out in the basin are gone: the
+  // docks are real now, marina.js.)
+  liftFrom(mb, capFrom, footing(K, MA_CAP.cx, MA_CAP.cz));
 }
 
 function siteMarina(K) {
-  K.mb.flatRot(MA.cx, MA.cz, 15, 26, 0.033, 0, flat(0xa8a294));       // the breakwater
-  K.mb.flatRot(-1772, -31, 62, 9, 0.033, 0.06, flat(0xa8a294));        // the causeway out to it
-  lot(K, -1706, -32, 26, 9, 0.06, { rows: 1 });
-  walk(K, -1724, -30, -1748, -30, 2.6, 0xb3ada1);
-  lightStandard(K, -1720, -36, 7, 3.14);
+  // The breakwater's path and the quay are terrain now (terrain.js marinaPads).
+  // A walk from the parking lot to the clubhouse door, and one lamp.
+  const s = Math.sin(MA_CAP.yaw), c = Math.cos(MA_CAP.yaw);
+  walk(K, MA_CAP.cx - s * 4.6, MA_CAP.cz + c * 4.6, MA_CAP.cx - s * 16, MA_CAP.cz + c * 16, 2.2, 0xb3ada1);
+  lightStandard(K, MA_CAP.cx - s * 8 + c * 8, MA_CAP.cz + c * 8 + s * 8, 7, MA_CAP.yaw);
 }
 
 // --- G. 129 avenue Frank-Robinson — chez Mike -----------------------------
@@ -1290,11 +1410,10 @@ function buildCouchMesh(y0 = 0) {
   return mb;
 }
 
-// Whether the couch is in the tree. True by default — it is the aftermath of a
-// thing that happened in 1998, and a player who never touches the side job
-// should still be able to find it. The couch side job can flip this at either
-// end of its own sequence: `world.landmarks.flags.couchInTree = false` before
-// the launch, `= true` once it sticks.
+// Whether the couch is in the tree. True by default here, for the previews and
+// the node suites; in the game economy.js sets it every frame from
+// sidejobs.js couchInMaple(): up once « Le divan de Mike » is done (Tom and
+// Sayyad lifted it in off the truck, and it stayed all summer), empty before.
 export const LANDMARK_FLAGS = { couchInTree: true };
 
 /** The couch mesh, unuploaded — for tools/preview_landmarks.mjs and the tests. */
@@ -1544,12 +1663,10 @@ export const SITES = [
       text: 'AUBERGE SYMMES', sub: 'Musée · 1831', board: '#6a4a1c' } },
   { key: 'british', cx: BR.cx, cz: BR.cz, r: 32, near: HERO_NEAR,
     hide: [{ id: BR.id, at: [BR.cx, BR.cz], keepRing: true }],
-    build: buildBritish, site: siteBritish,
-    sign: { x: BR.cx + 13.6, z: BR.cz + 24.0, yaw: BR.yaw + Math.PI / 2, w: 1.8, h: 1.05, y: 4.3,
-      text: 'HÔTEL BRITISH', sub: '1834', board: '#3a3540' } },
-  { key: 'marina', cx: -1770, cz: -36, r: 60, near: HERO_NEAR,
+    build: buildBritish, site: siteBritish },
+  { key: 'marina', cx: -1684.6, cz: -106.4, r: 132, near: HERO_NEAR, ground: true,
     build: buildMarina, site: siteMarina,
-    sign: { x: -1722, z: -27, yaw: 0.16, w: 4.2, h: 1.2, y: 1.4,
+    sign: { x: -1673.5, z: -114, yaw: -2.165 + Math.PI, w: 4.2, h: 1.2, y: 1.4,
       text: 'MARINA D’AYLMER', sub: 'Capitainerie · Rampe de mise à l’eau', board: '#1d3f6e' } },
   // A house gets no marquee. The street-name post at the corner is in siteMike.
   { key: 'mike', cx: MK.cx, cz: MK.cz, r: 26, near: HERO_NEAR,
@@ -1835,7 +1952,10 @@ function colliderSet() {
         for (let k = 0; k < arr.length; k++) {
           const o = arr[k] * 4;
           let s = pool[n];
-          if (!s) { s = { ax: 0, az: 0, bx: 0, bz: 0 }; pool[n] = s; }
+          // `solid`: a hero wall is opaque at any height. The OSM footprint under
+          // a site is collapsed to a stub, so camclip cannot find one behind
+          // these walls and would otherwise treat them as fences (D1).
+          if (!s) { s = { ax: 0, az: 0, bx: 0, bz: 0, solid: true }; pool[n] = s; }
           s.ax = segs[o]; s.az = segs[o + 1]; s.bx = segs[o + 2]; s.bz = segs[o + 3];
           out.push(s); n++;
         }
@@ -1963,6 +2083,10 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
   for (const s of SITES) {
     const y0 = ground.get(s.key) || 0;
     const b = bakeSite(s, mats, y0, world);
+    // Capture the actual lifted near surfaces before upload releases builders.
+    // The site keeps finite porch, fence and retaining-wall geometry too.
+    world.cameraColliders?.addMesh(b.near, 0, b.near.i.length, `landmark:${s.key}`);
+    world.cameraColliders?.addMesh(b.site, 0, b.site.i.length, `landmark:${s.key}:site`);
     nearT += b.near.i.length / 3; farT += b.far.i.length / 3; siteT += b.site.i.length / 3;
     built.push({
       key: s.key, cx: s.cx, cz: s.cz, cy: y0, r: s.r, near2: s.near * s.near,
@@ -2003,8 +2127,10 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
 
   // ---- draw, after the world so the hero meshes depth-test against it
   const baseDraw = world.draw;
-  const nearOpts = { tex: (mats && mats.tex) || null, fogMul: 1 };
-  const plainOpts = {};
+  // 'building' only names a shader role for the prototype renderer (lit glass
+  // at night); the original renderer ignores it.
+  const nearOpts = { tex: (mats && mats.tex) || null, fogMul: 1, material: 'building' };
+  const plainOpts = { material: 'building' };
   const signOpts = { tex: null };
   const stats = { near: 0, far: 0, tris: 0, draws: 0 };
   world.draw = (r, model, x, z, drawDist, dtSec) => {

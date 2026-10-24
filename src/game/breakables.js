@@ -3,7 +3,10 @@ import { MeshBuilder } from '../core/mesh.js';
 // Retain only this object's vertices, not the whole town chunk. GPU upload is
 // deferred until impact; standing scenery still uses the single chunk draw.
 export function captureFragment(b, first, end, x, y, z) {
-  const ids = new Map(), vertices = [], indices = [];
+  const ids = new Map(), vertices = [], indices = [], uv = [];
+  // UVs ride along when the source has them (the prototype's leaf cards), so a
+  // felled tree keeps its leaves instead of turning into solid squares.
+  const hasUV = b.uv && b.uv.length > 0;
   for (let j = first; j < end; j++) {
     const source = b.i[j];
     if (!ids.has(source)) {
@@ -11,17 +14,22 @@ export function captureFragment(b, first, end, x, y, z) {
       const n = source * 9;
       vertices.push(b.v[n] - x, b.v[n + 1] - y, b.v[n + 2] - z,
         ...b.v.slice(n + 3, n + 9));
+      if (hasUV) uv.push(b.uv[source * 2] || 0, b.uv[source * 2 + 1] || 0);
     }
     indices.push(ids.get(source));
   }
-  return { v: new Float32Array(vertices), i: new Uint16Array(indices) };
+  const out = { v: new Float32Array(vertices), i: new Uint16Array(indices) };
+  if (hasUV && uv.some((q) => q !== 0)) out.uv = new Float32Array(uv);
+  return out;
 }
 
 export function fragmentBuilder(fragment) {
   const b = new MeshBuilder();
   for (let n = 0; n < fragment.v.length; n += 9) {
     const v = fragment.v;
-    b.vert(v[n], v[n+1], v[n+2], v[n+3], v[n+4], v[n+5], v.subarray(n+6,n+9));
+    const k = n / 9;
+    b.vert(v[n], v[n+1], v[n+2], v[n+3], v[n+4], v[n+5], v.subarray(n+6,n+9),
+      fragment.uv ? fragment.uv[k * 2] : 0, fragment.uv ? fragment.uv[k * 2 + 1] : 0);
   }
   b.i = Array.from(fragment.i);
   return b;

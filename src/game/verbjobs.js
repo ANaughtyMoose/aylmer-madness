@@ -1,7 +1,8 @@
-// Wave 3: six jobs that are not deliveries. Each one is a verb from verbs.js
+// Wave 3: five jobs that are not deliveries (six until « dames » was cut by
+// Tom, 6 Oct 2026). Each one is a verb from verbs.js
 // with a real person and a real place on it. The cast is the cast (docs/PLAN.md
 // — never invent a fact about them); Mike alone gets to make a speech.
-import { follow, loseThem, find, fragile, lift, dropoffs } from './verbs.js';
+import { follow, loseThem, find, fragile, dropoffs } from './verbs.js';
 
 // 1 — Keep up with Sayyad. He is going to the beach and he is not waiting.
 const suis = {
@@ -25,33 +26,9 @@ const suis = {
   },
 };
 
-// 2 — La tournée des dames (story.json, vehicleJobs: the Saturn's job). Margaret
-// gets in and talks; you drive her to the church and you listen.
-const dames = {
-  id: 'dames',
-  title: 'La tournée des dames',
-  brief: 'Margaret a le bingo de l’église pis pas de char. Elle parle. Tu conduis.',
-  giver: 'margaret',
-  timeOfDay: 'dusk',
-  build() {
-    return lift({
-      who: 'Margaret', from: 'margaret', to: 'church',
-      pickText: 'Margaret — 299 Chemin Fraser', pickSub: 'Arrête-toi devant, E quand elle est prête',
-      text: 'Église Saint-Paul, rue Principale', sub: 'Doucement sur le W. Elle a son sac de bingo sur les genoux.',
-      pickHint: 'Elle est sur le perron. Recule (S) jusqu’au bord du chemin.',
-      hint: 'Principale, dans le Vieux. Le clocher, tu peux pas le manquer.',
-      lines: [
-        'Ton père a dit que t’avais acheté des jantes. J’ai rien dit.',
-        'À ton âge, ton oncle Denis a vendu sa Duster pour aller à Trois-Rivières. Y est revenu en bus.',
-        'Sayyad, c’est un bon gars. Sa mère s’inquiète, mais c’est un bon gars.',
-        'Tourne pas trop vite, j’ai pas mis ma ceinture. …Bon, là je l’ai mise.',
-        'Tu vas partir en septembre. Je le sais. Tout le monde le sait. C’est correct.',
-      ],
-      money: 30,
-      toast: 'Margaret: « Merci, mon grand. » Elle te laisse dix piasses pour le gaz. +30 $',
-    });
-  },
-};
+// 2: « La tournée des dames » (the bingo lift for Margaret) was here: cut by
+// Tom, 6 Oct 2026. Its id stays in campaign.js RETIRED so an old save that
+// finished it still counts it for nothing.
 
 // 3 — Fragile. A pane of glass from the Canadian Tire to Norm's, for the truck
 // window Sayyad's bat went through. The driving is the job.
@@ -76,25 +53,26 @@ const vitres = {
   },
 };
 
-// 4 — Don't get caught. Mike's dare: get the police on you on purpose, lose
-// them in the streets, then meet at the beach like nothing happened.
+// 4 — Don't get caught. Sayyad's theory (the theories were his, not Mike's:
+// Tom, 28 Sept): get the police on you on purpose, lose them in the streets,
+// then meet at the beach like nothing happened. Mike watches.
 const seme = {
   id: 'seme',
   title: 'Sème-les',
-  brief: 'Mike a une théorie: la police d’Aylmer lâche après deux rues si tu connais les rues. Il veut que tu la testes. Lui, il regarde.',
+  brief: 'Sayyad a une théorie : la police de Gatineau lâche après deux rues si tu connais les rues. Il veut que tu la testes. Mike, lui, regarde.',
   giver: 'mike',
   timeOfDay: 'night',
   build() {
     return loseThem({
-      stars: 2, why: 'le défi de Mike', time: 160, to: 'beach', radius: 18,
+      stars: 2, why: 'la théorie de Sayyad', time: 160, to: 'beach', radius: 18,
       text: 'Sème la police', sub: 'W à fond. Les petites rues, les ruelles, le parc. Pas le chemin d’Aylmer.',
       hint: 'Coupe par Frank-Robinson pis les rues derrière. Hors de vue douze secondes pis y lâchent.',
-      lostToast: 'Y t’ont perdu. Mike va dire que c’est sa théorie qui marche.',
-      thenText: 'Plage des Cèdres — Mike t’attend', thenSub: 'Tranquille sur le W, astheure. T’as rien fait.',
+      lostToast: 'Y t’ont perdu. Sayyad va dire que c’est sa théorie qui marche.',
+      thenText: 'Plage des Cèdres — Sayyad t’attend', thenSub: 'Tranquille sur le W, astheure. T’as rien fait.',
       thenHint: 'La plage, au bout de la rue du Golf.',
       money: 45,
-      toast: 'Mike: « Deux rues. Je te l’avais dit. Je vais écrire quelque chose là-dessus. » +45 $',
-      failWhy: 'Y t’ont eu. Mike dit que c’est pas sa théorie, c’est toi.',
+      toast: 'Sayyad: « Two streets. Je te l’avais dit. » Il parle déjà de la suivante. +45 $',
+      failWhy: 'Y t’ont eu. Sayyad dit que c’est pas sa théorie, c’est toi.',
     });
   },
 };
@@ -125,19 +103,22 @@ const sunfire = {
 const quatre = {
   id: 'quatre',
   title: 'Quatre à ramener',
-  brief: 'Fin de veillée chez Mike. Sayyad, Margaret, Adam pis Tyler dans le truck. Ramène-les, dans l’ordre que tu veux.',
+  // Margaret never rode with the gang (ledger s.0); Abraham takes her seat and
+  // is dropped at his own house, 841 Wilfrid-Lavigne.
+  brief: 'Fin de veillée chez Mike. Sayyad, Abraham, Adam pis Tyler dans le truck. Ramène-les, dans l’ordre que tu veux.',
   giver: 'mike',
   timeOfDay: 'night',
   build() {
     return [dropoffs({
       text: 'Ramène tout le monde', sub: 'Dans l’ordre que tu veux. Arrête-toi (S) devant chez eux.',
-      hint: 'Sayyad sur Denise-Friend, Margaret chez vous, Adam au quai de la marina, Tyler sur la Principale — elle marche le reste.',
+      hint: 'Sayyad sur Denise-Friend, Abraham sur Wilfrid-Lavigne, Adam au quai de la marina, Tyler sur la Principale, qui marche le reste.',
       time: 600,
       stops: [
-        { who: 'Sayyad', at: 'sayyad', line: 'Sayyad: « Demain. Le pont. Fais-toi pas prendre. »' },
-        { who: 'Margaret', at: 'margaret', line: 'Margaret: « T’as vu l’heure? …Non, c’est correct. Bonne nuit. »' },
-        { who: 'Adam', at: 'marina', line: 'Adam: « Mon père vient me chercher au quai. Dis-y rien. »' },
-        { who: 'Tyler', at: 'principale', line: 'Tyler: « Ma tante dort. Je rentre par en arrière. Merci. »' },
+        // `who` is the bubble's name tag, so the line carries no « Name: ».
+        { who: 'Sayyad', at: 'sayyad', line: '« Demain. Le pont. Fais-toi pas prendre. »' },
+        { who: 'Abraham', at: 'abraham', line: '« Thanks, man. Ma guitare est dans ta boîte? ...Non. OK. »' },
+        { who: 'Adam', at: 'marina', line: '« Mon père vient me chercher au quai. Dis-y rien. »' },
+        { who: 'Tyler', at: 'principale', line: '« Je rentre par en arrière. Thanks, man. »' },
       ],
       money: 40,
       toast: 'Mike, au téléphone: « Tout le monde est rentré? Bon. Tu sais ce que ça veut dire, ça? Ça veut dire que t’es le gars qui a le char. Pis le gars qui a le char, c’est lui qui décide quand la soirée finit. Pense à ça. » +40 $',
@@ -146,4 +127,4 @@ const quatre = {
   },
 };
 
-export const VERB_MISSIONS = [suis, dames, vitres, seme, sunfire, quatre];
+export const VERB_MISSIONS = [suis, vitres, seme, sunfire, quatre];

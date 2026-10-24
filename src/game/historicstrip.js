@@ -50,13 +50,15 @@ export function historicSites({rectRing,walls,lot,lightStandard}) {
       for(const dx of [-7,7]){
         box(K,x+dx,.16,z,2.3,.3,9,0xb7b7ac);
         for(const dz of [-2.5,2.5]){box(K,x+dx,1,z+dz,.9,1.6,.6,color);box(K,x+dx,1.35,z+dz+.32,.7,.6,.05,0x222a2c);}
-        if(K.seg)K.seg(x+dx,z-4.5,x+dx,z+4.5);
+        // The island's outline, not its centreline: the kerb is 2.3 m wide (s1-hotel, 20 Oct 2026).
+        if(K.seg){const a=x+dx-1.15,b=x+dx+1.15,c=z-4.5,d=z+4.5;K.seg(a,c,b,c);K.seg(b,c,b,d);K.seg(b,d,a,d);K.seg(a,d,a,c);}
       }
     },parking(x,z+1,40,34),[sign(x,z+6.2,19,name,board,4.05,0,.6),sign(x,z-16.8,16,key==='ultramar'?'Couche-Tard':name,board,2.6,0,.7)]);
   }
   station('esso',429,-231,[291696840],'ESSO',0xad3034,'#ab3034');
   station('ultramar',244,-215,[693950401],'Ultramar',0x254583,'#234c91');
   add('iga',177,-308,[693953703],K=>shop(K,177,-308,48,37,6.4,0xa39c8a,0,0xb9a082),parking(174,-274,42,23),[sign(177,-288.8,12,'IGA','#ad302d',4.4,0,1.3)]);
+  // Tom, 6 Oct 2026: the Principale Tim Hortons had NO drive-thru in 2004. Do not add a window lane, menu board or queue lane here.
   add('timhortons',-243,-181,[94173715],K=>{
     shop(K,-243,-181,11,28,3.5,0x9f4633,0,0xc0b7a0);
     box(K,-243,5.3,-181,13,3.6,30,0xa44430,{wTop:.8,dTop:18});

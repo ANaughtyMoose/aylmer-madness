@@ -159,7 +159,7 @@ const ECHO = [
   [/FIREBIRD TRANS AM/, 'Y en a un en ville, un vrai. Il est pas à vendre, celui-là.'],
   [/EX AUTO DE POLICE/, 'La Ville a vendu la sienne à l’encan. Pas celle-là.'],
   [/FORD RANGER .* POUR PIECES/, 'C’est le tien, en morceaux, dans la cour de quelqu’un d’autre.'],
-  [/SATURN SL2/, 'Margaret a la même en SL. Elle la vendra jamais.'],
+  [/SATURN SL2/, 'Margaret a la même marque, en coupé SC2. Elle la vendra jamais.'],
   [/OLDSMOBILE CUTLASS SUPREME/, 'Pas la même que celle du lot. Celle-là a un V8.'],
 ];
 

@@ -1,49 +1,69 @@
 {
+  "_": "Only `title` is shown in the game (applyArcText); `emotionalNote` lands on def.note and is not displayed. Canon: docs/STORY-LEDGER.md (28 Sept 2026) and docs/STORY-REBUILD.md. Tom owns the Ranger from the start (a gift from his father, who did not live at 299 Fraser). Margaret is his mother and never rides with the gang.",
   "arc": [
     {
       "beat": "prologue",
       "title": "Le Ranger rend service",
-      "what": "School ends. Tom owns the 1993 Ford Ranger and pays for most of its upkeep. He helps the family and neighbours while saving for repairs and university. He meets the crew at the dépanneur on Chemin d'Aylmer and the summer opens with the feeling that it will never end.",
-      "who": ["Player", "Ton père", "Sayyad", "Margaret", "Adam"],
-      "where": "299 Chemin Fraser driveway; the dépanneur on Chemin d'Aylmer; the Aylmer marina at dusk",
-      "playerDoes": "Drives the Ranger for the first time, runs an easy delivery of lawn tools, and cruises down to the marina to meet everyone.",
-      "emotionalNote": "The naive optimism of late June, when two months feels like forever."
+      "what": "RETIRED in the restructure (29 Sept 2026): never offered; kept for old saves. Tom already owns the 1993 Ford Ranger, a gift from his father, and pays for its gas and most of its parts. His mother asks for a favour (the mower to the church), and the summer opens at the dep and the marina with the gang.",
+      "who": [
+        "Player",
+        "Margaret",
+        "Sayyad",
+        "Mike"
+      ],
+      "where": "299 Chemin Fraser driveway; Saint-Paul; the Dépanneur Palmyra; the Aylmer marina",
+      "playerDoes": "A first run of favours with his own truck, then down to the marina to meet everyone.",
+      "emotionalNote": "Two months feels like forever."
     },
     {
       "beat": "turn1",
-      "title": "La bâche bleue",
-      "what": "Late June into July. The town is setting up for the Saint-Jean and Canada Day. The player becomes the unofficial logistics for everyone in Aylmer — speakers, picnic tables, coolers, all of it to Plage des Cèdres. Sayyad starts needling him about his driving and sets up friendly late-night time trials on the empty stretches of Boulevard Lucerne.",
-      "who": ["Player", "Sayyad", "Zahra"],
-      "where": "Plage des Cèdres; Boulevard Lucerne; the Galeries d'Aylmer parking lot",
-      "playerDoes": "Hauls fragile speakers across town without breaking them, then races Sayyad's Civic in an impromptu midnight sprint along the river.",
-      "emotionalNote": "Peak July. Warm air, loud music, a truck bed full of friends, and something to prove."
-    },
-    {
-      "beat": "turn2",
-      "title": "La surchauffe du pont",
-      "what": "Mid-July heat wave. During afternoon rush hour, hauling an absurd sofa across the Champlain Bridge, the Ranger blows a radiator hose and strands everyone mid-span in front of a hundred honking commuters. Norm Lafleur tows it to his garage and gives the player a flat, unsentimental lecture about maintenance, money, and what it costs to keep a thing running.",
-      "who": ["Player", "Zahra", "Norm Lafleur"],
-      "where": "The Champlain Bridge span; Garage Lafleur on Chemin d'Aylmer",
-      "playerDoes": "Watches the temperature gauge, coasts the steaming truck onto the shoulder, and takes on three quick jobs across Hull to pay Norm for the parts.",
-      "emotionalNote": "Humiliation turning into resolve. Freedom has a bill attached and it just came due."
+      "title": "La Saint-Jean",
+      "what": "Main mission 3. The Saint-Jean at the beach, with Aylmer's big bonfire (very real, Tom 28 Sept); what happens at it is the game's. The summer starts on 22 June so the night of the 24th is in it; played later, the job is 'Le feu à la plage' and does not claim the date.",
+      "who": [
+        "Player",
+        "Sayyad",
+        "Zahra"
+      ],
+      "where": "The Galeries d'Aylmer lot; Plage des Cèdres; 75 Denise-Friend",
+      "playerDoes": "Hauls fragile speakers to the beach without breaking them, picks up Sayyad and Zahra, and parks by the fire at dusk.",
+      "emotionalNote": "The whole town in one place. Peak belonging."
     },
     {
       "beat": "turn3",
       "title": "La dernière veillée",
-      "what": "Early August. Acceptance letters have arrived and two of the crew announce they are leaving for Montreal and Toronto in three weeks. Everyone organises one big convoy across all four Ottawa River bridges, ending with takeout eaten on the tailgates at Nepean Point with Parliament lit up across the water.",
-      "who": ["Player", "Sayyad", "Zahra", "Mike McDonald", "Margaret", "Adam"],
-      "where": "The river parkway; Nepean Point; the ByWard Market",
-      "playerDoes": "Leads a five-car convoy through downtown Ottawa and wins a last checkpoint race against Sayyad with nothing riding on it.",
-      "emotionalNote": "The ache underneath late summer. Everyone is quietly getting ready to leave."
+      "what": "RETIRED in the restructure (29 Sept 2026): never offered; kept for old saves. OPEN DECISION (docs/STORY-REBUILD.md). One truck, three bridges, no reason, Parliament across the water. Nobody leaving and no letters: those did not happen.",
+      "who": [
+        "Player",
+        "Mike",
+        "Sayyad",
+        "Adam",
+        "Zahra"
+      ],
+      "where": "The Champlain, the Chaudière and the Alexandra",
+      "playerDoes": "Drives the gang over three bridges with no clock.",
+      "emotionalNote": "Nobody says anything for a while."
     },
     {
       "beat": "epilogue",
-      "title": "Le dernier voyage",
-      "what": "Late August, first cold morning. The player helps his closest friend load the last boxes into the truck bed, drops him at the bus depot, and takes one slow solitary lap down rue Principale. Then he parks the Ranger back in the driveway, washes the windshield with the garden hose, and puts the keys on the kitchen counter beside his father's coffee mug.",
-      "who": ["Player", "Mike McDonald", "Ton père"],
-      "where": "Rue Principale; the bus depot in Hull; 299 Chemin Fraser",
-      "playerDoes": "A quiet move with no timer, no police and no rivals, then parks the truck cleanly between the driveway lines.",
-      "emotionalNote": "The town is still there. You are not the same kid who took the keys in June."
+      "title": "Le dernier soir",
+      "what": "Finale. Labour Day night, untimed. Each main mission's place holds one small callback (the couch still in the tree); friends are where they would be, one line each, and nobody says goodbye. The landline rings at 299 Fraser: Dad, excited, 'So? Ottawa or McGill?'. On the kitchen table, next to Tom's Heritage nanotech project, a University of Waterloo brochure: a new program, Nanotechnology Engineering (timing a composite). Tom picks it up.",
+      "who": [
+        "Player",
+        "Margaret",
+        "Dad (landline)",
+        "Sayyad",
+        "Zahra",
+        "Mike",
+        "Adam",
+        "Alex",
+        "Robin",
+        "Abraham",
+        "Tyler",
+        "Russell"
+      ],
+      "where": "Anywhere in Aylmer; 299 Chemin Fraser",
+      "playerDoes": "A free drive with no timer, no police and no rivals; answers the phone; picks up the brochure.",
+      "emotionalNote": "The more you love it, the more you have to leave."
     }
   ]
 }

@@ -38,6 +38,7 @@ import { clamp, angleDelta } from '../core/math.js';
 // The written copy: jump names by index into assets/text/racing.json's `jumps`
 // list, and the stunt callouts. See racingtext.js.
 import { writtenName, callout, line as textLine } from './racingtext.js';
+import { missionNotificationAllowed, crashShowQuiet } from './mission-notifications.js';
 
 const G_ACC = 9.81;
 
@@ -60,8 +61,15 @@ export function predictAir(slope, speed, drop = 0) {
 //   H,run   the lip height and the length of the climb: slope = H / run
 //   rx,rz   crest radii instead
 //   entry   where the beaten track leaves the pavement, ~110 m short
-//   from    a run-up point on the pavement, ~230 m short
-//   kmh     the speed it is built for
+//   from    a run-up point on the pavement, 160 to 340 m short, with a clear
+//           line to `entry` (or along `path`)
+//   path    optional: the bot's run-up after `from`, ending on the ramp's own
+//           line, when the straight line to `entry` is blocked (harness, probe)
+//   kmh     the speed it is built for, and since S3-JUMPS (20 Oct) the speed
+//           a fresh Ranger really reaches from `from` at full throttle, so the
+//           air jumpAir() promises is the air it gets, within 15 %
+//           (tools/probe_jumps.mjs; docs/qa/rf/S3-JUMPS.md). The old values
+//           (80 to 110) were 20 to 40 km/h above anything the truck reaches.
 //   text    its index in assets/text/racing.json's `jumps`, where the written
 //           list has a name for the thing that is actually here. Six of the
 //           eleven have no such entry — a name off a list that describes a
@@ -72,15 +80,51 @@ export const JUMPS = [
     where: 'chemin d’Aylmer, le 950',
     // Somebody is rebuilding the culvert at the 950 block and the fill ramp is
     // still up on the north verge: seven metres of gravel to a 2.9 m lip,
-    // pointing east down the straightest, fastest road in Aylmer. The big one.
+    // pointing east down the straightest, fastest road in Aylmer.
     type: 'ramp', x: 952.7, z: -279.3, yaw: 1.6795,
     H: 2.9, run: 7, hw: 8, hl: 1.0, kind: 'gravel', side: 'dirt',
-    entry: [845.1, -264.9], from: [725.5, -240.2], kmh: 100,
+    entry: [845.1, -264.9], from: [725.5, -240.2], kmh: 70,
     // ...and the spoil they dug out of it, sitting on the same line.
     extras: [{
       id: 'jChantierPile', type: 'mound', kind: 'dirt', side: 'grass',
       cx: 905, cz: -275.6, rx: 8, rz: 6.5, H: 1.3, flat: 0.12,
     }],
+  },
+  {
+    id: 'garnotte', name: 'La rampe de garnotte',
+    where: 'chemin d’Aylmer, à l’ouest de Fraser',
+    // The culvert crew at the 950 block dumps its spare gravel a little west of
+    // Fraser, and this summer the pile is a hump right across chemin d’Aylmer,
+    // both lanes, steep on the east face. It is the first ramp of the summer on
+    // purpose (refine A-07): L'alternateur's GPS line runs straight over the
+    // lip (B-04: it sat 14 m off the line on the verge and the bot never hit
+    // it), 63 m past the corner off Fraser, so a new driver who follows blue at
+    // 60 to 70 km/h flies inside forty seconds of the driveway. It is not
+    // further west because a ramp between x 655 and 802 sits on smoke_jumps'
+    // two-minute washboard drive, which has to stay 70 m from every ramp.
+    //
+    // It sits on a two-way road, so it has no cliffs, and it is a `prof` (a
+    // piecewise profile along the jump's axis) rather than the usual wedge:
+    //   * the foot is curved in three steps (slope 0.17, 0.34, 0.50). A plain
+    //     wedge this steep is a 8.7 m/s jolt at its foot at 60 km/h: cars.js
+    //     reads it as a landing (drop over LAND_SAFE costs damage, impact over
+    //     0.6 fires main.js's crash slow-mo), and the crash slow-mo's cooldown
+    //     then swallows the jump slow-mo in the air. Each step here is under
+    //     3.4 m/s at 70 km/h: no damage, impact under 0.25.
+    //   * a metre of flat top, then a 15 m west face: an eastbound truck on
+    //     the way home rides up it and hops off the steep side, which is when
+    //     the box on the bench falls.
+    //   * the sides feather over a 2.5 m skirt.
+    // The road itself is the run-up, so no beaten track is painted over the
+    // asphalt (noTrack). Invented fill like the chantier; C-03 replaces it if
+    // Tom names a real spot (D27).
+    // S3-JUMPS re-land (20 Oct): `from` is 74 m short, where a fresh Ranger
+    // reaches the 70 it is built for (from the old 119 m it took off at 87).
+    // Proof: tools/review/beats/B-04.mjs, a placed truck on the GPS line.
+    type: 'ramp', x: 806.0, z: -248.5, yaw: -1.4677,
+    H: 2.6, run: 5.2, hw: 8, hl: 1.0, kind: 'gravel', side: 'gravel',
+    prof: [-6.7, 0, -5.2, 0.255, -3.6, 0.8, 0, 2.6, 1.0, 2.6, 16, 0], skirt: 2.5,
+    entry: [865.7, -255.1], from: [880.0, -256.6], kmh: 70, noTrack: true,
   },
   {
     id: 'buttesymmes', name: 'La butte du bord de l’eau',
@@ -90,7 +134,7 @@ export const JUMPS = [
     // is sixteen metres off the centreline, so you see it on every single lap.
     type: 'crest', x: -1603.9, z: -133.7, yaw: -2.5168,
     H: 2.4, rx: 10, rz: 10, kind: 'grass', side: 'grass',
-    entry: [-1553.6, -37.1], from: [-1466.7, 52.1], kmh: 80,
+    entry: [-1553.6, -37.1], from: [-1473.7, -33.6], kmh: 65,
   },
   {
     id: 'quaimarina', text: 27, name: 'Le Talus du Canot',
@@ -101,7 +145,7 @@ export const JUMPS = [
     // Outaouais; this is the version of the same idea you can actually land.
     type: 'ramp', x: -1660.6, z: -213.7, yaw: -2.3815,
     H: 2.9, run: 6, hw: 7, hl: 1.0, kind: 'gravel', side: 'gravel',
-    entry: [-1584.5, -134.2], from: [-1500.2, -30.8], kmh: 75,
+    entry: [-1584.5, -134.2], from: [-1487.7, -63.2], kmh: 70,
   },
   {
     id: 'dunecedres', text: 5, name: 'L’Envolée des Cèdres',
@@ -113,7 +157,7 @@ export const JUMPS = [
     // wrong, and the only one with Lac Deschênes sixty metres past the landing.
     type: 'crest', x: -1910, z: -426, yaw: -1.4289,
     H: 2.7, rx: 12, rz: 11, kind: 'dirt', side: 'sand',
-    entry: [-1799.1, -441.7], from: [-1681.4, -448.3], kmh: 70, runout: 48,
+    entry: [-1799.1, -441.7], from: [-1754.0, -444.0], kmh: 70, runout: 48,
   },
   {
     id: 'cineparc', name: 'Le vieux ciné-parc',
@@ -123,7 +167,7 @@ export const JUMPS = [
     // getting taller: take the first one at speed and you can string all three.
     type: 'ramp', x: -161.8, z: 678.6, yaw: 1.1563,
     H: 1.8, run: 5.2, hw: 11, hl: 0.9, kind: 'grass', side: 'grass',
-    entry: [-257.2, 622.3], from: [-367.5, 574.3], kmh: 85, chain: 3,
+    entry: [-257.2, 622.3], from: [-367.5, 574.3], kmh: 70, chain: 3,
     extras: [
       {
         id: 'jCineB', type: 'pad', kind: 'grass', side: 'grass',
@@ -142,17 +186,18 @@ export const JUMPS = [
     // salt shed door used to be. Southbound Vanier is two kilometres of run-up.
     type: 'ramp', x: 2207.2, z: -1203.4, yaw: -3.0443,
     H: 2.7, run: 7.5, hw: 8, hl: 1.2, kind: 'gravel', side: 'gravel',
-    entry: [2234.1, -1095.6], from: [2245.6, -976.0], kmh: 95,
+    entry: [2234.1, -1095.6], from: [2249.5, -876.1], kmh: 95,
   },
   {
     id: 'eardley', text: 14, name: 'Le Saut du Ponceau',
     where: 'chemin Eardley',
     // Where the road crosses the old drumlin. The city shaved the road flat and
     // left both ends of the hill standing in the ditch. Two-way, and Eardley is
-    // the fastest road out of town.
+    // the fastest road out of town. S3-JUMPS: 3.3 m (was 2.7), so the 80 the
+    // truck brings over it is still a flight and not a hop.
     type: 'crest', x: -1849.8, z: -1135.5, yaw: -2.2485,
-    H: 2.7, rx: 11, rz: 11, kind: 'grass', side: 'grass',
-    entry: [-1773.2, -1054.9], from: [-1680.9, -979.4], kmh: 90,
+    H: 3.3, rx: 11, rz: 11, kind: 'grass', side: 'grass',
+    entry: [-1773.2, -1054.9], from: [-1630.8, -929.1], kmh: 80,
   },
   {
     id: 'lavigne', name: 'Le remblai de Wilfrid-Lavigne',
@@ -161,7 +206,7 @@ export const JUMPS = [
     // service road was going to go. The gap is a ramp now.
     type: 'ramp', x: -145.5, z: -550.7, yaw: -0.1320,
     H: 2.6, run: 7, hw: 7, hl: 1.0, kind: 'dirt', side: 'grass',
-    entry: [-130.5, -655.0], from: [-82.5, -781.9], kmh: 90,
+    entry: [-130.5, -655.0], from: [-185.5, -836.9], kmh: 70,
   },
   {
     id: 'arena', name: 'Le tremplin de terre',
@@ -171,7 +216,7 @@ export const JUMPS = [
     // over with the neighbour's bobcat, and it is a different sport.
     type: 'ramp', x: -922.0, z: 336.8, yaw: 1.2245,
     H: 2.6, run: 6.5, hw: 7, hl: 1.0, kind: 'dirt', side: 'dirt',
-    entry: [-1037.0, 316.8], from: [-1124.0, 257.5], kmh: 80,
+    entry: [-1037.0, 316.8], from: [-1129.4, 234.8], path: [[-1030, 302], [-990, 312]], kmh: 80,
   },
   {
     id: 'railkick', text: 1, name: 'Le Talus du CP',
@@ -184,7 +229,7 @@ export const JUMPS = [
     // no track: the spine IS the track.
     type: 'ramp', x: 1400, z: -488, yaw: 1.740,
     H: 3.3, run: 9, hw: 6.5, hl: 1.0, kind: 'gravel', side: 'grass',
-    entry: [1341, -478], from: [1242, -461], kmh: 100, noTrack: true,
+    entry: [1341, -478], from: [1150, -445.1], kmh: 75, noTrack: true,
   },
   {
     id: 'hull', text: 17, name: 'Le Tremplin de Chantier',
@@ -192,9 +237,11 @@ export const JUMPS = [
     // The 148 was still being widened in 2004 and the contractor's haul ramp is
     // parked on the north shoulder east of the Casino turnoff. Fifteen metres of
     // trunk road to line it up on, and nothing whatsoever in the way after.
+    // The big one: S3-JUMPS made it 4.4 m on 8.2 (was 3.2 on 7.5) so it still
+    // gives the set its two-second-plus flight at the 75 the truck really has.
     type: 'ramp', x: 7959.3, z: -4232.4, yaw: 1.3826,
-    H: 3.2, run: 7.5, hw: 8, hl: 1.2, kind: 'gravel', side: 'dirt',
-    entry: [7839.4, -4255.3], from: [7724.0, -4282.8], kmh: 110,
+    H: 4.4, run: 8.2, hw: 8, hl: 1.2, kind: 'gravel', side: 'dirt',
+    entry: [7839.4, -4255.3], from: [7622.2, -4220.2], kmh: 75,
   },
 ];
 
@@ -231,6 +278,13 @@ function buildFeatures(list = JUMPS) {
       out.push({
         id: 'j_' + j.id, type: 'mound', kind: j.kind, side: j.side,
         cx: j.x, cz: j.z, rx: j.rx, rz: j.rz, H: j.H, flat: 0.10,
+      });
+    } else if (j.prof) {
+      // A ramp with its own profile along the axis (w metres from the lip,
+      // height), as terrain.js's `prof`: garnotte's curved foot.
+      out.push({
+        id: 'j_' + j.id, type: 'prof', kind: j.kind, side: j.side,
+        cx: j.x, cz: j.z, yaw: j.yaw, hw: j.hw, skirt: j.skirt || 0, prof: j.prof,
       });
     } else {
       out.push({
@@ -303,26 +357,37 @@ export const AIR = {
   // prices a jump by how big it IS: `airBase` is what one flat second of air
   // is worth, and every doubling of the airtime is worth sixteen times more.
   //
-  //     0.8 s   a kerb at speed            $1
-  //     1.0 s   a good kerb-to-kerb hop    $2
-  //     1.6 s   the ciné-parc berms        $16
-  //     2.5 s   the chantier ramp          $95
-  //     2.8 s   the 148, flat out          $150
-  //
-  // Against a $450 Kijiji beater and a $520 exhaust, that is the right shape:
-  // the ramps are worth driving to and the kerbs are worth nothing.
-  airBase: 2.44,
+  // 29 Sept (progression review P4): at 2.44 a clean chantier paid $84 and the
+  // eleven ramps $520, so one ramp a minute out-earned the whole campaign. At
+  // 0.5, with full pay once per ramp per game day (below), a clean chantier is
+  // about $25 and the most the eleven can pay in one day is about $230.
+  airBase: 0.5,
   airPow: 4,
   perMetre: 0.20,      // ...per metre of it
   cleanBonus: 6,       // ...for putting it down straight
+  floorAir: 1.5,       // a clean ramp landing after this much air...
+  floorPay: 10,        // ...pays at least this, before the chain and the decay
   nearMissBonus: 3,    // ...per thing you nearly hit on the way over
   // Distance, the clean bonus and the near misses are all scaled by `bigness`
   // below. A kerb hop past a hydro pole is not worth three dollars for the
   // pole, and it is not worth six for landing the way a kerb hop always lands.
-  // A ramp pays less the third time you hit it inside a minute. The town is not
-  // a cash machine and the Ranger is not a rental.
-  repeatDecay: [1, 0.6, 0.4, 0.25],
-  repeatForget: 60,
+  //
+  // A ramp pays in full ONCE per game day (ctx.day), then a quarter, then
+  // less. Without a day in the context — a node test — it forgets after
+  // `repeatForget` seconds, which is one prototype day at the default 24 min.
+  repeatDecay: [1, 0.25, 0.1, 0.05],
+  repeatForget: 24 * 60,
+  // Air that is NOT off one of the eleven ramps: kerbs, washboard, the crown of
+  // a bumpy road. Tom's report (29 Sept): « the car racks up a bunch of
+  // sequential $1 prizes, quickly adding up to $100+ ». Every flight over
+  // 0.75 s used to pay at least $1, and the repeat decay keyed on a 40 m cell,
+  // so a bumpy road crossed a new cell every hop and never decayed. Now:
+  // under `offRampMin` seconds it pays nothing at all, and everything it does
+  // pay comes out of a rolling budget of `offRampCap` dollars per
+  // `offRampWindow` seconds. A dollar here or there, never a leak.
+  offRampMin: 1.0,
+  offRampCap: 3,
+  offRampWindow: 60,
   // Landing grades: radians of slip between where the nose points and where the
   // truck is actually going. Everything else is decoration.
   perfect: 0.18, clean: 0.40,
@@ -369,24 +434,42 @@ export class AirScorer {
     this.last = null;          // the last scored flight
     this.total = 0;            // dollars paid out this session
     this.best = { air: 0, dist: 0, pay: 0 };
-    this.repeat = new Map();   // jump id -> { n, t }
+    this.repeat = new Map();   // jump id -> { n, t, day }
+    this.clock = 0;            // seconds this scorer has run, for the budget
+    this.small = [];           // [{ t, pay }] off-ramp payouts inside the window
+    this.site0 = null;         // where the current flight took off
+    this.ramp0 = false;        // ...and whether that was one of the ramps
+  }
+
+  /** Dollars of off-ramp air paid inside the rolling window. */
+  smallPaid() {
+    const c = this.cfg;
+    while (this.small.length && this.clock - this.small[0].t > c.offRampWindow) this.small.shift();
+    let n = 0;
+    for (const s of this.small) n += s.pay;
+    return n;
   }
 
   /**
    * @param dt   fixed step
    * @param v    the Vehicle, already updated this tick
-   * @param ctx  { nearMiss, siteId, steer } — the running near-miss counter,
-   *             which ramp we are nearest (for the repeat decay), and the stick
+   * @param ctx  { nearMiss, siteId, ramp, day, steer } — the running
+   *             near-miss counter, which ramp (or patch of town) we are over,
+   *             whether that is one of the eleven ramps, the game day (for
+   *             the once-a-day full pay), and the stick. `ramp` defaults to
+   *             "there is a siteId", which is what the older callers meant.
    * @returns    a score record on the tick a flight lands, else null
    */
   update(dt, v, ctx = {}) {
+    this.clock += dt;
     if (this.comboT > 0) {
       this.comboT -= dt;
       if (this.comboT <= 0) this.combo = 0;
     }
     for (const [k, r] of this.repeat) {
       r.t -= dt;
-      if (r.t <= 0) this.repeat.delete(k);
+      const newDay = ctx.day != null && r.day != null && Math.floor(ctx.day) !== r.day;
+      if (newDay || (r.day == null && r.t <= 0)) this.repeat.delete(k);
     }
 
     // ---- take-off
@@ -398,6 +481,10 @@ export class AirScorer {
       this.x0 = v.x; this.z0 = v.z;
       this.entryKmh = v.speedKmh;
       this.nearMiss0 = ctx.nearMiss || 0;
+      // Which ground it left from. The landing can be sixty metres down the
+      // road from a ramp, so the take-off is what decides whose air this was.
+      this.site0 = ctx.siteId || null;
+      this.ramp0 = ctx.ramp != null ? !!ctx.ramp : !!ctx.siteId;
     }
 
     if (this.flying) {
@@ -462,12 +549,21 @@ export class AirScorer {
     const mult = this.combo > 0
       ? Math.min(c.comboMax, 1 + (this.combo - 1) * 0.5) : 1;
 
-    // The same ramp over and over pays less each time, for a minute.
+    // The same ramp over and over: full pay once a game day, then less.
+    // S3-JUMPS: a hop shorter than a chain link (the kerb onto the track, the
+    // spoil pile) keys its own decay, so it no longer spends the ramp's one
+    // full pay of the day before the truck has even reached the lip.
+    const site0 = this.site0 || ctx.siteId || null;
+    const site = site0 && air < c.comboMin ? site0 + ':hop' : site0;
+    const ramp = this.ramp0;
     let decay = 1;
-    if (ctx.siteId) {
-      const r = this.repeat.get(ctx.siteId) || { n: 0, t: 0 };
+    if (site) {
+      const r = this.repeat.get(site) || { n: 0, t: 0 };
       decay = c.repeatDecay[Math.min(r.n, c.repeatDecay.length - 1)];
-      this.repeat.set(ctx.siteId, { n: r.n + 1, t: c.repeatForget });
+      this.repeat.set(site, {
+        n: r.n + 1, t: c.repeatForget,
+        day: ctx.day != null ? Math.floor(ctx.day) : null,
+      });
     }
 
     const size = bigness(air, c);
@@ -475,12 +571,25 @@ export class AirScorer {
       + (this.dist * c.perMetre + near * c.nearMissBonus) * size;
     if (grade !== 'crooked') pay += c.cleanBonus * size;
     else pay *= 0.5;
-    pay = Math.max(1, Math.round(pay * mult * decay));
+    // S3-JUMPS: a clean landing off a ramp after `floorAir` seconds is worth
+    // at least `floorPay` (feel review: a 1.8 s perfect landing paid 2 $).
+    // Before the chain and the repeat decay, so the second go the same day
+    // still pays a quarter of it, as every ramp does.
+    if (ramp && grade !== 'crooked' && air >= c.floorAir) pay = Math.max(pay, c.floorPay);
+    pay *= mult * decay;
+    if (ramp) {
+      pay = Math.max(1, Math.round(pay));
+    } else {
+      // Off-ramp: nothing for a hop, and never more than the rolling budget.
+      pay = air < c.offRampMin ? 0 : Math.round(pay);
+      pay = Math.max(0, Math.min(pay, c.offRampCap - this.smallPaid()));
+      if (pay > 0) this.small.push({ t: this.clock, pay });
+    }
 
     const rec = {
       air, dist: this.dist, peak: this.peak, entryKmh: this.entryKmh,
       grade, slip, drop, near, combo: this.combo, mult, pay, size,
-      big: air >= c.bigAir,
+      big: air >= c.bigAir, ramp, site: site0,
     };
     this.total += pay;
     if (air > this.best.air) this.best.air = air;
@@ -510,10 +619,11 @@ const BOARD_CSS = 'position:fixed;left:50%;top:21%;transform:translateX(-50%);' 
   'color:#ffe08a;text-shadow:0 2px 10px rgba(0,0,0,.85),0 0 3px rgba(0,0,0,.9);' +
   'letter-spacing:.04em;opacity:0;transition:opacity .18s;white-space:pre-line';
 
-function board() {
+function board(create = true) {
   if (typeof document === 'undefined' || !document.getElementById) return null;
   let el = document.getElementById('airboard');
   if (el) return el;
+  if (!create) return null;
   if (!document.createElement) return null;
   const host = document.getElementById('hud') || document.body;
   if (!host || !host.appendChild) return null;
@@ -588,11 +698,26 @@ export function updateJumps(G, dt) {
   const rec = sc.update(dt, v, {
     nearMiss: G.stats ? G.stats.nearMiss || 0 : 0,
     siteId,
+    ramp: !!(near && near.d < SITE_D),
+    day: Number.isFinite(G.day) ? G.day : undefined,
     steer: G.input ? G.input.steer : 0,
   });
 
-  if (rec) {
-    if (G.wallet) G.wallet.add(rec.pay);
+  // A hop that paid nothing is not worth a board, a blip and a shout. It still
+  // counted (the stats and the landing grade saw it); it just is not news.
+  // S3-CRASH: a bounce off a crash is not news either, and it does not pay.
+  const crashy = crashShowQuiet(G);
+  const quiet = rec && (crashy || (rec.pay <= 0 && !rec.big));
+  if (rec && !quiet && G.wallet && rec.pay > 0) G.wallet.add(rec.pay);
+  // Golf night keeps its own dialogue. Continue scoring and paying, but hide
+  // any old board and skip generic stunt boards, blips and ramp callouts.
+  if (!missionNotificationAllowed(G, 'stunt') || crashy) {
+    const el = board(false);
+    if (el) el.style.opacity = '0';
+    state.hideAt = 0;
+    return;
+  }
+  if (rec && !quiet) {
     const el = board();
     if (el) {
       el.textContent = scoreText(rec);
@@ -605,7 +730,7 @@ export function updateJumps(G, dt) {
       if (rec.grade === 'crooked') G.audio.blip(190, 0.16, 'square', 0.18);
       else G.audio.blip(rec.combo > 1 ? 720 + rec.combo * 90 : 720, 0.14, 'triangle', 0.20);
     }
-  } else if (sc.flying && sc.t > 0.35) {
+  } else if (!rec && sc.flying && sc.t > 0.35) {
     // Live, while it is still up there: the number that tells you whether to
     // keep the throttle in on the next one.
     const el = board();

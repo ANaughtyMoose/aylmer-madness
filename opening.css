@@ -1,0 +1,232 @@
+/* The opening (src/game/intro/opening.js, docs/design/OPENING.md) and the
+   title screen it starts from. Everything that animates during the world bake
+   animates transform or opacity only, so it keeps moving on the compositor
+   while buildSectors() holds the main thread. System fonts only: the game runs
+   offline. No em dashes in any copy. */
+
+:root{
+  --op-sky0:#03050d;--op-sky1:#0b1430;--op-sky2:#2a2a4a;--op-glow:#ff9a4a;
+  --op-cold:#5fd3f0;--op-crawl:#ffd23f;--op-ink:#07080c;--op-paper:#fff7e6;
+  --op-logo-font:Impact,"Haettenschweiler","Arial Narrow Bold","Arial Black",sans-serif;
+  --op-crawl-font:"Franklin Gothic Medium","News Gothic MT","Helvetica Neue",Arial,sans-serif;
+  --op-type-font:"American Typewriter","Courier New",Courier,monospace;
+  --op-card-font:"Futura","Futura PT","Avenir Next Condensed","Arial Black",Impact,sans-serif;
+  --op-bar:max(48px,calc((100vh - 100vw / 2.2) / 2));
+}
+
+/* ------------------------------------------------------------ while it runs */
+body.opening-on #loading,body.opening-on #heckles,body.opening-on #radio,
+body.opening-on #hud,body.opening-on #intro,body.opening-on #story,
+body.opening-on #dmgwrap,body.opening-on #gear,body.opening-on #stars,
+body.opening-on #repairhint,body.opening-on #legend{visibility:hidden!important}
+body.opening-shots.opening-frozen #gl,body.opening-frozen #gl{filter:saturate(1.5) contrast(1.12) brightness(1.32);transform:scale(1.035);
+  transition:transform .32s cubic-bezier(.2,.9,.3,1),filter .12s}
+#gl{transition:transform .5s ease-out,filter .3s}
+/* Dawn in the prototype is honest and dim; the film lifts it a little. */
+body.opening-shots #gl{filter:brightness(1.16) saturate(1.12) contrast(1.04)}
+
+#opening{position:fixed;inset:0;z-index:400;overflow:hidden;color:var(--op-paper);
+  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;cursor:default;user-select:none;-webkit-user-select:none}
+#opening.hidden{display:none}
+#opening.done{opacity:0;transition:opacity .6s ease}
+#opening>*{position:absolute;pointer-events:none}
+
+/* ------------------------------------------------------------ the 2D sky */
+.op-sky{inset:0;background:
+  radial-gradient(120% 60% at 50% 118%,rgba(255,138,64,.42),rgba(255,138,64,0) 60%),
+  linear-gradient(180deg,var(--op-sky0) 0%,var(--op-sky1) 58%,var(--op-sky2) 86%,#4a3346 100%);
+  transition:opacity 2.6s ease}
+#opening.shots .op-sky{opacity:0}
+.op-stars{position:absolute;left:0;top:0;width:1px;height:1px;border-radius:50%;background:transparent}
+.op-stars.a{opacity:.85}
+.op-stars.b{opacity:.6;animation:op-twinkle 3.6s ease-in-out infinite alternate}
+.op-horizon{position:absolute;left:-10%;right:-10%;bottom:-2px;height:22vh;
+  background:linear-gradient(0deg,rgba(255,170,90,.38),rgba(255,170,90,0));opacity:0}
+#opening.run .op-horizon{animation:op-fade-in 30s ease-in both;animation-delay:calc(14s + var(--at,0s))}
+@keyframes op-twinkle{from{opacity:.25}to{opacity:.85}}
+@keyframes op-fade-in{from{opacity:0}to{opacity:1}}
+
+/* ------------------------------------------------------------ cold open */
+.op-cold{inset:0;display:flex;align-items:center;justify-content:center;background:#000;opacity:0}
+.op-cold p{margin:0;max-width:min(64vw,900px);font-size:clamp(20px,2.5vw,40px);line-height:1.38;
+  color:var(--op-cold);letter-spacing:.01em;font-weight:400;text-align:left}
+#opening.run .op-cold{animation:op-cold 6.5s linear both;animation-delay:calc(0s + var(--at,0s))}
+#opening.run .op-cold p{animation:op-cold-text 6.5s ease both;animation-delay:calc(0s + var(--at,0s))}
+@keyframes op-cold-text{0%,10%{opacity:0}26%,80%{opacity:1}94%,100%{opacity:0}}
+/* The black lifts as the title hits: the cut IS the downbeat. */
+#opening.run .op-cold{animation-name:op-cold-bg}
+@keyframes op-cold-bg{0%,99.5%{opacity:1}100%{opacity:0}}
+
+/* ------------------------------------------------------------ title */
+.op-title{left:50%;top:50%;width:0;height:0;opacity:0}
+.op-logo{position:absolute;left:0;top:0;transform:translate(-50%,-56%) skewX(-7deg);text-align:center;white-space:nowrap}
+.op-logo span{display:block;position:relative;font-family:var(--op-logo-font);font-weight:900;font-style:normal;
+  text-transform:uppercase;line-height:.84}
+.op-logo span::before{content:attr(data-text);position:absolute;left:0;right:0;top:0;z-index:-1;color:#05060a;
+  -webkit-text-stroke:.09em #05060a;text-shadow:0 .07em 0 #05060a,0 .13em .18em rgba(0,0,0,.65)}
+.op-l1{font-size:23vw;letter-spacing:.015em;color:#fff;
+  background:linear-gradient(180deg,#ffffff 0%,#e9f4ff 30%,#9cc3e6 47%,#38506a 50.5%,#ffd889 52%,#ff9436 74%,#fff1c2 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.op-l2{font-size:12.6vw;letter-spacing:.11em;margin-top:-.02em;padding-left:.11em;color:#ffc94d;
+  background:linear-gradient(180deg,#fff4b8 0%,#ffd23f 45%,#ff8a1f 55%,#c8401c 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.op-tag{position:absolute;left:0;top:0;transform:translate(-50%,13vw);white-space:nowrap;
+  font-family:var(--op-crawl-font);font-weight:700;font-size:2.1vw;letter-spacing:.7em;padding-left:.7em;color:#ffe3a0;
+  text-shadow:0 0 1.2vw rgba(255,160,60,.7)}
+.op-tag::before,.op-tag::after{content:"";display:inline-block;vertical-align:middle;width:7vw;height:2px;margin:0 1.6vw;
+  background:linear-gradient(90deg,transparent,#ffd23f)}
+.op-tag::after{background:linear-gradient(90deg,#ffd23f,transparent)}
+/* Star Wars: it fills the screen on the hit, then goes away from you. */
+#opening.run .op-title{animation:op-title 7.5s cubic-bezier(.12,.3,.3,1) both;animation-delay:calc(6.5s + var(--at,0s))}
+@keyframes op-title{
+  0%{opacity:0;transform:scale(1.08)}
+  2%{opacity:1;transform:scale(1)}
+  80%{opacity:1}
+  100%{opacity:0;transform:scale(.13)}}
+
+/* ------------------------------------------------------------ crawl */
+.op-crawl{left:0;right:0;top:0;bottom:0;perspective:44vh;perspective-origin:50% 28%}
+/* The plane is tall enough that its far edge is never on screen, and it is
+   gone entirely once the film is in 3D. */
+#opening.shots .op-crawl,#opening.holding .op-crawl{display:none}
+.op-crawl-plane{position:absolute;left:50%;bottom:0;width:min(58vw,880px);height:320vh;background:transparent;margin-left:max(-29vw,-440px);
+  transform-origin:50% 100%;transform:rotateX(29deg)}
+.op-crawl-text{position:absolute;left:0;right:0;top:100%;color:var(--op-crawl);font-family:var(--op-crawl-font);
+  font-weight:700;font-size:min(3.5vw,54px);line-height:1.36;text-align:justify;letter-spacing:.01em;word-spacing:-.04em;hyphens:manual;opacity:0}
+.op-crawl-text p{margin:0 0 1.15em}
+.op-ep{text-align:center;font-size:.86em;letter-spacing:.14em;margin-bottom:.25em}
+.op-ep-title{text-align:center;font-size:1.45em;letter-spacing:.06em;line-height:1.05;margin-bottom:.9em;
+  font-family:var(--op-logo-font);font-weight:900}
+#opening.run .op-crawl-text{animation:op-crawl 28s linear both;animation-delay:calc(14s + var(--at,0s))}
+@keyframes op-crawl{0%{opacity:1;transform:translateY(0)}90%{opacity:1}100%{opacity:0;transform:translateY(-232vh)}}
+
+/* ------------------------------------------------------------ letterbox, grade */
+.op-bar{left:0;right:0;height:var(--op-bar);background:#000;transition:transform 1.4s cubic-bezier(.2,.8,.2,1);z-index:3}
+.op-bar.top{top:0;transform:translateY(-100%)}
+.op-bar.bottom{bottom:0;transform:translateY(100%)}
+#opening.shots .op-bar{transform:none}
+.op-caption{position:absolute;left:6vw;top:50%;transform:translateY(-50%);font-family:var(--op-type-font);
+  font-size:clamp(13px,1.15vw,19px);letter-spacing:.32em;color:#f1e3c2;white-space:nowrap}
+.op-caption:not(:empty)::before{content:"";display:inline-block;width:2.6em;height:2px;margin-right:1.1em;vertical-align:middle;background:var(--op-crawl)}
+.op-grade,.op-vignette,.op-dip,.op-flash{inset:0}
+.op-grade{opacity:0;mix-blend-mode:soft-light;background:linear-gradient(180deg,rgba(255,190,120,.42) 0%,rgba(255,170,100,.12) 45%,rgba(40,50,110,.22) 100%);
+  transition:opacity 3s}
+.op-vignette{opacity:0;background:radial-gradient(130% 100% at 50% 50%,rgba(0,0,0,0) 60%,rgba(0,0,0,.42) 100%);transition:opacity 2s}
+#opening.shots .op-grade{opacity:1}
+#opening.shots .op-vignette{opacity:1}
+#opening.frozen .op-grade{mix-blend-mode:normal;background:radial-gradient(circle,rgba(10,6,20,.16) 30%,transparent 34%) 0 0/4px 4px}
+.op-dip{background:#000;opacity:0}
+.op-dip.go{animation:op-dip .5s ease-out both}
+@keyframes op-dip{0%{opacity:1}100%{opacity:0}}
+.op-flash{background:#fff;opacity:0;mix-blend-mode:screen}
+.op-flash.go{animation:op-flash .42s ease-out both}
+@keyframes op-flash{0%{opacity:.95}100%{opacity:0}}
+
+/* ------------------------------------------------------------ name card */
+.op-card{left:5.5vw;bottom:calc(var(--op-bar) + 4.5vh);width:min(60vw,820px);z-index:4;opacity:0}
+.op-card.in{opacity:1}
+.op-card-band{left:-12vw;right:6%;top:18%;bottom:-6%;position:absolute;background:var(--accent,#ffd23f);
+  transform:skewX(-16deg) translateX(-120%);opacity:.94;box-shadow:.7vw .7vw 0 rgba(0,0,0,.55)}
+.op-card.in .op-card-band{animation:op-band .42s cubic-bezier(.2,.9,.25,1.1) both}
+@keyframes op-band{from{transform:skewX(-16deg) translateX(-120%)}to{transform:skewX(-16deg) translateX(0)}}
+.op-card-body{position:relative;padding:0 0 1.2vw 1vw}
+.op-card-kicker{display:inline-block;font-family:var(--op-card-font);font-weight:800;font-size:clamp(12px,1.05vw,17px);
+  letter-spacing:.24em;color:var(--accent);background:var(--op-ink);padding:.42em .8em .38em;transform:skewX(-12deg)}
+.op-card-name{position:relative;font-family:var(--op-logo-font);font-weight:900;font-size:clamp(56px,8.8vw,150px);line-height:.9;
+  letter-spacing:.01em;color:#fff;margin:.08em 0 .06em;transform:skewX(-9deg);white-space:nowrap;
+  text-shadow:.045em .045em 0 var(--op-ink)}
+.op-card-name::before{content:attr(data-text);position:absolute;inset:0;z-index:-1;color:var(--op-ink);-webkit-text-stroke:.11em var(--op-ink)}
+.op-card-place{font-family:var(--op-type-font);font-size:clamp(13px,1.15vw,18px);letter-spacing:.12em;color:var(--op-ink);
+  font-weight:700;margin:0 0 .7em .3em}
+.op-card-line{display:inline-block;max-width:44vw;font-size:clamp(15px,1.5vw,24px);line-height:1.32;font-weight:700;color:#fff;
+  background:rgba(7,8,12,.9);padding:.5em .8em;border-left:.35em solid var(--accent);box-shadow:.4vw .4vw 0 rgba(0,0,0,.35)}
+.op-card.in .op-card-kicker{animation:op-pop .3s .1s cubic-bezier(.2,.9,.3,1.3) both}
+.op-card.in .op-card-name{animation:op-slam .34s .05s cubic-bezier(.15,.9,.25,1.15) both}
+.op-card.in .op-card-place{animation:op-up .4s .22s ease-out both}
+.op-card.in .op-card-line{animation:op-up .45s .34s ease-out both}
+@keyframes op-slam{0%{opacity:0;transform:skewX(-9deg) translateX(-24vw) scale(1.4)}100%{opacity:1;transform:skewX(-9deg) translateX(0) scale(1)}}
+@keyframes op-pop{0%{opacity:0;transform:skewX(-12deg) scale(.6)}100%{opacity:1;transform:skewX(-12deg) scale(1)}}
+@keyframes op-up{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:none}}
+/* The private portrait, when Tom has the art locally: a print, slapped on. */
+.op-card-portrait{display:none;position:absolute;right:-30vw;bottom:-1vw;width:min(25vw,360px);aspect-ratio:3/4;background:#fff;padding:.7vw .7vw 2.6vw;
+  box-shadow:.9vw .9vw 0 rgba(0,0,0,.55);transform:rotate(3deg)}
+.op-card-portrait img{width:100%;height:100%;object-fit:cover;display:block}
+.op-card.has-art .op-card-portrait{display:block}
+.op-card.in.has-art .op-card-portrait{animation:op-print .5s .15s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes op-print{0%{opacity:0;transform:rotate(14deg) translateY(30vh)}100%{opacity:1;transform:rotate(3deg)}}
+
+/* ------------------------------------------------------------ the phone */
+.op-phone{right:9vw;bottom:calc(var(--op-bar) + 9vh);width:min(26vw,380px);opacity:0;transform:translateY(20px) rotate(-4deg);
+  transition:opacity .3s,transform .4s cubic-bezier(.2,.9,.3,1.2);filter:drop-shadow(.6vw .8vw 0 rgba(0,0,0,.55));z-index:4}
+#opening.phoning .op-phone{opacity:1;transform:rotate(-4deg)}
+#opening.phoning .op-handset{animation:op-lift 1s ease-out both;transform-origin:50% 100%;transform-box:fill-box}
+@keyframes op-lift{0%{transform:none}30%{transform:translateY(-6px) rotate(-3deg)}100%{transform:translateY(-14px) rotate(-8deg)}}
+#opening.phoning .op-card{width:min(52vw,720px)}
+
+/* ------------------------------------------------------------ bubbles */
+.op-bubbles{inset:0;z-index:5}
+.op-bubble{position:absolute;max-width:min(30vw,420px);background:#fff;color:#111;border:3px solid #0b0b0b;border-radius:18px;
+  padding:.55em .85em .6em;font-size:clamp(15px,1.4vw,22px);line-height:1.25;font-weight:700;
+  box-shadow:.35vw .35vw 0 rgba(0,0,0,.45);animation:op-bubble .28s cubic-bezier(.2,.9,.3,1.35) both}
+.op-bubble b{display:block;font-family:var(--op-card-font);font-size:.62em;letter-spacing:.2em;text-transform:uppercase;color:#7a5a12;margin-bottom:.15em}
+.op-bubble.pinned::after{content:"";position:absolute;left:30px;bottom:-18px;border:9px solid transparent;border-top:12px solid #0b0b0b}
+.op-bubble.pinned::before{content:"";position:absolute;left:33px;bottom:-11px;border:6px solid transparent;border-top:9px solid #fff;z-index:1}
+.op-bubble.voice{right:6vw;left:auto;bottom:calc(var(--op-bar) + 6vh);top:auto}
+/* With a portrait up, the voice goes above it rather than across the face. */
+.op-card.has-art~.op-bubbles .op-bubble.voice{top:calc(var(--op-bar) + 3vh);bottom:auto}
+#opening.phoning .op-bubble.voice{right:8vw;bottom:calc(var(--op-bar) + 9vh + min(26vw,380px) * .62)}
+.op-bubble.muffled{background:#e8e4dc;border-style:dashed;font-style:italic;color:#333}
+.op-bubble.old{opacity:.45;transform:translateY(-110%) scale(.92);transition:all .3s}
+@keyframes op-bubble{0%{opacity:0;transform:scale(.6) translateY(12px)}100%{opacity:1;transform:none}}
+
+/* ------------------------------------------------------------ chrome */
+.op-skip{right:2.4vw;bottom:calc(var(--op-bar) * 0 + 1.6vh);z-index:6;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(255,247,230,.42);white-space:pre}
+.op-load{left:50%;bottom:9vh;transform:translateX(-50%);width:min(380px,60vw);opacity:0;transition:opacity .4s;z-index:6;text-align:center}
+.op-load i{display:block;height:3px;width:0;background:var(--op-crawl);box-shadow:0 0 12px rgba(255,210,63,.6);transition:width .4s}
+.op-load span{display:block;margin-top:10px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,247,230,.6)}
+#opening.holding .op-load{opacity:1}
+#opening.holding .op-title{animation:none;opacity:.9;transform:scale(.3)}
+
+@media (prefers-reduced-motion:reduce){
+  #opening.run .op-crawl-text{animation-duration:40s}
+  body.opening-frozen #gl{transform:none}
+}
+
+/* ============================================================ title screen */
+/* The menu used to be a web page with a car grid; it is one picture, one logo
+   and one door now. The car grid is still built (buildMenu) but not shown. */
+#menu{background:#05070a}
+#menu .title-scene{display:block;border:0;margin:0 0 3.4vh;padding:0}
+/* Both behind the copy inside #menuinner's own stacking context: the picture,
+   then the shade that keeps the left third readable. */
+#menu .title-art{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;object-fit:cover;border:0;border-radius:0;z-index:-2;
+  filter:saturate(1.08) brightness(.86);pointer-events:none}
+#menuinner::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  linear-gradient(90deg,rgba(4,6,10,.95) 0%,rgba(4,6,10,.82) 30%,rgba(4,6,10,.25) 58%,rgba(4,6,10,0) 80%),
+  linear-gradient(0deg,rgba(4,6,10,.75) 0%,rgba(4,6,10,0) 34%)}
+#menuinner{position:relative;z-index:2;max-width:none;margin:0;padding:7vh 6vw 5vh;text-align:left;min-height:100vh;
+  display:flex;flex-direction:column;box-sizing:border-box}
+#menu .title-copy h1{font-family:var(--op-logo-font);font-weight:900;text-transform:uppercase;line-height:.84;
+  font-size:clamp(64px,10.5vw,170px);margin:0 0 .18em;letter-spacing:.015em;transform:skewX(-7deg);transform-origin:0 100%;
+  color:#fff;text-shadow:.045em .05em 0 #05060a,0 .1em .3em rgba(0,0,0,.6)}
+#menu .title-copy h1 span{display:block;font-size:.55em;letter-spacing:.11em;color:#ffc94d;margin-top:.02em}
+#menu .title-copy .tag{max-width:440px;font-size:15px;color:#f2e3c4;letter-spacing:.04em;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#menucols{display:block}
+#menumain,#menukeys{display:none}
+#menuside{position:static;width:min(380px,84vw);gap:10px;padding:0}
+#menuside [hidden],#menuside button[hidden]{display:none!important}
+#menuside #btnContinue:disabled,#menuside #btnLoad:disabled{display:none}
+body:not(.menu-has-save) #contmeta{display:none}
+#menuside button,#menuside a{text-align:left;padding-left:22px}
+#menuside #start{font-family:var(--op-card-font);font-weight:800;font-size:19px;letter-spacing:.14em}
+/* With a summer under way, Continuer is the big door and New Game steps back. */
+body.menu-has-save #menuside #btnContinue{background:#ffc94d;color:#10171c;font-weight:800;font-size:19px;letter-spacing:.1em;
+  padding:16px 22px;box-shadow:0 6px 24px rgba(255,201,77,.28)}
+body.menu-has-save #menuside #start{background:rgba(255,255,255,.08);color:#fff;box-shadow:none;font-size:15px;padding:13px 22px}
+#contmeta{white-space:pre-line;font-size:12px;line-height:1.5;color:rgba(242,227,196,.75);margin:2px 0 8px 4px}
+#erratum{margin-top:auto;padding-top:24px;max-width:520px;text-align:left;opacity:.55;font-size:11px}
+@media (max-width:700px){#menuinner{padding:5vh 16px}#menu .title-copy h1{font-size:64px}}
+/* Where you were sits right under the button that takes you back there. */
+#menuside #btnContinue{order:-2}
+#menuside #contmeta{order:-1}

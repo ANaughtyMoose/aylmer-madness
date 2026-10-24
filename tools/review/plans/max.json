@@ -1,0 +1,20 @@
+{
+  "name": "max",
+  "about": "Max (17, Aylmer, PC): freedom, speed, his own streets, modes. Free roam first, then the first three main missions and both Midtown modes.",
+  "entry": "index.html",
+  "beats": [
+    { "do": "boot" },
+    { "do": "firstDrive", "seconds": 5 },
+    { "do": "freeRoam", "places": ["mall", "principale", "tims", "marina", "home"], "maxKmh": 90 },
+    { "do": "speedRun", "seconds": 12, "frames": 14 },
+    { "do": "mission", "id": "alternateur", "stageTimeout": 150 },
+    { "do": "mission", "id": "sayyad", "stageTimeout": 150 },
+    { "do": "mission", "id": "divan", "stageTimeout": 150 },
+    { "do": "modes" },
+    { "do": "course", "id": "bz_vieux", "index": 0, "stageTimeout": 150 },
+    { "do": "course", "id": "cp_ruelles", "mode": "checkpoint", "stageTimeout": 150 },
+    { "do": "crash", "seconds": 7 },
+    { "do": "cops", "heat": 3, "seconds": 30 },
+    { "do": "tour", "places": ["home", "principale", "mall", "tims", "marina", "beach", "church"], "envs": ["day", "dusk"], "weather": ["clear"] }
+  ]
+}

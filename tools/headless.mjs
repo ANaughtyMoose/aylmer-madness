@@ -2,10 +2,20 @@
 // No dependencies: Node >= 22 (global WebSocket) and a Chrome started with
 //   "Google Chrome" --headless=new --remote-debugging-port=9222 --use-angle=swiftshader
 // Usage: node tools/headless.mjs [url] [seconds] [screenshot.png] [--script file.js] [--fresh]
+//        [--player-storage] [--wipe-origin [--i-mean-it]]
+// Storage (review SR-02): the game runs under ?review=headless, so a run can
+// never autosave over a player's slots. --fresh empties that namespace before
+// boot. --player-storage uses the origin's real keys (read what a player has;
+// the run may still autosave there). --wipe-origin clears the whole origin, and
+// is refused unless the port is a dedicated test port or --i-mean-it is given.
 // Prints every console message / uncaught exception, boots the game (click DRIVE),
 // steps the sim for `seconds` of game time, runs an optional script in the page
 // (it can use window.AYLMER), and writes a screenshot.
-const url = process.argv[2] || 'http://localhost:8123/index.html';
+import { planStorage, prepareStorage } from './storage_guard.mjs';
+const argUrl = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'http://localhost:8123/index.html';
+let plan;
+try { plan = planStorage(argUrl, process.argv, 'headless'); } catch (e) { console.error(e.message); process.exit(2); }
+const url = plan.url;
 const seconds = Number(process.argv[3] || 3);
 const shot = process.argv[4] || '';
 const scriptIdx = process.argv.indexOf('--script');
@@ -63,16 +73,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let failed = null;
 try {
-if (fresh) await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
+if (fresh || plan.wipeOrigin) await prepareStorage(send, plan, true);
 await send('Page.navigate', { url });
 await sleep(1500);
-// Starting a new game is two clicks now: EMBARQUE opens the start-point picker,
-// and the picker's own GO button is what actually drops you into the world. A
+// Starting a new game is two clicks now: « Balade libre » opens the start-point
+// picker, and the picker's own GO button is what actually drops you into the
+// world. (#start is New Game, which plays the two-minute opening first: see
+// docs/design/OPENING.md. A check that wants the world fast goes the picker way.) A
 // start point is always pre-selected (main.js selectStart), so there is nothing
 // to choose — but the button has to exist before it can be pressed, hence the
 // wait rather than a straight-line pair of clicks.
 const boot = menuOnly ? 'menu only' : await evaluate(`(async () => {
-  const b = document.getElementById('start'); if (!b) return 'no #start';
+  const b = document.getElementById('btnFree') || document.getElementById('start'); if (!b) return 'no #start';
   b.click();
   let go = null;
   for (let i = 0; i < 20 && !go; i++) {

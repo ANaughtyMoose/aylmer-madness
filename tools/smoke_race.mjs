@@ -58,9 +58,9 @@ const { Traffic } = await import('../src/game/traffic.js');
 const { Signals } = await import('../src/game/signals.js');
 const { Rival, Track, SKILL, updateRivals, ordinalFr, fmtGap, BAND_AHEAD, STUCK_T, RESET_AHEAD } =
   await import('../src/game/race.js');
-const { Cops, CRUISER, HEAT, LOSE_T, LOSE_D, BUST_T, TICKET, MAX_UNITS } =
+const { Cops, CRUISER, HEAT, LOSE_T, LOSE_D, BUST_T, BUST_SEEN, TICKET, MAX_UNITS, SPAWN_BACK, JUMP_D, BUMP, CHASE } =
   await import('../src/game/cops.js');
-const { RACE_MISSIONS, CIRCUIT, CIRCUIT_START, GATE_R } =
+const { RACE_MISSIONS, CIRCUIT, CIRCUIT_START, GATE_R, BLITZ_CLOCK } =
   await import('../src/game/racejobs.js');
 const { MISSIONS } = await import('../src/game/missions.js');
 const { Wallet } = await import('../src/game/money.js');
@@ -257,7 +257,8 @@ group('the wanted meter fills');
   ok(C.stars === 1, 'which is one star');
   ok(C.units.length === 1, 'and one cruiser on the road');
   const d0 = Math.hypot(C.units[0].x - G.veh.x, C.units[0].z - G.veh.z);
-  ok(d0 > 90 && d0 < 220, 'it joins in about 150 m back', `${Math.round(d0)} m`);
+  // SPAWN_BACK is metres of road, so the straight line is that or a bit less.
+  ok(d0 > SPAWN_BACK * 0.5 && d0 <= SPAWN_BACK + 1, `it joins in about ${SPAWN_BACK} m of road back`, `${Math.round(d0)} m`);
   ok(G.audio.on === true, 'siren on');
   ok(G.hud.stars === 1, 'and the HUD says one star');
 
@@ -284,6 +285,122 @@ group('the wanted meter fills');
   C.update(0.5, G);
   ok(C.heat > before, 'sitting at 100 km/h next to a cruiser adds heat',
     `+${r1((C.heat - before) / 0.5)} / s`);
+}
+
+// Review 5 Oct 2026 (pack 20261005-212013-quick): three stars, the HUD saying
+// « chasing », and not one cruiser in any shot. They had spawned where the
+// truck used to be, or 150 m « behind » on whatever street was there, and the
+// chase cam only looks forward. The promise now: at two stars and up there is
+// a cruiser within 150 m, on the ground, one of them coming from in front;
+// after a teleport they come too; and the siren keeps being asked for.
+const physG = { ...phys, groundAt: world.groundAt, groundY: (x, z) => world.groundAt(x, z).h };
+function onGround(u) { return Math.abs(u.veh.y - physG.groundY(u.x, u.z)) <= 0.5; }
+function fwdDot(G, u) {
+  const dx = u.x - G.veh.x, dz = u.z - G.veh.z;
+  return (dx * Math.sin(G.veh.yaw) + dz * Math.cos(G.veh.yaw)) / (Math.hypot(dx, dz) || 1);
+}
+group('a chase you can see: two stars and up');
+// `ahead`: whether the road lets a cruiser come at you from in front. The
+// principale point is on a one-way stretch of Bancroft, where everything that
+// can legally reach you comes from behind.
+for (const [stars, key, ahead] of [[2, 'tims', true], [3, 'principale', false], [2, 'symmes', true]]) {
+  const p = PLACES[key];
+  const G = copG(p.x, p.z);
+  G.phys = physG;
+  G.veh.reset(p.x, p.z, p.a || 0, physG.groundY(p.x, p.z));
+  let calls = 0;
+  G.audio.siren = function (on) { this.on = on; if (on) calls++; };
+  const C = G.cops;
+  C.heat = stars + 0.2;
+  C.update(1 / 60, G);
+  const near = () => Math.min(...C.units.map((u) => Math.hypot(u.x - G.veh.x, u.z - G.veh.z)));
+  ok(C.units.length === 2, `${key}, ${stars} stars: two cruisers`, `${C.units.length}`);
+  ok(near() <= 150, '...one of them inside 150 m', `${Math.round(near())} m`);
+  ok(C.units.every(onGround), '...on the ground, not under it',
+    C.units.map((u) => `${r1(u.veh.y)} vs ${r1(physG.groundY(u.x, u.z))}`).join(', '));
+  if (ahead) {
+    ok(C.units.some((u) => fwdDot(G, u) > 0.2), '...one coming from up the road, in view',
+      C.units.map((u) => r1(fwdDot(G, u))).join(', '));
+  }
+  ok(C.units.some((u) => fwdDot(G, u) < -0.3), '...and one in the mirror');
+  // Ten seconds of chase with the truck crawling (a stopped truck at two stars
+  // is a bust in four seconds, below): they close in and stay down.
+  let worstY = 0, minD = Infinity;
+  for (let i = 0; i < 600; i++) {
+    G.veh.vLong = 2.5; G.veh.vx = 0; G.veh.vz = 0;
+    C.update(1 / 60, G);
+    G.veh.x = p.x; G.veh.z = p.z;
+    for (const u of C.units) worstY = Math.max(worstY, Math.abs(u.veh.y - physG.groundY(u.x, u.z)));
+    minD = Math.min(minD, near());
+    if (C.busted) break;
+  }
+  ok(worstY <= 0.5, '...and they drive in on the road surface', `worst ${r1(worstY)} m`);
+  ok(minD < 40, '...right up to you', `${Math.round(minD)} m`);
+  ok(G.audio.on === true && calls >= 3, 'the siren is on, and asked for again every second', `${calls} calls`);
+}
+
+group('two stars and you stop: busted in four seconds');
+for (const key of ['tims', 'symmes']) {
+  const p = PLACES[key];
+  const G = copG(p.x, p.z);
+  G.phys = physG;
+  G.veh.reset(p.x, p.z, p.a || 0, physG.groundY(p.x, p.z));
+  G.mission = { def: { id: 'canot' } };
+  const C = G.cops;
+  C.heat = 2.2;
+  C.update(1 / 60, G);
+  const near = () => Math.min(...C.units.map((u) => Math.hypot(u.x - G.veh.x, u.z - G.veh.z)));
+  const d0 = near();
+  const money = G.wallet.value;
+  let t = 0;
+  // The cruisers drive in on their own; nobody is moved by hand.
+  while (t < 8 && !C.busted) {
+    G.veh.vLong = 0; G.veh.vx = 0; G.veh.vz = 0;
+    C.update(1 / 60, G);
+    t += 1 / 60;
+  }
+  ok(d0 < BUST_SEEN, `${key}: a cruiser in view at two stars`, `${Math.round(d0)} m`);
+  ok(C.busted && t >= BUST_T - 0.05 && t <= 5, `${key}: stopped, busted in 4-5 s`, `after ${r1(t)} s`);
+  ok(G.wallet.value === money - TICKET, `${key}: with the ticket`, `${money} -> ${G.wallet.value}`);
+  ok(G.hud.toasts.some((s) => /Ticket: 150/.test(s)), `${key}: and the ticket toast`);
+  ok(G.hud.prompts.some((s) => /^Décrisse ! [1-4]$/.test(s || '')), `${key}: with a countdown first`);
+  ok(/police de Gatineau/.test(G.failed || ''), `${key}: the job fails, Ville de Gatineau police`, G.failed || '');
+}
+{
+  // Keep rolling and it never comes.
+  const p = PLACES.tims;
+  const G = copG(p.x, p.z);
+  G.phys = physG;
+  G.veh.reset(p.x, p.z, p.a || 0, physG.groundY(p.x, p.z));
+  const C = G.cops;
+  C.heat = 2.2;
+  C.update(1 / 60, G);
+  for (let i = 0; i < 480 && !C.busted; i++) {
+    G.veh.vLong = 4; G.veh.vx = 0; G.veh.vz = 0;      // ~14 km/h
+    C.update(1 / 60, G);
+    G.veh.x = p.x; G.veh.z = p.z;
+  }
+  ok(!C.busted, 'rolling at two stars is not a bust');
+  ok(CRUISER.name === 'Police de Gatineau', 'the cruiser is the Ville de Gatineau police', CRUISER.name);
+}
+
+group('a teleport brings the chase with you');
+{
+  const a = PLACES.tims, b = PLACES.marina;
+  const G = copG(a.x, a.z);
+  G.phys = physG;
+  G.veh.reset(a.x, a.z, a.a || 0, physG.groundY(a.x, a.z));
+  const C = G.cops;
+  C.heat = 3.0;
+  C.update(1 / 60, G);
+  ok(C.units.length === 2, 'two on you at the Tim');
+  ok(Math.hypot(b.x - a.x, b.z - a.z) > JUMP_D * 5, 'the marina is a long way off');
+  G.veh.reset(b.x, b.z, b.a || 0, physG.groundY(b.x, b.z));
+  C.update(1 / 60, G);
+  const d = Math.min(...C.units.map((u) => Math.hypot(u.x - G.veh.x, u.z - G.veh.z)));
+  ok(d <= 150, 'after the jump they are back inside 150 m', `${Math.round(d)} m`);
+  ok(C.units.every(onGround), '...on the ground');
+  ok(C.blocks.every((q) => Math.hypot(q.x - b.x, q.z - b.z) < 500), 'and no roadblock is left guarding the Tim');
 }
 
 group('three stars puts a roadblock in the road');
@@ -354,6 +471,97 @@ group('boxed in: the ticket');
   ok(C.stars === 0 && C.units.length === 0, 'and it is over');
 }
 
+// S3-COPS (feel.md finding 3; Tom 20 Oct: police may ram you, lightly).
+group('S3-COPS: at speed the second unit joins in behind, not head-on');
+{
+  const p = PLACES.tims;
+  const G = copG(p.x, p.z);
+  G.phys = physG;
+  G.veh.reset(p.x, p.z, p.a || 0, physG.groundY(p.x, p.z));
+  G.veh.vLong = 22;                                  // 79 km/h
+  G.cops.heat = 2.2;
+  G.cops.update(1 / 60, G);
+  ok(G.cops.units.length === 2, 'two cruisers');
+  ok(G.cops.units.every((u) => fwdDot(G, u) < 0), '...both in the mirror at 79 km/h',
+    G.cops.units.map((u) => r1(fwdDot(G, u))).join(', '));
+}
+function bumpRig(stars = 2) {
+  const G = copG(0, 0);
+  const C = G.cops;
+  C.heat = stars + 0.2;
+  C.update(1 / 60, G);
+  const put = (u, back, vz, vt = 15) => {
+    G.veh.reset(0, 0, 0); G.veh.vx = 0; G.veh.vz = vt; G.veh.syncFrame();
+    u.veh.reset(0, -back, 0); u.veh.vx = 0; u.veh.vz = vz; u.veh.syncFrame();
+  };
+  return { G, C, put };
+}
+group('S3-COPS: a cruiser bump is light, and one per unit per 10 to 15 s');
+{
+  const { G, C, put } = bumpRig(2);
+  const u = C.units[0];
+  put(u, 4.6, 27);                                   // 12 m/s closing from behind
+  u.bumpT = 0; u.backT = 0;
+  const ready = C._ready(u, 2, 15);
+  ok(ready, 'a unit at two stars that is due is ready');
+  const d0 = G.veh.damage;
+  const closing = C._contact(G, G.veh, u, 0, 2, ready);
+  const dmg = G.veh.damage - d0, dv = Math.hypot(G.veh.vx, G.veh.vz - 15);
+  ok(closing > BUMP.maxClosing, 'the contact really was a hard one', `${r1(closing)} m/s`);
+  ok(dmg > 0 && dmg < 3, 'but the bump costs under 3', `${r1(dmg)}`);
+  ok(dv <= BUMP.maxDv + 1e-6, `and shoves the truck at most ${BUMP.maxDv} m/s`, `${r1(dv)} m/s`);
+  ok(u.bumpT >= BUMP.gap[0] && u.bumpT <= BUMP.gap[1], 'then that unit waits 10 to 15 s', `${r1(u.bumpT)} s`);
+  ok(C.bumpLog.at(-1).by === 'cop' && C.bumpLog.at(-1).dmg === +dmg.toFixed(2), 'and the bump is logged');
+  put(u, 4.6, 27);
+  u.backT = 0;
+  const d1 = G.veh.damage;
+  C._contact(G, G.veh, u, 0, 2, C._ready(u, 2, 15));
+  ok(G.veh.damage === d1, 'a second contact inside the gap costs nothing', `${r1(G.veh.damage - d1)}`);
+  ok(u.backT > 0, '...and the cruiser drops back');
+  ok(!C._ready(u, 1, 15), 'one star never rams');
+  u.bumpT = 0; u.backT = 0;
+  ok(!C._ready(u, 2, 1), 'a truck that is (nearly) stopped is never rammed');
+}
+group('S3-COPS: never a pin, never a head-on');
+{
+  const { G, C, put } = bumpRig(2);
+  const u = C.units[0];
+  put(u, 6.5, 0, 0);
+  const capHold = C._cap(u, 0, G.veh, CHASE.hold, 0, false);
+  ok(capHold != null && capHold < 0.5, 'next to a stopped truck the cruiser holds station', `${r1(capHold)} m/s`);
+  put(u, 20, 0, 0);
+  const capIn = C._cap(u, 0, G.veh, 20, 0, false);
+  ok(capIn > 2 && capIn < 12, '...and rolls up to it from 20 m', `${r1(capIn)} m/s`);
+  // Coming at the truck from up the road while it drives at it at 72 km/h:
+  // the cruiser stops in the road rather than meet it.
+  G.veh.reset(0, 0, 0); G.veh.vx = 0; G.veh.vz = 20; G.veh.syncFrame();
+  u.veh.reset(0, 40, Math.PI); u.veh.syncFrame();
+  const capHead = C._cap(u, 0, G.veh, 40, 20, true);
+  ok(capHead < 0.5, 'a unit ahead and closing head-on stops', `${r1(capHead)} m/s`);
+  // You drive into a parked cruiser: that is your crash, priced as one.
+  G.veh.reset(0, 0, 0); G.veh.vx = 0; G.veh.vz = 18; G.veh.syncFrame();
+  u.veh.reset(0, 4.6, Math.PI); u.veh.syncFrame();
+  const d0 = G.veh.damage;
+  C._contact(G, G.veh, u, 0, 2, true);
+  ok(C.bumpLog.at(-1).by === 'you' && G.veh.damage - d0 > 3, 'ramming a stopped cruiser is an ordinary crash', `${r1(G.veh.damage - d0)}`);
+}
+group('S3-COPS: at three stars the alongside unit may PIT, lightly');
+{
+  const { G, C } = bumpRig(3);
+  const u = C.units[1];
+  ok(!!u, 'a second unit');
+  // Rear quarter, angled in.
+  G.veh.reset(0, 0, 0); G.veh.vx = 0; G.veh.vz = 15; G.veh.syncFrame();
+  u.veh.reset(1.6, -4.0, -0.25); u.veh.vx = -2; u.veh.vz = 19; u.veh.syncFrame();
+  u.bumpT = 0; u.backT = 0;
+  const spin0 = G.veh.yawSpin || 0, d0 = G.veh.damage;
+  C._contact(G, G.veh, u, 1, 3, C._ready(u, 3, 15));
+  const last = C.bumpLog.at(-1);
+  ok(last && last.pit === true, 'the bump is a PIT', JSON.stringify(last));
+  ok(Math.abs((G.veh.yawSpin || 0) - spin0) <= BUMP.pitSpin + 1e-9, `the yaw it leaves is at most ${BUMP.pitSpin} rad/s`, `${r1((G.veh.yawSpin || 0) - spin0)}`);
+  ok(G.veh.damage - d0 < 3, '...and it still costs under 3', `${r1(G.veh.damage - d0)}`);
+}
+
 group('cops are off during a race');
 {
   const G = copG(PLACES.tims.x, PLACES.tims.z);
@@ -393,7 +601,7 @@ group('the four races are wired up');
   }
   const blitz = RACE_MISSIONS.find((m) => m.id === 'blitz');
   const bstages = blitz.build({ carName: 'x', seats: 3 });
-  ok(bstages[1].time === 60, 'the blitz starts on a 60 second clock');
+  ok(bstages[1].time === BLITZ_CLOCK, `the blitz starts on a ${BLITZ_CLOCK} second clock`);
   const circuit = RACE_MISSIONS.find((m) => m.id === 'circuit');
   ok(circuit.build({ carName: 'x', seats: 3 })[1].money === 40, 'the circuit pays 40 $');
   ok(RACE_MISSIONS.find((m) => m.id === 'racedave').build({ carName: 'x', seats: 3 })[1].money === 25,
@@ -518,10 +726,13 @@ group('playthrough: abandoning a race gives the car back');
   G.mission = m;
   m.target = stageTarget(G, m, m.stages[0]);
   stageEnter(G, m, m.stages[0]);
-  ok(G.rivals.length === 2, 'Margaret and Adam are on the grid', G.rivals.map((r) => r.name).join(' + '));
-  ok(!G.parked.saturn && !G.parked.sunfire, 'their cars are off the street while they race');
+  // Canon changed (docs/STORY-LEDGER.md, 22 Sept 2026): Margaret is Tom's
+  // mother and never raced the gang. Sayyad takes her grid slot in his Civic.
+  ok(G.rivals.length === 2 && G.rivals.map((r) => r.name).join() === 'Sayyad,Adam',
+    'Sayyad and Adam are on the grid', G.rivals.map((r) => r.name).join(' + '));
+  ok(!G.parked.civic && !G.parked.sunfire, 'their cars are off the street while they race');
   missionCleanup(G, m, true);                       // Backspace
-  ok(!!G.parked.saturn && !!G.parked.sunfire, 'abandoning puts both cars back');
+  ok(!!G.parked.civic && !!G.parked.sunfire, 'abandoning puts both cars back');
   ok(G.rivals.length === 0, 'and takes the rivals away');
 }
 
@@ -529,16 +740,16 @@ group('playthrough: the blitz clock');
 {
   const G = makeG('civic');
   const def = RACE_MISSIONS.find((d) => d.id === 'blitz');
-  // Sit still: 60 seconds and it is over.
+  // Sit still: BLITZ_CLOCK seconds and it is over.
   const res = play(G, def, (g, m, st) => {
     if (st.kind === 'grid') { g.veh.reset(PLACES.principale.x, PLACES.principale.z, 0); g.wantStart = true; }
-  }, 60 * 200);
+  }, 60 * (BLITZ_CLOCK + 140));
   ok(!res.done && /chrono/i.test(res.failed || ''), 'the clock runs out on you', res.failed);
-  ok(res.t > 60 && res.t < 70, 'after about a minute (the countdown is free)', `${r1(res.t)} s`);
+  ok(res.t > BLITZ_CLOCK && res.t < BLITZ_CLOCK + 10, `after about ${BLITZ_CLOCK} s (the countdown is free)`, `${r1(res.t)} s`);
 
   // And a checkpoint is worth 15 seconds.
   const G2 = makeG('civic');
-  const m = { def, stages: def.build({ carName: 'x', seats: 3 }), idx: 1, target: null, timeLeft: 60 };
+  const m = { def, stages: def.build({ carName: 'x', seats: 3 }), idx: 1, target: null, timeLeft: BLITZ_CLOCK };
   G2.mission = m;
   m.target = stageTarget(G2, m, m.stages[1]);
   stageEnter(G2, m, m.stages[1]);

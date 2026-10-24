@@ -394,7 +394,9 @@ group('weather — lightning and no DOM');
 group('the radio dial');
 {
   ok(STATIONS.length >= 6, `${STATIONS.length} synthesised stations`);
-  ok(STATION_NAMES[0].startsWith('CKOI'), `station 0 is still ${STATION_NAMES[0]}`);
+  eq(STATION_NAMES[0], 'CHUM FM', 'station 0 is CHUM FM, with no frequency shown (Tom, 8 Sept)');
+  eq(STATION_NAMES.slice(1, 6), ['CHEZ 106.1', '106.9 The Bear', 'CBC Radio One', 'Radio-Canada', 'CJRC 1150 AM'], 'the rest of the dial is the ruled one');
+  ok(!STATION_NAMES.some((n) => /CKOI|CFOU|CHLL|CKUQ|CFRL|CKOT|CIMF|CKCU|Y105|102\.1|104\.7|99\.9|89\.1|101\.3|92\.3/.test(n)), 'no invented call sign or frequency on the dial');
   eq(STATION_NAMES[STATION_NAMES.length - 1], TAPE_NAME, 'the tape deck is the far end of the dial');
   eq(new Set(STATIONS.map((s) => s.id)).size, STATIONS.length, 'every station has its own id');
   eq(new Set(STATIONS.map((s) => s.name)).size, STATIONS.length, '…and its own name');
@@ -406,7 +408,8 @@ group('the radio dial');
     ok(s.tracks.every((t) => t.title && t.artist), `${s.name}: everything has a title and an artist`);
     ok(s.idents.length >= 2, `${s.name}: ${s.idents.length} station idents`);
     ok(s.patter.length >= 3, `${s.name}: ${s.patter.length} lines of DJ`);
-    ok(s.ads.length >= 3, `${s.name}: ${s.ads.length} ad reads`);
+    if (s.adFree) eq(s.ads.length, 0, `${s.name}: public radio, no ads`);
+    else ok(s.ads.length >= 3, `${s.name}: ${s.ads.length} ad reads`);
     ok(Array.isArray(s.sting) && s.sting.length >= 2, `${s.name} has its own sting`);
     ok(s.tone && s.tone.freq > 0, `${s.name} has its own speaker`);
     ok(typeof s.slogan === 'string' && s.slogan.length > 0, `${s.name}: « ${s.slogan} »`);
@@ -417,7 +420,7 @@ group('the radio dial');
     const word = l.split(/[,(]/)[0].trim();
     return word.length > 3 && txt.toLowerCase().includes(word.slice(0, Math.min(word.length, 14)));
   });
-  for (const s of STATIONS) {
+  for (const s of STATIONS.filter((x) => !x.adFree)) {
     const real = s.ads.filter(known).length;
     ok(real >= 2, `${s.name}: ${real} of ${s.ads.length} ads are for real places in this game`);
   }
@@ -426,7 +429,7 @@ group('the radio dial');
   eq(weak[0].id, 'chez', '…and it is the Ottawa one');
   eq(new Set(STYLES.map((s) => s.id)).size, STYLES.length, 'no duplicate styles');
   ok(STYLES.length >= 8, `${STYLES.length} styles to render: ${STYLES.map((s) => s.name).join(', ')}`);
-  eq(CKOI_TRACKS, STATIONS[0].tracks, 'CKOI_TRACKS is still CKOI’s playlist');
+  eq(CKOI_TRACKS, STATIONS[0].tracks, 'CKOI_TRACKS (the legacy name) is still the built-in station’s playlist');
   ok(BREAK_SECONDS >= 4 && BREAK_SECONDS <= 12, 'a break is a few seconds of DJ, not a coffee');
 }
 
@@ -436,14 +439,17 @@ group('the radio deck');
   const r = new Radio(null);           // no AudioContext: the dial still works
   ok(!r.wantOn, 'the deck starts off');
   r.toggle();
-  eq(r.station, 0, 'R turns it on at CKOI');
+  eq(r.station, 0, 'R turns on the selected station');
   ok(r.wantOn, '…and on');
   for (let i = 1; i < STATIONS.length; i++) {
-    r.toggle();
-    eq(r.station, i, `R walks the dial to ${STATION_NAMES[i]}`);
+    r.nextStation();
+    eq(r.station, i, `Shift+R walks the dial to ${STATION_NAMES[i]}`);
   }
+  r.nextStation();
+  eq(r.station, 0, 'station navigation wraps without changing power');
+  ok(r.wantOn, 'station change preserves power');
   r.toggle();
-  ok(!r.wantOn, 'and past the last one it goes off again');
+  ok(!r.wantOn, 'R switches power off');
   ok(!r.tapeReady, 'with nothing in assets/radio/, the tape deck is not on the dial');
   eq(r.count, STATIONS.length, `${r.count} stations without a tape`);
   r.tapeReady = true;
@@ -460,13 +466,13 @@ group('the radio deck');
   const marina = r.signal;
   ok(hull > 0.75, `CHEZ comes in downtown Hull (${hull.toFixed(2)})`);
   ok(marina < 0.25, `and is mush at the marina (${marina.toFixed(2)})`);
-  r.tune('ckoi');
+  r.tune('chumfm');
   r._signal(0.1);
   eq(r.signal, 1, 'a local station is always full strength');
 
   // The break: idents, DJ, ads, and then the song comes back.
-  r.tune('cjrc');
-  const st = STATIONS.find((s) => s.id === 'cjrc');
+  r.tune('cjrc_talk');
+  const st = STATIONS.find((s) => s.id === 'cjrc_talk');
   const seen = { ident: 0, dj: 0, ad: 0 };
   for (let i = 0; i < 12; i++) {
     r._openBreak();
@@ -540,7 +546,10 @@ else {
     'the file’s triggers are exactly the ones heckle.js knows about');
   for (const k of JSON_TRIGGERS) ok(pools[k].length >= 20, `${k}: ${pools[k].length} written lines`);
   const total = Object.values(pools).reduce((n, p) => n + p.length, 0);
-  ok(total >= 300, `${total} lines in all`);
+  // 299 since QA F2 (29 Sept 2026) removed the one snowbank line: the game is
+  // set in June to September.
+  ok(total >= 299, `${total} lines in all`);
+  ok(!/banc d'neige|snowbank/i.test(JSON.stringify(json)), 'no snowbank in a summer game');
   // Every one of them translates, and every one explains itself.
   let noEn = 0, noNote = 0;
   for (const r of json.heckles) { if (!r.en) noEn++; if (!r.note) noNote++; }
@@ -588,7 +597,7 @@ else {
   const json = JSON.parse(fs.readFileSync(path.join(TEXT, 'radio.json'), 'utf8'));
   const dial = stationsFromJSON(json);
   ok(!!dial, 'the file builds a dial');
-  eq(dial[0].id, 'ckoi', 'CKOI keeps position 0 — it shipped first and a test pins it');
+  eq(dial[0].id, 'chumfm', 'the built-in CHUM FM keeps position 0');
   eq(dial.length, json.stations.length + 1, `${dial.length} stations on the loaded dial`);
   for (const r of json.stations) {
     ok(!!MUSIC[r.id], `${r.call} has music of its own`);
@@ -596,24 +605,26 @@ else {
     ok(!!st, `${r.call} made it onto the dial as « ${st && st.name} »`);
     ok(st.tracks.length >= 3, `${st.name}: ${st.tracks.length} songs`);
     ok(st.tracks.every((t) => STYLES.some((y) => y.id === t.style)), `${st.name}: every song renders`);
-    ok(st.idents.length === 8 && st.patter.length === 25 && st.ads.length === 12,
+    const pub = r.id === 'cbc_radio_one' || r.id === 'radio_canada';
+    ok(st.idents.length === 8 && st.patter.length >= 10 && (pub ? st.ads.length === 0 : st.ads.length >= 6),
       `${st.name}: ${st.idents.length} idents, ${st.patter.length} patter, ${st.ads.length} ads`);
-    ok(st.stingers.length === 6 && st.contests.length === 4,
+    ok(st.stingers.length >= 5 && (pub ? st.contests.length === 0 : st.contests.length >= 3),
       `${st.name}: ${st.stingers.length} stingers, ${st.contests.length} contests`);
     ok(st.ads.every((a) => a.business && a.copy), `${st.name}: every ad names its advertiser`);
   }
-  // The one naming inconsistency the copy had: 104.7 is CFOU on the licence and
-  // MAX on the air, and dialogue.json says MAX. The brand wins on the HUD.
-  const max = dial.find((s) => s.id === 'max_energie');
-  eq(max.name, 'MAX 104.7', '104.7 is MAX on the HUD, the way the DJ and the dialogue both say it');
-  ok(max.slogan.includes('CFOU'), '…with the call sign kept in the slogan');
-  const dlg = path.join(TEXT, 'dialogue.json');
-  if (fs.existsSync(dlg)) {
-    const txt = fs.readFileSync(dlg, 'utf8');
-    if (/104\.7/.test(txt)) ok(/MAX 104\.7/.test(txt), 'and the dialogue agrees');
-  }
+  // Tom's 8 Sept ruling: real call signs and frequencies only.
+  const REAL = { chez: ['CHEZ-FM', '106.1 FM'], the_bear: ['CKQB-FM', '106.9 FM'], cbc_radio_one: ['CBO-FM', '91.5 FM'],
+    radio_canada: ['CBOF-FM', '90.7 FM'], cjrc_talk: ['CJRC-AM', '1150 AM'] };
+  eq(json.stations.map((r) => r.id), Object.keys(REAL), 'the written dial is CHEZ, The Bear, CBC One, Radio-Canada, CJRC');
+  for (const r of json.stations) eq([r.call, r.freq], REAL[r.id], `${r.id} carries its real call sign and frequency`);
+  const rawRadio = fs.readFileSync(path.join(TEXT, 'radio.json'), 'utf8');
+  ok(!/CFOU|CHLL|CKUQ|CFRL|CKOT|CKOI|MAX 104|The Buzz|102\.1|104\.7|99\.9|89\.1|101\.3|92\.3/.test(rawRadio), 'none of Gemini’s invented call signs survive in radio.json');
+  ok(!/Sir John A/.test(rawRadio), 'the parkway is not the 2012 name');
+  ok(/Ottawa River Parkway/.test(rawRadio), '...it is the Ottawa River Parkway');
+  ok(!/\u2014/.test(JSON.stringify(dial.slice(1))), 'no em dash in the written dial');
+  ok(!/CHUM.{0,12}\d{2,3}\.\d/.test(rawRadio), 'CHUM FM shows no frequency');
   // Only the Ottawa station fades.
-  eq(dial.filter((s) => s.weak).map((s) => s.id), ['the_buzz_ottawa'],
+  eq(dial.filter((s) => s.weak).map((s) => s.id), ['chez'],
     'exactly one station you have to drive for, and it is the Ottawa one');
   // AM sounds like AM.
   const am = dial.find((s) => s.id === 'cjrc_talk');
@@ -630,15 +641,15 @@ else {
   localStorage.clear();
   const r = new Radio(null);
   r.dial = dial;
-  r.tune('max_energie');
-  eq(r.state().stationName, 'MAX 104.7', 'tune() finds a written station');
+  r.tune('the_bear');
+  eq(r.state().stationName, '106.9 The Bear', 'tune() finds a written station');
   const seen = new Set();
   for (let i = 0; i < 32; i++) { r._openBreak(); seen.add(r.breakLine.slice(0, 4)); }
   ok(seen.size > 4, `${seen.size} different break openings in eight rotations`);
   r._openBreak();
   const before = r.breakLine;
   // Walk one whole ad break out through update().
-  r.station = r.dial.findIndex((s) => s.id === 'max_energie');
+  r.station = r.dial.findIndex((s) => s.id === 'the_bear');
   r.breakIdx = 2;                         // the ad slot
   r._openBreak();
   ok(r.breakLine.startsWith('PUB — '), `an ad break opens with the advertiser: « ${r.breakLine} »`);
@@ -673,21 +684,20 @@ group('the DJ notices the weather');
     // Every synthesised station ends up with something to say, including the
     // two the file forgot — those are written here, in their own voices.
     for (const st of dial) {
-      if (st.id === 'ckoi') continue;               // the built-in one, no copy in the file
+      if (st.id === 'chumfm') continue;               // the built-in one, no copy in the file
       ok(!!ctx[st.id], `${st.name} has contextual lines`);
       ok(Object.keys(ctx[st.id]).length >= 4, `${st.name}: ${Object.keys(ctx[st.id]).length} contexts covered`);
     }
-    ok(!!EXTRA_CONTEXT.riviere_country && !!EXTRA_CONTEXT.radio_uqo,
-      'the country station and the campus station were written in, not left silent');
-    ok(ctx.riviere_country.storm.some((l) => /TI-GARS/.test(l)), 'Ti-Gars Pilon keeps his name on his lines');
-    ok(ctx.radio_uqo.latenight.some((l) => /B-O/.test(l)), '…and so does B-O');
+    ok(!!EXTRA_CONTEXT.the_bear && !!EXTRA_CONTEXT.cbc_radio_one && !!EXTRA_CONTEXT.radio_canada,
+      'The Bear and the two public stations were written in, not left silent');
+    ok(ctx.the_bear.storm.some((l) => /GILLES/.test(l)), 'Gilles keeps his name on his lines');
     // Mapping by FORMAT, not frequency: the modern-rock lines are on the
     // modern-rock station and the traffic advisories are on the talk station.
-    eq(CONTEXT_STATION.ENERGIE, 'max_energie', 'modern rock lines go to CFOU');
-    eq(CONTEXT_STATION.ROCKDETENTE, 'le_roc', 'classic rock lines go to CHLL');
+    eq(CONTEXT_STATION.ENERGIE, 'cjrc_talk', 'the joual DJ lines go to the talk station');
+    eq(CONTEXT_STATION.ROCKDETENTE, 'radio_canada', 'the calm French lines go to Radio-Canada');
     eq(CONTEXT_STATION.CKOI, 'cjrc_talk', 'the traffic and advisory lines go to the talk station');
-    eq(CONTEXT_STATION.ENGLISH, 'the_buzz_ottawa', 'and the English ones to the Ottawa signal');
-    ok(ctx.the_buzz_ottawa.fading.length > 1, 'the fading lines are on the station that fades');
+    eq(CONTEXT_STATION.ENGLISH, 'chez', 'and the English ones to the Ottawa signal');
+    ok(ctx.chez.fading.length > 1, 'the fading lines are on the station that fades');
 
     // Le Droit.
     const heads = headlinesFromJSON(j);
@@ -712,7 +722,7 @@ group('the DJ notices the weather');
     r.tapes = tapes;
     r.tapeReady = true;
     ok(r.count === dial.length + 1, 'the cassette deck is on the dial once there are labels');
-    r.tune('max_energie');
+    r.tune('the_bear');
     r.setScene(false, false, false);
     eq(r._context(), 'endofsummer', 'a quiet afternoon in late August');
     r.setScene(true, false, false);
@@ -722,23 +732,23 @@ group('the DJ notices the weather');
     r.setScene(false, true, true);
     eq(r._context(), 'latenight', 'and the hour beats the heat');
     // A breaking-up signal beats everything, but only on the station that fades.
-    r.tune('the_buzz_ottawa');
+    r.tune('chez');
     r.signal = 0.2;
     r.setScene(true, false, false);
     eq(r._context(), 'fading', 'a station you can barely hear talks about that first');
     r.signal = 1;
     eq(r._context(), 'storm', '…and about the storm once it comes back in');
-    r.tune('max_energie');
+    r.tune('the_bear');
     r.signal = 0.2;
     r.setScene(false, false, false);
     ok(r._context() !== 'fading', 'a local station never claims to be fading');
 
     // And the DJ slot actually reaches for it.
-    r.tune('le_roc');
+    r.tune('the_bear');
     r.setScene(true, false, false);
     r.breakIdx = 1;                        // the patter slot
     r._openBreak();
-    ok(ctx.le_roc.storm.includes(r.breakLine), `the DJ mentions the storm: « ${r.breakLine} »`);
+    ok(ctx.the_bear.storm.includes(r.breakLine), `the DJ mentions the storm: « ${r.breakLine} »`);
 
     // The dead tape: a label, no file, and it still turns over.
     r.station = r.tapeIdx;

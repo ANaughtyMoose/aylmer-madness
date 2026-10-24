@@ -35,8 +35,25 @@ const scale = (pts, k) => pts.map(([t, v]) => [t, Math.round(v * k * 1000) / 100
 const scaleGlass = (ranges, k) =>
   ranges.map((r) => (r.length > 2 ? [r[0], r[1], Math.round(r[2] * k * 1000) / 1000] : [r[0], r[1]]));
 
-function derive(baseId, over) {
-  const b = carById(baseId);
+// The Tempo and the Leone were lofted from Margaret's car back when it was a
+// 1997 SL sedan. She drives a 1997 SC2 coupe now, and a Tempo or a Leone with
+// a fastback would be a lie, so the sedan they were built from is kept here
+// exactly as it was (cars.js history, d6fa6f2) and derive() takes it directly.
+// Absolute metres, like every profile in cars.js; derive() rescales them.
+const SL_SEDAN = {
+  style: 'sedan', seats: 3,
+  top: [[0, 0.92], [0.02, 0.95], [0.06, 0.965], [0.17, 0.97], [0.21, 0.99], [0.25, 1.10], [0.30, 1.24],
+        [0.35, 1.34], [0.40, 1.385], [0.46, 1.39], [0.55, 1.385], [0.60, 1.35], [0.66, 1.22], [0.72, 1.07],
+        [0.76, 0.99], [0.80, 0.96], [0.90, 0.88], [0.965, 0.80], [0.985, 0.72], [1, 0.52]],
+  belt: [[0, 0.92], [0.18, 0.94], [0.26, 0.985], [0.68, 0.985], [0.78, 0.96], [1, 0.96]],
+  plan: [[0, 0.74], [0.03, 0.82], [0.10, 0.85], [0.80, 0.85], [0.90, 0.835], [0.96, 0.80], [1, 0.72]],
+  roofK: 0.82, tuck: 0.035,
+  glassTop: [[0.21, 0.40], [0.60, 0.76]], glassSide: [0.27, 0.66],
+  cladding: { rocker: 0.10, bumper: 0.42, tRear: 0.03, tFront: 0.962, color: 0x50545a },
+};
+
+function derive(base, over) {
+  const b = typeof base === 'string' ? carById(base) : base;
   const topMax = Math.max(...b.top.map((p) => p[1]));
   const planMax = Math.max(...b.plan.map((p) => p[1]));
   const ky = over.h / topMax;
@@ -78,7 +95,7 @@ function finish(c, sound, drive, hb) {
 // The one thing on Kijiji nobody has to earn: a Tempo for less than the cheapest
 // car on the lot, so the first thing you can afford is a whole car and not a set
 // of brake pads.
-export const TEMPO = finish(derive('saturn', {
+export const TEMPO = finish(derive(SL_SEDAN, {
   id: 'tempo', name: '1991 Ford Tempo GL', who: 'Kijiji', lot: true,
   body: 0x99a2a8, seats: 4,
   flavour: 'Le char de ta tante. Deux cent mille kilomètres, une porte d’une autre couleur, pis le chauffage marche juste au boutte.',
@@ -132,7 +149,7 @@ export const SICIVIC = finish(derive('civic', {
 export const CROWNVIC = finish(derive('cutlass', {
   id: 'crownvic', name: '1991 Ford LTD Crown Victoria P71', who: 'La Ville',
   body: 0xe6e5df, seats: 4,
-  flavour: 'L’ancienne auto de police d’Aylmer. Décalques sablées, spotlight encore là, pis un 5.0 qui pousse en arrière.',
+  flavour: 'L’ancienne auto de police d’avant la fusion avec Gatineau. Décalques sablées, spotlight encore là, pis un 5.0 qui pousse en arrière.',
   len: 5.41, wid: 1.97, h: 1.44, wheelbase: 2.98, overhangF: 1.15, wheelR: 0.36,
   topSpeed: 48.0, accel: 4.6, brake: 9.4, grip: 0.94, steerMax: 0.50, mass: 1810,
   seatY: 1.08, seatZ: 0.05, seatX: 0.44, clearance: 0.22,
@@ -180,7 +197,7 @@ export const FIREBIRD = finish(derive('cavalier', {
 // get out of the station lot. Twenty years of cottage road in the paint, and it
 // is still the only thing in town that would rather be in the field than on
 // chemin d'Aylmer — `turf` is the golf cart's trick, used honestly for once.
-export const LEONE = finish(derive('saturn', {
+export const LEONE = finish(derive(SL_SEDAN, {
   id: 'leone', name: '1987 Subaru Leone RX Turbo 4WD', who: 'M. Henderson',
   body: 0xe8e6e0, seats: 4, turf: 1.5,
   flavour: 'Blanc, carré, garde-boue d’usine, quatre roues motrices à deux gammes. A livré le pain pendant la crise du verglas quand les autos de police sortaient même pas du stationnement.',
@@ -251,7 +268,8 @@ export const jumpsFound = (garage) => JUMPS.filter((j) => garage.hasFeat(j.feat)
 // ---------------------------------------------------------------- the moment
 
 const RACES = ['racedave', 'racecivic', 'circuit', 'blitz'];
-const SAYYAD_CHAIN = ['poutine', 'sayyad', 'racecivic'];
+// « Poutine express » is cut (restructure, 29 Sept 2026).
+const SAYYAD_CHAIN = ['sayyad', 'racecivic'];
 const all = (done, ids) => ids.every((id) => done.has(id));
 
 // Each famous car, what you have to have done, and what is said when you have.
@@ -270,12 +288,12 @@ export const FAMOUS = [
     id: 'sicivic', who: 'Sayyad', at: 'steph',
     need: 'Fais toute la gang de jobs à Sayyad',
     needEn: 'Finish everything Sayyad asks of you',
-    hint: 'Poutine express · La commission à Sayyad · La course contre Sayyad',
+    hint: 'Réveiller Sayyad · La course contre Sayyad',
     earned: (done) => all(done, SAYYAD_CHAIN),
     title: 'SAYYAD T’A DONNÉ LA SI',
     card: 'Trois jobs pour lui, pis tu l’as battu à sa propre course.\n'
       + 'Il a tiré la toile dans le garage du 75 Denise-Friend. La rouge.\n'
-      + 'Celle qui a semé la GRC su’ l’pont Portage en 2001.\n\n'
+      + 'Celle qui attend sous la toile tous les matins pendant qu’il dort jusqu’à midi.\n\n'
       + '« Tu la ramènes propre. Pis touche pas au radio. »',
   },
   {

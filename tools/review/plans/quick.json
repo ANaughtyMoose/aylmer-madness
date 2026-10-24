@@ -1,0 +1,80 @@
+{
+ "name": "quick",
+ "about": "About 12 minutes: boot, first drive, the first main mission, a look tour, speed, a crash, cops, radio, a Midtown mode. The smoke test for the evidence pack. Ends with the sample script beat.",
+ "entry": "index.html",
+ "beats": [
+  {
+   "do": "boot"
+  },
+  {
+   "do": "firstDrive",
+   "seconds": 5
+  },
+  {
+   "do": "mission",
+   "id": "alternateur",
+   "stageTimeout": 120
+  },
+  {
+   "do": "boot",
+   "via": "free"
+  },
+  {
+   "do": "tour",
+   "places": [
+    "home",
+    "principale",
+    "marina",
+    "beach",
+    "tims"
+   ],
+   "envs": [
+    "day",
+    "dusk",
+    "night"
+   ],
+   "weather": [
+    "clear",
+    "rain"
+   ]
+  },
+  {
+   "do": "speedRun",
+   "seconds": 10,
+   "frames": 10
+  },
+  {
+   "do": "crash",
+   "seconds": 7
+  },
+  {
+   "do": "script",
+   "id": "feel-probe",
+   "vehicle": false,
+   "about": "Feel red team probe (19 Oct): acceleration, braking, steering, handbrake, traffic in frame, a 70 km/h crash with frames, a 3-star chase with cruiser in frame, the chantier at 100 km/h (tools/review/beats/feel-probe.mjs)"
+  },
+  {
+   "do": "cops",
+   "heat": 3,
+   "seconds": 25
+  },
+  {
+   "do": "radio",
+   "taps": 3
+  },
+  {
+   "do": "modes"
+  },
+  {
+   "do": "course",
+   "id": "bz_vieux",
+   "index": 0,
+   "stageTimeout": 120
+  },
+  {
+   "do": "script",
+   "id": "sample",
+   "about": "B-02: the sample script beat (tools/review/beats/sample.mjs)"
+  }
+ ]
+}

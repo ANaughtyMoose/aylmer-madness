@@ -347,12 +347,23 @@ export function _resetSigns() { _plan = null; }
  * reference to. Two bakes of a 120-quad mesh and one 2048x1024 canvas; the
  * proper fix is for world.js to await the names before it builds at all.
  */
-export function primeSignage(renderer, existing, base = '') {
+//
+// The rebuild reuses the height field of the first bake (D2): without it every
+// board was rebuilt at sea level, and on the hill most of Principale's boards
+// ended up metres underground. The old mesh and canvas texture are freed.
+export function primeSignage(renderer, existing, base = '', yAt = _yAt) {
   return loadStorefronts(base).then(() => {
     _plan = null;
-    const rebuilt = buildSignage(renderer);
+    const rebuilt = buildSignage(renderer, yAt);
     if (!rebuilt) return existing;
     if (existing) {
+      if (existing.mesh && existing.mesh !== rebuilt.mesh) renderer.free?.(existing.mesh);
+      const t = existing.tex;
+      if (t && t !== rebuilt.tex) {
+        if (typeof t.dispose === 'function') t.dispose();
+        else if (renderer.gl?.deleteTexture && typeof WebGLTexture !== 'undefined'
+          && t instanceof WebGLTexture) renderer.gl.deleteTexture(t);
+      }
       existing.mesh = rebuilt.mesh; existing.tex = rebuilt.tex; existing.names = rebuilt.names;
       return existing;
     }
@@ -365,7 +376,9 @@ export function primeSignage(renderer, existing, base = '') {
 // buildings stand on a hill now: without this the whole strip on Principale
 // would hover at its old sea-level height while the shops climb away from it.
 // Omitted (the sign lab, the smoke tests), it is zero and nothing moves.
+let _yAt = null;   // the height field of the last bake that had one (primeSignage)
 export function buildSignage(renderer, yAt = null) {
+  if (yAt) _yAt = yAt;
   const plan = planSigns();
   if (!plan.length) return null;
   if (typeof document === 'undefined' || !document.createElement) return null;

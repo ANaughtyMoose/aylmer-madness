@@ -181,7 +181,11 @@ group('economy');
 {
   ok(MISSIONS.length >= 10, `${MISSIONS.length} jobs`);
   let total = 0;
+  // Set pieces that are not paid jobs: a night joyride (jump bonus only) and
+  // a hard night (no pay). See docs/design/SETPIECES.md.
+  const UNPAID = new Set(['golfcart', 'nuittim']);
   for (const def of MISSIONS) {
+    if (UNPAID.has(def.id)) continue;
     // Both variants: the Ranger's bench seats two, everything else seats more.
     const bench = missionPayout(def, { seats: 2, carId: 'ranger' });
     const wide = missionPayout(def, { seats: 6, carId: 'caravan' });
@@ -220,9 +224,11 @@ group('the new cars');
   const inVan = gang.build({ carId: 'caravan', carName: 'Caravan', seats: 6 });
   ok(inRanger.length > inVan.length, `two trips in the Ranger (${inRanger.length} stages), one in the van (${inVan.length})`);
   const inBus = gang.build({ carId: 'bus', carName: 'Orion', seats: 39 });
-  // Margaret lives at 299 Fraser with you, so every car — even the bus — starts by picking her up at home.
-  ok(inBus[0].at === 'home', 'the bus picks Margaret up at home too');
-  ok(inRanger[0].at === 'home', 'everything else picks her up at the driveway');
+  // Abraham is waiting in your own driveway (Tom, 29 Sept 2026; Margaret is
+  // your mother and never rode with the gang), so every car — even the bus —
+  // starts by picking him up at home.
+  ok(inBus[0].at === 'home', 'the bus picks Abraham up at home too');
+  ok(inRanger[0].at === 'home', 'everything else picks him up at the driveway');
 }
 
 // -------------------------------------------------- 5b. the five characters
@@ -272,10 +278,10 @@ group('every character starts in their own vehicle');
 group('radio');
 {
   ok(STYLES.length >= 3, `${STYLES.length} styles: ${STYLES.map((s) => s.name).join(', ')}`);
-  ok(CKOI_TRACKS.length >= 4, `${CKOI_TRACKS.length} tracks on CKOI`);
+  ok(CKOI_TRACKS.length >= 4, `${CKOI_TRACKS.length} tracks on the built-in station`);
   ok(CKOI_TRACKS.every((t) => STYLES.some((s) => s.id === t.style)), 'every track has a style to render');
   ok(CKOI_TRACKS.every((t) => t.seconds >= 90 && t.seconds <= 120), 'and they all run 90-120 s');
-  ok(STATION_NAMES[0].startsWith('CKOI'), `station 0 is ${STATION_NAMES[0]}`);
+  ok(STATION_NAMES[0].startsWith('CHUM FM'), `station 0 is ${STATION_NAMES[0]}`);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

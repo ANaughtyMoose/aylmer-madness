@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aylmer Compare</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  --bg: #f4f2ee; --panel: #ffffff; --ink: #1e1d1a; --muted: #6a665e; --line: #dcd7cd;
+  --accent: #1f5f8b; --accent-ink: #ffffff; --ok: #2f7a3e; --warn: #9a6200; --bad: #a33a2a;
+  --frame: #2a2926; --chip: #ece8e0; --focus: #2b7bb9;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #181816; --panel: #22221f; --ink: #ece9e2; --muted: #a29d92; --line: #3a3934;
+    --accent: #5aa3d6; --accent-ink: #0d1a24; --ok: #6cc07c; --warn: #e0a43c; --bad: #e07a68;
+    --frame: #0f0f0e; --chip: #2e2d29; --focus: #7ab8e6;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #181816; --panel: #22221f; --ink: #ece9e2; --muted: #a29d92; --line: #3a3934;
+  --accent: #5aa3d6; --accent-ink: #0d1a24; --ok: #6cc07c; --warn: #e0a43c; --bad: #e07a68;
+  --frame: #0f0f0e; --chip: #2e2d29; --focus: #7ab8e6;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+a { color: var(--accent); }
+.wrap { max-width: 1480px; margin: 0 auto; padding: 0 16px 80px; }
+
+header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+.topbar { max-width: 1480px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.topbar h1 { font-size: 18px; margin: 0 8px 0 0; letter-spacing: .2px; }
+.tabs { display: flex; gap: 4px; }
+.tab { border: 1px solid var(--line); background: var(--panel); padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.spacer { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--panel); padding: 7px 12px; border-radius: 6px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; padding: 8px 16px; }
+.status { font-size: 13px; color: var(--muted); min-width: 120px; }
+.status.bad { color: var(--bad); font-weight: 600; }
+
+.howto { margin: 16px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; }
+.howto ol { margin: 0; padding-left: 20px; }
+.howto li { margin: 2px 0; }
+.meta { color: var(--muted); font-size: 13px; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+.panel h2 { font-size: 16px; margin: 0 0 8px; }
+textarea { width: 100%; min-height: 64px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--bg); resize: vertical; }
+textarea.big { min-height: 90px; }
+
+.filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.filters label { display: inline-flex; gap: 4px; align-items: center; }
+.jump { max-width: 320px; }
+select { border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; background: var(--panel); }
+
+.place { margin: 28px 0; }
+.place-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
+.place-head h2 { font-size: 22px; margin: 0; }
+.slug { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.badge.streetview { color: var(--ok); }
+.badge.approximate, .badge.mixed { color: var(--warn); }
+.badge.none { color: var(--bad); }
+.place-notes { margin: 8px 0; }
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+
+.pair { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin: 14px 0; overflow: hidden; }
+.pair-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.pair-head .title { font-weight: 600; }
+.views { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.views button { border: 0; background: transparent; padding: 4px 10px; cursor: pointer; }
+.views button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.stage { background: var(--frame); padding: 8px; }
+.sbs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cell { position: relative; }
+.cell .lab { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 4px; pointer-events: none; }
+.frame { width: 100%; aspect-ratio: var(--ar, 4/3); background: #111; display: block; object-fit: contain; cursor: zoom-in; }
+.stack { position: relative; width: 100%; max-width: 1100px; margin: 0 auto; aspect-ratio: var(--ar, 4/3); background: #111; overflow: hidden; user-select: none; }
+.stack img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.stack .top { clip-path: inset(0 calc(100% - var(--split, 50%)) 0 0); }
+.stack .divider { position: absolute; top: 0; bottom: 0; left: var(--split, 50%); width: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.4); pointer-events: none; }
+.stack.wipe { cursor: ew-resize; }
+.stack.overlay .top { clip-path: none; opacity: var(--op, .5); }
+.stack.overlay .divider { display: none; }
+.stage-ctl { display: flex; gap: 10px; align-items: center; justify-content: center; color: #ddd; font-size: 13px; padding: 6px 0 0; }
+.stage-ctl input[type=range] { width: min(420px, 60vw); }
+.noshot { color: #ccc; display: grid; place-items: center; aspect-ratio: 4/3; text-align: center; padding: 20px; }
+
+.fb { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px 22px; padding: 12px 14px 14px; }
+.fb h4 { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.scores, .prio { display: flex; gap: 6px; flex-wrap: wrap; }
+.scores label, .prio label { border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+.scores input, .prio input { margin: 0; }
+.scores label:has(input:checked), .prio label:has(input:checked) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.faults { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; font-size: 14px; }
+.faults label { display: flex; gap: 6px; align-items: flex-start; }
+.wrong { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.wrong label { font-weight: 600; color: var(--bad); }
+.pose { font-size: 12.5px; color: var(--muted); padding: 8px 14px 12px; border-top: 1px solid var(--line); }
+.pose code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.shows { font-size: 13.5px; color: var(--muted); margin: 0 0 6px; }
+
+.empty { padding: 14px; color: var(--muted); }
+
+/* audio */
+.agroup { margin: 18px 0; }
+.agroup > h3 { margin: 0 0 6px; font-size: 17px; }
+.aitem { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px 22px; }
+.aitem .name { font-weight: 600; }
+.aitem .src { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
+.aitem audio { width: 100%; margin-top: 6px; }
+.aitem .playrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.aitem .note { font-size: 13px; color: var(--muted); }
+
+.lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 50; display: none; flex-direction: column; }
+.lightbox.on { display: flex; }
+.lightbox .bar { display: flex; gap: 8px; padding: 10px 16px; align-items: center; color: #eee; }
+.lightbox .bar .btn { background: #333; color: #eee; border-color: #555; }
+.lightbox .bar .btn[aria-pressed="true"] { background: #eee; color: #111; }
+.lightbox .imgwrap { flex: 1; overflow: auto; display: grid; place-items: center; }
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+.lightbox img.full { max-width: none; max-height: none; cursor: zoom-out; }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 60; display: none; place-items: center; padding: 16px; }
+.modal.on { display: grid; }
+.modal .box { background: var(--panel); border-radius: 10px; max-width: 820px; width: 100%; max-height: 86vh; display: flex; flex-direction: column; border: 1px solid var(--line); }
+.modal .box header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+.modal .box pre { margin: 0; padding: 12px 16px; overflow: auto; white-space: pre-wrap; font: 12.5px/1.45 ui-monospace, Menlo, monospace; }
+
+@media (max-width: 900px) {
+  .sbs { grid-template-columns: 1fr; }
+  .fb, .aitem { grid-template-columns: 1fr; }
+  .faults { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="topbar">
+    <h1>Aylmer Compare</h1>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-look" aria-selected="true">Look</button>
+      <button class="tab" role="tab" id="tab-audio" aria-selected="false">Audio</button>
+    </div>
+    <div class="spacer"></div>
+    <span class="status" id="status">Loading</span>
+    <button class="btn" id="btn-save" title="Writes references/places/_feedback/feedback-date.md and .json, and LATEST.md">Save to project</button>
+    <button class="btn primary" id="btn-copy">Copy for Claude</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="howto" aria-label="How to use">
+    <strong>How to use</strong>
+    <ol>
+      <li>Each card is one real photo next to the game seen from the same spot. Score it, tick what is wrong, write what to change.</li>
+      <li>Everything saves in this browser as you type. Always open this exact address: <code id="here"></code></li>
+      <li>Press <strong>Save to project</strong> (pick the aylmer-madness folder once), then tell Claude "read references/places/_feedback/LATEST.md". Or press <strong>Copy for Claude</strong> and paste.</li>
+    </ol>
+    <div class="meta" id="buildmeta"></div>
+  </section>
+
+  <main id="view-look">
+    <section class="panel">
+      <h2>Overall Aylmer feel</h2>
+      <textarea class="big" id="overall" placeholder="What would make the whole town feel more like Aylmer in summer 2004?"></textarea>
+    </section>
+    <div class="filters">
+      <label for="jump">Go to</label>
+      <select id="jump" class="jump"></select>
+      <span class="meta">Show</span>
+      <label><input type="radio" name="flt" value="all" checked> all</label>
+      <label><input type="radio" name="flt" value="todo"> not scored</label>
+      <label><input type="radio" name="flt" value="done"> with feedback</label>
+      <label><input type="radio" name="flt" value="streetview"> Street View pose only</label>
+      <span class="meta" id="count"></span>
+    </div>
+    <div id="places"></div>
+  </main>
+
+  <main id="view-audio" hidden>
+    <section class="panel">
+      <h2>Audio notes</h2>
+      <textarea id="audioNotes" placeholder="How the game sounds overall"></textarea>
+      <h2 style="margin-top:12px">What is missing</h2>
+      <textarea id="audioMissing" placeholder="Sounds Aylmer in 2004 had that the game lacks"></textarea>
+    </section>
+    <p class="meta">Rendered items are made on click from the game's own code (src/core/audition.js, src/game/radio.js). Live items play through the game's Audio class (src/core/audio.js); click once to unlock sound.</p>
+    <div id="audio"></div>
+  </main>
+</div>
+
+<div class="lightbox" id="lb" role="dialog" aria-label="Zoomed image">
+  <div class="bar">
+    <button class="btn" id="lb-ref" aria-pressed="true">Reference</button>
+    <button class="btn" id="lb-game" aria-pressed="false">Game</button>
+    <span id="lb-cap" style="font-size:13px"></span>
+    <div class="spacer"></div>
+    <span style="font-size:12px;color:#aaa">R / G to flip, click image for 100%, Esc to close</span>
+    <button class="btn" id="lb-close">Close</button>
+  </div>
+  <div class="imgwrap"><img id="lb-img" alt=""></div>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-label="Export">
+  <div class="box">
+    <header><strong id="modal-title">Copied</strong><div class="spacer"></div><button class="btn" id="modal-close">Close</button></header>
+    <pre id="modal-text"></pre>
+  </div>
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Game text sometimes carries a long dash; the page and the export never do.
+const clean = (s) => String(s ?? '').replace(/\s*[\u2014\u2013]\s*/g, ' - ');
+const REPO = '../../';
+const KEY = 'aylmer-compare-v2';
+
+const FAULTS = [
+  ['shape', 'shape / height'], ['colour', 'colour / material'], ['roof', 'roof'], ['openings', 'windows / doors'],
+  ['details', 'missing details'], ['trees', 'trees / landscape'], ['road', 'road / sidewalk / curb'], ['signage', 'signage'],
+  ['era', 'wrong era (not 2004)'], ['light', 'lighting / sky'], ['camera', 'game camera not where the photo was taken'],
+];
+const FAULT_LABEL = Object.fromEntries(FAULTS);
+const PRIOS = ['High', 'Medium', 'Low'];
+const PRANK = { High: 0, Medium: 1, Low: 2 };
+
+// ------------------------------------------------------------------ state
+let state = { overall: '', places: {}, pairs: {}, audio: {}, audioNotes: '', audioMissing: '' };
+let storageOk = true;
+try { const raw = localStorage.getItem(KEY); if (raw) state = { ...state, ...JSON.parse(raw) }; }
+catch { storageOk = false; }
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; setStatus('Saved in this browser'); }
+  catch { storageOk = false; setStatus('Not saved in browser (storage blocked). Copy or save before closing.', true); }
+}
+function setStatus(t, bad = false) { const s = $('status'); s.textContent = t; s.classList.toggle('bad', bad); }
+const pairFb = (id) => (state.pairs[id] ||= { score: null, faults: [], change: '', priority: null, refWrong: false, refWrongWhy: '' });
+const hasPairFb = (f) => !!f && (f.score || f.faults?.length || f.change?.trim() || f.priority || f.refWrong);
+
+$('here').textContent = location.href.split('#')[0];
+
+// ------------------------------------------------------------------ tabs
+function showTab(which) {
+  $('tab-look').setAttribute('aria-selected', which === 'look');
+  $('tab-audio').setAttribute('aria-selected', which === 'audio');
+  $('view-look').hidden = which !== 'look';
+  $('view-audio').hidden = which !== 'audio';
+  if (which === 'audio') buildAudio();
+  try { sessionStorage.setItem(KEY + '-tab', which); } catch {}
+}
+$('tab-look').onclick = () => showTab('look');
+$('tab-audio').onclick = () => showTab('audio');
+
+// ------------------------------------------------------------------ look
+let INDEX = null;
+async function loadIndex() {
+  const r = await fetch(REPO + 'references/places/_feedback/compare-index.json', { cache: 'no-store' });
+  if (!r.ok) throw new Error('compare-index.json not found (' + r.status + '). Run node tools/aylmer-compare/build_index.mjs');
+  INDEX = await r.json();
+  $('buildmeta').textContent = `Game commit ${INDEX.commit.slice(0, 10)}, shots indexed ${new Date(INDEX.built).toLocaleString()}, ${INDEX.places.reduce((n, p) => n + p.pairs.length, 0)} pairs over ${INDEX.places.length} places.`;
+}
+
+const qualityBadge = (q) => {
+  const cls = q === 'streetview' ? 'streetview' : q === 'approximate' || q === 'mixed' ? q : 'none';
+  const txt = { streetview: 'Street View pose', approximate: 'approximate pose', mixed: 'some poses approximate', 'no reference': 'no verified reference', 'no shot': 'no game shot' }[q] || q;
+  return `<span class="badge ${cls}">${esc(txt)}</span>`;
+};
+
+function renderPlaces() {
+  const host = $('places');
+  host.innerHTML = '';
+  const jump = $('jump');
+  jump.innerHTML = '';
+  for (const p of INDEX.places) {
+    const o = document.createElement('option'); o.value = 'p-' + p.slug; o.textContent = `${p.name} (${p.pairs.length})`; jump.appendChild(o);
+    const sec = document.createElement('section');
+    sec.className = 'place'; sec.id = 'p-' + p.slug;
+    sec.innerHTML = `
+      <div class="place-head"><h2>${esc(clean(p.name))}</h2><span class="slug">${esc(p.slug)}</span>${qualityBadge(p.pose_quality)}
+        <span class="meta">${p.pairs.length} pair${p.pairs.length === 1 ? '' : 's'}</span></div>
+      ${p.notes ? `<details><summary>About these references</summary><p class="meta">${esc(clean(p.notes))}</p></details>` : ''}
+      <div class="place-notes"><textarea data-place="${esc(p.slug)}" placeholder="Notes for the whole place (${esc(p.slug)})"></textarea></div>`;
+    const ta = sec.querySelector('textarea');
+    ta.value = state.places[p.slug]?.notes || '';
+    ta.addEventListener('input', () => { (state.places[p.slug] ||= {}).notes = ta.value; save(); });
+    if (!p.pairs.length) {
+      const e = document.createElement('div'); e.className = 'pair empty';
+      e.textContent = 'No verified reference photo for this place yet, so there is nothing to compare. Place notes above still export.';
+      sec.appendChild(e);
+    }
+    for (const pr of p.pairs) sec.appendChild(renderPair(p, pr));
+    host.appendChild(sec);
+  }
+  jump.onchange = () => document.getElementById(jump.value)?.scrollIntoView({ behavior: 'smooth' });
+  applyFilter();
+}
+
+function renderPair(place, pr) {
+  const f = pairFb(pr.id);
+  const el = document.createElement('article');
+  el.className = 'pair'; el.dataset.id = pr.id; el.dataset.q = pr.pose_quality;
+  const refSrc = REPO + pr.reference, gameSrc = pr.game_shot ? REPO + pr.game_shot : null;
+  const nm = 'n' + Math.random().toString(36).slice(2, 8);
+  const cam = pr.camera;
+  el.innerHTML = `
+    <div class="pair-head">
+      <span class="title">${place.pairs.length > 1 ? pr.n + '. ' : ''}${esc(pr.reference.split('/').pop())}</span>
+      ${qualityBadge(pr.pose_quality)}
+      <div class="spacer"></div>
+      <div class="views" role="group" aria-label="Compare view">
+        <button data-v="sbs" aria-pressed="true">Side by side</button><button data-v="wipe" aria-pressed="false">Slider wipe</button><button data-v="overlay" aria-pressed="false">Overlay</button>
+      </div>
+    </div>
+    <div class="stage"></div>
+    <div class="fb">
+      <div>
+        ${pr.shows ? `<p class="shows">Photo shows: ${esc(clean(pr.shows))}</p>` : ''}
+        <h4>Match score</h4>
+        <div class="scores">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${nm}-s" value="${n}" ${f.score === n ? 'checked' : ''}>${n}</label>`).join('')}
+          <span class="meta" style="align-self:center">1 nothing like it, 5 looks like the real place</span></div>
+        <h4 style="margin-top:10px">What to change</h4>
+        <textarea class="change" placeholder="Be specific: what is wrong and what it should be">${esc(f.change)}</textarea>
+        <h4 style="margin-top:10px">Priority</h4>
+        <div class="prio">${PRIOS.map((p) => `<label><input type="radio" name="${nm}-p" value="${p}" ${f.priority === p ? 'checked' : ''}>${p}</label>`).join('')}
+          <button class="btn" type="button" data-clear="1" style="padding:2px 8px;font-size:13px">clear</button></div>
+      </div>
+      <div>
+        <h4>What is wrong</h4>
+        <div class="faults">${FAULTS.map(([k, l]) => `<label><input type="checkbox" value="${k}" ${f.faults.includes(k) ? 'checked' : ''}>${esc(l)}</label>`).join('')}</div>
+        <div class="wrong">
+          <label><input type="checkbox" class="refwrong" ${f.refWrong ? 'checked' : ''}> This reference is wrong (wrong building, wrong place, not usable)</label>
+          <textarea class="refwhy" placeholder="Why, if you know" style="min-height:40px;margin-top:6px" ${f.refWrong ? '' : 'hidden'}>${esc(f.refWrongWhy)}</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="pose">
+      Reference <code>${esc(pr.reference)}</code><br>
+      Game shot <code>${esc(pr.game_shot || 'none')}</code><br>
+      ${cam ? `Camera x ${cam.x}, z ${cam.z}, eye ${cam.eye_height_m} m, heading ${cam.heading_deg} deg, pitch ${(cam.pitch_rad * 180 / Math.PI).toFixed(1)} deg, fov ${cam.hfov_deg} deg, on ${esc(cam.road)}` : ''}
+      ${pr.pose_notes?.length ? `<br>Pose notes: ${esc(pr.pose_notes.join('; '))}` : ''}
+    </div>`;
+  const stage = el.querySelector('.stage');
+  let view = 'sbs', split = 50, op = 50, ar = null;
+  const setAr = (img) => { if (img.naturalWidth) { ar = img.naturalWidth / img.naturalHeight; el.style.setProperty('--ar', ar); } };
+  function draw() {
+    if (!gameSrc) {
+      stage.innerHTML = `<div class="sbs"><div class="cell"><img class="frame" src="${esc(refSrc)}" alt="reference" loading="lazy"><span class="lab">Reference</span></div>
+        <div class="noshot">No game shot for this reference</div></div>`;
+    } else if (view === 'sbs') {
+      stage.innerHTML = `<div class="sbs">
+        <div class="cell"><img class="frame" data-z="ref" src="${esc(refSrc)}" alt="reference photo" loading="lazy"><span class="lab">Reference</span></div>
+        <div class="cell"><img class="frame" data-z="game" src="${esc(gameSrc)}" alt="game shot" loading="lazy"><span class="lab">Game</span></div></div>`;
+    } else {
+      stage.innerHTML = `<div class="stack ${view}" style="--split:${split}%;--op:${op / 100}">
+          <img class="bottom" src="${esc(gameSrc)}" alt="game shot"><img class="top" src="${esc(refSrc)}" alt="reference photo"><div class="divider"></div>
+          <span class="lab" style="position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:4px">${view === 'wipe' ? 'Reference left, game right' : 'Reference over game'}</span></div>
+        <div class="stage-ctl">${view === 'wipe' ? `Reference <input type="range" min="0" max="100" value="${split}" aria-label="wipe position"> Game`
+          : `Game <input type="range" min="0" max="100" value="${op}" aria-label="reference opacity"> Reference`}</div>`;
+      const st = stage.querySelector('.stack'), rg = stage.querySelector('input[type=range]');
+      rg.addEventListener('input', () => { if (view === 'wipe') { split = +rg.value; st.style.setProperty('--split', split + '%'); } else { op = +rg.value; st.style.setProperty('--op', op / 100); } });
+      if (view === 'wipe') {
+        const move = (e) => { const r = st.getBoundingClientRect(); split = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)); st.style.setProperty('--split', split + '%'); rg.value = split; };
+        st.addEventListener('pointerdown', (e) => { st.setPointerCapture(e.pointerId); move(e); st.onpointermove = move; });
+        st.addEventListener('pointerup', () => { st.onpointermove = null; });
+      } else {
+        st.addEventListener('click', () => openLb(refSrc, gameSrc, 'ref', pr));
+      }
+    }
+    for (const img of stage.querySelectorAll('img')) {
+      if (img.complete) setAr(img); else img.addEventListener('load', () => setAr(img), { once: true });
+      if (img.dataset.z) img.addEventListener('click', () => openLb(refSrc, gameSrc, img.dataset.z, pr));
+    }
+  }
+  draw();
+  for (const b of el.querySelectorAll('.views button')) b.onclick = () => {
+    view = b.dataset.v; for (const x of el.querySelectorAll('.views button')) x.setAttribute('aria-pressed', x === b); draw();
+  };
+  const upd = () => { save(); applyFilter(true); };
+  for (const r of el.querySelectorAll(`input[name="${nm}-s"]`)) r.onchange = () => { f.score = +r.value; upd(); };
+  for (const r of el.querySelectorAll(`input[name="${nm}-p"]`)) r.onchange = () => { f.priority = r.value; upd(); };
+  el.querySelector('[data-clear]').onclick = () => { f.priority = null; for (const r of el.querySelectorAll(`input[name="${nm}-p"]`)) r.checked = false; upd(); };
+  el.querySelector('.change').addEventListener('input', (e) => { f.change = e.target.value; upd(); });
+  for (const c of el.querySelectorAll('.faults input')) c.onchange = () => {
+    f.faults = [...el.querySelectorAll('.faults input:checked')].map((x) => x.value); upd();
+  };
+  const rw = el.querySelector('.refwrong'), why = el.querySelector('.refwhy');
+  rw.onchange = () => { f.refWrong = rw.checked; why.hidden = !rw.checked; upd(); };
+  why.addEventListener('input', () => { f.refWrongWhy = why.value; upd(); });
+  return el;
+}
+
+function applyFilter(countOnly = false) {
+  const flt = document.querySelector('input[name=flt]:checked').value;
+  let total = 0, scored = 0;
+  for (const el of document.querySelectorAll('.pair[data-id]')) {
+    const f = state.pairs[el.dataset.id];
+    total++; if (hasPairFb(f)) scored++;
+    if (countOnly) continue;
+    const show = flt === 'all' || (flt === 'todo' && !f?.score) || (flt === 'done' && hasPairFb(f)) || (flt === 'streetview' && el.dataset.q === 'streetview');
+    el.hidden = !show;
+  }
+  $('count').textContent = `${scored} of ${total} pairs have feedback`;
+}
+for (const r of document.querySelectorAll('input[name=flt]')) r.onchange = () => applyFilter();
+
+$('overall').value = state.overall || '';
+$('overall').addEventListener('input', (e) => { state.overall = e.target.value; save(); });
+
+// ------------------------------------------------------------------ lightbox
+let lbCur = null;
+function openLb(ref, game, which, pr) {
+  lbCur = { ref, game, pr };
+  $('lb').classList.add('on');
+  lbShow(which);
+}
+function lbShow(which) {
+  if (!lbCur) return;
+  if (which === 'game' && !lbCur.game) which = 'ref';
+  const img = $('lb-img');
+  img.classList.remove('full');
+  img.src = which === 'game' ? lbCur.game : lbCur.ref;
+  $('lb-ref').setAttribute('aria-pressed', which === 'ref');
+  $('lb-game').setAttribute('aria-pressed', which === 'game');
+  $('lb-cap').textContent = (which === 'game' ? lbCur.pr.game_shot : lbCur.pr.reference) || '';
+}
+$('lb-ref').onclick = () => lbShow('ref');
+$('lb-game').onclick = () => lbShow('game');
+$('lb-img').onclick = (e) => e.target.classList.toggle('full');
+$('lb-close').onclick = () => $('lb').classList.remove('on');
+document.addEventListener('keydown', (e) => {
+  if ($('lb').classList.contains('on')) {
+    if (e.key === 'Escape') $('lb').classList.remove('on');
+    if (e.key === 'r' || e.key === 'R') lbShow('ref');
+    if (e.key === 'g' || e.key === 'G') lbShow('game');
+  } else if ($('modal').classList.contains('on') && e.key === 'Escape') $('modal').classList.remove('on');
+});
+
+// ------------------------------------------------------------------ audio
+const AUDIO_FILES = new Set(['civic', 'civic-cruise', 'saturn', 'saturn-cruise', 'sunfire', 'sunfire-cruise', 'ranger', 'ranger-cruise',
+  'ranger-before', 'ranger-cruise-before', 'ranger-road', 'radio-pop', 'radio-boom', 'radio-folk', 'radio-metal']);
+const FREESOUND = ['air_brake_sigh', 'canada_goose', 'cassette_eject', 'cicadas', 'crickets', 'distant_lawnmower', 'gravel_under_tyres', 'gulls',
+  'hockey_puck_pavement', 'marina_halyards', 'payphone_coin_drop', 'rain_on_truck_roof', 'river_lapping', 'school_bus_stop_arm', 'screen_door',
+  'seadoo', 'skateboard', 'thunderstorm', 'wind_in_maples'];
+let audioBuilt = false, AUD = null, liveAudio = null;
+
+function wavBlob(samples, rate) {
+  const n = samples.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) { const s = Math.max(-1, Math.min(1, samples[i])); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true); }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+async function getLive() {
+  if (!liveAudio) { liveAudio = new AUD.audio.Audio(); liveAudio.start(); liveAudio.engine?.(0, 0); }
+  liveAudio.resume();
+  return liveAudio;
+}
+
+function audioItems() {
+  const { CARS } = AUD.cars, { STYLES, CKOI_TRACKS, STATIONS } = AUD.radio;
+  const items = [];
+  for (const c of CARS) {
+    for (const kind of ['pull', 'cruise']) {
+      const file = kind === 'pull' ? c.id : c.id + '-cruise';
+      items.push({ id: `engine-${c.id}-${kind}`, group: 'Engines', name: `${clean(c.name)}: ${kind === 'pull' ? 'idle and full pull' : 'cruise at 50 km/h'}`,
+        source: `src/core/audition.js renderAudition(CARS ${c.id}, '${kind}')`, file: AUDIO_FILES.has(file) ? `docs/audio/${file}.wav` : null,
+        render: async () => { const r = await AUD.audition.renderAudition(c, kind, 22050); return wavBlob(r.samples, r.sampleRate); } });
+    }
+  }
+  const ranger = CARS.find((c) => c.id === 'ranger') || CARS[0];
+  items.push({ id: 'engine-ranger-road', group: 'Engines', name: 'Road voice: tarmac, gravel, grass, kerb landing, impact (Ranger)',
+    source: 'src/core/audition.js renderRoadAudition(ranger)', file: 'docs/audio/ranger-road.wav',
+    render: async () => { const r = await AUD.audition.renderRoadAudition(ranger, 22050); return wavBlob(r.samples, r.sampleRate); } });
+  items.push({ id: 'engine-ranger-before', group: 'Engines', name: 'Ranger before the 2.3-four pass (old sound, for comparison)', source: 'docs/audio/ranger-before.wav', file: 'docs/audio/ranger-before.wav' });
+  for (const s of STYLES) items.push({ id: `radio-style-${s.id}`, group: 'Radio styles', name: `${clean(s.name)} (${s.bpm} bpm)`,
+    source: `src/game/radio.js renderLoop('${s.id}', 2004)`, file: AUDIO_FILES.has('radio-' + s.id) ? `docs/audio/radio-${s.id}.wav` : null,
+    render: async () => { const b = await AUD.radio.renderLoop(s.id, 2004, 22050); return wavBlob(b.getChannelData(0), b.sampleRate); } });
+  for (const t of CKOI_TRACKS) items.push({ id: `radio-track-${t.seed}`, group: 'CKOI 102.1 tracks', name: `${clean(t.title)}, ${clean(t.artist)} (${t.style})`,
+    source: `src/game/radio.js CKOI_TRACKS seed ${t.seed}, renderLoop('${t.style}', ${t.seed})`,
+    render: async () => { const b = await AUD.radio.renderLoop(t.style, t.seed, 22050); return wavBlob(b.getChannelData(0), b.sampleRate); } });
+  for (const st of STATIONS) items.push({ id: `station-${st.id}`, group: 'Stations (text the game shows)', name: `${clean(st.name)}: ${clean(st.slogan)}`,
+    source: `src/game/radio.js STATIONS ${st.id}`, text: [...(st.idents || []), ...(st.patter || []).slice(0, 3), ...(st.ads || []).slice(0, 2)].map(clean) });
+  items.push({ id: 'cassette', group: 'Cassette', name: 'Tom\'s cassette (second station)', source: 'assets/radio/playlist.json', info: 'No cassette tracks yet: playlist.json has "tracks": [].' });
+  const live = (id, name, src, fn) => items.push({ id, group: 'Sound effects', name, source: 'src/core/audio.js Audio.' + src, live: fn });
+  const later = (ms, f) => setTimeout(f, ms);
+  live('sfx-horn', 'Horn', 'horn(on)', (a) => { a.horn(true); later(900, () => a.horn(false)); });
+  live('sfx-honk', 'Traffic honk', 'honk()', (a) => a.honk());
+  live('sfx-siren', 'Police siren (3 s)', 'siren(on)', (a) => { a.siren(true); later(3000, () => a.siren(false)); });
+  live('sfx-skid', 'Tyre skid (1 s)', 'skid(amount)', (a) => { a.skid(1); later(1000, () => a.skid(0)); });
+  live('sfx-whoosh', 'Air whoosh (1 s)', 'whoosh(amount)', (a) => { a.whoosh(1); later(1000, () => a.whoosh(0)); });
+  live('sfx-crash', 'Crash', 'crash(force)', (a) => a.crash(1));
+  live('sfx-land', 'Landing', 'land(force)', (a) => a.land(1));
+  live('sfx-misfire', 'Misfire', 'misfire()', (a) => a.misfire());
+  live('sfx-heille', '"Heille!" shout', 'heille()', (a) => a.heille());
+  for (const k of ['bin', 'metal', 'wood', 'glass']) live('sfx-thud-' + k, `Thud: ${k}`, `thud('${k}')`, (a) => a.thud(k));
+  live('sfx-wrench', 'Wrench (garage)', 'wrench()', (a) => a.wrench());
+  items.push({ id: 'ui-blip', group: 'UI', name: 'Blip', source: 'src/core/audio.js Audio.blip()', live: (a) => a.blip() });
+  items.push({ id: 'ui-chime', group: 'UI', name: 'Chime (objective)', source: 'src/core/audio.js Audio.chime()', live: (a) => a.chime(true) });
+  items.push({ id: 'ambient', group: 'Ambient', name: 'Ambient town sound (cicadas, lake, lawnmowers)', source: 'gemini-inbox/audio/SOUND-DESIGN.md',
+    info: 'None in the game code: described in SOUND-DESIGN.md, not built. Candidate recordings are listed below.' });
+  for (const f of FREESOUND) items.push({ id: 'cand-' + f, group: 'Candidate recordings (not in the game)', name: f.replace(/_/g, ' '),
+    source: `gemini-inbox/assets/src/freesound/${f}.ogg`, file: `gemini-inbox/assets/src/freesound/${f}.ogg` });
+  return items;
+}
+
+async function buildAudio() {
+  if (audioBuilt) return;
+  audioBuilt = true;
+  const host = $('audio');
+  host.innerHTML = '<p class="meta">Loading the game\'s audio modules</p>';
+  try {
+    const [audio, audition, radio, cars] = await Promise.all([
+      import(REPO + 'src/core/audio.js'), import(REPO + 'src/core/audition.js'), import(REPO + 'src/game/radio.js'), import(REPO + 'src/game/cars.js')]);
+    AUD = { audio, audition, radio, cars };
+  } catch (e) { host.innerHTML = `<p class="status bad">Could not load the audio modules: ${esc(e.message)}</p>`; return; }
+  host.innerHTML = '';
+  window.__AUDIO_ITEMS = audioItems();
+  const groups = new Map();
+  for (const it of window.__AUDIO_ITEMS) { if (!groups.has(it.group)) groups.set(it.group, []); groups.get(it.group).push(it); }
+  for (const [g, list] of groups) {
+    const sec = document.createElement('section'); sec.className = 'agroup';
+    sec.innerHTML = `<h3>${esc(g)} <span class="meta">(${list.length})</span></h3>`;
+    for (const it of list) sec.appendChild(renderAudioItem(it));
+    host.appendChild(sec);
+  }
+}
+
+function renderAudioItem(it) {
+  const f = (state.audio[it.id] ||= { decision: null, rating: null, notes: '', priority: null });
+  const nm = 'a' + Math.random().toString(36).slice(2, 8);
+  const el = document.createElement('div'); el.className = 'aitem'; el.dataset.id = it.id;
+  el.innerHTML = `
+    <div>
+      <div class="name">${esc(it.name)}</div>
+      <div class="src">${esc(it.source)}</div>
+      ${it.info ? `<p class="note">${esc(it.info)}</p>` : ''}
+      ${it.text ? `<p class="note">${it.text.map(esc).join('<br>')}</p>` : ''}
+      ${it.file ? `<audio controls preload="none" src="${esc(REPO + it.file)}"></audio><div class="note">File: ${esc(it.file)}</div>` : ''}
+      <div class="playrow">
+        ${it.render ? `<button class="btn" data-render>${it.file ? 'Render again from current code' : 'Render from code'}</button>` : ''}
+        ${it.live ? `<button class="btn" data-live>Play</button>` : ''}
+        <span class="note" data-msg></span>
+      </div>
+      <div data-out></div>
+    </div>
+    <div>
+      <div class="prio" style="margin-bottom:6px">${['keep', 'change', 'cut'].map((d) => `<label><input type="radio" name="${nm}-d" value="${d}" ${f.decision === d ? 'checked' : ''}>${d[0].toUpperCase() + d.slice(1)}</label>`).join('')}</div>
+      <div class="scores" style="margin-bottom:6px">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${nm}-r" value="${n}" ${f.rating === n ? 'checked' : ''}>${n}</label>`).join('')}
+        <span class="meta" style="align-self:center">rating</span></div>
+      <div class="prio" style="margin-bottom:6px">${PRIOS.map((p) => `<label><input type="radio" name="${nm}-p" value="${p}" ${f.priority === p ? 'checked' : ''}>${p}</label>`).join('')}</div>
+      <textarea placeholder="What to change about this sound">${esc(f.notes)}</textarea>
+    </div>`;
+  const msg = el.querySelector('[data-msg]');
+  el.querySelector('[data-render]')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget; b.disabled = true; msg.textContent = 'Rendering';
+    try {
+      const blob = await it.render();
+      const out = el.querySelector('[data-out]');
+      out.innerHTML = '';
+      const a = document.createElement('audio'); a.controls = true; a.src = URL.createObjectURL(blob); out.appendChild(a);
+      msg.textContent = `Rendered from code, ${(blob.size / 1024).toFixed(0)} KB`;
+      a.play().catch(() => {});
+    } catch (err) { msg.textContent = 'Render failed: ' + err.message; }
+    b.disabled = false;
+  });
+  el.querySelector('[data-live]')?.addEventListener('click', async () => {
+    try { const a = await getLive(); it.live(a); msg.textContent = a.ok ? 'Playing' : 'No audio context in this browser'; }
+    catch (err) { msg.textContent = 'Play failed: ' + err.message; }
+  });
+  for (const r of el.querySelectorAll(`input[name="${nm}-d"]`)) r.onchange = () => { f.decision = r.value; save(); };
+  for (const r of el.querySelectorAll(`input[name="${nm}-r"]`)) r.onchange = () => { f.rating = +r.value; save(); };
+  for (const r of el.querySelectorAll(`input[name="${nm}-p"]`)) r.onchange = () => { f.priority = r.value; save(); };
+  el.querySelector('textarea').addEventListener('input', (e) => { f.notes = e.target.value; save(); });
+  return el;
+}
+$('audioNotes').value = state.audioNotes || '';
+$('audioMissing').value = state.audioMissing || '';
+$('audioNotes').addEventListener('input', (e) => { state.audioNotes = e.target.value; save(); });
+$('audioMissing').addEventListener('input', (e) => { state.audioMissing = e.target.value; save(); });
+
+// ------------------------------------------------------------------ export
+const stampNow = () => { const d = new Date(), p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
+
+function buildExport() {
+  const date = new Date();
+  const pairs = [];
+  for (const p of INDEX.places) for (const pr of p.pairs) {
+    const f = state.pairs[pr.id];
+    if (!hasPairFb(f)) continue;
+    pairs.push({ slug: p.slug, place: clean(p.name), reference: pr.reference, game_shot: pr.game_shot, game_sidecar: pr.game_sidecar,
+      pose_quality: pr.pose_quality, pose_notes: pr.pose_notes, camera: pr.camera,
+      score: f.score || null, faults: f.faults.map((k) => FAULT_LABEL[k] || k), change: (f.change || '').trim(), priority: f.priority || null,
+      reference_wrong: !!f.refWrong, reference_wrong_why: (f.refWrongWhy || '').trim() });
+  }
+  const rank = (x) => (x.priority ? PRANK[x.priority] : 3);
+  pairs.sort((a, b) => rank(a) - rank(b) || (a.score ?? 9) - (b.score ?? 9) || a.slug.localeCompare(b.slug));
+  const placeNotes = INDEX.places.filter((p) => state.places[p.slug]?.notes?.trim()).map((p) => ({ slug: p.slug, place: clean(p.name), notes: state.places[p.slug].notes.trim() }));
+  const audio = [];
+  for (const [id, f] of Object.entries(state.audio)) {
+    if (!f || !(f.decision || f.rating || f.notes?.trim() || f.priority)) continue;
+    const it = (window.__AUDIO_ITEMS || []).find((x) => x.id === id);
+    audio.push({ id, name: it?.name || id, group: it?.group || '', source: it?.source || '', file: it?.file || null,
+      decision: f.decision || null, rating: f.rating || null, priority: f.priority || null, notes: (f.notes || '').trim() });
+  }
+  audio.sort((a, b) => rank(a) - rank(b) || ['cut', 'change', 'keep', null].indexOf(a.decision) - ['cut', 'change', 'keep', null].indexOf(b.decision));
+  const json = { schema: 'aylmer-compare-feedback', version: 2, exported: date.toISOString(), game_commit: INDEX.commit,
+    page: 'tools/aylmer-compare/index.html', index: 'references/places/_feedback/compare-index.json',
+    overall_feel: (state.overall || '').trim(), audio_notes: (state.audioNotes || '').trim(), audio_missing: (state.audioMissing || '').trim(),
+    pairs, place_notes: placeNotes, audio };
+
+  const L = [];
+  const day = date.toISOString().slice(0, 10);
+  L.push(`# Aylmer Madness look feedback, ${day}, game commit ${INDEX.commit.slice(0, 10)}`, '');
+  L.push(`From Tom, via tools/aylmer-compare (exported ${date.toLocaleString()}). Only items with feedback are listed, sorted by priority. Each item names the reference photo and the game shot taken from the same pose; the shot's .json sidecar has the exact camera.`, '');
+  if (json.overall_feel) L.push('## Overall Aylmer feel', '', json.overall_feel, '');
+  L.push(`## Look: ${pairs.length} pair${pairs.length === 1 ? '' : 's'} with feedback`, '');
+  if (!pairs.length) L.push('None yet.', '');
+  pairs.forEach((x, i) => {
+    L.push(`### ${i + 1}. ${x.slug} (${x.priority || 'no priority'}${x.score ? `, score ${x.score}/5` : ''})`);
+    L.push(`- Place: ${x.place}`);
+    L.push(`- Reference: ${x.reference}`);
+    L.push(`- Game shot: ${x.game_shot || 'none'}`);
+    if (x.camera) L.push(`- Pose used: ${x.pose_quality}; camera x ${x.camera.x}, z ${x.camera.z}, eye ${x.camera.eye_height_m} m, heading ${x.camera.heading_deg} deg, pitch ${(x.camera.pitch_rad * 180 / Math.PI).toFixed(1)} deg, fov ${x.camera.hfov_deg} deg (sidecar ${x.game_sidecar})`);
+    else L.push(`- Pose used: ${x.pose_quality}`);
+    if (x.pose_notes?.length) L.push(`- Pose notes: ${x.pose_notes.join('; ')}`);
+    L.push(`- Score: ${x.score ? x.score + '/5' : 'not scored'}`);
+    L.push(`- Faults: ${x.faults.length ? x.faults.join(', ') : 'none ticked'}`);
+    if (x.change) L.push(`- What to change: ${x.change.replace(/\n+/g, ' / ')}`);
+    L.push(`- Priority: ${x.priority || 'not set'}`);
+    if (x.reference_wrong) L.push(`- REFERENCE IS WRONG${x.reference_wrong_why ? ': ' + x.reference_wrong_why.replace(/\n+/g, ' / ') : ''} (do not tune the game to this photo)`);
+    L.push('');
+  });
+  if (placeNotes.length) {
+    L.push('## Place notes', '');
+    for (const p of placeNotes) L.push(`- ${p.slug} (${p.place}): ${p.notes.replace(/\n+/g, ' / ')}`);
+    L.push('');
+  }
+  if (json.audio_notes || json.audio_missing || audio.length) {
+    L.push('## Audio', '');
+    if (json.audio_notes) L.push(`Audio notes: ${json.audio_notes.replace(/\n+/g, ' / ')}`, '');
+    if (json.audio_missing) L.push(`Missing sounds: ${json.audio_missing.replace(/\n+/g, ' / ')}`, '');
+    for (const a of audio) L.push(`- ${a.id} (${a.priority || 'no priority'}, ${a.decision || 'no decision'}${a.rating ? `, rating ${a.rating}/5` : ''}): ${a.name}. Source: ${a.source}${a.notes ? '. Note: ' + a.notes.replace(/\n+/g, ' / ') : ''}`);
+    L.push('');
+  }
+  const md = clean(L.join('\n')).replace(/\u2014/g, ' - ');
+  return { json, md };
+}
+
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch {} ta.remove(); return ok;
+  }
+}
+function showModal(title, text) { $('modal-title').textContent = title; $('modal-text').textContent = text; $('modal').classList.add('on'); }
+$('modal-close').onclick = () => $('modal').classList.remove('on');
+$('modal').onclick = (e) => { if (e.target === $('modal')) $('modal').classList.remove('on'); };
+
+$('btn-copy').onclick = async () => {
+  const { md } = buildExport();
+  const ok = await copyText(md);
+  window.__LAST_EXPORT = md;
+  showModal(ok ? 'Copied to the clipboard. Paste it to Claude.' : 'Could not reach the clipboard. Select the text below and copy it.', md);
+};
+
+// File System Access: remember the repo folder handle in IndexedDB.
+const idb = (mode, fn) => new Promise((res, rej) => {
+  const rq = indexedDB.open('aylmer-compare', 1);
+  rq.onupgradeneeded = () => rq.result.createObjectStore('h');
+  rq.onerror = () => rej(rq.error);
+  rq.onsuccess = () => { const tx = rq.result.transaction('h', mode); const r = fn(tx.objectStore('h')); tx.oncomplete = () => res(r?.result); tx.onerror = () => rej(tx.error); };
+});
+async function repoHandle() {
+  let h = null;
+  try { h = await idb('readonly', (s) => s.get('repo')); } catch {}
+  if (h && (await h.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+    if ((await h.requestPermission({ mode: 'readwrite' })) !== 'granted') h = null;
+  }
+  if (!h) {
+    h = await window.showDirectoryPicker({ id: 'aylmer-repo', mode: 'readwrite' });
+    try { await idb('readwrite', (s) => s.put(h, 'repo')); } catch {}
+  }
+  // Must be the repo root: it has tools/aylmer-compare/index.html.
+  try { const t = await h.getDirectoryHandle('tools'); const c = await t.getDirectoryHandle('aylmer-compare'); await c.getFileHandle('index.html'); }
+  catch { try { await idb('readwrite', (s) => s.delete('repo')); } catch {} throw new Error('That folder is not the aylmer-madness repo (no tools/aylmer-compare/index.html). Pick the aylmer-madness folder.'); }
+  return h;
+}
+async function writeFile(dir, name, text) {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable(); await w.write(text); await w.close();
+}
+function download(name, text, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+$('btn-save').onclick = async () => {
+  const { json, md } = buildExport();
+  const ts = stampNow();
+  if (!window.showDirectoryPicker) {
+    download(`feedback-${ts}.md`, md, 'text/markdown'); download(`feedback-${ts}.json`, JSON.stringify(json, null, 1), 'application/json'); download('LATEST.md', md, 'text/markdown');
+    showModal('This browser cannot write into the project. Three files went to Downloads: move them into references/places/_feedback/ (LATEST.md replaces the old one). Chrome can save directly.', md);
+    return;
+  }
+  try {
+    const root = await repoHandle();
+    let d = root; for (const part of ['references', 'places', '_feedback']) d = await d.getDirectoryHandle(part, { create: true });
+    await writeFile(d, `feedback-${ts}.md`, md);
+    await writeFile(d, `feedback-${ts}.json`, JSON.stringify(json, null, 1));
+    await writeFile(d, 'LATEST.md', md);
+    setStatus('Saved to project ' + ts);
+    showModal(`Saved references/places/_feedback/feedback-${ts}.md and .json, and LATEST.md. Tell Claude: read references/places/_feedback/LATEST.md`, md);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    showModal('Could not save into the project: ' + e.message, md);
+  }
+};
+
+// ------------------------------------------------------------------ boot
+try {
+  await loadIndex();
+  renderPlaces();
+  setStatus(storageOk ? 'Saved in this browser' : 'Not saved in browser (storage blocked). Copy or save before closing.', !storageOk);
+} catch (e) {
+  $('places').innerHTML = `<p class="status bad">${esc(e.message)}</p>`;
+  setStatus('Index missing', true);
+}
+let startTab = 'look'; try { startTab = sessionStorage.getItem(KEY + '-tab') || 'look'; } catch {}
+if (startTab === 'audio') showTab('audio');
+window.__COMPARE = { buildExport, state: () => state };
+</script>
+</body>
+</html>

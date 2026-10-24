@@ -14,9 +14,25 @@
 //   aylmer.save.tom.1 … aylmer.save.zahra.auto
 //         {version,name,savedAt,playtime,character,carId,parked,health,money,
 //          progress,best,unlocks,stats,timeOfDay,day,fuel,target,summerOver,
-//          reached,mission}
+//          reached,mission,replayPaid,dadCalls}
 //   aylmer.save.last                   the slot F5 quick-saves into (qualified)
 //   aylmer.save.migrated               the migration stamp; '2' once v1 is folded in
+//   aylmer.save.<slot>.corrupt         the bytes of a slot that would not parse,
+//                                      kept aside before anything is written over it
+//   aylmer.save.<slot>.v1              a v1 slot that found a v2 slot already there
+//
+// Reliability rules (docs/review/save-reliability.md, SR-03..SR-08):
+//   - a write is read back before it counts, and a failed one is reported
+//     (onSaveFailure / the 'aylmer:save-failed' event) instead of vanishing;
+//   - a slot written by a NEWER build is never overwritten by this one, and
+//     fields this build does not know are carried through, not stripped;
+//   - a slot that will not parse is listed as damaged, never as empty;
+//   - the migration deletes a v1 slot only after its v2 copy is verified, and
+//     stamps itself done only when every slot made it;
+//   - a slot with no `unlocks` loads with the default garage, never with
+//     whatever the previous summer left in memory;
+//   - after « Effacer toutes les sauvegardes » nothing is written until a new
+//     summer starts (Garage.reset() calls resumeSaving()).
 //
 // A bare '1' / 'auto' is still accepted everywhere a slot id is taken and means
 // Tom's — that is what the v1 slots were, and the migration renames the keys.
@@ -28,8 +44,10 @@
 // and the wallet, which no longer persists itself — see money.js) plus the job
 // you were in the middle of, so loading no longer drops it on the floor.
 import { PLACES } from './places.js';
+import { curbSpot, lotSpot } from './parkspots.js';
 import { CARS } from './cars.js';
-import { loadGarage } from './store.js';
+import { loadGarage, PROGRESS_KEYS, KEYS } from './store.js';
+import { storageInfo } from './storage-ns.js';
 
 export const SAVE_VERSION = 2;
 
@@ -74,8 +92,15 @@ export const LEGACY_KEYS = ['aylmer.progress', 'aylmer.money', 'aylmer.best', 'a
 // could load $410 and the HUD show $80. Deleted on migration, never read again.
 export const MONEY_KEY = 'aylmer.money';
 
-// The summer: Saturday 26 June to Monday 6 September 2004, 73 days, 0-based.
-export const DAYS = 73;
+// The summer: Tuesday 22 June to Monday 6 September 2004, 77 days, 0-based.
+// Restructure (29 Sept 2026): it used to start on Saturday 26 June (73 days).
+// A slot written before that has no `calendar` stamp, and its day index is
+// moved forward by CALENDAR_SHIFT on load so the date it shows does not change.
+export const DAYS = 77;
+export const CALENDAR = 2;
+export const CALENDAR_SHIFT = 4;
+// The streets-known counter keeps names, capped so a corrupt slot stays small.
+export const STREETS_MAX = 2000;
 // A tank nobody has: the clamp only has to keep a corrupt number out of the
 // fuel gauge, and the biggest vehicle in the game is a city bus.
 export const FUEL_MAX = 200;
@@ -94,7 +119,8 @@ export const OWNER = { ranger: 'home', saturn: 'home', civic: 'steph', sunfire: 
   // is Tyler's and sits at her aunt's on Samuel-Edey — it is not on the lot any
   // more, so unlike the beaters it never comes home with you.
   forester: 'mike', sienna: 'abraham', cavalier: 'tyler',
-  cutlass: 'home', caravan: 'home', bus: 'home', benz: 'home',
+  // Unsold beaters start on the used lot, matching homes.js and main.js.
+  cutlass: 'usedlot', caravan: 'usedlot', bus: 'usedlot', benz: 'usedlot',
   // The cart never leaves the golf course; it lives on the clubhouse apron.
   cart: 'golf' };
 
@@ -136,36 +162,42 @@ const clamp01 = (v) => Math.min(100, Math.max(0, v));
 
 // ---------------------------------------------------------------- geometry
 
-// A parking spot at the curb in front of a place, nose along the street.
-// `slot` spaces cars that share an address.
-export function curbSpot(p, slot = 0) {
-  const dx = (p.bx ?? p.x) - p.x, dz = (p.bz ?? p.z) - p.z, d = Math.hypot(dx, dz) || 1;
-  const a = p.a || 0, tx = Math.sin(a) * 6.5 * slot, tz = Math.cos(a) * 6.5 * slot;
-  return { x: p.x + (dx / d) * 2.6 + tx, z: p.z + (dz / d) * 2.6 + tz, yaw: a };
-}
+// curbSpot() (a parking spot at the kerb in front of a place) and lotSpot() (a
+// place in the used lot's row) are in parkspots.js, shared with homes.js.
+export { curbSpot };
 
 // A spot on the apron IN FRONT of the building rather than at the kerb, for a
 // car whose spec says `park: 'building'`. The golf cart parks here so that its
 // « E — prendre le cart » prompt does not fight the job marker out on the
 // street: the mission runner offers a job inside 12 m of the giver, and a car
 // inside 6.5 m of you, and only one of them can win.
-export function apronSpot(p, back = 12) {
+// `side` slides the spot sideways (metres, to the right looking from the
+// building toward the marker), for a building so deep that the spot straight
+// out from it is either inside it or on top of the job marker.
+export function apronSpot(p, back = 12, side = 0) {
   const bx = p.bx ?? p.x, bz = p.bz ?? p.z;
   const dx = bx - p.x, dz = bz - p.z, d = Math.hypot(dx, dz);
   if (d < back + 2) return curbSpot(p, 0);        // nothing to stand off from
-  return { x: bx - (dx / d) * back, z: bz - (dz / d) * back, yaw: p.a || 0 };
+  const ux = dx / d, uz = dz / d;
+  return { x: bx - ux * back + uz * side, z: bz - uz * back - ux * side, yaw: p.a || 0 };
 }
 
-// Where every car sits when nobody has moved it: at its owner's curb.
-// Cars sharing a driveway are spaced by their order in CARS.
+// Where every car sits when nobody has moved it: at its owner's curb or lot.
+// Cars sharing a driveway are spaced by their order in CARS. The unsold beaters
+// sit nose-to-tail on the used lot, in the row main.js's homeParked() uses
+// (lotSpot, in CARS order). save.js has no garage, so it cannot know which
+// beaters were bought: a slot's own `parked` says where a bought one is, and
+// this is only the fallback for a car the slot says nothing about.
 export function homeParked() {
   const out = {}, slots = {};
+  let lot = 0;
   for (const c of CARS) {
     const k = OWNER[c.id];
     const p = PLACES[k];
     if (!p) continue;
+    if (k === 'usedlot') { out[c.id] = lotSpot(p, lot++); continue; }
     const slot = (slots[k] = (slots[k] || 0) + 1) - 1;
-    out[c.id] = c.park === 'building' ? apronSpot(p) : curbSpot(p, slot);
+    out[c.id] = c.park === 'building' ? apronSpot(p, c.parkBack ?? 12, c.parkSide ?? 0) : curbSpot(p, slot);
   }
   return out;
 }
@@ -196,7 +228,7 @@ export function newSave(name = '', character = DEFAULT_CHARACTER) {
     unlocks: null,
     stats: {},
     timeOfDay: 'day',
-    // 2a's three: the day index into the 73-day summer, the litres in the tank
+    // 2a's three: the day index into the 77-day summer, the litres in the tank
     // (null = nobody has initialised the fuel system yet, so treat it as full)
     // and the envelope goal.
     day: 0,
@@ -208,7 +240,40 @@ export function newSave(name = '', character = DEFAULT_CHARACTER) {
     reached: false,
     // The job you were in the middle of, or null. See missionSnapshot().
     mission: null,
+    // The economy's memory: which game day each replay was last paid
+    // (missionkit.js runPay) and Dad's calls so far (dadcall.js). Without them
+    // a reload pays one extra replay and lets Dad call again.
+    replayPaid: {},
+    dadCalls: { n: 0, week: null, log: [] },
+    // The day index is counted from 22 June (see CALENDAR).
+    calendar: CALENDAR,
+    // « Rues d'Aylmer que tu connais »: the named streets driven so far.
+    streets: [],
   };
+}
+
+// { jobId: dayIndex }. Anything else is dropped; an old save has none.
+function normalizeReplayPaid(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const id of Object.keys(raw)) {
+    const d = raw[id];
+    if (typeof d === 'number' && isFinite(d) && d >= 0) out[id] = Math.floor(d);
+  }
+  return out;
+}
+// { n, week, log[] } (dadcall.js). An old save, or a number from story.js's
+// dadCall(n) sketch, becomes a count with no week so the rules still hold.
+function normalizeDadCalls(raw) {
+  if (typeof raw === 'number' && isFinite(raw)) return { n: Math.max(0, Math.floor(raw)), week: null, log: [] };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { n: 0, week: null, log: [] };
+  const n = Math.max(0, Math.floor(num(raw.n, 0)));
+  const week = typeof raw.week === 'number' && isFinite(raw.week) ? Math.max(0, Math.floor(raw.week)) : null;
+  const log = Array.isArray(raw.log)
+    ? raw.log.filter((e) => e && typeof e === 'object').slice(-12)
+      .map((e) => ({ day: Math.max(0, Math.floor(num(e.day, 0))), amount: Math.max(0, Math.round(num(e.amount, 0))), why: typeof e.why === 'string' ? e.why.slice(0, 12) : '' }))
+    : [];
+  return { n, week, log };
 }
 
 // The keys a live mission rebuilds for itself out of the def, so they must not
@@ -220,6 +285,18 @@ const MISSION_STRUCTURAL = new Set(['def', 'stages', 'target', 'idx', 'timeLeft'
 // meters, spawned rivals and prop handles off the mission too (`m.donut`,
 // `m.legs`, `m.couch`), and those are rebuilt by the stage's own onEnter when
 // the job resumes — a stale copy of one is worse than none.
+export function resumeStage(def, stages, idx) {
+  if (def && typeof def.resumeAt === 'function') {
+    try {
+      const r = Math.round(Number(def.resumeAt(idx, stages)));
+      if (Number.isFinite(r)) return Math.max(0, Math.min(idx, r));
+    } catch { /* fall through to the generic rule */ }
+  }
+  if (!Array.isArray(stages)) return idx;
+  for (let i = idx; i >= 0; i--) if (stages[i] && stages[i].kind === 'grid') return i < idx ? i : idx;
+  return idx;
+}
+
 export function missionSnapshot(G) {
   const m = G && G.mission;
   if (!m || !m.def || typeof m.def.id !== 'string' || !Array.isArray(m.stages)) return null;
@@ -229,10 +306,24 @@ export function missionSnapshot(G) {
     const v = m[k], ty = typeof v;
     if (ty === 'string' ? v.length <= 200 : (ty === 'boolean' || (ty === 'number' && isFinite(v)))) state[k] = v;
   }
+  let stage = Math.max(0, Math.min(m.stages.length - 1, Math.round(num(m.idx, 0))));
+  let timeLeft = typeof m.timeLeft === 'number' && isFinite(m.timeLeft) ? Math.max(0, m.timeLeft) : null;
+  // SR-10: a resume rebuilds only the stage it lands on. A stage whose world
+  // was built by an EARLIER stage's onEnter — a race, whose rivals and legs
+  // the grid spawns — would come back empty. So the save points at the stage
+  // that builds it: the def's own resumeAt(idx) if it has one, otherwise the
+  // last 'grid' stage at or before this one. The race restarts from the line
+  // with its rivals, instead of resuming with nobody to race.
+  const back = resumeStage(m.def, m.stages, stage);
+  if (back !== stage) {
+    stage = back;
+    timeLeft = null;                     // the stage sets its own clock on entry
+    delete state.stageTime; delete state.held; delete state.race;
+  }
   return {
     id: m.def.id,
-    stage: Math.max(0, Math.min(m.stages.length - 1, Math.round(num(m.idx, 0)))),
-    timeLeft: typeof m.timeLeft === 'number' && isFinite(m.timeLeft) ? Math.max(0, m.timeLeft) : null,
+    stage,
+    timeLeft,
     elapsed: Math.max(0, num(m.elapsed, 0)),
     passengers: Math.max(0, Math.round(num(G.veh && G.veh.passengers, 0))),
     state,
@@ -260,10 +351,17 @@ function normalizeMission(raw) {
   };
 }
 
+// Every top-level field this build understands. Anything else in a slot was
+// written by a newer build (or another branch) and is carried through as-is.
+const KNOWN_FIELDS = new Set(['version', 'name', 'near', 'doing', 'last', 'savedAt', 'playtime',
+  'character', 'carId', 'parked', 'health', 'money', 'progress', 'best', 'unlocks', 'stats',
+  'timeOfDay', 'visualHour', 'day', 'fuel', 'target', 'summerOver', 'reached', 'mission', 'slot',
+  'newer', 'corrupt', 'replayPaid', 'dadCalls']);
+
 // Anything that comes out of localStorage (or out of another agent's hands) is
 // run through this before the game sees it.
 export function normalizeSave(raw, slot = '') {
-  if (!raw || typeof raw !== 'object') return null;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const carIds = CARS.map((c) => c.id);
   const parked = {};
   if (raw.parked && typeof raw.parked === 'object') {
@@ -298,9 +396,14 @@ export function normalizeSave(raw, slot = '') {
   const fallbackCar = carIds.includes(startCar) ? startCar : DEFAULT_CAR;
   const carId = carIds.includes(raw.carId) ? raw.carId : fallbackCar;
   const home = homeParked();
-  // A car the save has nothing to say about is at home, not at (0,0).
+  // A car with no valid saved spot returns to its default curb or lot spot.
   for (const id of carIds) if (!parked[id]) parked[id] = home[id] || homeSpot(id);
+  // Fields a newer build wrote and this one has never heard of ride along
+  // untouched (SR-05): an older checkout on the same origin must not strip them.
+  const foreign = {};
+  for (const k of Object.keys(raw)) if (!KNOWN_FIELDS.has(k)) foreign[k] = raw[k];
   return {
+    ...foreign,
     version: Number.isInteger(raw.version) ? raw.version : SAVE_VERSION,
     name: typeof raw.name === 'string' ? raw.name.slice(0, 40) : '',
     near: typeof raw.near === 'string' ? raw.near.slice(0, 60) : '',
@@ -318,54 +421,242 @@ export function normalizeSave(raw, slot = '') {
     unlocks: raw.unlocks && typeof raw.unlocks === 'object' ? raw.unlocks : null,
     stats: raw.stats && typeof raw.stats === 'object' ? raw.stats : {},
     timeOfDay: typeof raw.timeOfDay === 'string' ? raw.timeOfDay : 'day',
+    ...(Number.isFinite(raw.visualHour) ? { visualHour: ((raw.visualHour % 24) + 24) % 24 } : {}),
     // 2a's fields, clamped to what the summer can actually mean. `fuel` is
     // null-or-litres on purpose: null is "the tank has never been touched",
     // which is not the same number as an empty one.
     // Clamped, not rounded: 2a's calendar advances `day` as a float (a job part
     // way through Tuesday is 1.4), and snapping it here would quietly move the
     // deadline every time you saved.
-    day: Math.min(DAYS - 1, Math.max(0, num(raw.day, 0))),
+    day: Math.min(DAYS - 1, Math.max(0, num(raw.day, 0) + (raw.calendar === CALENDAR ? 0 : CALENDAR_SHIFT))),
+    calendar: CALENDAR,
+    streets: Array.isArray(raw.streets)
+      ? [...new Set(raw.streets.filter((v) => typeof v === 'string' && v.length < 120))].slice(0, STREETS_MAX) : [],
     fuel: typeof raw.fuel === 'number' && isFinite(raw.fuel)
       ? Math.min(FUEL_MAX, Math.max(0, raw.fuel)) : null,
     target: Math.min(TARGET_MAX, Math.max(TARGET_MIN, Math.round(num(raw.target, DEFAULT_TARGET)))),
     summerOver: raw.summerOver === true,
     reached: raw.reached === true,
     mission: normalizeMission(raw.mission),
+    replayPaid: normalizeReplayPaid(raw.replayPaid),
+    dadCalls: normalizeDadCalls(raw.dadCalls),
     slot: qualifySlot(slot) || qualifySlot(raw.slot) || '',
   };
 }
 
 // ---------------------------------------------------------------- slot i/o
 
-export function readSlot(slot) {
-  const raw = readRaw(slotKey(slot));
-  if (!raw) return null;
-  try { return normalizeSave(JSON.parse(raw), slot); } catch { return null; }
+// The garage a summer starts with. A slot that carries no `unlocks` (every
+// migrated v1 save, and any save written without a garage module) loads with
+// THIS, not with whatever the previous character left in memory (SR-04).
+export function defaultUnlocks() {
+  return { bought: [], seen: [], mods: {}, feats: [] };
 }
 
-export function writeSlot(slot, save) {
+export const CORRUPT_SUFFIX = '.corrupt';
+export const V1_BACKUP_SUFFIX = '.v1';
+const PROBE_KEY = KEY_PREFIX + 'probe';
+
+// ---- failure reporting (SR-07)
+//
+// A write that did not land is never silent any more: the caller still gets
+// false/null as before, and on top of that every listener and a DOM event
+// ('aylmer:save-failed', detail = { slot, reason }) hear about it. The HUD
+// toast lives in main.js; this is the hook it listens on.
+//   reason: 'blocked'  the browser refuses site data
+//           'quota'    setItem threw (full, or refused mid-session)
+//           'verify'   the write did not read back
+//           'newer'    the slot belongs to a newer build and is left alone
+//           'corrupt'  a damaged slot could not be put aside first
+//           'wiped'    everything was just erased; nothing is written until a
+//                      new summer starts (not reported: it is on purpose)
+let lastError = null;
+const failureListeners = new Set();
+export function onSaveFailure(fn) {
+  if (typeof fn !== 'function') return () => {};
+  failureListeners.add(fn);
+  return () => failureListeners.delete(fn);
+}
+export function lastSaveError() { return lastError; }
+function reportFailure(slot, reason) {
+  lastError = { slot: slot || '', reason, at: Date.now() };
+  if (reason === 'wiped') return;
+  for (const fn of [...failureListeners]) { try { fn(lastError); } catch { /* a listener's problem */ } }
+  try {
+    if (typeof globalThis.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      globalThis.dispatchEvent(new CustomEvent('aylmer:save-failed', { detail: lastError }));
+    }
+  } catch { /* no DOM */ }
+}
+
+// setItem, then read it back: only a string that is really there counts.
+function putVerified(key, value) {
+  const s = store();
+  if (!s) return 'blocked';
+  try { s.setItem(key, value); } catch { return 'quota'; }
+  try { return s.getItem(key) === value ? null : 'verify'; } catch { return 'verify'; }
+}
+
+// ---- persistence (SR-07)
+//
+// Safari (and any browser under storage pressure) may evict script-written
+// storage. Asking once for persistent storage, after the first save that
+// actually landed, is the cheap half of the fix.
+let persistAsked = false;
+let persistState = 'unknown';
+export function persistenceState() { return persistState; }
+export function requestPersistence() {
+  if (persistAsked) return Promise.resolve(persistState);
+  persistAsked = true;
+  let sm = null;
+  try { sm = globalThis.navigator && globalThis.navigator.storage; } catch { sm = null; }
+  if (!sm || typeof sm.persist !== 'function') { persistState = 'unsupported'; return Promise.resolve(persistState); }
+  const already = typeof sm.persisted === 'function' ? Promise.resolve().then(() => sm.persisted()) : Promise.resolve(false);
+  return already
+    .then((yes) => (yes ? true : sm.persist()))
+    .then((granted) => { persistState = granted ? 'granted' : 'denied'; return persistState; })
+    .catch(() => { persistState = 'denied'; return persistState; });
+}
+
+/**
+ * Can this page save at all? Writes, reads back and removes a probe key.
+ * { ok, reason, review, memory, persisted } — main.js can show a badge when
+ * ok is false (see the patch in docs/review/save-reliability.md).
+ */
+export function storageHealth() {
+  const info = storageInfo();
+  let reason = null;
+  if (!store()) reason = 'blocked';
+  else {
+    const v = String(Date.now());
+    reason = putVerified(PROBE_KEY, v);
+    removeRaw(PROBE_KEY);
+  }
+  return {
+    ok: !reason && !info.memory, reason: info.memory ? 'blocked' : reason,
+    review: info.review || null, memory: !!info.memory, persisted: persistState,
+  };
+}
+
+// ---- the wipe guard (SR-08)
+let savingBlocked = false;
+export function isSavingBlocked() { return savingBlocked; }
+/** A new summer has started (Garage.reset() calls this): saving is allowed again. */
+export function resumeSaving() { savingBlocked = false; }
+
+// What is in a slot, without throwing: 'empty', 'ok', 'newer' (written by a
+// newer build: readable, never overwritten), or 'corrupt' (the bytes are there
+// and do not parse — shown as damaged, never as empty).
+export function slotState(slot) {
+  const raw = readRaw(slotKey(slot));
+  if (raw === null) return { state: 'empty', save: null, raw: null };
+  let obj = null;
+  try { obj = JSON.parse(raw); } catch { obj = null; }
+  const save = normalizeSave(obj, slot);
+  if (!save) return { state: 'corrupt', save: null, raw };
+  if (save.version > SAVE_VERSION) return { state: 'newer', save, raw };
+  return { state: 'ok', save, raw };
+}
+
+export function readSlot(slot) {
+  const st = slotState(slot);
+  if (!st.save) return null;
+  const save = st.save;
+  if (!save.unlocks) save.unlocks = defaultUnlocks();
+  if (st.state === 'newer') save.newer = true;
+  return save;
+}
+
+// Carry what a newer build stored into the blob this build is about to write:
+// unknown top-level fields, and parked/health rows for cars this build does not
+// have. Our own fields always win.
+function keepForeign(prevRaw, clean) {
+  let prev = null;
+  try { prev = prevRaw ? JSON.parse(prevRaw) : null; } catch { prev = null; }
+  if (!prev || typeof prev !== 'object' || Array.isArray(prev)) return clean;
+  const carIds = new Set(CARS.map((c) => c.id));
+  for (const k of Object.keys(prev)) if (!KNOWN_FIELDS.has(k) && !(k in clean)) clean[k] = prev[k];
+  for (const f of ['parked', 'health']) {
+    const src = prev[f];
+    if (!src || typeof src !== 'object') continue;
+    for (const id of Object.keys(src)) if (!carIds.has(id) && !(id in clean[f])) clean[f][id] = src[id];
+  }
+  if (!clean.unlocks && prev.unlocks && typeof prev.unlocks === 'object') clean.unlocks = prev.unlocks;
+  return clean;
+}
+
+export function writeSlot(slot, save, opts = {}) {
   const id = qualifySlot(slot);
   if (!id) return false;
+  if (savingBlocked && !opts.migrating) { reportFailure(id, 'wiped'); return false; }
   const clean = normalizeSave(save, id);
   if (!clean) return false;
-  delete clean.slot;
-  const okWrite = writeRaw(slotKey(id), JSON.stringify(clean));
-  if (okWrite && slotNumber(id) !== 'auto') writeRaw(LAST_KEY, id);
-  return okWrite;
+  delete clean.slot; delete clean.newer; delete clean.corrupt;
+  const key = slotKey(id);
+  const prevRaw = readRaw(key);
+  if (prevRaw !== null) {
+    const prev = slotState(id);
+    if (prev.state === 'newer' && !opts.force) { reportFailure(id, 'newer'); return false; }
+    if (prev.state === 'corrupt') {
+      // Never write over the only copy of something we cannot read.
+      if (putVerified(key + CORRUPT_SUFFIX, prevRaw)) { reportFailure(id, 'corrupt'); return false; }
+    }
+    keepForeign(prevRaw, clean);
+  }
+  // Whatever it said before, what THIS build writes is this build's version.
+  clean.version = SAVE_VERSION;
+  const err = putVerified(key, JSON.stringify(clean));
+  if (err) { reportFailure(id, err); return false; }
+  if (slotNumber(id) !== 'auto') writeRaw(LAST_KEY, id);
+  requestPersistence();
+  return true;
 }
 
 export function deleteSlot(slot) {
   const id = qualifySlot(slot);
   if (!id) return false;
   removeRaw(slotKey(id));
+  removeRaw(slotKey(id) + CORRUPT_SUFFIX);
   if (lastSlot() === id) removeRaw(LAST_KEY);
   return true;
 }
 
+// « Effacer toutes les sauvegardes » (SR-08). Everything that is progress goes:
+// the twenty slots and their damaged/v1 copies, the F5 marker, any v1 slot a
+// failed migration left, and every per-browser progress key store.js lists in
+// PROGRESS_KEYS (garage mirror, hangout gifts and nights, best laps, mode
+// records, achievements, the legacy scratch keys). Settings, the radio and its
+// library stay. Until a new summer starts nothing is written, so the game
+// running behind the pause menu cannot autosave the wiped summer back.
+// The erased values are kept in memory for undoWipe(), for the toast's life.
+let wipeBackup = null;
+export function wipeKeys() {
+  const keys = [LAST_KEY];
+  for (const s of SLOTS) keys.push(slotKey(s), slotKey(s) + CORRUPT_SUFFIX, slotKey(s) + V1_BACKUP_SUFFIX);
+  for (const n of SLOT_NUMBERS) keys.push(KEY_PREFIX + n);
+  keys.push(...PROGRESS_KEYS);
+  return keys;
+}
 export function deleteAllSaves() {
-  for (const s of SLOTS) removeRaw(slotKey(s));
-  removeRaw(LAST_KEY);
+  const backup = {};
+  for (const k of wipeKeys()) {
+    const v = readRaw(k);
+    if (v === null) continue;
+    backup[k] = v;
+    removeRaw(k);
+  }
+  wipeBackup = backup;
+  savingBlocked = true;
   return true;
+}
+/** Put back what the last deleteAllSaves() erased (this page only). */
+export function undoWipe() {
+  if (!wipeBackup) return false;
+  let ok = true;
+  for (const [k, v] of Object.entries(wipeBackup)) if (putVerified(k, v)) ok = false;
+  wipeBackup = null;
+  savingBlocked = false;
+  return ok;
 }
 
 export function hasAnySave() { return SLOTS.some((s) => readRaw(slotKey(s)) !== null); }
@@ -395,10 +686,25 @@ export function listSlots(character = DEFAULT_CHARACTER) {
   const who = CHARACTER_IDS.includes(character) ? character : DEFAULT_CHARACTER;
   return SLOT_NUMBERS.map((n) => {
     const slot = `${who}.${n}`;
+    const st = slotState(slot);
+    if (st.state === 'empty') return { slot, character: who, empty: true };
+    // Damaged: the bytes are there and do not parse. Shown as a slot with a
+    // warning, never as an empty box you might save over (SR-06). Saving into
+    // it anyway puts the old bytes aside under `<key>.corrupt` first.
+    if (st.state === 'corrupt') {
+      return {
+        slot, character: who, empty: false, corrupt: true,
+        name: 'Sauvegarde illisible (endommagée)', savedAt: null, playtime: 0,
+        carId: characterById(who).car, money: 0, jobs: 0, best: {}, day: 0, target: DEFAULT_TARGET,
+        job: null, save: null, near: '', doing: '', last: '',
+      };
+    }
     const s = readSlot(slot);
-    if (!s) return { slot, character: who, empty: true };
+    const newer = st.state === 'newer';
     return {
-      slot, character: who, empty: false, name: s.name, savedAt: s.savedAt, playtime: s.playtime,
+      slot, character: who, empty: false, newer,
+      name: newer ? `${s.name || ''} (version plus récente)`.trim() : s.name,
+      savedAt: s.savedAt, playtime: s.playtime,
       carId: s.carId, money: s.money, jobs: s.progress.length, best: s.best,
       day: s.day, target: s.target, job: s.mission ? s.mission.id : null, save: s,
       near: s.near || '', doing: s.doing || '', last: s.last || '',
@@ -432,7 +738,7 @@ export function listGroups() {
 export function mostRecentAuto() {
   let best = null, bt = -Infinity;
   for (const row of listAllSlots()) {
-    if (row.empty || slotNumber(row.slot) !== 'auto') continue;
+    if (row.empty || row.corrupt || slotNumber(row.slot) !== 'auto') continue;
     const t = Date.parse(row.savedAt) || 0;
     if (t > bt) { bt = t; best = row.slot; }
   }
@@ -447,7 +753,7 @@ export function continueSlot() {
 export function mostRecentSlot() {
   let best = null, bt = -Infinity;
   for (const row of listAllSlots()) {
-    if (row.empty) continue;
+    if (row.empty || row.corrupt) continue;
     const t = Date.parse(row.savedAt) || 0;
     if (t > bt || (t === bt && slotNumber(best) === 'auto')) { bt = t; best = row.slot; }
   }
@@ -495,6 +801,7 @@ export function snapshot(G, opts = {}) {
     unlocks,
     stats: { ...(G.stats || {}) },
     timeOfDay: G.envKey || 'day',
+    ...(G.renderer?.isPrototype ? { visualHour: G.dayClock / 600 * 24 } : {}),
     // 2a writes these three as the summer runs; here they just get kept.
     day: G.day,
     fuel: G.fuel,
@@ -502,6 +809,10 @@ export function snapshot(G, opts = {}) {
     summerOver: G.summerOver,
     reached: G.reached,
     mission: missionSnapshot(G),
+    replayPaid: { ...(G.replayPaid || {}) },
+    dadCalls: G.dadCalls || null,
+    calendar: CALENDAR,
+    streets: [...(G.streets || [])],
   }, opts.slot || '');
 }
 
@@ -526,26 +837,65 @@ export function saveToSlot(G, slot, opts = {}) {
 //
 // Either way the wallet's private key goes: money lives in the slot now, and
 // leaving it behind is how the HUD and the save disagree after a load.
+//
+// Write, verify, THEN delete (SR-03). A v1 slot is removed only once its v2
+// copy reads back byte for byte; if any step fails (quota, a SecurityError
+// mid-boot) the v1 data stays where it was, the stamp is not written, and the
+// next boot tries again. The wallet key and the legacy scratch keys go only
+// after everything that needed them is safely written.
+//
+// v1 kept purchases in the global `aylmer.cars` and nowhere else, so a v1
+// slot (or the pre-slot game) with no `unlocks` of its own is given that
+// record once, here (SR-04).
 export function migrateLegacy() {
   if (readRaw(MIGRATED_KEY) === MIGRATION_STAMP) return null;
   const stamp = readRaw(MIGRATED_KEY);
   const moneyRaw = readRaw(MONEY_KEY);
   const loose = Number(moneyRaw);
-  const looseMoney = Number.isFinite(loose) && loose >= 0 ? loose : null;
-  // Read before the loop: writeSlot() sets this marker itself, so by the time
-  // the rename is done it no longer says what v1 left behind.
+  const looseMoney = moneyRaw !== null && Number.isFinite(loose) && loose >= 0 ? loose : null;
+  // Read before the loop: a verified write does not touch it, but a v1 build
+  // might have, and it is the only record of which v1 slot F5 meant.
   const lastRaw = readRaw(LAST_KEY);
+  const legacyCars = (() => {
+    try {
+      const v = JSON.parse(readRaw(KEYS.cars) || 'null');
+      return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+    } catch { return null; }
+  })();
   let first = null;
+  let allOk = true;
+
+  const put = (slot, save) => {
+    const clean = normalizeSave(save, slot);
+    if (!clean) return null;
+    delete clean.slot;
+    clean.version = SAVE_VERSION;
+    const err = putVerified(slotKey(slot), JSON.stringify(clean));
+    if (err) { reportFailure(slot, err); return null; }
+    return clean;
+  };
+  const drop = (key) => { removeRaw(key); return readRaw(key) === null; };
 
   // (a) the v1 slots, renamed under Tom.
   for (const n of SLOT_NUMBERS) {
-    const raw = readRaw(KEY_PREFIX + n);
+    const v1Key = KEY_PREFIX + n;
+    const raw = readRaw(v1Key);
     if (raw === null) continue;
-    removeRaw(KEY_PREFIX + n);
+    const target = `${DEFAULT_CHARACTER}.${n}`;
     let obj = null;
     try { obj = JSON.parse(raw); } catch { obj = null; }
-    if (!obj || typeof obj !== 'object') continue;
-    const save = normalizeSave({
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      // Unreadable: keep its bytes beside the slot it would have become.
+      if (putVerified(slotKey(target) + CORRUPT_SUFFIX, raw) || !drop(v1Key)) allOk = false;
+      continue;
+    }
+    if (readRaw(slotKey(target)) !== null) {
+      // A v2 slot is already there — a save made after an earlier, half-done
+      // migration. It is newer by construction; the v1 copy is parked, not lost.
+      if (putVerified(slotKey(target) + V1_BACKUP_SUFFIX, raw) || !drop(v1Key)) allOk = false;
+      continue;
+    }
+    const written = put(target, {
       ...obj,
       version: SAVE_VERSION,
       character: DEFAULT_CHARACTER,
@@ -557,21 +907,24 @@ export function migrateLegacy() {
       // A v1 slot that never stored money takes the wallet's old private key,
       // because that is where the number on screen was actually coming from.
       money: typeof obj.money === 'number' ? obj.money : (looseMoney != null ? looseMoney : START_MONEY),
+      unlocks: obj.unlocks && typeof obj.unlocks === 'object' ? obj.unlocks : legacyCars,
       mission: null,
-    }, `${DEFAULT_CHARACTER}.${n}`);
-    if (writeSlot(`${DEFAULT_CHARACTER}.${n}`, save) && !first) first = save;
+    });
+    if (!written) { allOk = false; continue; }
+    if (!drop(v1Key)) { allOk = false; continue; }
+    if (!first) first = written;
   }
   if (SLOT_NUMBERS.includes(lastRaw)) writeRaw(LAST_KEY, `${DEFAULT_CHARACTER}.${lastRaw}`);
 
   // (b) the pre-slot keys, for a player who has nothing else.
-  if (!first && stamp !== '1' && !hasAnySave()) {
+  if (!first && allOk && stamp !== '1' && !hasAnySave()) {
     const progRaw = readRaw('aylmer.progress');
     const bestRaw = readRaw('aylmer.best');
     const garageRaw = readRaw('aylmer.garage');
     if (progRaw !== null || moneyRaw !== null || bestRaw !== null || garageRaw !== null) {
       const parse = (raw, dflt) => { try { return raw ? JSON.parse(raw) : dflt; } catch { return dflt; } };
       const garage = garageRaw !== null ? loadGarage() : { carId: null, parked: {}, health: {} };
-      const save = normalizeSave({
+      const written = put(`${DEFAULT_CHARACTER}.auto`, {
         version: SAVE_VERSION,
         name: 'Ancienne partie',
         savedAt: new Date().toISOString(),
@@ -583,6 +936,7 @@ export function migrateLegacy() {
         money: looseMoney != null ? looseMoney : START_MONEY,
         progress: parse(progRaw, []),
         best: parse(bestRaw, {}),
+        unlocks: legacyCars,
         timeOfDay: 'day',
         day: 0,
         fuel: null,
@@ -590,14 +944,17 @@ export function migrateLegacy() {
         summerOver: false,
         reached: false,
         mission: null,
-      }, `${DEFAULT_CHARACTER}.auto`);
-      writeSlot(`${DEFAULT_CHARACTER}.auto`, save);
-      first = save;
+      });
+      if (written) first = written; else allOk = false;
     }
   }
 
-  removeRaw(MONEY_KEY);
-  writeRaw(MIGRATED_KEY, MIGRATION_STAMP);
+  if (!allOk) return first;              // no stamp: the next boot retries
+  if (!putVerified(MIGRATED_KEY, MIGRATION_STAMP)) {
+    removeRaw(MONEY_KEY);
+    // SR-16: the scratch keys are dead once the stamp is down.
+    for (const k of LEGACY_KEYS) removeRaw(k);
+  }
   return first;
 }
 

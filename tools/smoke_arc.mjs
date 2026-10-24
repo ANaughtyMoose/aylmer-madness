@@ -1,6 +1,7 @@
-// The summer's five beats:  node tools/smoke_arc.mjs
+// The summer's four beats:  node tools/smoke_arc.mjs
+// (Five until Tom's D31, 13 Oct 2026, cut « La surchauffe du pont ».)
 //
-// The other suites audit MISSIONS, and four of the five beats are not in
+// The other suites audit MISSIONS, and some of the beats are not in
 // MISSIONS until you have earned them — so everything the rest of the repo
 // checks for a job, this file checks for a locked beat: a goal line, a how line
 // that names a key, a hint, a real place, a route the GPS can actually draw,
@@ -36,7 +37,7 @@ const {
   missionPayout, TIME_OF_DAY,
 } = await import('../src/game/missions.js');
 const {
-  SPAN, SHOULDER, CHAUDIERE, ALEXANDRA, NEPEAN, LUCERNE_A, LUCERNE_B, HOSE,
+  SPAN, CHAUDIERE, ALEXANDRA, NEPEAN, LUCERNE_A, LUCERNE_B,
   ARC_LINES, applyArcText, loadArcText, registerArcLines,
 } = await import('../src/game/arc.js');
 
@@ -60,13 +61,26 @@ const nav = new Nav();
 
 // ---------------------------------------------------------------- 1. shape
 
-group('five beats, in order');
+group('four beats, in order');
 {
-  ok(ARC.length === 5, `${ARC.length} beats`);
-  ok(ARC.map((d) => d.beat).join(',') === 'prologue,turn1,turn2,turn3,epilogue',
-    'prologue, three turns, epilogue', ARC.map((d) => d.beat).join(','));
-  ok(ALL_MISSIONS.length === MISSIONS.length + 5,
-    `${MISSIONS.length} jobs open on a new save, ${ALL_MISSIONS.length} in the whole summer`);
+  // D31 (Tom, 13 Oct 2026): « turn2 », the radiator hose on the bridge, is cut
+  // with no code left; its id is in campaign.js RETIRED for old saves.
+  ok(ARC.length === 4, `${ARC.length} beats`);
+  ok(ARC.map((d) => d.beat).join(',') === 'prologue,turn1,turn3,epilogue',
+    'prologue, two turns, epilogue', ARC.map((d) => d.beat).join(','));
+  ok(!ARC.some((d) => d.id === 'arcsurchauffe'), 'the bridge beat has no definition left');
+  // Restructure (29 Sept 2026): the beats are no longer pushed onto MISSIONS
+  // as they are earned. Two are live (La Saint-Jean, Le dernier soir; La
+  // surchauffe is cut, D31), two are retired (kept in ARC for old saves only), and every
+  // live job is in MISSIONS from the start; the lock is campaign.js's.
+  const live = ARC.filter((d) => ALL_MISSIONS.includes(d)).map((d) => d.id);
+  ok(live.join(',') === 'arcbache,arcdernier', 'two live beats: ' + live.join(','));
+  for (const id of ['arckeys', 'arcveillee', 'arcsurchauffe']) {
+    ok(!ALL_MISSIONS.some((d) => d.id === id), `${id} is retired: not in ALL_MISSIONS`);
+    ok(!MISSIONS.some((d) => d.id === id), `${id} is not in MISSIONS either`);
+  }
+  ok(MISSIONS.length === ALL_MISSIONS.length && ALL_MISSIONS.every((d) => MISSIONS.includes(d)),
+    `${MISSIONS.length} jobs in MISSIONS on a new save, the same ${ALL_MISSIONS.length} as the whole summer`);
   for (const d of ARC) {
     ok(!!PLACES[d.giver], `${d.id}: its giver is a real place (${d.giver})`);
     ok(!!TIME_OF_DAY[d.timeOfDay], `${d.id}: ${d.timeOfDay}`);
@@ -78,69 +92,76 @@ group('five beats, in order');
   }
 }
 
-group('the gates are progress, not a calendar');
+group('the gates are the story, not a job count');
+// Restructure (29 Sept 2026): the job-count gates (1/5/12/22/32) are gone; the
+// old assertions encoded them. A beat now opens when campaign.js's main
+// mission before it is done (arcbache after sayyad), and the finale when every main mission is.
 {
-  const done = (...ids) => new Set(ids);
-  ok(!gateOpen('arckeys', done()), 'nothing is open before you have driven anything');
-  ok(gateOpen('arckeys', done('school')), 'one job in, your father makes it a deal');
-  ok(!gateOpen('arcbache', done('school', 'dep')), 'the Saint-Jean waits for three jobs');
-  ok(!gateOpen('arcbache', done('a', 'b', 'c')), '...three jobs AND the keys');
-  ok(gateOpen('arcbache', done('arckeys', 'b', 'c')), 'three jobs including the keys opens it');
-  ok(!gateOpen('arcsurchauffe', new Set(['arckeys', 'b', 'c', 'd', 'e', 'f'])),
-    'the bridge waits for the Saint-Jean');
-  const six = new Set(['arckeys', 'arcbache', 'c', 'd', 'e', 'f']);
-  ok(gateOpen('arcsurchauffe', six), '...and six jobs opens it');
-  const fourteen = new Set(['arckeys', 'arcbache', 'arcsurchauffe', 'arcveillee',
-    ...Array.from({ length: 10 }, (_, i) => 'j' + i)]);
-  ok(gateOpen('arcdernier', fourteen), 'the last morning is fourteen jobs deep');
-  ok(!gateOpen('arcdernier', new Set([...fourteen].filter((k) => k !== 'arcveillee'))),
-    '...and never before the last night');
+  const { mainIds } = await import('../src/game/campaign.js');
+  const mains = mainIds();
+  ok(Object.keys(GATES).sort().join(',') === 'arcbache,arcdernier', 'two gates: ' + Object.keys(GATES).join(','));
+  ok(GATES.arcbache.after === 'sayyad' && GATES.arcbache.fromDay === 2, 'the Saint-Jean follows Sayyad, from day 2 (24 June)');
+  ok(GATES.arcdernier.after === 'all', 'the finale follows everything');
+  ok(!gateOpen('arcbache', new Set()), 'nothing is open before you have driven anything');
+  ok(!gateOpen('arcbache', new Set(['alternateur'])), 'the alternator alone does not open the beach');
+  ok(gateOpen('arcbache', new Set(['alternateur', 'sayyad'])), 'Sayyad awake opens the Saint-Jean');
+  // Twenty optional or unknown jobs do not stand in for a main mission.
+  const busy = new Set(['alternateur', 'dep', 'margaretdental', ...Array.from({ length: 20 }, (_, i) => 'j' + i)]);
+  ok(!gateOpen('arcbache', busy), 'a pile of other jobs does not open it (no counts)');
+  const allMains = new Set(mains);
+  ok(gateOpen('arcdernier', allMains), `the finale opens after all ${mains.length} main missions`);
+  for (const m of mains) {
+    const less = new Set(mains.filter((x) => x !== m));
+    ok(!gateOpen('arcdernier', less), `...not without ${m}`);
+  }
+  for (const id of ['arckeys', 'arcveillee', 'arcsurchauffe']) {
+    ok(!gateOpen(id, allMains) && !gateOpen(id, new Set()), `${id} is retired: its gate never opens`);
+  }
   // Monotone: a gate never closes as you do more.
   let opened = 0;
   const acc = new Set();
-  for (const id of ['school', 'arckeys', 'dep', 'arcbache', 'cv', 'poutine', 'gang', 'arcsurchauffe']) {
+  for (const id of [...mains.slice(0, 3), 'dep', 'gang', ...mains.slice(3)]) {
     acc.add(id);
-    const n = openBeats(acc).length;
-    ok(n >= opened, `after ${acc.size} jobs, ${n} beats are open`);
-    opened = n;
+    const k = openBeats(acc).length;
+    ok(k >= opened, `after ${acc.size} jobs, ${k} beats are open`);
+    opened = k;
   }
+  ok(opened === 2, 'and both live beats end up open');
 }
 
-group('unlockArc puts them on the map as they are earned');
+group('unlockArc announces the next main mission, and never touches MISSIONS');
 {
+  const { mainIds, FINALE } = await import('../src/game/campaign.js');
+  const mains = mainIds();
   const hud = { toasts: [], toast(t) { this.toasts.push(t); } };
   const G = { done: new Set(), hud, audio: { chime() {} } };
   resetArcSync();
-  const base = MISSIONS.length;
-  ok(unlockArc(G).length === 0, 'a brand-new save gets nothing');
-  ok(MISSIONS.length === base, 'and MISSIONS does not grow');
-  G.done.add('school');
+  const base = MISSIONS.slice();
+  ok(unlockArc(G).length === 0, 'a brand-new save gets nothing (silent first sync)');
+  ok(MISSIONS.length === base.length, 'and MISSIONS does not grow');
+  G.done.add('alternateur');
   const a = unlockArc(G);
-  ok(a.length === 1 && a[0].id === 'arckeys', 'the first job opens the prologue');
-  ok(MISSIONS.includes(a[0]), 'which is now a marker on the map');
+  ok(a.length === 1 && a[0].id === 'sayyad', 'the alternator opens « Réveiller Sayyad »', a.map((d) => d.id).join());
+  ok(MISSIONS.includes(a[0]), 'which was a marker all along');
   ok(hud.toasts.some((t) => /NOUVELLE JOB/.test(t)), 'and you are told about it', hud.toasts[0]);
   ok(unlockArc(G).length === 0, 'calling it again is a no-op');
-  // The whole summer.
-  for (const id of ['arckeys', 'a', 'b', 'arcbache', 'c', 'd', 'arcsurchauffe', 'e', 'f', 'g',
-    'arcveillee', 'h', 'i', 'j', 'k', 'l']) { G.done.add(id); unlockArc(G); }
-  ok(ARC.every((d) => MISSIONS.includes(d)), `all five beats are open after ${G.done.size} jobs`);
-  ok(MISSIONS.length === base + 5, `${MISSIONS.length} jobs in the pause menu at the end of the summer`);
-
-  // A new game hands main.js a brand-new Set. The beats have to go away again.
-  const fresh = { done: new Set(), hud: { toast() {} }, audio: { chime() {} } };
-  unlockArc(fresh);
-  ok(!ARC.some((d) => MISSIONS.includes(d)), 'starting a new summer takes them all back off');
-  ok(MISSIONS.length === base, `back to ${MISSIONS.length}`);
-  // ...and finishing a job in the SAME save never removes anything.
-  const keep = { done: new Set(['school']), hud: { toast() {} }, audio: { chime() {} } };
-  unlockArc(keep);
-  keep.done.add('dep');
-  unlockArc(keep);
-  ok(MISSIONS.some((d) => d.id === 'arckeys'), 'a beat you earned stays earned');
-  // Leave MISSIONS the way we found it.
-  unlockArc({ done: new Set(), hud: { toast() {} }, audio: { chime() {} } });
+  G.done.add('dep');
+  ok(unlockArc(G).length === 0, 'an optional job announces no main mission');
+  // The whole summer, one main at a time.
+  let steps = 0;
+  for (let i = 1; i < mains.length; i++) {
+    G.done.add(mains[i]);
+    const got = unlockArc(G).map((d) => d.id);
+    const want = i + 1 < mains.length ? mains[i + 1] : FINALE;
+    if (got.length === 1 && got[0] === want) steps++;
+    else ok(false, `finishing ${mains[i]} announces ${want}`, got.join());
+  }
+  ok(steps === mains.length - 1, `each of the ${mains.length - 1} main missions after the first announces the next, the last one the finale`);
+  ok(MISSIONS.length === base.length && base.every((d, i) => MISSIONS[i] === d), 'MISSIONS is the same list, in the same order');
+  // A new game hands main.js a brand-new Set: silent, and nothing moves.
+  ok(unlockArc({ done: new Set(), hud: { toast() {} }, audio: { chime() {} } }).length === 0, 'a new summer is announced nothing');
+  ok(MISSIONS.length === base.length, `still ${MISSIONS.length}`);
   resetArcSync();
-  ok(MISSIONS.length === base, 'and the suite leaves MISSIONS alone');
 }
 
 // ---------------------------------------------------------------- 2. stages
@@ -209,7 +230,10 @@ group('the GPS can draw every leg');
         ok(kmh < 90, `${d.id}: « ${String(st.text).slice(0, 24)} » asks for ${kmh.toFixed(0)} km/h`);
       }
     }
-    ok(metres > 500 && metres < 22000, `${d.id} is ${(metres / 1000).toFixed(1)} km of driving`);
+    // Le dernier soir is a free drive from home back home (no GPS): every
+    // stage is at 299 Fraser, so the routed distance is zero by design.
+    if (d.id === 'arcdernier') ok(metres === 0 && stages.every((st) => st.at === 'home'), 'arcdernier: every stage is at home, the drive is yours');
+    else ok(metres > 500 && metres < 22000, `${d.id} is ${(metres / 1000).toFixed(1)} km of driving`);
   }
 }
 
@@ -217,7 +241,6 @@ group('the named geography is where it says it is');
 {
   for (const [name, p, road] of [
     ['the Champlain span', SPAN, /Champlain/],
-    ['the shoulder past it', SHOULDER, /Champlain/],
     ['the Chaudière', CHAUDIERE, /./],
     ['the Alexandra', ALEXANDRA, /Alexandra/],
     ['Nepean Point', NEPEAN, /Alexandra/],
@@ -235,55 +258,37 @@ group('the named geography is where it says it is');
 
 // ---------------------------------------------------------------- 3. the beats
 
-group('beat 3 breaks the truck and makes you pay for it');
+group('the last night has no clock on it');
+// Was « the last morning »: it went to 129 Frank-Robinson as a stage. Le
+// dernier soir (restructure) is a free drive; the couch in the tree is now a
+// callback you find if you drive by, and the three stages are all at home.
 {
-  const d = ARC.find((x) => x.id === 'arcsurchauffe');
-  const st = d.build({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 300 });
-  const blow = st.find((s) => s.kind === 'blow');
-  ok(!!blow && !!blow.onExit, 'the hose lets go mid-span');
-  // What damage.js's restoreDamage touches on a real Vehicle, and nothing else.
-  const veh = { damage: 0, deformF: 0, headOut: 0, pull: 0, spec: { id: 'ranger' },
-    repair() { this.damage = 0; this.deformF = 0; this.headOut = 0; this.pull = 0; } };
-  const G = { veh, health: {}, repairHints: { h25: true, h60: true }, hud: { toast() {} } };
-  blow.onExit(G);
-  ok(veh.damage >= 25, `the Ranger comes off the bridge at ${veh.damage} damage`);
-  ok(veh.damage < 60, '...but not so hurt that the next twenty minutes are a punishment');
-  ok(G.health.ranger === veh.damage, 'and the session remembers it');
-  ok(G.repairHints.h25 === false, 'the "go get it fixed" nagging is re-armed');
-
-  const tow = st.find((s) => s.at === SHOULDER);
-  ok(!!tow && !!tow.onExit, 'Norm turns up with the flatbed');
-  const moved = { x: 0, z: 0, reset(x, z) { this.x = x; this.z = z; } };
-  tow.onExit({ veh: moved, hud: { toast() {} } });
-  ok(Math.hypot(moved.x - PLACES.ctire.x, moved.z - PLACES.ctire.z) < 1,
-    'and the truck ends up at his garage on chemin d’Aylmer');
-
-  const pay = st.find((s) => s.kind === 'pay');
-  ok(pay && pay.cost === HOSE.parts, `the parts are $${HOSE.parts}`);
-  ok(pay && /Reviens quand/.test(pay.brokeText || ''), 'and being broke is a wall, not a soft no');
-  const earned = st.filter((s) => s.money).reduce((a, s) => a + s.money, 0);
-  ok(earned > HOSE.parts, `the three jobs pay $${earned}, which covers the $${HOSE.parts}`);
-  ok(st.filter((s) => s.money).length === 3, 'three quick jobs, as written');
-  const fixed = { repaired: false, spec: { id: 'ranger' }, repair() { this.repaired = true; } };
-  pay.onExit({ veh: fixed, health: {}, repairHints: {}, hud: { setRepairHint() {}, setRepairPrompt() {} } });
-  ok(fixed.repaired, 'paying Norm actually fixes it');
-}
-
-group('the last morning has no clock on it');
-{
+  const { FINALE_CALLBACKS, FINALE_CALL, finaleTick } = await import('../src/game/arc.js');
   const d = ARC.find((x) => x.id === 'arcdernier');
   const st = d.build({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 300 });
+  ok(st.length === 3 && st.map((s) => s.kind).join(',') === 'drive,phone,table', 'three stages: drive, phone, table');
   ok(st.every((s) => s.time == null), 'no stage of the epilogue is timed');
   ok(st.every((s) => !s.failWhy), 'and there is nothing to fail');
-  ok(st.some((s) => s.at === 'mike'), 'it goes to 129 Frank-Robinson one last time');
-  ok(/divan|arbre/.test(st.find((s) => s.at === 'mike').toast || ''),
-    'and the couch is still up there', st.find((s) => s.at === 'mike').toast);
+  ok(st[0].noRoute === true, 'the drive has no GPS line');
+  const mike = FINALE_CALLBACKS.find((c) => c.at === 'mike');
+  ok(!!mike, '129 Frank-Robinson is one of the places you can drive by');
+  ok(/divan|arbre/.test(mike?.line || ''), 'and the couch is still up there', mike?.line);
+  ok(FINALE_CALLBACKS.every((c) => !!PLACES[c.at]), 'every callback is a real place');
   ok(st[st.length - 1].at === 'home', 'and ends in your own driveway');
+  ok(FINALE_CALL.length >= 2 && FINALE_CALL[0][0] === 'Margaret', 'Margaret answers the phone');
   // The police are told to go away, every tick, on every stage.
   let cleared = 0;
   const G = { cops: { clear() { cleared++; } } };
-  for (const s of st) { ok(typeof s.onTick === 'function', `${String(s.text).slice(0, 22)}: has the no-cops tick`); s.onTick(G); }
+  const m = {};
+  for (const s of st) { ok(typeof s.onTick === 'function', `${String(s.text).slice(0, 22)}: has the no-cops tick`); s.onTick(G, m); }
   ok(cleared === st.length, `the heat is cleared on all ${st.length} stages`);
+  // The drive's tick is the callbacks: parked at Mike's, you hear about the couch once.
+  const toasts = [];
+  const G2 = { veh: { x: PLACES.mike.x, z: PLACES.mike.z }, hud: { toast: (t) => toasts.push(t) } };
+  const m2 = {};
+  st[0].onTick(G2, m2); st[0].onTick(G2, m2);
+  ok(toasts.filter((t) => t === mike.line).length === 1, 'driving by Mike\'s plays its callback exactly once');
+  void finaleTick;
 }
 
 // ---------------------------------------------------------------- 4. the text
@@ -292,13 +297,13 @@ group('the beats are named by assets/text/arc.json');
 {
   ok(existsSync('assets/text/arc.json'), 'the file is there');
   const j = JSON.parse(readFileSync('assets/text/arc.json', 'utf8'));
-  ok(Array.isArray(j.arc) && j.arc.length === 5, `${j.arc.length} beats in the file`);
+  ok(Array.isArray(j.arc) && j.arc.length === 4, `${j.arc.length} beats in the file`);
   const beats = j.arc.map((b) => b.beat).join(',');
   ok(beats === ARC.map((d) => d.beat).join(','), 'and they line up with the code', beats);
 
   const before = ARC.map((d) => d.title);
   const n = applyArcText(j.arc);
-  ok(n === 5, 'all five titles come out of the JSON');
+  ok(n === 4, 'all four titles come out of the JSON');
   ok(ARC.every((d, i) => d.title === j.arc[i].title), 'and they are the file\'s titles now',
     ARC.map((d) => d.title).join(' / '));
   ok(ARC.every((d) => d.note), 'the emotional note rides along for whoever wants it');
@@ -320,8 +325,13 @@ group('the friends have something to say at both ends');
     ok(s.length >= 1 && e.length >= 1, `${d.id}: ${s.length} at the start, ${e.length} at the end`);
   }
   const who = new Set(Object.values(ARC_LINES).flatMap((v) => [...v.start, ...v.end]).map(([w]) => w));
-  ok(who.has('Ton père') && who.has('Mike') && who.has('Zahra') && who.has('Norm Lafleur'),
+  // Canon changed (docs/STORY-LEDGER.md, 21-28 Sept 2026): Tom's father did
+  // not live at 299 Fraser and never lent the truck, so « Ton père » no longer
+  // speaks in the arc; Tom's mother Margaret does, at home.
+  ok(who.has('Margaret') && who.has('Mike') && who.has('Zahra'),
     'the right people talk: ' + [...who].join(', '));
+  ok(!who.has('Norm Lafleur'), 'and nobody from the cut bridge beat (D31): ' + [...who].join(', '));
+  ok(!who.has('Ton père'), 'and his father is not at the house: ' + [...who].join(', '));
   // Canon: nobody in this game has an invented surname.
   const text = JSON.stringify(ARC_LINES) + JSON.stringify(ARC.map((d) => [d.title, d.brief]));
   for (const bad of [/Sayyad\s+[A-ZÉÈ]/, /Zahra\s+[A-ZÉÈ]/, /Margaret\s+[A-ZÉÈ]/, /\bsteph\b/i, /\bmarc\b/i, /\bdave\b/i]) {

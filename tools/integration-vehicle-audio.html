@@ -1,0 +1,48 @@
+<!doctype html><meta charset="utf-8"><title>Vehicle audio verification</title>
+<style>body{font:16px system-ui;background:#172129;color:white}iframe{width:1000px;height:600px}pre{white-space:pre-wrap}</style>
+<button id="run">Check engine without radio</button><pre id="result">Ready</pre><iframe id="game" src="../prototype.html?audioReview=1" allow="autoplay"></iframe>
+<script type="module">
+const result=document.querySelector('#result'),frame=document.querySelector('#game'),button=document.querySelector('#run');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function until(f){for(let i=0;i<600;i++){if(f())return;await wait(100);}throw Error('timeout');}
+button.onclick=async()=>{button.disabled=true;const report=[];let A;
+const check=(name,pass,detail)=>{report.push({name,pass:!!pass,detail});result.textContent=JSON.stringify({report},null,2);if(!pass)throw Error(name);};
+try{
+await until(()=>frame.contentWindow.AYLMER?.radio.libraryReady);const w=frame.contentWindow,d=w.document;A=w.AYLMER;
+d.querySelector('#start').click();await wait(200);d.querySelector('#startconfirm').click();await until(()=>A.G.veh&&A.G.mode==='drive');A.cinema.hide();A.story.finish();A.pause(false);A.radio.power(false);
+const a=A.G.audio;
+// F5: wait for the game to step and the voice to rise, not a fixed 200 ms (a
+// slow GPU used to sample before the first frame and read silence).
+await until(()=>a.voice&&a.voice.nodes.out.gain.value>.05);
+// These meters cannot be satisfied by a horn, rain, birds or a radio recording.
+function meter(source){const m=a.ctx.createAnalyser();m.fftSize=2048;source.connect(m);return m;}
+const engine=meter(a.engBus),road=meter(a.road.n.out),master=meter(a.comp);
+async function sample(m,ms=700){const b=new Float32Array(m.fftSize);let peak=0,sum=0,n=0;for(let i=0;i<ms/50;i++){await wait(50);m.getFloatTimeDomainData(b);for(const x of b){peak=Math.max(peak,Math.abs(x));sum+=x*x;n++;}}return {peak,rms:Math.sqrt(sum/n)};}
+const original=a.driver,idle=await sample(engine);
+check('Idle produces engine-only signal',idle.rms>.001&&a.ctx.state==='running',idle);
+a.setEngineProfile(a.ep);check('Same profile preserves running voice',a.driver===original);
+a.setEngineProfile({...a.ep});check('Equal profile in a new object preserves running voice (F4)',a.driver===original,{builds:a.engineBuilds});
+A.input.keys.add('KeyS');const reverse=await sample(engine,2000);A.input.keys.delete('KeyS');
+check('Backing out produces engine-only signal',reverse.rms>.001&&A.G.veh.vLong<-.2,{...reverse,speed:A.G.veh.speedKmh,rpm:A.G.gearbox.rpm});
+check('Ordinary game frames do not rebuild the engine',a.driver===original);
+const rolling=await sample(road);check('Rolling tyres produce their own signal',rolling.rms>.00001,rolling);
+A.pause(true);await wait(300);const paused=await sample(master);check('Pause silences final output',paused.peak<.0001,paused);
+A.pause(false);const resumed=await sample(engine);check('Engine returns after resume',resumed.rms>.001,resumed);
+// F2: the browser suspends the context behind the game's back; unpausing wakes it.
+await a.ctx.suspend();A.pause(true);A.pause(false);await until(()=>a.ctx.state==='running');const woke=await sample(engine);
+check('Suspended context resumes on unpause (F2)',woke.rms>.001&&a.ctx.state==='running',{...woke,state:a.ctx.state});
+A.weather('rain');A.input.keys.add('KeyW');const forward=await sample(engine,3000);A.input.keys.delete('KeyW');
+check('Wet forward driving keeps the engine voice',forward.rms>.001&&a.driver===original&&A.G.veh.vLong>.2,{...forward,speed:A.G.veh.speedKmh});
+const mods={...A.G.garage.modsFor(A.G.carId)},oldBase=A.G.veh.baseSpec;
+A.G.garage.setMods(A.G.carId,{...mods,moteur:3});A.economy.retune();const upgraded=a.driver,upBase=A.G.veh.baseSpec;
+await sample(engine);check('Upgrade rebuilds once and survives weather ticks',upgraded!==original&&a.driver===upgraded&&upBase!==oldBase&&A.G.veh.baseSpec===upBase&&upBase.accel>oldBase.accel);
+A.G.garage.setMods(A.G.carId,mods);A.economy.retune();
+const car=A.G.carId,alternate=Object.keys(A.G.parked).find(id=>id!==car);check('Alternate vehicle available',!!alternate);
+const altMods={...A.G.garage.modsFor(alternate)};A.G.garage.setMods(alternate,{...altMods,moteur:2});const b0=a.engineBuilds;
+A.G.swapCar(alternate);await wait(200);const swapped=a.driver,swapSignal=await sample(engine);swapSignal.builds=a.engineBuilds-b0;
+check('Vehicle swap has a stable audible engine',A.G.carId===alternate&&a.driver===swapped&&swapSignal.rms>.001,swapSignal);
+A.G.swapCar(car);await wait(200);const returned=await sample(engine);check('Returning to Ranger restores engine',returned.rms>.001,{...returned,mode:A.G.mode,cinema:A.cinema.active,story:A.story.active,seam:A.G.seamHold,context:a.ctx.state,rpm:A.G.gearbox.rpm,gain:a.voice.nodes.out.gain.value,car:A.G.carId});
+A.G.garage.setMods(alternate,altMods);A.pause(true);result.textContent=JSON.stringify({pass:true,report},null,2);
+}catch(e){A?.input.keys.clear();A?.pause(true);result.textContent=JSON.stringify({pass:false,error:e.stack,report},null,2);}finally{button.disabled=false;}
+};
+</script>

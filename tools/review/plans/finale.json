@@ -1,0 +1,12 @@
+{
+ "name": "finale",
+ "about": "S4-SUMMER and E-09: the last missions and « Le dernier soir » in the Ranger, by the bot and by script, through the end cards and the summer-end screen",
+ "vehicle": "ranger",
+ "beats": [
+  { "do": "boot" },
+  { "do": "mission", "id": "russellroyal", "stageTimeout": 150 },
+  { "do": "mission", "id": "curfew", "stageTimeout": 150 },
+  { "do": "mission", "id": "arcdernier", "stageTimeout": 150, "tourN": 4, "maxSecs": 900, "about": "the bot: four lit places, nearest first, then home" },
+  { "do": "script", "id": "E-09", "tour": ["tyler", "tims", "ctire"], "legSecs": 300, "about": "by script: three places, home, phone, brochure, every card shot" }
+ ]
+}

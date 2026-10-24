@@ -29,12 +29,46 @@ const LOOK_PER_MPS = 0.6; // … growing with speed (12 m/s → 12.2 m)
 const CULL = 420;        // beyond this from the player, teleport back into view
 const NEAR_MIN = 120;    // respawn ring around the player
 const NEAR_MAX = 300;
+// S3-CRASH: the arterials may respawn closer in, from 80 m, so Lucerne or
+// Principale at speed has cars on it (feel.md finding 7). The brief asked for
+// 80 to 220 m; measured (docs/qa/rf/S3-CRASH.md) that gave no more cars
+// within 150 m of a moving player than 120 to 300 and cut the arterial share
+// of respawns from 45 to 36 %, so the far edge stays at 300: 80 to 300 m gave
+// +14 % cars within 150 m and +39 % on arterials. Side streets keep 120 to
+// 300. Same cells scanned, so the cost is the same.
+export const RING = { art: [80, 300] };
 const KEEP_CLEAR = 25;   // never pop in this close to the player
 const RESPAWN_COOL = 2;  // seconds between teleports for one car
 const STOP_HOLD = 1.2;   // fake stop sign dwell
 const CELL = 100;        // spatial hash cell for the respawn query
 const STUN = 2.0;        // seconds sitting there after you hit them
 const HONK_AT = 0.30;    // ...and how long before the horn goes
+// S3-CRASH: a real hit (closing over SLIDE_AT m/s) is Midtown's, not a
+// parking job: the car keeps the solver's yawSpin and slides on, with less
+// drag than a shunt, for a little longer the harder it was. A hit square on
+// the axis gives the solver almost no spin, so it gets at least SPIN_PER m/s
+// of closing in rad/s, the way the solver was already turning it.
+export const SLIDE_AT = 4;
+export const SLIDE_DRAG = 1.7, SLIDE_SPIN_DRAG = 1.3;
+export const SPIN_PER = 0.15;
+export const STUN_MAX = 2.8;
+// S3-CRASH: a near miss, or your horn on a car within SWERVE_AHEAD m in front
+// of you, makes it jink SWERVE_M away from you for SWERVE_T s, and honk.
+export const SWERVE_M = 1.2, SWERVE_T = 1.5, SWERVE_AHEAD = 15;
+// Where the traffic lives. Every car is respawned into a ring around you, and
+// with every edge equally likely the ring is mostly cul-de-sacs: Principale
+// read as empty and staged (review 6 Oct 2026). A residential edge is taken at
+// this weight against 1 for anything bigger, so the main drags carry the town
+// and the side streets still see the odd Caravan.
+const SIDE_WEIGHT = 0.3;
+const BIG_SHARE = 0.75;  // share of the opening spawn put on the bigger roads
+// A near miss: you went past a moving traffic car fast and close and did not
+// touch it. Measured between the two bodies' sides, not their centres, at a
+// closing speed over NEAR_SPEED; one per car per NEAR_COOL seconds. C-01 (the
+// style chain) is the consumer; nothing here scores it.
+const NEAR_GAP = 1.5;    // metres of air between the boxes, at most
+const NEAR_SPEED = 8.3;  // m/s of relative speed, 30 km/h
+const NEAR_COOL = 3;
 
 // Right-hand side of a heading (dx,dz) is (-dz,dx): east (1,0) → south (0,1).
 // Québec drives on the right, so that is the side of the centreline we want.
@@ -57,6 +91,12 @@ export class Traffic {
     this.time = 0;
     // Set by main.js to a Signals instance; null means "no lights in this town".
     this.signals = null;
+    // Near misses (see nearMiss() below): this frame's, the undrained log, a
+    // running total, and an optional callback for whoever scores them.
+    this.nearMisses = [];
+    this.nearLog = [];
+    this.nearCount = 0;
+    this.onNearMiss = null;
 
     // ------------------------------------------------------------ road graph
     // Nodes are OSM node ids, so ways that share an id are joined there.
@@ -145,7 +185,7 @@ export class Traffic {
     }
     this.cars = [];
     for (let i = 0; i < count; i++) {
-      const pool = (rnd() < 0.6 && big.length) ? big : (small.length ? small : big);
+      const pool = (rnd() < BIG_SHARE && big.length) ? big : (small.length ? small : big);
       const ei = pool[Math.floor(rnd() * pool.length) % pool.length];
       const spec = TRAFFIC_CARS[Math.floor(rnd() * TRAFFIC_CARS.length)];
       const car = {
@@ -160,7 +200,7 @@ export class Traffic {
         // R3: a traffic car is a rigid body the moment you touch it. `vx/vz`
         // and `yawSpin` are its own, `stunT` is how long it sits there
         // collecting itself, `honk` fires once when it finds its horn.
-        vx: 0, vz: 0, yawSpin: 0, stunT: 0, honkT: 0, honk: 0,
+        vx: 0, vz: 0, yawSpin: 0, stunT: 0, honkT: 0, honk: 0, nearT: 0,
         len: spec.len, wid: spec.wid, mass: spec.mass,
         hitBy: 0,      // approach speed of the last hit, m/s (main.js reads it)
       };
@@ -204,7 +244,7 @@ export class Traffic {
       nextStop: A.stopEvery ? A.stopEvery[0] + rnd() * A.stopEvery[1] : 0,
       dwellT: 0,
       stopT: 0, respawnT: 0,
-      vx: 0, vz: 0, yawSpin: 0, stunT: 0, honkT: 0, honk: 0,
+      vx: 0, vz: 0, yawSpin: 0, stunT: 0, honkT: 0, honk: 0, nearT: 0,
       len: spec.len, wid: spec.wid, mass: spec.mass, hitBy: 0,
     };
     this.place(car, ei, rnd());
@@ -237,7 +277,7 @@ export class Traffic {
   // knows which way the road goes.
   aimAt(c, e, out) {
     const A = this.nodes[e.a];
-    const lane = c.lane || 0;
+    const lane = (c.lane || 0) + (c.swerveOff || 0);   // S3-CRASH: a swerve is a lane offset
     const s = clamp((c.x - A.x) * e.dx + (c.z - A.z) * e.dz, 0, e.len);
     const look = clamp(LOOK_MIN + c.speed * LOOK_PER_MPS, LOOK_MIN, LOOK_MAX);
     let s2 = s + look;
@@ -264,6 +304,7 @@ export class Traffic {
     car.stopT = 0;
     car.vx = 0; car.vz = 0; car.yawSpin = 0;
     car.stunT = 0; car.honkT = 0; car.honk = 0; car.hitBy = 0;
+    car.slide = false; car.swerveT = 0; car.swerveOff = 0; car.swerveDir = 0; car.swerveCool = 0;
   }
 
   // After a shunt: find the nearest lane the car could legally be driving and
@@ -323,6 +364,7 @@ export class Traffic {
   // Drop a car back onto a road in the 120–300 m ring around the player.
   respawn(car, player) {
     const lo = NEAR_MIN * NEAR_MIN, hi = NEAR_MAX * NEAR_MAX;
+    const loA = RING.art[0] * RING.art[0], hiA = RING.art[1] * RING.art[1];
     const r = Math.ceil(NEAR_MAX / CELL) + 1;
     const cx = Math.floor((player.x - this.gx0) / CELL);
     const cz = Math.floor((player.z - this.gz0) / CELL);
@@ -339,13 +381,16 @@ export class Traffic {
           const A = this.nodes[e.a], B = this.nodes[e.b];
           const mx = (A.x + B.x) * 0.5 - player.x, mz = (A.z + B.z) * 0.5 - player.z;
           const d2 = mx * mx + mz * mz;
-          if (d2 < lo || d2 > hi) continue;
+          if (e.cls === 'residential' ? (d2 < lo || d2 > hi) : (d2 < loA || d2 > hiA)) continue;
           const t = 0.15 + this.rnd() * 0.7;
           this.laneAt(e, t, p, car.lane || 0);
           const px = p[0] - player.x, pz = p[1] - player.z;
           if (px * px + pz * pz < KEEP_CLEAR * KEEP_CLEAR) continue;
-          seen++;
-          if (this.rnd() < 1 / seen) { chosen = bucket[i]; chosenT = t; }
+          // Weighted reservoir: each candidate wins with its weight over
+          // the weight seen so far, so the pick is in proportion to weight.
+          const w = e.cls === 'residential' ? SIDE_WEIGHT : 1;
+          seen += w;
+          if (this.rnd() < w / seen) { chosen = bucket[i]; chosenT = t; }
         }
       }
     }
@@ -364,8 +409,10 @@ export class Traffic {
     this.time += dt;
     const tgt = [0, 0], aim = [0, 0];
     this.crash = 0;
+    this.nearMisses.length = 0;
     for (const c of this.cars) {
       if (c.respawnT > 0) c.respawnT -= dt;
+      if (c.nearT > 0) c.nearT -= dt;
       c.honk = 0;
 
       // Ambient cars are followers, not physics bodies: they only need to sit on
@@ -382,13 +429,15 @@ export class Traffic {
       if (c.stunT > 0) {
         c.stunT -= dt;
         c.speed = 0;
-        driftBody(c, dt, 2.6, 2.4);
+        c.swerveT = 0; c.swerveOff = 0;
+        if (c.slide) driftBody(c, dt, SLIDE_DRAG, SLIDE_SPIN_DRAG);
+        else driftBody(c, dt, 2.6, 2.4);
         c.spin += (Math.hypot(c.vx, c.vz) / c.spec.wheelR) * dt;
         if (c.honkT > 0) {
           c.honkT -= dt;
           if (c.honkT <= 0) { c.honk = 1; heckle.say('Chauffeur', 'honk'); }
         }
-        if (c.stunT <= 0) { this.reacquire(c); c.hitBy = 0; }
+        if (c.stunT <= 0) { this.reacquire(c); c.hitBy = 0; c.slide = false; }
         this.collidePlayer(c, player);
         continue;
       }
@@ -461,6 +510,19 @@ export class Traffic {
       }
 
       if (c.stopT > 0) { c.stopT -= dt; block = Math.max(block, 0.94); }
+      // S3-CRASH: the swerve. Out fast, held, eased back; a lift off the gas with it.
+      if (c.swerveT > 0) {
+        c.swerveT = Math.max(0, c.swerveT - dt);
+        const run = SWERVE_T - c.swerveT;
+        const k = Math.min(1, run / 0.35) * Math.min(1, c.swerveT / 0.6);
+        const off = c.swerveDir * SWERVE_M * k * k * (3 - 2 * k);
+        // Pure pursuit alone answers a lane change in about two seconds, so
+        // the body is moved across with the offset and the aim (aimAt) agrees.
+        c.x += -e.dz * (off - c.swerveOff); c.z += e.dx * (off - c.swerveOff);
+        c.swerveOff = off;
+        block = Math.max(block, 0.35 * k);
+      } else if (c.swerveOff) c.swerveOff = 0;
+      else if ((c.swerveCool -= dt) <= 0 && this.playerHorn) this.hornSwerve(c, player);
       // The bus stop. There is no stop furniture on the graph, so the route is
       // modelled as what you see of one from three cars back: it pulls in, sits
       // there for five seconds, and pulls out again.
@@ -485,9 +547,74 @@ export class Traffic {
       c.vx = fx * c.speed; c.vz = fz * c.speed;
 
       this.collidePlayer(c, player);
-      if (c.stunT <= 0) c.yawSpin = 0;   // only a stunned car spends its spin
+      if (c.stunT <= 0) { c.yawSpin = 0; if (this.nearMiss(c, player)) this.swerve(c, player); }   // S3-CRASH: and it swerves   // only a stunned car spends its spin
       c.horn = Math.max(0, c.horn - dt);
     }
+  }
+
+  /**
+   * C-01 contract. `traffic.nearMisses` is this frame's list (cleared at the
+   * top of update()), each `{ t, gap, speed, kind, car }`: `gap` metres of air
+   * between the sides, `speed` the closing speed in m/s, `kind` 'car', 'bike',
+   * 'city' or 'school'. `traffic.onNearMiss(ev)`, when set, is called as each
+   * one happens. `drainNearMisses()` hands over everything since the last
+   * drain, for a reader that does not run every frame. A car that touched you
+   * in the last NEAR_COOL seconds, or is still stunned, never counts.
+   */
+  nearMiss(c, p) {
+    if (!p || p.vx === undefined || c.nearT > 0) return;
+    const rvx = p.vx - c.vx, rvz = p.vz - c.vz;
+    const rs = Math.hypot(rvx, rvz);
+    if (rs < NEAR_SPEED) return;
+    const rx = p.x - c.x, rz = p.z - c.z;
+    if (rx * rx + rz * rz > 144) return;          // 12 m: not even close
+    const ux = rvx / rs, uz = rvz / rs;
+    const along = rx * ux + rz * uz;              // < 0 still coming, > 0 gone past
+    const side = Math.abs(rx * uz - rz * ux);     // centre to centre, across the pass
+    const pl = p.len || 4.6, pw = p.wid || 1.9;
+    // Abreast: the two boxes overlap along the line of the pass.
+    if (Math.abs(along) > (pl + c.len) * 0.5) return;
+    const gap = side - (pw + c.wid) * 0.5;
+    if (gap <= 0.05 || gap > NEAR_GAP) return;
+    c.nearT = NEAR_COOL;
+    const ev = { t: this.time, gap, speed: rs, kind: c.kind || 'car', car: c };
+    this.nearMisses.push(ev);
+    this.nearLog.push(ev);
+    if (this.nearLog.length > 32) this.nearLog.shift();
+    this.nearCount++;
+    if (this.onNearMiss) this.onNearMiss(ev);
+    return ev;
+  }
+
+  // S3-CRASH: jink away from the player and lean on the horn. Away is the
+  // side of the car's lane the player is not on: (−fz, fx) is the car's right.
+  swerve(c, p) {
+    if (c.stunT > 0 || c.swerveT > 0 || c.swerveCool > 0) return false;
+    const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw);
+    const right = (p.x - c.x) * -fz + (p.z - c.z) * fx;
+    c.swerveDir = right > 0 ? -1 : 1;
+    c.swerveT = SWERVE_T; c.swerveCool = 1.5;   // counted down once the swerve is over
+    c.honk = 1; c.horn = 1;
+    this.swerves = (this.swerves || 0) + 1;
+    return true;
+  }
+
+  // Your horn, and this car is in front of you, close, and roughly in your path.
+  hornSwerve(c, p) {
+    if (!p || p.yaw === undefined) return false;
+    const pfx = Math.sin(p.yaw), pfz = Math.cos(p.yaw);
+    const rx = c.x - p.x, rz = c.z - p.z;
+    const ahead = rx * pfx + rz * pfz;
+    if (ahead <= 0 || ahead > SWERVE_AHEAD) return false;
+    if (Math.abs(rx * pfz - rz * pfx) > 4) return false;
+    return this.swerve(c, p);
+  }
+
+  /** Every near miss since the last call, oldest first (at most 32). */
+  drainNearMisses() {
+    const out = this.nearLog;
+    this.nearLog = [];
+    return out;
   }
 
   // R3 — the real thing, both ways: an impulse along the contact normal from
@@ -501,9 +628,20 @@ export class Traffic {
     player.hit(closing, nx, nz);
     if (player.syncFrame) player.syncFrame();
     c.hitBy = Math.max(c.hitBy, closing);
+    if (player === this.player) c.nearT = NEAR_COOL;   // a touch is not a near miss
     this.crash = Math.max(this.crash, closing);
     if (closing > 1.2) {
       c.stunT = STUN;
+      if (closing > SLIDE_AT) {
+        // S3-CRASH: the solver's spin, at least SPIN_PER per m/s of closing.
+        c.slide = true;
+        c.stunT = Math.min(STUN_MAX, STUN + (closing - SLIDE_AT) * 0.08);
+        const want = closing * SPIN_PER;
+        if (Math.abs(c.yawSpin) < want) {
+          const sgn = c.yawSpin ? Math.sign(c.yawSpin) : ((c.x - player.x) * Math.cos(player.yaw || 0) - (c.z - player.z) * Math.sin(player.yaw || 0) > 0 ? -1 : 1);
+          c.yawSpin = sgn * want;
+        }
+      }
       c.honkT = HONK_AT;
       c.horn = 1;
       c.speed = 0;

@@ -1,0 +1,13 @@
+{
+  "name": "loading",
+  "about": "A-10 raw frame timing includes setup, seed, fade, first draw and mission play. The 250 ms gate applies to golfcart, chelsea and nuittim. Sayyad also captures collision provenance at the doughnut stage.",
+  "entry": "index.html",
+  "columns": "both",
+  "beats": [
+    { "do": "boot", "via": "free" },
+    { "do": "mission", "id": "golfcart", "hour": 22, "stageTimeout": 150, "rawMaxMs": 250 },
+    { "do": "mission", "id": "chelsea", "stageTimeout": 150, "maxSecs": 600, "rawMaxMs": 250 },
+    { "do": "mission", "id": "nuittim", "hour": 22, "stageTimeout": 150, "rawMaxMs": 250 },
+    { "do": "mission", "id": "sayyad", "stageTimeout": 150, "collisionProvenance": true }
+  ]
+}

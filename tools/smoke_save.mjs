@@ -140,9 +140,12 @@ group('save slots');
   };
   ok(save.writeSlot('2', full), 'slot 2 writes');
   const back = save.readSlot('2');
-  for (const k of ['version', 'name', 'savedAt', 'playtime', 'carId', 'money', 'timeOfDay']) {
+  for (const k of ['name', 'savedAt', 'playtime', 'carId', 'money', 'timeOfDay']) {
     eq(back[k], full[k], `round-trip: ${k}`);
   }
+  // SR-05: what this build writes carries this build's version. Keeping the
+  // incoming number is how a v3 slot rewritten by a v2 build still claimed v3.
+  eq(back.version, save.SAVE_VERSION, 'a written slot is stamped with this build\u2019s version');
   // normalizeSave adds a home spot for every car the fixture left out, so compare the ones it set.
   for (const id of Object.keys(full.parked)) eq(back.parked[id], full.parked[id], `round-trip: parked ${id}`);
   eq(back.health, full.health, 'round-trip: per-car damage');
@@ -193,7 +196,7 @@ group('save slots');
   eq(Object.keys(clean.parked).sort(), CARS.map((c) => c.id).sort(),
     'every car has a position, even the ones the save never mentioned');
 
-  save.deleteAllSaves();
+  save.deleteAllSaves(); save.resumeSaving();   // a wipe blocks writes until a new summer (SR-08); these tests start one
   eq(save.listSlots().map((r) => r.empty), [true, true, true, true], 'wipe empties every slot');
   ok(!save.hasAnySave(), 'and hasAnySave says so');
 }
@@ -244,7 +247,7 @@ group('one summer each');
     'a block carries the name and the car to draw beside it');
   eq(save.listAllSlots().length, save.CHARACTER_IDS.length * 4, 'listAllSlots is every slot there is');
 
-  save.deleteAllSaves();
+  save.deleteAllSaves(); save.resumeSaving();   // a wipe blocks writes until a new summer (SR-08); these tests start one
   ok(!save.hasAnySave(), 'wiping the saves wipes every character');
 }
 
@@ -254,7 +257,9 @@ group('the summer in the slot');
 {
   localStorage.clear();
   const fresh = save.newSave('', 'tom');
-  eq(fresh.day, 0, 'a new summer starts on day 0 (Saturday 26 June)');
+  // Restructure (29 Sept 2026): the summer starts on Tuesday 22 June now (77 days).
+  eq(fresh.day, 0, 'a new summer starts on day 0 (Tuesday 22 June)');
+  eq(fresh.calendar, save.CALENDAR, 'and is stamped with the 22 June calendar');
   eq(fresh.fuel, null, 'with a tank nobody has metered yet');
   eq(fresh.target, save.DEFAULT_TARGET, 'and the envelope on the kitchen table');
   eq(fresh.target, 1200, '…which is $1,200');
@@ -282,10 +287,10 @@ group('the summer in the slot');
   eq([coerced.summerOver, coerced.reached], [false, false], 'anything but true is false');
   save.deleteSlot('sayyad.1'); save.deleteSlot('sayyad.2');
 
-  // Clamps. A corrupt number must not put you on day 400 of a 73-day summer.
+  // Clamps. A corrupt number must not put you on day 400 of a 77-day summer.
   save.writeSlot('tom.2', { ...fresh, day: 400, fuel: 9e9, target: 999999, character: 'nobody' });
   const hi = save.readSlot('tom.2');
-  eq(hi.day, 72, 'the last day of the summer is Monday 6 September, index 72');
+  eq(hi.day, 76, 'the last day of the summer is Monday 6 September, index 76');
   eq(hi.fuel, save.FUEL_MAX, 'fuel clamps to something a bus could hold');
   eq(hi.target, save.TARGET_MAX, 'the envelope clamps high');
   eq(hi.character, 'tom', 'the slot says whose summer it is, not the blob');
@@ -297,6 +302,23 @@ group('the summer in the slot');
   save.writeSlot('tom.auto', { ...fresh, day: 'lundi', fuel: 'plein', target: null });
   const junk = save.readSlot('tom.auto');
   eq([junk.day, junk.fuel, junk.target], [0, null, save.DEFAULT_TARGET], 'garbage falls back to a new summer');
+
+  // The economy's memory: paid replays and Dad's calls ride in the slot.
+  eq(fresh.replayPaid, {}, 'a new summer has paid no replays');
+  eq(fresh.dadCalls, { n: 0, week: null, log: [] }, 'and Dad has not called');
+  save.writeSlot('tom.1', { ...fresh, replayPaid: { vitres: 12, bad: 'x' },
+    dadCalls: { n: 2, week: 3, log: [{ day: 4, amount: 85, why: 'gas' }, { day: 22, amount: 40, why: 'repair' }] } });
+  const econ = save.readSlot('tom.1');
+  eq(econ.replayPaid, { vitres: 12 }, 'replayPaid round-trips, junk dropped');
+  eq([econ.dadCalls.n, econ.dadCalls.week, econ.dadCalls.log.length], [2, 3, 2], 'dadCalls round-trips');
+  const oldSave = { ...fresh }; delete oldSave.replayPaid; delete oldSave.dadCalls;
+  save.writeSlot('tom.2', oldSave);
+  const old = save.readSlot('tom.2');
+  eq([old.replayPaid, old.dadCalls], [{}, { n: 0, week: null, log: [] }], 'a save from before them loads with empties');
+  save.writeSlot('tom.3', { ...fresh, dadCalls: 2 });
+  eq(save.readSlot('tom.3').dadCalls, { n: 2, week: null, log: [] }, 'a bare count becomes a record');
+  const snap = save.snapshot({ carId: 'ranger', parked: {}, done: new Set(), day: 5, replayPaid: { poutine: 5 }, dadCalls: { n: 1, week: 0, log: [] } });
+  eq([snap.replayPaid, snap.dadCalls.n], [{ poutine: 5 }, 1], 'snapshot() takes both off G');
   localStorage.clear();
 }
 
@@ -367,7 +389,7 @@ group('a job in progress');
   // Nothing running, nothing written.
   eq(save.missionSnapshot(fakeG()), null, 'free roam saves no job');
   eq(save.missionSnapshot({ mission: { def: null, stages: [] } }), null, 'and neither does a half-built one');
-  save.deleteAllSaves();
+  save.deleteAllSaves(); save.resumeSaving();   // a wipe blocks writes until a new summer (SR-08); these tests start one
   localStorage.clear();
 }
 
@@ -449,7 +471,9 @@ group('v1 slots become Tom\u2019s');
   eq(one.unlocks, { owned: ['civic'] }, 'the unlocks come across');
   eq(one.parked.civic, { x: 3, z: 4, yaw: 0.5 }, 'the parked cars come across');
   eq(one.timeOfDay, 'dusk', 'the time of day comes across');
-  eq(one.day, 0, 'a migrated summer starts on day 0');
+  // A v1 summer began on Saturday 26 June; with no calendar stamp it is moved
+  // forward by CALENDAR_SHIFT so it still shows 26 June on the 22 June calendar.
+  eq(one.day, save.CALENDAR_SHIFT, 'a migrated summer starts on 26 June (day 4 since the restructure)');
   eq(one.fuel, null, 'with a tank nobody has metered');
   eq(one.target, 1200, 'and the $1,200 envelope');
   eq([one.summerOver, one.reached], [false, false], 'the ending has not played for a v1 save');
@@ -610,14 +634,14 @@ group('autosave');
   ok(save.lastSlot() === null, 'and it does not become the F5 slot');
 
   G.settings = { ...G.settings, autosave: false };
-  save.deleteAllSaves();
+  save.deleteAllSaves(); save.resumeSaving();   // a wipe blocks writes until a new summer (SR-08); these tests start one
   ok(autosave('job') === null, 'autosave off means nothing is written');
   ok(autosave('unlock') === null, 'not on a purchase either');
   eq(save.listSlots().map((r) => r.empty), [true, true, true, true], 'still four empty slots');
 
   // Nothing else writes: drive around, pause, swap cars — the slots stay empty.
   G.settings = { ...G.settings, autosave: true };
-  save.deleteAllSaves();
+  save.deleteAllSaves(); save.resumeSaving();   // a wipe blocks writes until a new summer (SR-08); these tests start one
   G.mode = 'paused';
   G.veh.x += 500;
   G.parked.civic = { x: 9, z: 9, yaw: 0 };
@@ -632,7 +656,7 @@ group('autosave');
 
   // The autosave belongs to whoever is playing. A bare 'auto' means Tom's, so
   // an autosave that forgets to qualify quietly overwrites his summer.
-  save.deleteAllSaves();
+  save.deleteAllSaves(); save.resumeSaving();   // a wipe blocks writes until a new summer (SR-08); these tests start one
   const Z = fakeG({ character: 'zahra' });
   Z.settings = { ...Z.settings, autosave: true };
   save.saveToSlot(Z, `${Z.character}.auto`, {});
@@ -644,7 +668,7 @@ group('autosave');
     ok(/saveToSlot\(G, `\$\{G\.character\}\.auto`/.test(MAIN),
       'main.js qualifies the autosave slot with the character');
   }
-  save.deleteAllSaves();
+  save.deleteAllSaves(); save.resumeSaving();   // a wipe blocks writes until a new summer (SR-08); these tests start one
 }
 
 group('reset car locations');
@@ -765,7 +789,7 @@ group('applySettings');
   const H = fakeG({ audio: { enabled: true, got: null, setVolume(v) { this.got = v; }, setMaster() { throw new Error('should not be called'); } } });
   H.radio = { vol: null, setVolume(v) { this.vol = v; } };
   options.applySettings(H, { ...store.DEFAULT_SETTINGS, volMaster: 0.5, volEngine: 0.3, volEffects: 0.2, volRadio: 0.9 });
-  eq(H.audio.got, { master: 0.5, engine: 0.3, effects: 0.2, radio: 0.9 }, 'audio.setVolume is preferred when it exists');
+  eq(H.audio.got, { master: 0.5, engine: 0.3, effects: 0.2, radio: 0.9, ambience: 0.65 }, 'audio.setVolume is preferred when it exists');
   eq(H.radio.vol, 0.9, 'radio.setVolume gets the radio slider');
 
   // The preset re-seeds the numbers it owns.
@@ -802,12 +826,12 @@ group('the panel');
     ok(fr.includes(t(sec)), `section ${sec} is drawn`);
   }
 
-  // 2026-09-07: the English copy exists now (the photocopy), so the panel
-  // follows the language and carries the selector that undoes it.
+  // 2026-09-07: the English copy exists, so the panel follows the language
+  // and carries the selector that undoes it. 20 Oct 2026: real English.
   setLang('en');
   const nowEn = options.optionsHTML(s);
-  ok(!nowEn.includes('Volume général') && nowEn.includes('Volume master'), 'the panel follows the language');
-  ok(nowEn.includes('Send all the chars at their house'), 'the reset action too, badly');
+  ok(!nowEn.includes('Volume général') && nowEn.includes('Master volume'), 'the panel follows the language');
+  ok(nowEn.includes('Put the cars back home'), 'the reset action too, in real English');
   ok(nowEn.includes('id="o_lang"'), 'there is a language selector');
   setLang('fr');
   ok(options.optionsHTML(s).includes('Volume général'), 'and French comes back');

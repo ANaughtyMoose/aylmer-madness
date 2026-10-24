@@ -668,17 +668,39 @@ export const CAST = {
 const AWAY = {
   // 'suis' was missing: Sayyad stood in his driveway waving while « his »
   // Civic drove off, which is how nobody noticed he was leaving.
-  sayyad: ['sayyad', 'racecivic', 'blitz', 'suis'], margaret: [], mike: ['divan'], zahra: [],
+  // ('suis' is cut: restructure, 29 Sept 2026.)
+  sayyad: ['sayyad', 'racecivic', 'blitz'], margaret: [], mike: ['divan'], zahra: [],
 };
 
 // Which pickup circle belongs to whom. The `steph` / `marc` keys in missions.js
 // and places.js are historical placeholder ids and never reach the player; this
 // is the one table that maps them onto the people they turned into.
+//
+// `home` and `margaret` are deliberately absent. Margaret is Tom's mother and
+// never rides along with the gang (ledger s.0, 22 Sept 2026); the pickup in
+// Tom's own driveway in « Ramasser la gang » is Abraham (Tom, 29 Sept), who
+// has no avatar yet and rides as the anonymous head. Mapping `home` to her
+// would seat and voice her in any passenger stage at 299 Fraser.
 export const FRIEND_AT = {
   steph: 'sayyad', sayyad: 'sayyad',
-  home: 'margaret', margaret: 'margaret',
   mike: 'mike',
 };
+
+/**
+ * What Margaret says from her own driveway. She is at home for the whole
+ * summer, so her lines follow Tom rather than a job: coming home (the stage he
+ * is on ends at 299 Fraser) takes her « end » pool, leaving on a job takes her
+ * « start » pool, and with no job running it alternates with GREETINGS.
+ */
+export function margaretLine(G, k = 0) {
+  const m = G && G.mission;
+  if (!m || !m.stages) {
+    return (k % 2 === 1 && personLine('Margaret', 'start', k >> 1)) || greeting('margaret', k >> 1);
+  }
+  const st = m.stages[m.idx] || {};
+  const homeward = st.at === 'home' || st.at === 'margaret';
+  return personLine('Margaret', homeward ? 'end' : 'start', k) || greeting('margaret', k);
+}
 
 /**
  * Who is in the car right now, in seat order. Read off the mission's completed
@@ -805,9 +827,9 @@ export class Avatars {
         const mesh = who && this.mesh[who];
         if (!mesh || !mesh.seat) continue;
         const [lx, ly, lz] = seats[i];
-        // Sayyad keeps time with whatever is on the radio, Margaret looks out
-        // the window at what you nearly hit, Mike carries on talking. Three
-        // numbers, and the +i keeps two passengers off the same beat.
+        // Sayyad keeps time with whatever is on the radio, Mike carries on
+        // talking. Three numbers, and the +i keeps two passengers off the
+        // same beat. (Margaret's row stays for a lift she gives herself.)
         const p = SEAT_IDLE[who] || SEAT_IDLE.default;
         const beat = this.t * p[0] + i;
         m4.compose(mm, v.x + lx * cy + lz * sy,
@@ -821,8 +843,8 @@ export class Avatars {
 
     // Somebody who was not aboard last frame and is now has just got in, and
     // somebody who was and is not has just got out. That is the whole cue for
-    // the twelve start and twelve end lines each of them has in
-    // assets/text/dialogue.json.
+    // the start and end lines in assets/text/dialogue.json. (Margaret's pool
+    // there is home, not the road: she speaks it from the driveway, above.)
     for (const who of this.keys) {
       const now = aboard.indexOf(who) >= 0;
       if (now === !!this.riding[who]) continue;
@@ -884,6 +906,7 @@ export class Avatars {
             && (k % 2 === 0 && AWAY.sayyad.indexOf(job) < 0
               ? personLine('Zahra', 'about-sayyad', k / 2)
               : personLine('Zahra', 'start', (k - 1) >> 1)))
+            || (who === 'margaret' && margaretLine(G, k - 1))
             || greeting(who, k - 1);
           if (line) heckle.line(CAST[who].name, line, 3200);
         }

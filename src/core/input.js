@@ -1,9 +1,17 @@
+// W3C standard mapping: which pad buttons become which presses (pollPad).
+export const PAD_EDGES = [
+  [0, 'PadA'], [1, 'PadB'], [2, 'PadX'], [3, 'PadY'], [4, 'PadLB'], [5, 'PadRB'],
+  [8, 'PadBack'], [9, 'PadStart'], [12, 'PadUp'], [13, 'PadDown'], [14, 'PadLeft'], [15, 'PadRight'],
+];
+
 // Keyboard + gamepad. Analogue-ish steering: keys ramp instead of snapping,
 // which is what makes a laptop keyboard feel drivable.
 export class Input {
   constructor() {
     this.keys = new Set();
     this.pressed = new Set();
+    this.radioShiftConsumed = false;
+    this.shiftPending = false;
     this.steer = 0;      // -1 .. 1  (smoothed)
     this.throttle = 0;
     this.brake = 0;
@@ -11,18 +19,45 @@ export class Input {
     this.pad = null;
     this.padHorn = false;
     this._rumbleUntil = 0;
+    this._padPrev = [];
+    // main.js says when the game owns Tab, the arrows and Space. Outside the
+    // drive (menus, pause, options) they must keep their browser meaning, or
+    // nothing but a mouse can move between buttons (UX review P4).
+    this.captureNav = () => true;
     window.addEventListener('keydown', (e) => {
-      // Let native settings sliders consume their own adjustment keys.
-      if (e.target?.tagName === 'INPUT' && e.target.type === 'range'
-          && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(e.code)) return;
+      // Editing library/settings controls must never steer or tune the game.
+      if (['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName) || e.target?.isContentEditable || e.target?.closest?.('[contenteditable="true"]')) return;
+      // The legend key is whatever types « ? » (or « / »). On a Canadian
+      // French / CSA keyboard the key where a US « / » sits types « é », and
+      // « ? » is somewhere else entirely, so the physical code is the wrong
+      // question (UX review P6). AltGr arrives as Ctrl+Alt on some systems, so
+      // this is read before the modifier bail-out below.
+      if (!e.repeat && !e.metaKey && (e.key === '?' || e.key === '/' || e.code === 'NumpadDivide')) this.pressed.add('Legend');
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.repeat) return;
       const k = e.code;
       this.keys.add(k);
       this.pressed.add(k);
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'].includes(k)) e.preventDefault();
+      if (k === 'ShiftLeft' || k === 'ShiftRight') this.shiftPending = true;
+      // Any other key while Shift is down makes it a chord, not a tap: the
+      // release must not latch the rear view (UX review J3).
+      else if (this.down('ShiftLeft', 'ShiftRight')) this.shiftPending = false;
+      if (k === 'KeyR' && (e.shiftKey || this.down('ShiftLeft', 'ShiftRight'))) {
+        this.pressed.delete('KeyR'); this.pressed.add('RadioNext');
+        this.radioShiftConsumed = true; this.shiftPending = false;
+      }
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'].includes(k) && this.captureNav()) e.preventDefault();
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => this.keys.clear());
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !this.down('ShiftLeft', 'ShiftRight')) {
+        if (this.shiftPending && !this.radioShiftConsumed) this.pressed.add('LookBackToggle');
+        this.shiftPending = false; this.radioShiftConsumed = false;
+      }
+    });
+    const clear = () => { this.keys.clear(); this.pressed.clear(); this.shiftPending = false; this.radioShiftConsumed = false; };
+    window.addEventListener('blur', clear);
+    window.addEventListener('focusin', e => { if (['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName) || e.target?.isContentEditable || e.target?.closest?.('[contenteditable="true"]')) clear(); });
   }
 
   down(...codes) { return codes.some((c) => this.keys.has(c)); }
@@ -62,6 +97,28 @@ export class Input {
     } catch (e) { /* older pads only know 'vibration' */ }
   }
 
+  /**
+   * Gamepad button EDGES as presses, once a frame, in every mode (UX review
+   * P5). A pad could drive but not dismiss the opening card, take a job, pause
+   * or open the map, because the pad was only read inside update(), which only
+   * runs while driving. Presses land in `pressed` under their own names so a
+   * pad can never be mistaken for the keyboard key it stands in for:
+   *   PadA PadB PadX PadY PadLB PadRB PadBack PadStart PadUp PadDown PadLeft PadRight
+   */
+  pollPad() {
+    const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
+    let p = null;
+    for (const q of pads || []) if (q && q.connected) { p = q; break; }
+    this.pad = p;
+    if (!p) { this._padPrev.length = 0; return null; }
+    for (const [i, name] of PAD_EDGES) {
+      const on = !!(p.buttons[i] && p.buttons[i].pressed);
+      if (on && !this._padPrev[i]) this.pressed.add(name);
+      this._padPrev[i] = on;
+    }
+    return p;
+  }
+
   update(dt) {
     let sx = 0, th = 0, br = 0, hb = false;
     if (this.down('KeyA', 'ArrowLeft')) sx -= 1;
@@ -90,8 +147,9 @@ export class Input {
       let rt = btn(7), lt = btn(6);
       if (p.mapping !== 'standard' && p.buttons.length < 7) {
         // Trigger axes rest at -1 and travel to +1.
-        rt = Math.max(0, ((p.axes[3] || -1) + 1) / 2);
-        lt = Math.max(0, ((p.axes[2] || -1) + 1) / 2);
+        // `??`, not `||`: a half-pressed trigger reads exactly 0 (UX P12).
+        rt = Math.max(0, ((p.axes[3] ?? -1) + 1) / 2);
+        lt = Math.max(0, ((p.axes[2] ?? -1) + 1) / 2);
       }
       if (rt > 0.06) th = rt;
       if (lt > 0.06) br = lt;

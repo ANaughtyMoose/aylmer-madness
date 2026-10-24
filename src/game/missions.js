@@ -1,16 +1,27 @@
 // Missions and lighting presets. Everything here is data + pure builders; the
 // only shared state is localStorage, and that is always optional.
 import { PLACES } from './places.js';
+import { JUMPS } from './jumps.js';
 import { SIDE_MISSIONS } from './sidejobs.js';
 import { RACE_MISSIONS } from './racejobs.js';
 import { VERB_MISSIONS } from './verbjobs.js';
 import { GOLF_MISSIONS } from './golfjob.js';
 import { LIFE_MISSIONS } from './lifejobs.js';
-// The five-beat summer (arc.js). Only the beats whose gate is open are in
-// MISSIONS; unlockArc() pushes the rest in as you earn them.
+// Mission 9's first half and mission 8 are set-piece modules (qr/setpieces).
+import { SCHOOL_MISSION } from './setpieces/royal.js';
+import { NUITTIM_MISSION } from './setpieces/nuittim.js';
+// The arc's beats (arc.js): the Saint-Jean, the sauna drive and the finale.
 import {
   ARC, GATES, gateOpen, openBeats, loadArcText, applyArcText, registerArcLines,
 } from './arc.js';
+// The summer's order and gates (restructure, 29 Sept 2026).
+import {
+  FINALE, nextMain, finaleOpen, storyBlocker, isMain, isRetired, orderRank, setKnown,
+  dateLock, pastSaintJean, mainStepsDone, mainStepsTotal,
+} from './campaign.js';
+import { LAST as LAST_DAY } from './calendar.js';
+// When a job may start, by the hour and by the date, in the prototype.
+import { windowLock, isPrototype } from './jobwindows.js';
 
 // lightDir points TOWARD the light, unit length. Ambient is hemispheric, so the
 // sky/ground pair is doing most of the mood work — night leans on it hard so the
@@ -30,7 +41,9 @@ export const TIME_OF_DAY = {
   day: {
     sky: [0.42, 0.62, 0.95],
     ground: [0.34, 0.38, 0.30],
-    sun: [1.00, 0.97, 0.90],
+    // A touch warmer than white: core/gl.js gradeLight() takes the blue out of
+    // the sky ambient, and this is what keeps noon on the warm side of neutral.
+    sun: [1.00, 0.95, 0.86],
     lightDir: [0.25069, 0.942596, 0.220608],
     fog: [0.72, 0.80, 0.92],
     fogDensity: 0.0011,
@@ -53,6 +66,65 @@ export const TIME_OF_DAY = {
   },
 };
 
+// L’alternateur, the first five minutes (refine A-07, 6 Oct: Lex called it
+// "the weakest five minutes, and it is the first five"). On the way out the
+// route runs over la rampe de garnotte on chemin d’Aylmer (jumps.js), and the game
+// says so once. On the way back the box on the bench is the verb: brake hard,
+// corner hard or leave the ground and it slides, then falls. It never fails the
+// job; it is the joke. There is no speed cap on the way home any more.
+export const FIRST_RAMP = 'garnotte';
+// B-04: the ramp is on the GPS line now, 63 m past the turn off Fraser. At
+// 90 m the call lands as you come down to the corner, five to seven seconds
+// before the lip, instead of half a street early.
+export const RAMP_CALL_D = 90;
+export const BOX_LINES = [
+  'La boîte a glissé sur le banc. Elle tient encore.',
+  'La boîte est tombée sur le plancher. L’alternateur s’en fout, lui.',
+  'La boîte fait des tonneaux dans la cabine. Ça sonne comme des maracas.',
+];
+// What counts as a slide: a stop this hard (m/s²), a turn this hard (lateral
+// m/s²), or any air at all. Then a few seconds before it can slide again.
+export const BOX = { brake: 7, lateral: 7, again: 3 };
+
+/** Stage 0's watch for the ramp: one toast, the first time you are near it. */
+export function rampCall(G, m, ramp) {
+  if (m.rampCalled || !ramp || !G.veh) return null;
+  const v = G.veh;
+  if (Math.hypot(v.x - ramp.x, v.z - ramp.z) > RAMP_CALL_D) return null;
+  m.rampCalled = 1;
+  const line = 'Essaie le tremplin : la rampe de garnotte, en travers du chemin d’Aylmer. Suis le bleu pis garde le W au fond.';
+  G.hud?.toast?.(line, 3600);
+  return line;
+}
+
+/**
+ * Stage 1's box. Pure on (G, m, dt) and the car's speed and yaw, so the smoke
+ * test can feed it numbers. Returns the line it said, or null.
+ */
+export function boxTick(G, m, dt) {
+  const v = G.veh;
+  if (!v || !(dt > 0)) return null;
+  const ms = (v.speedKmh || 0) / 3.6;
+  const yaw = v.yaw || 0;
+  let said = null;
+  m.boxCool = Math.max(0, (m.boxCool || 0) - dt);
+  if (m.boxLast != null) {
+    const decel = (m.boxLast - ms) / dt;
+    let dy = yaw - (m.boxYaw || 0);
+    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    const lateral = Math.abs(dy / dt) * ms;
+    const hard = decel > BOX.brake || lateral > BOX.lateral || !!v.inAir;
+    if (hard && m.boxCool <= 0) {
+      m.boxSlides = (m.boxSlides || 0) + 1;
+      m.boxCool = BOX.again;
+      said = BOX_LINES[Math.min(m.boxSlides, BOX_LINES.length) - 1];
+      G.hud?.toast?.(said, 2600);
+    }
+  }
+  m.boxLast = ms; m.boxYaw = yaw;
+  return said;
+}
+
 const CORE_MISSIONS = [
   // Tom owns the Ranger. The first errand doubles as an untimed driving lesson.
   {
@@ -65,50 +137,40 @@ const CORE_MISSIONS = [
       return [
         {
           text: 'Canadian Tire — le comptoir des commandes',
-          sub: 'W pour partir, suis la ligne bleue du GPS, arrête-toi (S) dans le pilier jaune pis E pour ramasser ta commande. ? affiche les commandes',
+          sub: 'Recule (S) pour sortir de l’entrée, suis la ligne bleue du GPS, arrête-toi (S) dans le pilier jaune pis E pour ramasser ta commande. ? affiche les commandes',
           hint: 'Vers les Galeries d’Aylmer : Canadian Tire est au bout ouest du centre, près de Wilfrid-Lavigne. Tab ouvre la carte.',
           at: 'ctire', radius: 18, time: null,
           hold: true, holdText: 'E — ramasser l’alternateur',
           toast: 'Ta commande est prête. La boîte, le reçu, pis ton argent Canadian Tire.',
+          onTick(G, m) { rampCall(G, m, JUMPS.find((j) => j.id === FIRST_RAMP)); return null; },
         },
         {
           text: 'Ramène la boîte au 299 Chemin Fraser',
-          sub: `GPS jusqu’au pilier jaune dans l’entrée, pis 40 km/h max en arrivant (S pour freiner) — la boîte est debout sur le banc du ${ctx.carName}`,
+          sub: `GPS jusqu’au pilier jaune dans l’entrée. La boîte est debout sur le banc du ${ctx.carName} : freine sec pis elle glisse.`,
           hint: 'Chez vous, plein est: le chemin d’Aylmer, pis le chemin Fraser au bout.',
-          at: 'home', radius: 14, time: null, maxSpeed: 40,
-          toast: 'Ta pièce est rendue chez vous. Première commission réussie : bonus de formation, 22 $.',
+          // A wide pillar: the job ends as you pull into the drive, not after a
+          // parking lesson (the return leg was 188 s of the bot's 304, 6 Oct).
+          at: 'home', radius: 22, time: null,
+          kind: 'slidingbox',
+          onEnter(G, m) { m.boxSlides = 0; m.boxCool = 0; m.boxLast = null; m.boxYaw = null; },
+          onTick(G, m, st, dt) { boxTick(G, m, dt); return null; },
+          // The twist is Tom's (28 Sept): it only needed the solenoid.
+          toast: 'L’alternateur est rendu chez vous. Pis là tu lis le manuel : c’était juste le solénoïde. Bonus de formation, 22 $. Ça couvre le gaz.',
           money: 22,
         },
       ];
     },
   },
 
-  {
-    id: 'school',
-    title: 'Première période',
-    brief: "Tu t'es réveillé à 8h52. Le cours d'anglais est à 9h.",
-    giver: 'home',
-    timeOfDay: 'morning',
-    build(ctx) {
-      return [{
-        text: 'Heritage College — secteur Hull',
-        sub: `W pour partir, suis la ligne bleue du GPS jusqu'au pilier jaune (le ${ctx.carName} est déjà chaud)`,
-        hint: "C'est plein est, au bout du chemin d'Aylmer. Tab ouvre la grande carte.",
-        at: 'heritage',
-        radius: 24,
-        // This is the first expansion drive: Aylmer, the highway seam, then
-        // Saint-Joseph in Hull. Five minutes leaves room for one wrong exit.
-        time: 420,
-        toast: 'Arrivé. Personne a rien vu.',
-        money: 20,
-      }];
-    },
-  },
+  // Mission 9, first half (set-piece module, qr/setpieces).
+  SCHOOL_MISSION,
 
   {
     id: 'highwayhull',
     title: 'Highway to Hull',
-    brief: 'La 148 est ouverte. On va voir si Hull est vraiment si loin que ça.',
+    // The drive to Hull is real, and Vertical Reality, the climbing gym in the
+    // old paper mill by the bridge (28 Sept). Destination unchanged.
+    brief: 'La 148 est ouverte. Au bout : Vertical Reality, le mur d’escalade dans la vieille usine de papier, au pont.',
     giver: 'home',
     timeOfDay: 'dusk',
     build() {
@@ -117,22 +179,23 @@ const CORE_MISSIONS = [
           text: 'Prends la sortie vers Hull',
           sub: 'W pis suis le GPS jusqu’au pilier jaune à l’entrée de l’autoroute',
           hint: 'Chemin d’Aylmer vers l’est, jusqu’au nouveau tronçon de la 148.',
-          at: 'hullgate', radius: 24, time: 260,
+          // s1-timers: 12.1 km, pace 387 s. Was 260 s = 168 km/h, impossible.
+          at: 'hullgate', radius: 24, time: 525,
           toast: 'La pancarte dit Hull. Là, c’est pour vrai.',
         },
         {
           text: 'Fais un arrêt au musée',
           sub: 'Suis le GPS par Alexandre-Taché, puis ralentis à 45 km/h dans le pilier',
           hint: 'Prends la bretelle, puis continue vers le parc Jacques-Cartier.',
-          at: 'hullmuseum', radius: 24, time: 300, maxSpeed: 45,
+          at: 'hullmuseum', radius: 24, time: 355, maxSpeed: 45,   // s1-timers: 8.1 km, pace 260 s (was 300)
           toast: 'Hull débloqué — les grosses bâtisses commencent ici.',
         },
         {
-          text: 'Termine au centre-ville de Hull',
-          sub: 'GPS jusqu’au dernier pilier sur la promenade du Portage',
+          text: 'Vertical Reality — la vieille usine, proche du pont',
+          sub: 'GPS jusqu’au dernier pilier, au bord de la rivière',
           hint: 'Continue vers l’est par Montcalm, Eddy ou Maisonneuve.',
-          at: 'hulldowntown', radius: 22, time: 110,
-          toast: 'Aylmer derrière, Hull devant. Expansion débloquée.',
+          at: 'hulldowntown', radius: 22, time: 65,   // s1-timers: 840 m, pace 46 s (was 110)
+          toast: 'Vertical Reality. Des murs d’escalade dans une usine de papier. Sayyad a déjà les avant-bras en feu. Expansion débloquée.',
           money: 60,
         },
       ];
@@ -142,7 +205,7 @@ const CORE_MISSIONS = [
   {
     id: 'chelsea',
     title: 'La run de Chelsea',
-    brief: 'Heritage est derrière toi. La 105 monte encore jusqu’à Chelsea.',
+    brief: 'Tu pars de Heritage. La 105 monte jusqu’à Chelsea, pis c’est juste des arbres.',
     giver: 'heritage',
     timeOfDay: 'morning',
     build() {
@@ -150,7 +213,7 @@ const CORE_MISSIONS = [
         text: 'Monte jusqu’au village de Chelsea',
         sub: 'W pis suis le GPS vers le nord jusqu’au pilier jaune à l’hôtel de ville',
         hint: 'Remonte par Saint-Joseph, puis prends la route 105 vers Chelsea.',
-        at: 'chelsea', radius: 24, time: 600, maxSpeed: 45,
+        at: 'chelsea', radius: 24, time: 465, maxSpeed: 45,   // s1-timers: 9.8 km, pace 341 s (was 600)
         toast: 'Chelsea. T’es rendu pas mal plus loin que le dep.',
         money: 75,
       }];
@@ -160,15 +223,18 @@ const CORE_MISSIONS = [
   {
     id: 'gang',
     title: 'Ramasser la gang',
-    brief: 'Margaret, Sayyad pis Adam veulent chill au parc. Devine qui a le char.',
+    // Abraham waiting in Tom's own driveway, his bike on the ground in the
+    // middle of it (Tom, 29 Sept). Margaret is his mother: she is at home, she
+    // lends the Saturn at the end, and she never gets in with the gang.
+    brief: 'Sayyad pis Adam veulent chill au parc. Abraham est déjà dans ton entrée. Devine qui a le char.',
     giver: 'principale',
     timeOfDay: 'day',
     build(ctx) {
       const marc = {
-        text: 'Ramasse Margaret — 299 Chemin Fraser',
-        sub: 'Suis le GPS pis arrête-toi dans le pilier jaune — elle embarque toute seule',
-        hint: 'Elle est chez vous, dans ta propre entrée. Le pilier est sur ton char.',
-        at: 'home', radius: 13, toast: 'Margaret embarque', passengers: +1,
+        text: 'Ramasse Abraham — ton entrée, 299 Chemin Fraser',
+        sub: 'Suis le GPS pis arrête-toi dans le pilier jaune — son bicycle est couché au milieu de l’entrée',
+        hint: 'Il est chez vous, dans ta propre entrée. Les grandes boucles pis le chandail de Led Zeppelin : tu peux pas le manquer.',
+        at: 'home', radius: 13, toast: 'Abraham embarque. Le bicycle reste couché dans l’entrée. Ta mère le regarde.', passengers: +1,
       };
       const steph = {
         text: 'Ramasse Sayyad — 75 Denise-Friend',
@@ -252,25 +318,29 @@ const CORE_MISSIONS = [
 
   {
     id: 'dep',
-    title: 'Run au dep',
-    brief: 'Slush bleue pour tout le monde, pis on redescend au parc.',
+    // Liberty yogurt, not slush (28 Sept). The real run was the $1.99 750 g
+    // tubs at the Super C in the Galeries; moving the pillar there makes the
+    // 95 s leg to the park 2.1 km (81 km/h average), so the stop stays at the
+    // dep until the clock's owner retunes it. See docs/STORY-REBUILD.md.
+    title: 'La run de yogourt',
+    brief: 'Du yogourt Liberty pour tout le monde, pis on redescend au parc.',
     giver: 'gas',
     timeOfDay: 'dusk',
     build() {
       return [
         {
-          text: 'Dépanneur Palmyra — quatre slush',
-          sub: 'GPS jusqu’au pilier jaune, arrête-toi dedans — quatre slush pis des chips au ketchup',
+          text: 'Dépanneur Palmyra — le yogourt Liberty',
+          sub: 'GPS jusqu’au pilier jaune, arrête-toi dedans — quatre pots de 750 g',
           hint: 'Le dep est sur Principale, dans le Vieux-Aylmer.',
           at: 'dep', radius: 14,
-          toast: 'Quatre slush bleues. Ta langue est déjà bleue.',
+          toast: 'Quatre pots de Liberty. Au dep, c’est pas 1,99 $ comme au Super C. Pis pas de cuillères.',
         },
         {
-          text: 'Parc des Cèdres — avant que ça fonde',
-          sub: 'W à fond, suis le GPS jusqu’au pilier jaune — ça fond, ça fond, ça fond',
+          text: 'Parc des Cèdres — avant que ça tourne',
+          sub: 'W à fond, suis le GPS jusqu’au pilier jaune — du yogourt au soleil dans un truck, ça tourne vite',
           hint: 'Plein ouest par la Principale, le long de la rivière.',
-          at: 'beach', radius: 20, time: 95,
-          toast: 'Encore de la slush dedans. De justesse.',
+          at: 'beach', radius: 20, time: 60,   // s1-timers: 1.1 km, pace 42 s (was 95)
+          toast: 'Encore froid. De justesse. 15 $. Le gaz, à peu près pareil.',
           money: 15,
         },
       ];
@@ -279,32 +349,34 @@ const CORE_MISSIONS = [
 
   {
     id: 'cv',
-    title: 'Distribuer les CV',
-    brief: "Ta mère a imprimé douze copies. Faut en placer trois aujourd'hui.",
+    // OPEN DECISION (docs/STORY-REBUILD.md): handing out CVs did not happen.
+    // Tom did teach guitar, so the three stops post his lesson ads. Id kept.
+    title: 'Les annonces de guitare',
+    brief: 'Tu donnes des cours de guitare. Trois annonces à poser aujourd’hui, avec ton numéro dessus.',
     giver: 'home',
     timeOfDay: 'day',
     build() {
       return [
         {
-          text: 'CV #1 — Tim Hortons, rue Principale',
-          sub: 'GPS jusqu’au pilier jaune, arrête-toi — demande le gérant, pas la fille au comptoir',
+          text: 'Annonce #1 — Tim Hortons, rue Principale',
+          sub: 'GPS jusqu’au pilier jaune, arrête-toi — le babillard est à côté des toilettes',
           hint: 'Le Tim est sur la Principale, dans le Vieux-Aylmer.',
           at: 'tims', radius: 14,
-          toast: '« On rappelle. » Ils rappellent jamais.',
+          toast: 'Punaisée entre un chat perdu pis un cours de yoga. Personne va la voir.',
         },
         {
-          text: 'CV #2 — Galeries Aylmer',
-          sub: 'GPS jusqu’au pilier jaune — trois magasins, même CV, trois sourires',
+          text: 'Annonce #2 — Galeries Aylmer',
+          sub: 'GPS jusqu’au pilier jaune — le babillard de l’entrée sud',
           hint: 'Les Galeries, chemin d’Aylmer. Suis la ligne bleue.',
           at: 'mall', radius: 22,
-          toast: 'Un des trois avait vraiment besoin de monde',
+          toast: 'Une mère lit l’annonce. Son kid regarde ailleurs. C’est un client.',
         },
         {
-          text: 'CV #3 — Marina d’Aylmer',
-          sub: 'GPS jusqu’au pilier jaune sur le quai — le casse-croûte cherche du monde pour l’été',
+          text: 'Annonce #3 — Marina d’Aylmer',
+          sub: 'GPS jusqu’au pilier jaune sur le quai — le babillard du casse-croûte',
           hint: 'La marina est à l’ouest du Vieux, au bord de l’eau.',
           at: 'marina', radius: 16,
-          toast: 'Essai samedi matin. Six heures. Six heures du matin.',
+          toast: 'Premier appel : un cours samedi matin. Six heures. Six heures du matin.',
           money: 25,
         },
       ];
@@ -313,17 +385,22 @@ const CORE_MISSIONS = [
 
   {
     id: 'curfew',
-    title: 'Avant minuit',
-    brief: 'Le feu est éteint à la marina. Ton père se couche jamais avant toi.',
+    // Main mission 10 (restructure, 29 Sept 2026). Breakfast nachos, home
+    // before « Little Big Man » ends at five in the morning (28 Sept); the whole
+    // gang is there (29 Sept: Zahra, Tyler, Sayyad, Alex Wolski, Robin, Adam,
+    // Mike, Abraham, Russell; first names only in game). At five Margaret comes
+    // down and sits and eats with them. Same race home, same clock.
+    title: 'Nachos avant Little Big Man',
+    brief: 'Quatre heures et demie à la marina. Toute la gang veut des nachos pour déjeuner, chez vous, avant que « Little Big Man » finisse à la télé. Cinq heures, pas une minute de plus.',
     giver: 'marina',
     timeOfDay: 'night',
     build(ctx) {
       return [{
-        text: 'Chez vous — 299 Chemin Fraser, avant minuit',
-        sub: `Traverse la ville par le GPS, pis 35 km/h max dans le pilier (S pour freiner) — le ${ctx.carName} fait trop de bruit dans l'entrée`,
+        text: 'Chez vous — 299 Chemin Fraser, avant cinq heures',
+        sub: `Traverse la ville par le GPS, pis 35 km/h max dans le pilier (S pour freiner) — ta mère dort, pis le ${ctx.carName} fait trop de bruit dans l'entrée`,
         hint: "Chez vous, c'est à l'est de la ville. Tab pour voir le chemin au complet.",
-        at: 'home', radius: 14, time: 210, maxSpeed: 35,
-        toast: 'Lumière de la cuisine éteinte. Tu es correct.',
+        at: 'home', radius: 14, time: 160, maxSpeed: 35,   // s1-timers: 3.2 km, pace 117 s (was 210)
+        toast: 'Zahra, Tyler, Sayyad, Alex, Robin, Adam, Mike, Abraham pis Russell dans la cuisine.\nLes nachos sortent du four. Le film est pas fini.\nÀ cinq heures, ta mère descend, se tire une chaise, pis mange avec vous autres.',
         money: 22,
       }];
     },
@@ -379,85 +456,105 @@ const CORE_MISSIONS = [
 // so they are built in sidejobs.js. They are ordinary MISSIONS entries here.
 // The four races (racejobs.js) are the same again: a grid stage and one long
 // stage that owns the countdown, the checkpoints and the rivals.
-// ...and the golf cart's own errand, which is the only job that decides what
-// you are driving instead of asking (golfjob.js).
-// ...and the summer's five beats (arc.js), which arrive in order. MISSIONS is
-// the live array main.js re-filters every frame, so an unlocked beat is a push
-// and the map marker turns up on its own. ALL_MISSIONS is the whole set,
-// locked or not — the audits and the timer table want everything.
-// The order the jobs are offered in, which is the order a new player meets the
-// game. It used to be the order they happened to be written in, and that put the
-// three long expansion drives first: the opening job was a seven-minute run to
-// Heritage College with nothing on the way and twenty dollars at the end. That
-// is a bad first hour — it is long, it is empty, and it teaches nothing.
-//
-// Open near home, short, with somebody at the far end and a car to show for it.
-// « Ramasser la gang » hands you Margaret's Saturn, « Poutine express » Sayyad's
-// Civic. Earn a set of keys inside ten minutes, then let the map get bigger. The
-// long hauls are still all here, they are just no longer the first thing anybody
-// sees.
-//
-// « Poutine express » held the top of this list until the first playtest, and
-// Thomas said two things about it: the first job should be buying something at
-// the Canadian Tire, and « reality is I never went to the poutine place so it
-// just doesn't feel right ». So the summer now opens on the errand that came
-// with the keys — the alternator, no clock, one road there and back — and the
-// poutine run drops to fifth, after Sayyad is a person you have met twice. It
-// keeps everything that hangs off it (the Civic in garage.js, the Sayyad chain
-// in famouscars.js, the two start points in main.js); it just is not what a
-// stranger is asked to do in his first two minutes.
-//
-// nearestJob() breaks distance ties in MISSIONS order, and every `home` job is
-// the same nought metres from the driveway, so whichever `home` job stands
-// highest here is the one a fresh save is offered. That is this list's second
-// job, and the reason « L'alternateur » has to be at the top and not merely
-// early.
-const OPENING_ORDER = [
-  'alternateur',  // the errand that came with the keys — Canadian Tire and back
-  'dep',          // 95 s, the dépanneur run
-  'gang',         // pick the friends up — Margaret's Saturn
-  'sayyad',       // doughnuts outside 75 Denise-Friend
-  'poutine',      // his order, his money, your truck — and Sayyad's Civic
-  'curfew',       // home before midnight — Adam's Sunfire
-  'cv',           // hand out the résumés
-  'divan',        // the couch, and the tree
-  'school',       // now the map opens up
-  'tour',
-  'canot',
-  'highwayhull',
-  'chelsea',
-];
-const openingRank = (m) => {
-  const i = OPENING_ORDER.indexOf(m.id);
-  return i < 0 ? OPENING_ORDER.length : i;
-};
-const byOpening = (a, b) => openingRank(a) - openingRank(b);
+// ...and the golf cart's own errand (golfjob.js), the life jobs (lifejobs.js)
+// and the arc's beats (arc.js). Since the restructure (29 Sept 2026) the order
+// and the gating are campaign.js's: ten main missions, one after the other,
+// then « Le dernier soir »; optional jobs open once the main mission that
+// introduces their place is done. The cut jobs (campaign.js RETIRED) keep their
+// definitions for old saves and are in none of these lists.
+const POOL = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...VERB_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS, ...LIFE_MISSIONS, NUITTIM_MISSION, ...ARC];
+const byCampaign = (a, b) => orderRank(a.id) - orderRank(b.id);
 
-// Wave 3: the jobs that are not deliveries sit after the opening and before the
-// races, so a new player meets « Suis Sayyad » before the fourth courier run.
-export const MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS].sort(byOpening)
-  .concat(VERB_MISSIONS, RACE_MISSIONS, GOLF_MISSIONS, LIFE_MISSIONS, openBeats(new Set()));
-export const ALL_MISSIONS = [...CORE_MISSIONS, ...SIDE_MISSIONS, ...VERB_MISSIONS, ...RACE_MISSIONS, ...GOLF_MISSIONS, ...LIFE_MISSIONS, ...ARC];
+/** Every job a player can meet, in campaign order. */
+export const ALL_MISSIONS = POOL.filter((d) => !isRetired(d.id)).sort(byCampaign);
+/** The cut jobs, for save compatibility only (never offered). */
+export const RETIRED_MISSIONS = POOL.filter((d) => isRetired(d.id));
+setKnown(ALL_MISSIONS.map((d) => d.id));
 
-// One new campaign job at a time. Story beats take their turn when their
-// existing prerequisites are earned; completed jobs remain replayable.
-// Compute from this save, never from a mutable global unlock counter.
-export const CAMPAIGN = [...CORE_MISSIONS, ...SIDE_MISSIONS].sort(byOpening)
-  .concat(VERB_MISSIONS, RACE_MISSIONS, GOLF_MISSIONS, LIFE_MISSIONS);
-export function nextMission(G) {
+/**
+ * The live list main.js reads. Same jobs as ALL_MISSIONS: nothing is pushed in
+ * or taken out any more (the arc's job-count gates are gone), the lock is the
+ * story's (missionLockReason). Other branches may push a job of their own in;
+ * `missionsChanged()` picks it up.
+ */
+export const MISSIONS = ALL_MISSIONS.slice();
+/** Kept for older callers: the whole summer, in order. */
+export const CAMPAIGN = ALL_MISSIONS;
+
+const known = (id) => ALL_MISSIONS.some((d) => d.id === id);
+const byId = (id) => ALL_MISSIONS.find((d) => d.id === id) || null;
+const lastDay = (G) => !!(G && (G.summerOver || G.lastNight || (Number.isFinite(G.day) && G.day >= LAST_DAY)));
+
+// The queue: the next main mission, the finale once it is open, then the
+// optional jobs that are open and not done yet.
+function queue(G) {
   const done = G?.done || new Set();
-  return ARC.find(d => !done.has(d.id) && gateOpen(d.id, done))
-    || CAMPAIGN.find(d => !done.has(d.id)) || null;
+  const out = [];
+  const next = nextMain(done, known);
+  if (next) out.push(byId(next));
+  const fin = byId(FINALE);
+  if (fin && !done.has(FINALE) && finaleOpen(done, known, lastDay(G))) out.unshift(fin);
+  for (const d of ALL_MISSIONS) {
+    if (done.has(d.id) || out.includes(d) || isMain(d.id) || d.id === FINALE) continue;
+    if (storyBlocker(d.id, done, known, lastDay(G)) == null) out.push(d);
+  }
+  return out.filter(Boolean);
 }
+
+// A job can also be waiting on the calendar (campaign.js DATE_GATES: in
+// index.html every main mission has a date since S4-SUMMER; the prototype keeps
+// only the Saint-Jean's) or, in the prototype only, on the clock (its hour
+// window, jobwindows.js). The finale never waits: it is Labour Day night when it starts.
+function timeLock(G, def) {
+  if (def.id === FINALE) return null;
+  return dateLock(G, def.id) || windowLock(G, def);
+}
+
+/**
+ * The job the story offers next: the first in the queue that can start now.
+ * When the head of the queue is waiting on the hour or the date, the next one
+ * that can start takes its turn, so the summer never stalls on a clock. When
+ * nothing can start right now, it is the head of the queue anyway (and
+ * missionLockReason says why), and null only when every job is done.
+ */
+export function nextMission(G) {
+  const q = queue(G);
+  return q.find(d => !timeLock(G, d)) || q[0] || null;
+}
+
+const finishFirst = (G, id) => (G?.settings?.lang === 'en' ? 'Finish first: ' : 'Finis d’abord : ') + (byId(id)?.title || '');
+
+/**
+ * Why this job cannot be started right now, in French, or null if it can.
+ * « Reviens après 21 h (jusqu’à 4 h). », « Pas avant le 24 juin… »,
+ * « Finis d'abord : Réveiller Sayyad ». Replays are only held by the hour.
+ */
+export function missionLockReason(G, def) {
+  if (!def) return 'Job indisponible';
+  if (isRetired(def.id)) return G?.settings?.lang === 'en' ? 'Not part of this summer any more' : 'Pas dans cet été-là';
+  // Generated driving modes and roadside encounters are not campaign jobs.
+  if (!known(def.id)) return null;
+  const done = G?.done || new Set();
+  if (done.has(def.id)) return def.id === FINALE ? null : windowLock(G, def);
+  const blocker = storyBlocker(def.id, done, known, lastDay(G));
+  if (blocker) return finishFirst(G, blocker);
+  return timeLock(G, def);
+}
+
 export function missionAvailable(G, def) {
   if (!def) return false;
-  // Generated driving modes and roadside encounters are not campaign jobs.
-  if (!ALL_MISSIONS.some(d => d.id === def.id)) return true;
-  return !!G?.done?.has(def.id) || nextMission(G)?.id === def.id;
+  return missionLockReason(G, def) == null;
 }
 export function availableMissions(G) {
   return ALL_MISSIONS.filter(d => missionAvailable(G, d));
 }
+
+/** « 3/10 » for the pause screen and the end-of-job card: main steps done / total. */
+export function storyProgress(G) {
+  const done = G?.done || new Set();
+  return { done: mainStepsDone(done, known), total: mainStepsTotal(known), finale: done.has(FINALE) };
+}
+
 
 // What a job hands you, in its own brief. The garage already knows which car
 // each mission unlocks — it prints "Finis « Ramasser la gang »" on the locked
@@ -477,7 +574,8 @@ try {
     if (!who) continue;
     m.unlocks = who;
     const keys = who.length === 1 ? `les clés du char à ${who[0]}` : `des clés`;
-    m.brief = (m.brief ? m.brief + ' ' : '') + `\u00c7a te donne ${keys}.`;
+    m.unlockLine = `\u00c7a te donne ${keys}.`;
+    m.brief = (m.brief ? m.brief + ' ' : '') + m.unlockLine;
   }
 } catch { /* the garage is optional here; a brief without the line still reads */ }
 
@@ -493,53 +591,83 @@ export function ensureArcText() {
   return arcTextT;
 }
 
-// What G.done looked like the last time we recomputed. Loading a save or
-// starting a new game hands main.js a brand new Set, so comparing the object
-// itself catches "this is a different summer" as well as "you finished a job".
+// What G.done looked like the last time we looked, so a new save (a brand new
+// Set) is told apart from « you just finished a job ». The day is in the key
+// too: the Saint-Jean's text depends on it.
 let arcSeen = null;
 let arcSize = -1;
+let arcDay = null;
+let arcNext = null;
 
 /**
- * Bring MISSIONS in line with the gates: push in a beat that has just been
- * earned, take out one that belongs to a summer you are no longer playing.
- * Called once a frame from main.js's hook block, and on almost every frame it
- * does nothing but compare two numbers.
+ * Once a frame from main.js. Nothing is pushed or spliced any more (every job
+ * is in MISSIONS from the start; the lock is the story's). What is left:
+ * the Saint-Jean's text follows the date, a job another branch pushed into
+ * MISSIONS is adopted, and the next main mission is announced when finishing
+ * one opens it (silent on the first sync of a save).
  *
- * Returns the beats added by this call, so a test can watch the summer open up.
+ * Returns the jobs that just opened, so a test can watch the summer open up.
  */
 export function unlockArc(G) {
+  if (G && isPrototype(G)) waitNotice(G);
   const done = (G && G.done) || new Set();
-  if (done === arcSeen && done.size === arcSize) return [];
+  const day = G && Number.isFinite(G.day) ? Math.floor(G.day) : null;
+  if (done === arcSeen && done.size === arcSize && day === arcDay) return [];
   const fresh = done !== arcSeen;
-  arcSeen = done; arcSize = done.size;
+  arcSeen = done; arcSize = done.size; arcDay = day;
   ensureArcText();
-  // A new save: drop the beats it has not earned. (Never mid-summer — only when
-  // the Set identity changed, so finishing a job cannot delete a beat.)
-  if (fresh) {
-    for (let i = MISSIONS.length - 1; i >= 0; i--) {
-      if (ARC.includes(MISSIONS[i]) && !gateOpen(MISSIONS[i].id, done)) MISSIONS.splice(i, 1);
-    }
-  }
+  applyDatedText(G);
+  const before = arcNext;
+  const next = nextMain(done, known);
+  arcNext = next;
   const added = [];
-  for (const def of ARC) {
-    if (MISSIONS.includes(def) || !gateOpen(def.id, done)) continue;
-    MISSIONS.push(def);
-    added.push(def);
-  }
-  // Silent on the first sync of a save — you did not just earn those. The toast
-  // is for the beat that opens while you are standing there.
-  if (added.length && !fresh && G && G.hud) {
-    for (const def of added) {
+  if (!fresh && next && next !== before) added.push(byId(next));
+  if (!fresh && before && !next && !done.has(FINALE) && byId(FINALE)) added.push(byId(FINALE));
+  if (added.length && G && G.hud) {
+    for (const def of added.filter(Boolean)) {
       const p = PLACES[def.giver];
       G.hud.toast(`NOUVELLE JOB\n${def.title}\n${p && p.label ? p.label : ''}`, 3600);
     }
-    G.audio && G.audio.chime(true);
+    G.audio && G.audio.chime && G.audio.chime(true);
   }
-  return added;
+  return added.filter(Boolean);
+}
+
+// The Saint-Jean (arcbache) claims its date only on or before the 24th.
+function applyDatedText(G) {
+  const def = byId('arcbache');
+  if (!def || !def.datedText) return;
+  const t = pastSaintJean(G) ? def.datedText.after : def.datedText.on;
+  if (t) { def.title = t.title; def.brief = t.brief + (def.unlockLine ? ' ' + def.unlockLine : ''); }
+}
+
+
+// Prototype: parked at a job giver whose job is waiting on the hour or the
+// date, and no job running. main.js offers nothing there (the job is not
+// available), so without this the pillar would just be silent. Once per visit.
+const WAIT_R = 12, WAIT_LEAVE = 24;
+let waitAt = null;
+function waitNotice(G) {
+  const v = G.veh;
+  if (!v || G.mission || !G.hud || !G.hud.toast) return;
+  if (waitAt) {
+    const p = PLACES[waitAt];
+    if (!p || Math.hypot(v.x - p.x, v.z - p.z) > WAIT_LEAVE) waitAt = null;
+    return;
+  }
+  for (const def of ALL_MISSIONS) {
+    const p = PLACES[def.giver];
+    if (!p || Math.hypot(v.x - p.x, v.z - p.z) > WAIT_R) continue;
+    const why = missionLockReason(G, def);
+    if (!why || /^(Finis|Finish)/.test(why)) continue;
+    waitAt = def.giver;
+    G.hud.toast(`${def.title}\n${why}`, 3200);
+    return;
+  }
 }
 
 /** Tests only: forget which save we were tracking. */
-export function resetArcSync() { arcSeen = null; arcSize = -1; }
+export function resetArcSync() { arcSeen = null; arcSize = -1; arcDay = null; arcNext = null; waitAt = null; }
 
 export { ARC, GATES, gateOpen, openBeats, registerArcLines };
 

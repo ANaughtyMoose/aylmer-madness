@@ -258,12 +258,14 @@ function shunt(player, car) {
   // How far the back end steps out is the thing hbGrip controls; how far the
   // nose swings in a second is mostly steering geometry, so slip is the honest
   // measure of "does this car spin".
+  // A-02 (6 Oct panel) reversed the Ranger's half of this: it no longer
+  // ploughs, its locked rear swings it round (hbSwing, tools/smoke_handling.mjs).
   const ranger = swing('ranger'), civic = swing('civic'), saturn = swing('saturn');
-  ok('the Civic comes round further than the Ranger',
-    civic.yaw > ranger.yaw * 1.2,
-    `civic ${r2(civic.yaw)} rad vs ranger ${r2(ranger.yaw)} rad`);
-  ok('slip under the lever goes Ranger < Saturn < Civic',
-    ranger.slip < saturn.slip && saturn.slip < civic.slip,
+  ok('the Ranger comes round under the lever (A-02: no more ploughing)',
+    ranger.yaw > saturn.yaw,
+    `ranger ${r2(ranger.yaw)} rad vs saturn ${r2(saturn.yaw)} rad, civic ${r2(civic.yaw)} rad`);
+  ok('slip under the lever goes Saturn < Civic',
+    saturn.slip < civic.slip,
     `slip ranger ${r2(ranger.slip)} saturn ${r2(saturn.slip)} civic ${r2(civic.slip)}`);
 }
 

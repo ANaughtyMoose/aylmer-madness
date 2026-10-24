@@ -1,0 +1,13 @@
+{
+  "schema": "aylmer-camera-poses",
+  "version": 1,
+  "provenance": "The two review locations preserve recorded x/z only. Their old yaw, eye and boom were not recorded. These are newly authored reproducible stress poses, not reconstructions of the old screenshots.",
+  "poses": [
+    { "id": "review174_wall_chase", "x": -867.6, "z": -103, "yaw": 1.5707963267948966, "camera": 0, "env": "dusk", "reason": "Boom points west into the adjacent house wall." },
+    { "id": "review174_wall_far", "x": -867.6, "z": -103, "yaw": 1.5707963267948966, "camera": 2, "env": "day", "reason": "High boom intersects the finite pitched roof and wall." },
+    { "id": "review270_porch_chase", "x": -884.1, "z": -97.7, "yaw": -0.6283185307179586, "camera": 0, "env": "day", "reason": "Boom points northeast through the house corner and porch." },
+    { "id": "review270_roof_far", "x": -884.1, "z": -97.7, "yaw": -0.6283185307179586, "camera": 2, "env": "day", "reason": "High boom approaches the same finite eave from outside the footprint." },
+    { "id": "review270_side_close", "x": -884.1, "z": -97.7, "yaw": -1.5707963267948966, "camera": 1, "env": "dusk", "reason": "Near boom grazes the porch edge." },
+    { "id": "open_road_control", "x": 609.5, "z": -867.8, "yaw": 1.469, "camera": 0, "env": "day", "reason": "Unobstructed grass-field framing control, as verified in the baseline images. The ID is retained for before/after pairing; standard Fraser and Principale controls cover roads." }
+  ]
+}

@@ -25,12 +25,6 @@
       "cargo": "Enveloppe scellée de laissez-passer VIP pour le festival de montgolfières."
     },
     {
-      "vehicle": "Saturn SL2 1998 (Margaret)",
-      "job": "La tournée des dames de la paroisse",
-      "why": "La boîte de pickup et la Civic deux portes sont inutilisables pour transporter Margaret et trois bénévoles âgées de la Société d'histoire : les quatre portes et la suspension souple de la Saturn sont indispensables.",
-      "cargo": "Margaret, deux dames de la chorale, un plateau de carrés aux dattes et trois classeurs d'archives."
-    },
-    {
       "vehicle": "Diamondback Mountain Bike (Le joueur)",
       "job": "Le raccourci de la baie Fraser",
       "why": "Les sentiers pédestres boisés entre les marais de la baie Fraser et le phare sont barrés par des blocs de béton municipaux infranchissables en véhicule motorisé.",
@@ -171,8 +165,8 @@
       "giver": "Margaret",
       "from": "Canadian Tire",
       "to": "l'Auberge Symmes",
-      "vehicle": "Saturn SL2 1998 (Margaret)",
-      "what": "Conduire la Saturn automatique de Margaret avec les dames de la Société historique à bord.",
+      "vehicle": "Saturn SC2 1997 (Margaret)",
+      "what": "Conduire la Saturn de Margaret avec les dames de la Société historique à bord.",
       "complication": "Margaret exige zéro accélération brusque et une conduite feutrée pour ne pas abîmer le papier ancien.",
       "reward": {
         "kind": "cash",
@@ -307,7 +301,7 @@
       "giver": "Margaret",
       "from": "Marché By",
       "to": "Musée canadien de l'histoire",
-      "vehicle": "Saturn SL2 1998 (Margaret)",
+      "vehicle": "Saturn SC2 1997 (Margaret)",
       "what": "Franchir le pont du Portage de nuit sous les illuminations du Parlement.",
       "complication": "Contrôle routier de routine à la sortie du pont et visibilité réduite par la bruine sur le pare-brise.",
       "reward": {

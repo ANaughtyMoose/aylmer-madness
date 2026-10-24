@@ -1,0 +1,22 @@
+{
+  "name": "julie",
+  "about": "Julie (19, Aylmer, Xbox and Sims): the story end to end, the words, the radio, the summer passing. Every main mission and the finale, the radio, the look at morning, dusk and night.",
+  "entry": "index.html",
+  "beats": [
+    { "do": "boot" },
+    { "do": "mission", "id": "alternateur", "stageTimeout": 150 },
+    { "do": "mission", "id": "sayyad", "stageTimeout": 150 },
+    { "do": "mission", "id": "arcbache", "stageTimeout": 150 },
+    { "do": "mission", "id": "divan", "stageTimeout": 150 },
+    { "do": "mission", "id": "canot", "stageTimeout": 150 },
+    { "do": "mission", "id": "golfcart", "stageTimeout": 150 },
+    { "do": "mission", "id": "stvincent", "stageTimeout": 150 },
+    { "do": "mission", "id": "nuittim", "stageTimeout": 150, "hour": 22 },
+    { "do": "mission", "id": "school", "stageTimeout": 150 },
+    { "do": "mission", "id": "russellroyal", "stageTimeout": 150 },
+    { "do": "mission", "id": "curfew", "stageTimeout": 150 },
+    { "do": "mission", "id": "arcdernier", "stageTimeout": 150, "tourN": 4, "maxSecs": 900, "about": "finale: free drive to four lit summer places, home, phone, brochure, end cards, summer-end screen (S4-SUMMER)" },
+    { "do": "radio", "taps": 6 },
+    { "do": "tour", "places": ["home", "principale", "marina", "beach", "tims", "sayyad", "mike"], "envs": ["morning", "dusk", "night"], "weather": ["clear"] }
+  ]
+}

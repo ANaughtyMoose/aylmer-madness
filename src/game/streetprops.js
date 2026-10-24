@@ -28,11 +28,13 @@ const C = {
   mail: 0xb02a22, mailTop: 0x8c211a, post: 0x555a5e,
   recyc: 0x2b5fa6, garbage: 0x2f6b3a, lid: 0x232b26, wheel: 0x1a1c1e,
   news: 0x394e63, newsWin: 0xb9c6d2, newsLeg: 0x2a3642,
-  hydrant: 0xc9b431, hydCap: 0xa3271e,
+  // Ville de Gatineau spec: municipal hydrants painted safety red, body and caps.
+  hydrant: 0xb3261e, hydCap: 0x8e1f19,
   tableTop: 0x9aa0a6, chair: 0x63744f,
   cart: 0xb6bcc2, cartFrame: 0x8b9197, cartHandle: 0xa33029,
   wood: 0x9a7343, crate: 0xb08a55, awning: 0x2f7a4a, fruitA: 0xd06a20, fruitB: 0x8fae3a,
   bag: 0x25272c, can: 0x9fa8ad, paper: 0xd8d3c4,
+  bumper: 0x2a2c2e,
 };
 
 // yaw-aware local -> world, the same convention MeshBuilder.tower uses:
@@ -172,6 +174,28 @@ export const KINDS = {
     r: 0.14, cy: 0.03, kick: 3.0, snd: 'wood', spill: 0, dmg: 0, loose: true,
     emit(b, x, y, z, yaw) {
       b.box(x, y + 0.03, z, 0.28, 0.03, 0.22, rgb(C.paper), { yaw, noBottom: true });
+    },
+  },
+  // S3-CRASH: what leaves a car in a head-on (reactive.js crashShow). Never
+  // placed in the world (loose); thrown only by debris.js. The panel is baked
+  // white so the thrower can tint it the paint of the car it came off.
+  panel: {
+    r: 0.45, cy: 0.06, kick: 0.5, snd: 'metal', spill: 0, dmg: 0, loose: true, flat: true,
+    emit(b, x, y, z, yaw) {
+      b.box(x, y + 0.03, z, 1.05, 0.04, 0.62, rgb(0xffffff), { yaw });
+      b.box(x, y + 0.11, z + 0.30, 1.05, 0.14, 0.04, rgb(0xffffff), { yaw });
+    },
+  },
+  bumper: {
+    r: 0.5, cy: 0.09, kick: 0.45, snd: 'metal', spill: 0, dmg: 0, loose: true,
+    emit(b, x, y, z, yaw) {
+      b.box(x, y + 0.09, z, 1.45, 0.17, 0.16, rgb(C.bumper), { yaw });
+    },
+  },
+  hubcap: {
+    r: 0.2, cy: 0.03, kick: 0.7, snd: 'metal', spill: 0, dmg: 0, loose: true, flat: true,
+    emit(b, x, y, z, yaw) {
+      b.cyl(x, y + 0.03, z, 0.19, 0.05, 8, rgb(C.can), 'y', true);
     },
   },
 };

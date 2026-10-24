@@ -215,6 +215,13 @@ function sit(veh, w, seconds = 20) {
   ok('a repair clears the hint and both flags',
     clean.hint === null && st.h25 === false && st.h60 === false);
   ok('...so the next wreck tells you again', repairHint(st, 30).toast !== null);
+
+  // S3-COPS: no banner across a chase; held, not spent, so it comes after.
+  const q = { h25: false, h60: false };
+  const inChase = repairHint(q, 30, { quiet: true });
+  ok('during a chase the 25 % toast keeps quiet', inChase.toast === null && q.h25 === false, inChase.toast);
+  ok('...the standing line still shows', inChase.hint === 'réparer : 143 Principale · chez vous', inChase.hint);
+  ok('...and the toast comes once the chase is over', repairHint(q, 30).toast !== null);
 }
 
 // ---------------------------------------------------------------- the map wrench

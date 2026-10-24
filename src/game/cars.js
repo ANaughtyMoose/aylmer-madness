@@ -14,6 +14,77 @@ import { Gearbox } from './gearbox.js';
 const TIRE = 0x17181a, GLASS = 0x26313b, CHROME = 0xd4d6d8;
 const LAMP = 0xfff3c4, TAIL = 0xc0332a, AMBER = 0xf0a030, PLATE = 0xe8e6dc, TRIM = 0x2e3033;
 
+// ==== s5-reflect (V3-05): car material codes in the normal's length ====
+// The fragment shader normalises vNor, so its length is free: buildCarBody
+// scales every body normal by a code that shaders/car.js reads back (MAT_CAR
+// draws only; a MAT_WORLD draw of the same mesh, garage or ghost, looks as it
+// did). Paint carries its roughness in the length. All components stay inside
+// [-1, 1]. The tags are always baked (cars.js stays free of the look flags,
+// which need a document); flag carpaint off means look/carpaint.js never
+// routes a body to MAT_CAR, and MAT_WORLD normalises the tags away.
+export const CAR_MAT_LEN = { GLASS: 0.75, CHROME: 0.55, RUBBER: 0.35, MATTE: 0.15 };
+export const paintLen = (rough) => 1 - (clamp(rough, 0.15, 0.75) - 0.15) / 6;
+// Roughness per car: clear-coat dulls with sun years, old single-stage paint
+// chalks, reds fade first. Measured nowhere; tuned on the frames.
+export const PAINT_ROUGH = {
+  ranger: 0.44, saturn: 0.30, civic: 0.52, sunfire: 0.32, forester: 0.30, sienna: 0.28,
+  cavalier: 0.42, cutlass: 0.50, caravan: 0.50, bus: 0.44, benz: 0.62, cart: 0.55,
+  police_cruiser: 0.40, svx: 0.35, claude_nsx: 0.36,
+};
+export const PAINTED = new Set();   // spec ids whose body builder was tagged
+const colKey = (c) => (Math.round(c[0] * 1023) * 1024 + Math.round(c[1] * 1023)) * 1024 + Math.round(c[2] * 1023);
+export function tagBuilder(mb, s) {
+  if (mb.carTagged) return mb;
+  const L = CAR_MAT_LEN, map = new Map();
+  const put = (hex, len) => map.set(colKey(rgb(hex)), len);
+  for (const h of [TIRE, TRIM, 0x1c1d20, LAMP, TAIL, AMBER]) put(h, L.RUBBER);
+  for (const h of [PLATE, 0xb78e56, 0xa47441, 0x795030]) put(h, L.MATTE);
+  put(CHROME, L.CHROME);
+  put(GLASS, L.GLASS); if (s.glass) put(s.glass, L.GLASS);
+  const cl = s.cladding && s.cladding.color;
+  if (cl !== undefined) {
+    const c = rgb(cl), mx = Math.max(...c), mn = Math.min(...c);
+    if (mx - mn < 0.05) put(cl, L.RUBBER);   // neutral plastic; coloured cladding is painted
+  }
+  const body = rgb(s.body || 0xffffff);
+  const paint = paintLen(PAINT_ROUGH[s.id] ?? 0.42);
+  const code = (c) => {
+    const k = map.get(colKey(c));
+    if (k !== undefined) return k;
+    const lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    const chroma = Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]);
+    const far = Math.abs(c[0] - body[0]) + Math.abs(c[1] - body[1]) + Math.abs(c[2] - body[2]) > 0.09;
+    return lum < 0.10 && chroma < 0.03 && far ? L.RUBBER : paint;   // shade(TRIM, k) and the like
+  };
+  const vert = MeshBuilder.prototype.vert;
+  mb.vert = function (x, y, z, nx, ny, nz, c, u, v) {
+    const k = code(c) / (Math.hypot(nx, ny, nz) || 1);
+    return vert.call(this, x, y, z, nx * k, ny * k, nz * k, c, u, v);
+  };
+  mb.carTagged = true;
+  PAINTED.add(s.id);
+  return mb;
+}
+// A loft quad whose ring step changes colour carries two codes, and the
+// interpolated length would sweep through the bands between them (stripes).
+// Give every triangle one code, the longest (paint wins), by rescaling.
+export function finishTags(mb) {
+  if (!mb.carTagged) return mb;
+  const v = mb.v, I = mb.i, S = 9;
+  const len = (j) => Math.hypot(v[j * S + 3], v[j * S + 4], v[j * S + 5]);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let t = 0; t < I.length; t += 3) {
+      const a = I[t], b = I[t + 1], c = I[t + 2];
+      const la = len(a), lb = len(b), lc = len(c), m = Math.max(la, lb, lc);
+      for (const [j, l] of [[a, la], [b, lb], [c, lc]]) {
+        if (l > 0 && m - l > 1e-6) { const k = m / l; v[j * S + 3] *= k; v[j * S + 4] *= k; v[j * S + 5] *= k; }
+      }
+    }
+  }
+  return mb;
+}
+// ==== end s5-reflect tags
+
 // Real dimensions (metres). `wheelbase`/`overhangF` place the axles; the mesh
 // origin is the midpoint between axles so wheels sit at ±wheelbase/2.
 // Profiles are keyed by t: 0 = rear bumper, 1 = front bumper.
@@ -54,21 +125,46 @@ export const CARS = [
     cladding: { rocker: 0, bumper: 0.30, tRear: 0.02, tFront: 0.98, color: 0x3a3c40 },
   },
   {
-    id: 'saturn', name: '1997 Saturn SL 4-door', who: "Margaret's",
-    body: 0x27384f, seats: 3, style: 'sedan',
-    flavour: 'Polymer door panels, so the parking-lot dings pop back out. Gutless, but it never quits.',
-    len: 4.49, wid: 1.70, h: 1.39, wheelbase: 2.60, overhangF: 0.95, track: 1.64, wheelR: 0.30,
-    topSpeed: 47.78, accel: 4.2, brake: 9.0, grip: 0.90, steerMax: 0.57, mass: 1130, aero: 0.000350,
-    seatY: 1.05, seatZ: 0.05, seatX: 0.40, clearance: 0.20,
-    // wedge nose, long rising hood, fast windshield, short high deck
-    top: [[0, 0.92], [0.02, 0.95], [0.06, 0.965], [0.17, 0.97], [0.21, 0.99], [0.25, 1.10], [0.30, 1.24],
-          [0.35, 1.34], [0.40, 1.385], [0.46, 1.39], [0.55, 1.385], [0.60, 1.35], [0.66, 1.22], [0.72, 1.07],
-          [0.76, 0.99], [0.80, 0.96], [0.90, 0.88], [0.965, 0.80], [0.985, 0.72], [1, 0.52]],
-    belt: [[0, 0.92], [0.18, 0.94], [0.26, 0.985], [0.68, 0.985], [0.78, 0.96], [1, 0.96]],
-    plan: [[0, 0.74], [0.03, 0.82], [0.10, 0.85], [0.80, 0.85], [0.90, 0.835], [0.96, 0.80], [1, 0.72]],
-    roofK: 0.82, tuck: 0.035,
-    glassTop: [[0.21, 0.40], [0.60, 0.76]], glassSide: [0.27, 0.66],
-    cladding: { rocker: 0.10, bumper: 0.42, tRear: 0.03, tFront: 0.962, color: 0x50545a },
+    // Margaret's 1997 SC2: the second-generation coupe (fixed headlamps; the
+    // pop-ups went with the 1996 car), two doors and no third one (the
+    // clamshell came for 1999), dark navy, five-speed manual. Internal id stays
+    // `saturn` so saves, homes, unlocks and missions keep working.
+    //   Verified (ja.wikipedia, 2nd-gen spec table, SC2 column, opened
+    // 6 Oct 2026): 4590 long, 1335 high, 2600 wheelbase, 1090 kg with the
+    // manual, four seats. Width is the US figure, 67.3 in = 1709 mm
+    // (en.wikipedia; the Japanese car is quoted 1725). overhangF and the
+    // 195/60R15 tyre are ESTIMATES. 124 hp at 6000 and 122 lb-ft at 4800
+    // (en.wikipedia, citing Saturn's sheet). Keep the engine code out of
+    // anything a player reads: which one this is gets argued about.
+    id: 'saturn', name: '1997 Saturn SC2', who: "Margaret's",
+    body: 0x27384f, seats: 3, style: 'coupe',
+    flavour: 'Coupé deux portes, 1.9 à double arbre, cinq vitesses manuelle. Panneaux en polymère : les coups de porte du stationnement ressortent tout seuls. Ta mère change ses vitesses mieux que toi.',
+    len: 4.59, wid: 1.71, h: 1.335, wheelbase: 2.60, overhangF: 0.98, wheelR: 0.31,
+    topSpeed: 47.78, accel: 4.2, brake: 9.0, grip: 0.90, steerMax: 0.57, mass: 1090, aero: 0.000350,
+    // 2+2: the rear bench sits under the start of the backlight, closer to the
+    // front pair than a sedan's (`rowGap`, see seatPositions).
+    seatY: 1.00, seatZ: -0.02, seatX: 0.40, clearance: 0.18, rowGap: 0.86,
+    // Side silhouette matched by overlay against a near-side Commons photo
+    // (1997 SC, 6.2.22): a long raked windshield from just behind the front
+    // wheel, a tall rounded roof that peaks over the B-pillar and stays high
+    // back to the end of the quarter glass, then a short raked backlight onto
+    // a short high deck. Beltline about two thirds of the height at the door,
+    // as measured; the glass is long (about 0.8 of the wheelbase).
+    top: [[0, 0.90], [0.015, 0.955], [0.04, 0.985], [0.08, 1.00], [0.11, 1.04], [0.15, 1.13],
+          [0.19, 1.22], [0.23, 1.275], [0.28, 1.31], [0.35, 1.33], [0.42, 1.335], [0.47, 1.325],
+          [0.50, 1.305], [0.54, 1.235], [0.59, 1.13], [0.64, 1.03], [0.68, 0.955], [0.72, 0.92],
+          [0.82, 0.865], [0.89, 0.80], [0.94, 0.735], [0.975, 0.65], [1, 0.50]],
+    belt: [[0, 0.90], [0.10, 0.93], [0.20, 0.93], [0.30, 0.905], [0.66, 0.86], [0.72, 0.855], [1, 0.80]],
+    plan: [[0, 0.70], [0.03, 0.79], [0.09, 0.84], [0.22, 0.855], [0.76, 0.855], [0.86, 0.835],
+           [0.93, 0.79], [0.975, 0.72], [1, 0.62]],
+    roofK: 0.80, tuck: 0.045,
+    glassTop: [[0.085, 0.225], [0.505, 0.68]], glassSide: [0.205, 0.655],
+    // one long door: the handle sits just ahead of the B-pillar
+    handles: [0.45],
+    // a lighter slate than the shared GLASS, or the windows vanish into navy
+    glass: 0x46586a,
+    // Body-colour bumpers on the SC2, a shade darker so the cover reads.
+    cladding: { rocker: 0, bumper: 0.30, tRear: 0.025, tFront: 0.965, color: 0x22324a },
   },
   {
     id: 'civic', name: '1987 Honda Civic Si', who: "Sayyad's",
@@ -321,11 +417,22 @@ export const CARS = [
     // « prendre le Cart de golf du Club » and not « ...du Club de Le Club ».
     id: 'cart', name: 'Cart de golf du Club', who: 'Le Club', whoDe: '',
     body: 0xf2efe4, seats: 1, style: 'cart',
-    electric: true, park: 'building', noTraffic: true, relay: 1180,
+    // parkBack/parkSide: the default 12 m apron was inside the clubhouse
+    // (set-pieces note, 29 Sept). Straight out, the clubhouse runs to 21 m and
+    // the job marker sits at 29 m, so the cart goes 24 m out (golfnuit.js
+    // GOLFNUIT.apronBack) and 12 m to the side: outside the walls (checked in
+    // the browser, world.buildingAt) and 13 m off the marker, so the
+    // « prendre le cart » and job prompts never overlap.
+    electric: true, park: 'building', parkBack: 24, parkSide: 12, noTraffic: true, relay: 1180,
     flavour: 'Électrique, 24 km/h, pas de portes. Le seul char en ville qui aime mieux le gazon que l’asphalte.',
     len: 2.40, wid: 1.20, h: 1.80, wheelbase: 1.65, overhangF: 0.35, track: 1.20, wheelR: 0.25,
     topSpeed: 6.67, accel: 3.0, brake: 4.5, grip: 0.55, steerMax: 0.85, mass: 400, aero: 0.001440,
     turf: 2.0,
+    // Mission 6 feel (setpieces/golfnuit.js): long, soft body travel so a
+    // landing visibly bounces the tub, and a lever that lets the back step out
+    // a little for a playful drift. Both are per-vehicle knobs Vehicle already
+    // reads (s.suspension, and s.hbGrip/s.hbYaw win over the HANDBRAKE table).
+    suspension: 0.24, hbGrip: 0.64, hbYaw: 1.40,
     seatY: 0.98, seatZ: 0.02, seatX: 0.30, clearance: 0.14,
     // rear deck (the bag rack sits on it), bench back, cushion, footwell, cowl
     top: [[0, 0.34], [0.03, 0.52], [0.08, 0.62], [0.30, 0.62], [0.33, 0.78], [0.36, 1.02],
@@ -344,10 +451,17 @@ export const CARS = [
 // chemin d'Aylmer, so the cart opts out.
 export const TRAFFIC_CARS = CARS.filter((c) => !c.noTraffic);
 // D2 — what the handbrake leaves you. `hbGrip` scales lateral grip while the
-// lever is up and `hbYaw` scales the yaw the steering asks for: the Ranger is
-// tall and dumb and just ploughs, the Civic pivots on its nose.
+// lever is up and `hbYaw` scales the yaw the steering asks for; the Civic
+// pivots on its nose.
+//   A-02 (6 Oct panel): the Ranger used to keep 0.72 of its grip and 1.06 of
+// its yaw, and Max's word for it was "ploughs". Now the lever lets the back go
+// and `hbSwing` (rad/s² of yaw per unit of hbYaw the locked rear adds while it
+// slides, times the steering fraction and speed up to HB_SWING_V) keeps it coming round once the nose
+// is past 90°, where the geometric yaw from vLong has run out. It swings like
+// the Civic but heavier: a lever tap at 50 km/h brings it round in a third
+// less road than a plain full-lock turn (tools/smoke_handling.mjs).
 const HANDBRAKE = {
-  ranger:  { hbGrip: 0.72, hbYaw: 1.06 },
+  ranger:  { hbGrip: 0.45, hbYaw: 1.5, hbSwing: 3.0 },   // S3-RANGER: 2.7 to 3.0, so the 180 stays as quick with the feel row's lean on top
   saturn:  { hbGrip: 0.42, hbYaw: 1.42 },
   civic:   { hbGrip: 0.24, hbYaw: 1.82 },
   sunfire: { hbGrip: 0.36, hbYaw: 1.52 },
@@ -431,17 +545,23 @@ const SOUND = {
              decay: 5.2, uneven: 0.30, tilt: 0.20, harm: 208,
              exhQ: 0.72, exhG: 1.24, intF0: 720, intSpan: 1400, intQ: 1.05, intG: 0.46,
              hissG: 0.22, raspG: 0.36, raspFrom: 2900, rasp: 0.62, raspK: 3.1,
-             boomF: 124, boomQ: 5.8, boomDb: 10, tickF: 3500, tickG: 0.055,
+             boomF: 124, boomQ: 2.4, boomDb: 5, tickF: 3500, tickG: 0.055, midG: 4.0,
              lumpy: 0.030, pop: 1.35, gain: 1.10, rattle: 0, rattleFrom: 0,
-             toneLo: 640, toneHi: 5200, labour: 5.0, burble: 0.30,
+             toneLo: 1250, toneHi: 5200, labour: 5.0, burble: 0.30,
              whineK: 3.3, whineG: 0.020, gearThunk: 0.055 },
-  // 1.9 SOHC. Coarse, and the polymer panels ring — a narrow plasticky boom.
-  saturn:  { cyl: 4, idle: 800, redline: 6300, limiter: 6400,
-             decay: 7.5, uneven: 0.18, tilt: 0.30, harm: 192,
-             exhQ: 0.90, exhG: 1.00, intF0: 900, intSpan: 2300, intQ: 1.2, intG: 0.55,
-             hissG: 0.18, raspG: 0.24, raspFrom: 4000, rasp: 0.55, raspK: 3.0,
-             boomF: 165, boomQ: 7.0, boomDb: 10, tickF: 3800, tickG: 0.030,
-             lumpy: 0.010, pop: 0.9, gain: 1.00, rattle: 0, rattleFrom: 0 },
+  // The SC2's 1.9 twin-cam: sixteen valves, 124 hp right up at 6000, and a
+  // famously busy top end. Against the old SOHC row: a quicker, brighter pulse
+  // (`decay`, `tilt`), more induction honk swept higher (`intF0`, `intSpan`,
+  // `intG`), a rasp that waits until 4500 and then bites, and a louder,
+  // higher valvetrain tick, because the noise of these engines at 5000 is the
+  // cams and the chain, not the exhaust. The polymer panels still ring: the
+  // narrow plasticky boom stays. Redline 6500 is an ESTIMATE off period tachs.
+  saturn:  { cyl: 4, idle: 800, redline: 6500, limiter: 6600,
+             decay: 8.4, uneven: 0.12, tilt: 0.42, harm: 184,
+             exhQ: 0.92, exhG: 0.94, intF0: 1000, intSpan: 2900, intQ: 1.3, intG: 0.72,
+             hissG: 0.22, raspG: 0.22, raspFrom: 4500, rasp: 0.48, raspK: 2.8,
+             boomF: 165, boomQ: 7.0, boomDb: 9, tickF: 4400, tickG: 0.040,
+             lumpy: 0.008, pop: 0.85, gain: 1.00, rattle: 0, rattleFrom: 0 },
   // D15A2 1.5, twelve valves. Little exhaust, huge buzzy induction, and the
   // third-gen Si stops at 6500 — it is a 91 hp 1.5, not the 1.6 the game used
   // to claim, and the note has to run out where the tachometer does.
@@ -556,9 +676,16 @@ const DRIVE = {
   ranger:  { gears: [3.97, 2.14, 1.42, 1.00, 0.85], reverse: 3.99, final: 3.73, tyre: 0.6858,
              idle: 800, redline: 5200, limiter: 5200,
              shiftUp: 4800, shiftUpLight: 3000, shiftDown: 1600, launch: 2100, shiftTime: 0.25 },
-  saturn:  { gears: [3.25, 1.96, 1.30, 0.94, 0.72], reverse: 3.14, final: 3.55, tyre: 0.601,
-             idle: 800, redline: 6300, limiter: 6400,
-             shiftUp: 5800, shiftUpLight: 2800, shiftDown: 1800, launch: 2300, shiftTime: 0.22 },
+  // The five-speed that went behind the twin-cam (Saturn's close-ratio box).
+  // 1st, 3rd, 4th, 5th and the 4.063 final drive agree on both sources opened
+  // (saturnseries.net's ratio chart and en.wikipedia's MP3 table, 6 Oct 2026).
+  // 2nd does not: the chart gives 2.056 for 1991-97 and 1.95 from 1998, the
+  // wiki table moves it in 1995. The chart's split is the one dated by model
+  // year, so a 1997 gets 2.056. Reverse 2.923 is wiki-only. The tyre is a
+  // 195/60R15 ESTIMATE (0.615 m rolling).
+  saturn:  { gears: [3.25, 2.056, 1.423, 1.033, 0.73], reverse: 2.923, final: 4.063, tyre: 0.615,
+             idle: 800, redline: 6500, limiter: 6600,
+             shiftUp: 6000, shiftUpLight: 2900, shiftDown: 1900, launch: 2400, shiftTime: 0.22 },
   // The real AH five-speed behind the 1.5, 4.25 axle, 175/70R13. Ratios are
   // off the sheet already; the rev limits are the 1987 car's, not the 1988
   // 1.6's the table used to describe.
@@ -621,10 +748,12 @@ const DRIVE = {
 // no entry here takes a numerically identical path through Vehicle.update to
 // the one it took before any of this existed — not "close", identical, which is
 // why the blocks are guarded with `if (feel)` rather than written as `x * 1`.
-// The Ranger declares nothing on purpose: it is the reference car, the one
-// whose handling was signed off, and tools/smoke_feel.mjs pins its 5 s run to
-// the last digit of the table in smoke_terrain.mjs. If that ever moves, the
-// feel work has leaked; put it back behind the guard.
+// The pre-FEEL Ranger is the reference: tools/smoke_feel.mjs pins the bare
+// sheet (the Ranger with its `feel` taken off) to the last digit of the table
+// in smoke_terrain.mjs. If that ever moves, the feel work has leaked; put it
+// back behind the guard. Since S3-RANGER (20 Oct 2026) the truck itself does
+// declare a row, because it is the car the player drives for most of the
+// summer and it was the one car in town with nothing to feel (feel.md 8).
 //
 // The terms, and what each one does to the driver:
 //
@@ -660,8 +789,17 @@ const DRIVE = {
 //               the top of the band or the terminal speed moves and the SPEED
 //               section of smoke_driving.mjs is right to fail. Default: flat 1.
 //   shiftCut    Seconds of nothing between gears, on up-shifts only. Default 0.
+//   cutFrom     The pedal an up-shift has to be taken above for `shiftCut` to
+//               apply. A lazy short-shift at a cruise is not a gap you feel;
+//               a flat-out one is. Default: every up-shift cuts.
 //   steerRate   How fast the wheel itself moves, per second. 12 is the old
 //               global; the Civic is 18 and the Sienna 8. Default 12.
+//   steerReturn The same rate, used only while the wheel is coming back
+//               toward the centre (or across it). A key is all or nothing, so
+//               on a keyboard the moment you let go is the moment that decides
+//               whether a car feels twitchy or planted: a slow wheel that
+//               unwinds fast turns in calmly and straightens at once.
+//               Default: steerRate.
 //   rackSpeed   How fast the rack tightens up with speed: the lock is
 //               0.42 + 0.58/(1 + v/rackSpeed), so a small number is a rack that
 //               has gone heavy by 30 km/h. Default 14.
@@ -675,9 +813,9 @@ const DRIVE = {
 //   counterSteer  How hard the assist catches a slide. 0.045 is the old global;
 //               a car that expects you to do it yourself gets less.
 //
-// WHO IS NOT IN HERE, AND WHY. The Ranger, the two bicycles and the golf cart
-// declare nothing, by design: the Ranger because it is the reference car and
-// the bikes and the cart because a `feel` block describes an engine, a rack and
+// WHO IS NOT IN HERE, AND WHY. The two bicycles and the golf cart declare
+// nothing, by design (the Ranger did too until S3-RANGER, see its row): the
+// bikes and the cart because a `feel` block describes an engine, a rack and
 // a pair of driven tyres and they have at most one of the three. Two vehicles
 // that DO have blocks keep them in their own files rather than here — the
 // school bus in game/buses.js, next to the drive ratios and the diesel it
@@ -686,6 +824,41 @@ const DRIVE = {
 // table's key space by the Schwinn in game/bikes.js. A row called `cruiser`
 // here would land on the bicycle, which is precisely what must not happen.
 const FEEL = {
+  // S3-RANGER (20 Oct 2026). The 1993 XL: the 2.3 Lima, the Mazda five-speed
+  // (its ratios are DRIVE.ranger above, the same box the engine note already
+  // shifts through, so the shove and the sound change gear together), leaf
+  // springs, a light rear axle and a recirculating-ball box. Tuned for a laptop
+  // keyboard first (Tom, 20 Oct): a key is full lock or nothing, so the wheel
+  // goes in a touch slower than the old global and comes back almost twice as
+  // fast, and the rack is heavier at speed. The truck in it:
+  //   torque   the Lima has 0.82 of itself at idle and all of it from 1560 rpm
+  //            (0.30); it runs out of breath past 4600 (0.88), so the top of
+  //            each gear is soft and a short shift costs nothing. It is
+  //            1 at 0.83 of the redline, which is where 150 km/h sits in fourth
+  //            (the box never takes fifth flat out), so the terminal speed does
+  //            not move (smoke_driving SPEED).
+  //   shiftCut 0.09 s: you can count the up-shifts, and each one is short.
+  //            Only flat-out shifts cut (`cutFrom` 0.6): a cruise short-shift
+  //            on a ramp run-up cost the bot the Cèdres jump (smoke_jumps).
+  //            0-100 is 11.1 s against the bare sheet's 10.9.
+  //   wallow   0.12: it leans (7.4 degrees in a 60 km/h corner) and then
+  //            turns. More than this and the handbrake 180 went past 2.4 s.
+  //   liftTuck 0.12: lift mid-corner and the nose comes in a little. A pickup
+  //            with nothing in the bed has all its weight up front.
+  //   powerYaw 0.22: rear drive, and an empty bed. Open it in a bend and the
+  //            tail steps out a touch; it never swaps ends on its own.
+  //   steer    11 in, 19 back (`steerReturn`), rack 12.5: a half-second tap of
+  //            D at 80 km/h turns it 45 degrees, not 51, and it is straight
+  //            0.20 s after you let go, not 0.33 (smoke_feel section 10).
+  //   no `abs: false`: rear ABS only, and on a keyboard the brake is always
+  //            the floor, so a front that went light every stop would be a
+  //            punishment, not a character.
+  ranger: {
+    layout: 'rwd', powerYaw: 0.22, liftTuck: 0.12,
+    torque: [[0, 0.82], [0.20, 0.94], [0.30, 1], [0.88, 1], [1, 0.95]],
+    shiftCut: 0.09, cutFrom: 0.6, steerRate: 11, steerReturn: 19, rackSpeed: 12.5,
+    bite: 9.5, wallow: 0.12, counterSteer: 0.048,
+  },
   // 1987 Si: 940 kg, a 1.5 that does nothing until the cam wakes up, and a rack
   // quicker than anything else in town. It is the car this whole table is for:
   // keep it above 4000, use the lift to turn it, and do your own counter-steer,
@@ -766,18 +939,19 @@ const FEEL = {
   // that is the whole story. They are here so the Civic has something to be
   // sharper THAN.
 
-  // Margaret's SL: a 1.9 that pulls from anywhere, a rack with no weight in it,
-  // and enough roll to tell you when you have asked for too much.
+  // Margaret's SC2: a twin-cam 1.9 that wants revs (122 lb-ft, but not until
+  // 4800), a five-speed she shifts better than you, a rack with no weight in
+  // it, and enough roll to tell you when you have asked for too much.
   saturn: {
     layout: 'fwd', powerYaw: -0.22, liftTuck: 0.12,
-    torque: [[0, 0.72], [0.30, 0.86], [0.55, 1], [1, 1]],
+    torque: [[0, 0.68], [0.30, 0.84], [0.60, 1], [1, 1]],
     // The same argument the Civic's `bite` note makes, from the other end.
     // « Soft-to-medium » wanted bite 9.0 and wallow 0.14, and that combination
     // is 7.74 of effective sidewall against the Civic's 9.59: under the lever
     // the Saturn then slipped 1.98 to the Civic's 1.81 and smoke_driving's D2
     // ordering (ranger < saturn < civic) came out the wrong way round. The
     // softness is in the wallow and the rack, where you feel it in an ordinary
-    // corner; 9.8 keeps the SL on the right side of the lever at 1.74.
+    // corner; 9.8 keeps the Saturn on the right side of the lever.
     shiftCut: 0.05, steerRate: 12, rackSpeed: 13, bite: 9.8, wallow: 0.10,
     counterSteer: 0.045,
   },
@@ -912,6 +1086,9 @@ const FEEL = {
 // The globals the terms above replace, written down once so a car with no block
 // gets the literal it always got and the two paths cannot drift apart.
 const STEER_RATE = 12;      // how fast the wheel itself moves, /s
+// A-02: the handbrake swing (see HANDBRAKE) needs some roll to act on, and is
+// at full strength from HB_SWING_V m/s up.
+const HB_SWING_MIN = 0.8, HB_SWING_V = 6;
 const RACK_V = 14;          // where the rack has tightened halfway, m/s
 const BITE_K = 9.5;         // lateral catch-up rate per unit grip, /s
 const COUNTER = 0.045;      // assist counter-steer gain
@@ -930,6 +1107,10 @@ const TUCK_FADE = 4.2;      // lift-off tuck decay, /s (≈ a quarter second)
 const TSTEER_V = 18;        // torque steer is gone by here, m/s
 const NOABS_FROM = 0.30;    // brake pedal past which a car with no ABS goes light
 const NOABS_K = 0.55;       // ...and the steering it loses at the pedal on the floor
+// S3-RANGER: `squeal`, the tyre noise and smoke (see Vehicle.update). Slip angle
+// in radians where it starts and how much more it takes to be full, and the
+// floor the handbrake's locked rears put under it.
+const SQUEAL_ANG0 = 0.15, SQUEAL_ANG_SPAN = 0.25, SQUEAL_LEVER = 0.40;
 
 const WHEEL_W = (s) => (s.style === 'bus' ? 0.32 : s.style === 'truck' || s.style === 'van' ? 0.24
   : s.style === 'cart' ? 0.14 : 0.20);
@@ -954,6 +1135,17 @@ const WHEEL_PROUD = 0.07;   // tyre outer face this far outside the body at the 
 const ROLL = 0.28;          // rolling resistance, m/s², near enough constant
 const AERO = 0.0006;        // fallback for a spec that never declared its own
 const POW = 1.7;            // how squarely the thrust curve falls off with speed
+
+// The floor on the direction-change brake, m/s². Holding S while rolling
+// forward is the arcade stop, and it never brakes softer than this on a dry
+// road. It is baked into each sheet as `dirBrake` (see finalizeCar) rather than
+// applied at run time, so that everything which scales `brake` -- wet roads,
+// the brake skill, the Freins upgrade -- scales `dirBrake` with it. Applied at
+// run time as Math.max(brake, 8) it cancelled all three: a wet Civic and a bus
+// with $635 of brakes stopped exactly like stock (review A1, 29 Sep 2026).
+export const DIR_BRAKE = 8.0;
+/** The direction-change brake a sheet stops at, for a sheet that predates `dirBrake`. */
+export const dirBrakeOf = (s) => (s.dirBrake != null ? s.dirBrake : Math.max(s.brake, DIR_BRAKE));
 
 // Copy `src`'s fields onto `c` only where `c` has nothing to say. `in` rather
 // than hasOwnProperty on purpose: a tuned copy is Object.create(stock), so an
@@ -993,6 +1185,9 @@ export function finalizeCar(c) {
   // not stamped over — and a vehicle with no row here keeps `feel` undefined,
   // which is what the whole guard in Vehicle.update turns on.
   if (c.feel === undefined) c.feel = FEEL[c.id];
+  // Fill-in again: a tuned or wet copy inherits (or owns) a scaled value, and
+  // re-deriving it here from its own `brake` would put the floor back on top.
+  if (c.dirBrake === undefined) c.dirBrake = Math.max(c.brake, DIR_BRAKE);
   // Solve the thrust curve for the stated terminal speed. If a spec is greedy
   // enough that drag alone eats the whole engine, the clamp keeps vPow finite
   // and the car simply never quite gets there.
@@ -1118,7 +1313,8 @@ export function specRing(s, t) {
 }
 
 function specPaint(s) {
-  const body = rgb(s.body), glass = rgb(GLASS), under = shade(0x1c1d20, 1);
+  // `glass` lets a dark-painted car keep its windows readable against it.
+  const body = rgb(s.body), glass = rgb(s.glass || GLASS), under = shade(0x1c1d20, 1);
   const cl = s.cladding || { rocker: 0, bumper: 0.3, tRear: 0, tFront: 1, color: TRIM };
   const clad = rgb(cl.color), dark = shade(s.body, 0.86);
   const bedFloor = s.bed ? s.bed[2] : -1;
@@ -1205,7 +1401,7 @@ export function addDetails(mb, s, opts = {}) {
     const tMirror = s.style === 'truck' ? 0.69 : s.glassSide[1] - 0.03;   // front of the door glass
     both((sx) => mb.box(sx * (hwAt(s, tMirror) + 0.09), beltAt(s, tMirror) + 0.08, z(tMirror), 0.16, 0.10, 0.13, dark));
   }
-  const handles = s.style === 'sedan' ? [0.33, 0.56] : s.style === 'truck' ? [0.49]
+  const handles = s.handles ? s.handles : s.style === 'sedan' ? [0.33, 0.56] : s.style === 'truck' ? [0.49]
     : s.style === 'hatch' ? [0.30] : s.style === 'van' ? [0.30, 0.55]
     : s.style === 'bus' || bare ? [] : [0.34];
   for (const th of handles) {
@@ -1337,19 +1533,48 @@ export function addDetails(mb, s, opts = {}) {
   }
 
   if (s.id === 'saturn') {
-    // wide low headlamps, thin slot grille, amber corner markers
-    const zH = z(0.978), yH = 0.74;
+    // 1997 SC2 (second generation). From the front: no grille at all, a
+    // badge in the middle of the nose, two long fixed headlamps swept back
+    // round the corners under the hood line (the pop-ups were 1991 to 1996),
+    // a wide intake low in the bumper with a round fog lamp each side, and
+    // an amber marker on the bumper flank ahead of the wheel.
+    const zH = z(0.972), yH = 0.632;
     both((sx) => {
-      mb.box(sx * 0.46, yH, zH, 0.44, 0.13, 0.08, lamp);
-      mb.box(sx * (hwAt(s, 0.975) - 0.06), yH - 0.01, zH - 0.02, 0.12, 0.11, 0.08, amber);
+      mb.box(sx * 0.46, yH, zH, 0.42, 0.10, 0.09, lamp, { yaw: sx * 0.30 });
+      mb.box(sx * 0.56, 0.33, z(0.992), 0.11, 0.07, 0.04, shade(LAMP, 0.85));      // fog
+      mb.box(sx * (hwAt(s, 0.925) + 0.006), 0.50, z(0.925), 0.012, 0.045, 0.15, amber);
     });
-    mb.box(0, 0.775, z(0.972), 0.34, 0.045, 0.08, dark);
-    mb.box(0, 0.775, z(0.972) + 0.03, 0.05, 0.06, 0.02, tail);              // Saturn badge in the slot
-    // full-width dark tail panel with red lamps at the ends
-    mb.box(0, 0.80, zR + 0.012, hwR * 2 - 0.06, 0.22, 0.03, shade(TRIM, 0.9));
-    both((sx) => mb.box(sx * (hwR - 0.26), 0.80, zR + 0.005, 0.44, 0.18, 0.03, tail));
-    both((sx) => mb.box(sx * (hwR - 0.12), 0.80, zR + 0.006, 0.12, 0.18, 0.02, amber));
-    mb.box(0, 0.80, zR - 0.002, 0.40, 0.14, 0.03, rgb(PLATE));
+    mb.box(0, 0.36, z(0.996), 0.86, 0.10, 0.05, dark);                        // lower intake
+    mb.box(0, 0.62, z(0.982), 0.07, 0.07, 0.03, tail);                        // badge on the nose
+    // B-pillar: the door glass and the small fixed quarter window behind it
+    // read as two panes, split by a black pillar just behind the door.
+    // The pillar leans in with the glass (tower's top-face offset), and a
+    // black belt moulding runs under the side glass the way the real car's
+    // window surround does, so the greenhouse reads against dark navy paint.
+    const tB = 0.40, blackout = shade(TRIM, 0.6);
+    both((sx) => {
+      const yb = beltAt(s, tB), yt = topAt(s, tB) - 0.015, hw = hwAt(s, tB);
+      mb.tower(sx * (hw + 0.004), yb, z(tB), 0.02, 0.07, yt - yb, blackout, { dx: sx * (hw * s.roofK - hw) });
+      const [g0, g1] = s.glassSide, n = 6;
+      for (let k = 0; k < n; k++) {
+        const ta = g0 + (g1 - g0) * k / n, tb = g0 + (g1 - g0) * (k + 1) / n, tm = (ta + tb) / 2;
+        mb.box(sx * (hwAt(s, tm) + 0.004), beltAt(s, tm) + 0.012, z(tm), 0.012, 0.028, z(tb) - z(ta) + 0.01, blackout);
+      }
+    });
+    // From behind: one red band right across the deck lid, wrapping round
+    // the corners, amber turn sections at the outer ends, the plate recess
+    // in the middle of it and the badge above the plate. No spoiler: it was
+    // an option, and nobody has said Margaret's has one.
+    const yT = 0.79;
+    mb.box(0, yT, zR + 0.012, hwR * 2 - 0.05, 0.20, 0.03, shade(TAIL, 0.82));
+    both((sx) => {
+      mb.box(sx * (hwR - 0.30), yT, zR + 0.004, 0.50, 0.20, 0.03, tail);
+      mb.box(sx * (hwR - 0.10), yT - 0.04, zR + 0.002, 0.16, 0.08, 0.03, amber);
+      mb.box(sx * (hwAt(s, 0.03) - 0.01), yT, z(0.03), 0.04, 0.17, 0.10, tail);    // wrap
+    });
+    mb.box(0, yT - 0.01, zR - 0.001, 0.36, 0.15, 0.03, rgb(PLATE));
+    mb.box(0, yT + 0.13, zR + 0.01, 0.06, 0.05, 0.02, chrome);
+    mb.box(0, 0.50, zR + 0.012, 0.50, 0.03, 0.02, shade(s.body, 0.7));     // « SATURN » on the bumper
   }
 
   if (s.id === 'civic') {
@@ -1623,6 +1848,7 @@ export function addDetails(mb, s, opts = {}) {
 
 export function buildCarBody(s, opts = {}) {
   const mb = new MeshBuilder();
+  tagBuilder(mb, s);   // s5-reflect
   loft(mb, s, 64, (t) => {
     const p=specRing(s,t);
     if(s.id!=='ranger')return p;
@@ -1632,6 +1858,7 @@ export function buildCarBody(s, opts = {}) {
     return [p[0],p[1],[p[2][0]+d,p[2][1]-d],p[2],p[3],[p[3][0]-d,p[3][1]-d],p[4],p[5]];
   }, specPaint(s), s.id==='ranger' ? [...s.top,...s.belt,...s.plan].map(p=>p[0]) : []);
   addDetails(mb, s, opts);
+  finishTags(mb);   // s5-reflect
   return mb;
 }
 
@@ -1652,10 +1879,12 @@ export function carLampBoxes(s) {
     };
   }
   if (s.id === 'saturn') {
+    // The SC2's fixed lamps, the red band across the lid, and the reversing
+    // lamps at its inner ends either side of the plate.
     return {
-      head: [[0.46, 0.74, z(0.978), 0.44, 0.13]],
-      tail: [[hwR - 0.26, 0.80, zR + 0.005, 0.44, 0.18]],
-      rev:  [[hwR - 0.62, 0.80, zR + 0.005, 0.13, 0.14]],
+      head: [[0.46, 0.632, z(0.972) + 0.015, 0.40, 0.09]],
+      tail: [[hwR - 0.30, 0.79, zR + 0.004, 0.50, 0.20]],
+      rev:  [[0.27, 0.79, zR + 0.004, 0.12, 0.14]],
     };
   }
   if (s.id === 'civic') {
@@ -1830,16 +2059,18 @@ export function buildWheel(s) {
     mb.cyl(0, 0, 0, rimR * 0.40, face * 2 + 0.02, 10, rgb(0x6b6254), 'x');   // weathered hub
     mb.cyl(0, 0, 0, rimR * 0.13, face * 2 + 0.03, 6, shade(rim, 0.55), 'x'); // the dimple in it
   } else if (s.id === 'saturn') {
-    // plastic multi-slot cover: light grey with eight dark slots around a flat hub
-    const rim = 0xcfd1d3;
-    mb.cyl(0, 0, 0, rimR, face * 2, 12, rgb(rim), 'x');
+    // SC2 15-inch alloy: a bright face with five teardrop windows, the
+    // narrow end towards the hub, round a small centre cap.
+    const rim = 0xc9ccce;
+    mb.cyl(0, 0, 0, rimR, face * 2, 14, rgb(rim), 'x');
     for (const dir of [1, -1]) {
-      for (let k = 0; k < 8; k++) {
-        const a = (k / 8) * Math.PI * 2;
-        facePoly(mb, dir * deco, dir, spokeQuad(rimR * 0.45, rimR * 0.88, a, rimR * 0.09), shade(rim, 0.35));
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2 + 0.3;
+        const r = rimR * 0.62;
+        facePoly(mb, dir * deco, dir, ellipse(Math.cos(a) * r, Math.sin(a) * r, rimR * 0.30, rimR * 0.15, a, 10), shade(TIRE, 1.6));
       }
     }
-    mb.cyl(0, 0, 0, rimR * 0.36, face * 2 + 0.01, 8, shade(rim, 0.95), 'x');
+    mb.cyl(0, 0, 0, rimR * 0.26, face * 2 + 0.01, 10, shade(rim, 0.92), 'x');
   } else if (s.id === 'civic') {
     // Si alloy: flat pale face, four dark openings, dark centre
     const rim = 0xb9bcbf;
@@ -1944,6 +2175,24 @@ const AIR_CLEAR = 0.08;
 // Downward speed a landing has to carry before it is worth a sound, a squat or
 // a puff of dust; and the speed above which it starts to cost bodywork.
 const LAND_MIN = 1.5;
+// A-02 — what a knock costs. `closing` (m/s along the contact normal) over 18
+// is the impact the camera and rumble see; damage is a curve over the same
+// number, uncapped up to KNOCK.cap so a real crash still costs a real amount.
+// The old line was 46 x (force - 0.055) with force capped at 1: a 17 km/h
+// knock cost 9.5, a 37 km/h one 23.7, and Jen's truck was at 46 after two of
+// them. Now 17 km/h is about 2.6, 37 km/h about 11.7, a 90 km/h wall about 51,
+// and anything closing under 3 km/h is not an impact at all.
+const KNOCK = { min: 3 / 3.6, floor: 0.08, k: 34, pow: 1.5, cap: 1.6 };
+export function knockDamage(closing) {
+  const v = Math.abs(closing);
+  if (!(v >= KNOCK.min)) return 0;
+  const x = Math.min(KNOCK.cap, v / 18);
+  return KNOCK.k * Math.max(0, x - KNOCK.floor) ** KNOCK.pow;
+}
+// Hydro poles keep their old six-hit balance: a pole hit at full knock costs
+// the 14.8 it always did (smoke_breakables), slower ones less.
+const POLE_SCALE = 14.8 / knockDamage(18 * KNOCK.cap);
+
 const LAND_SAFE = 4.0;
 const LAND_DMG = 0.75;
 // Suspension: a spring/damper on the visible body only — the wheels stay on the
@@ -1955,9 +2204,13 @@ const SUSP_TRAVEL = 0.13;
 const STEP_BUMP = 0.06;
 // Kerbs (D3, rebuilt). Below 30 km/h crossing one is a thud; above it the nose
 // gets kicked and the car takes a little air. Numbers picked so a 43 km/h hop
-// peaks at ~0.34 m and a 70 km/h one at ~0.75 m.
+// peaks at ~0.34 m and a 70 km/h one at ~0.58 m (0.75 before S3-RANGER).
 const CURB_FAST = 8.33;                 // m/s == 30 km/h
 const CURB_KICK0 = 0.56, CURB_KICK1 = 0.169, CURB_KICK_MAX = 4.2;
+// S3-RANGER (feel.md 10): above 50 km/h the kick grows at half the rate, so a
+// sidewalk at 70 is a 0.58 m hop of 0.69 s (was 0.75 m and 0.79 s, a launch
+// that printed an airtime toast) and the 43 km/h hop above is unchanged.
+const CURB_SOFT_V = 13.89, CURB_SOFT_K = 0.5;
 // Wall colliders are 1.6 m of fence and hoarding; clear that much and you are
 // over them. This is what lets the Galeries dock jump clear the service fence.
 const AIR_OVER_WALLS = 1.6;
@@ -1995,7 +2248,8 @@ function probeOffsets(s, r) {
 // The numbers are deliberately blunt: a direction change has to feel like one
 // continuous press of one key, so nothing here waits on a timer you can't see.
 const DIR_DEAD = 0.3;          // |vLong| under this counts as stopped, m/s
-const DIR_BRAKE = 8.0;         // floor on the direction-change brake, m/s²
+// DIR_BRAKE (the floor on the direction-change brake) lives up by finalizeCar,
+// which bakes it into each sheet as `dirBrake`.
 const REV_TOP = 25 / 3.6;      // reverse cap when a car has no revTop, m/s
 const REV_ENGAGE = 0.22;       // the clunk at zero before R takes, seconds
 const REV_ACCEL = 0.70;        // reverse gets this much of first-gear thrust
@@ -2049,13 +2303,14 @@ export class Vehicle {
     this.kind = 'asphalt';               // surface under the wheels
     this.surface = 1;                    // D4: ramped grip/drag penalty
     this.onRoad = true;
-    this.skid = 0; this.impact = 0; this.drowning = 0;
+    this.skid = 0; this.squeal = 0; this.impact = 0; this.drowning = 0;
     this.reversing = false; this.braking = false;
     // Which gear the box is in: +1 drive, -1 reverse. `engageT` counts down the
     // clunk at zero, and `gearClunk` is true for the ONE tick R drops in, which
     // is what main.js hangs the sound off.
     this.dir = 1; this.engageT = 0; this.gearClunk = false;
     this.curb = 0;
+    this.kerbAir = false;     // S3-RANGER: the flight in progress started at a kerb
     this.lastHit = 0;
     this.misfireT = 0;
     // Where a free reset puts you back — and how high that is. recover() used to
@@ -2183,10 +2438,14 @@ export class Vehicle {
     if (feel) {
       this.wspin = 0;
       if (this.box) {
-        this.box.update(dt, Math.abs(vLong) * 3.6, ctl.throttle, this.dir < 0);
+        // A dry tank (fuel.js marks the sheet) has no pedal to give the box,
+        // the same 0 main.js feeds the audio gearbox (driving review A5).
+        this.box.update(dt, Math.abs(vLong) * 3.6, s.dry ? 0 : ctl.throttle, this.dir < 0);
         if (this.box.shifts !== this.shiftsWas) {
           // Up-shifts only: dropping a gear is a blip, not a gap.
-          if (feel.shiftCut && this.box.toGear > this.box.gear) this.shiftCut = feel.shiftCut;
+          // `cutFrom` (S3-RANGER): only a shift taken above that pedal cuts.
+          if (feel.shiftCut && this.box.toGear > this.box.gear
+            && (feel.cutFrom == null || ctl.throttle > feel.cutFrom)) this.shiftCut = feel.shiftCut;
           this.shiftsWas = this.box.shifts;
         }
         if (feel.torque) torque = Math.min(1, pl(feel.torque, this.box.rpm / this.box.d.redline));
@@ -2200,12 +2459,16 @@ export class Vehicle {
       if (flip) {
         // A direction change is the BRAKES, not the engine: one hard, readable
         // stop, then the gear drops in below and you are away again.
-        a -= rolling * Math.max(s.brake, DIR_BRAKE) * surface;
+        // Graded by the pedal that asked for it: rolling forward that is the
+        // brake, rolling back it is the gas. A key is 1.0, so the keyboard stop
+        // is exactly what it was; a gamepad trigger at 30 % brakes at 30 %.
+        const pedal = rolling > 0 ? ctl.brake : ctl.throttle;
+        a -= rolling * dirBrakeOf(s) * surface * clamp(pedal, 0, 1);
       } else if (this.engageT > 0) {
         // Mid-clunk: nothing is driving and the car is held where it stopped.
         // Capped at what it takes to reach zero, so it holds instead of rocking.
         if (Math.abs(vLong) > 0.02) {
-          a -= Math.sign(vLong) * Math.min(Math.max(s.brake, DIR_BRAKE) * surface, Math.abs(vLong) / dt);
+          a -= Math.sign(vLong) * Math.min(dirBrakeOf(s) * surface, Math.abs(vLong) / dt);
         }
       } else if (this.dir < 0) {
         // In R, S is the go pedal — geared low, and it runs out at revTop.
@@ -2293,7 +2556,9 @@ export class Vehicle {
       if (spd > 2.2 && this.clearance < 0.02) {
         const k = clamp(spd / 14, 0, 1);
         if (spd > CURB_FAST) {
-          this.vy = Math.min(CURB_KICK_MAX, CURB_KICK0 + CURB_KICK1 * spd);
+          this.vy = Math.min(CURB_KICK_MAX, CURB_KICK0 + CURB_KICK1
+            * (spd > CURB_SOFT_V ? CURB_SOFT_V + CURB_SOFT_K * (spd - CURB_SOFT_V) : spd));
+          this.kerbAir = true;                     // this flight, if any, is a kerb hop
           this.pitch += (onRoad ? -0.075 : 0.10) * k;
           vLong *= 1 - 0.09 * k;                    // scrub
           vLat *= 1 - 0.18 * k;
@@ -2322,11 +2587,14 @@ export class Vehicle {
     let target = ctl.steer * lock;
     // R4: a bent car pulls. Enough to notice, not enough to be unplayable.
     if (this.hurt) target += this.pull * lock * 0.20 * clamp((this.damage - DAMAGE.PERF) / 40, 0, 1);
-    const steerRate = feel && feel.steerRate != null ? feel.steerRate : STEER_RATE;
+    let steerRate = feel && feel.steerRate != null ? feel.steerRate : STEER_RATE;
+    // FEEL: the wheel unwinds at its own rate (see `steerReturn` over FEEL).
+    if (feel && feel.steerReturn != null
+      && (target * this.steer < 0 || Math.abs(target) < Math.abs(this.steer))) steerRate = feel.steerReturn;
     this.steer += (target - this.steer) * Math.min(1, steerRate * dt);
 
     // Bicycle model yaw. Handbrake lets the back end come around — how far is
-    // a per-car number now (D2): the Ranger keeps most of its grip and ploughs.
+    // a per-car number now (D2), and since A-02 the Ranger lets go too.
     const hbGrip = s.hbGrip != null ? s.hbGrip : 0.30;
     const grip = s.grip * gripSurf * (ctl.handbrake ? hbGrip : 1) * (inWater ? 0.3 : 1);
     // Negative: positive yaw swings the nose toward local +X, which is left.
@@ -2365,6 +2633,11 @@ export class Vehicle {
       biteK = Math.max(0.25, 1 - Math.min(0.5, Math.abs(pw) * 0.5) - WSPIN_BITE * this.wspin);
     }
     if (ctl.handbrake) this.yawRate *= (s.hbYaw != null ? s.hbYaw : 1.55);
+    if (ctl.handbrake && s.hbSwing && vLong > HB_SWING_MIN) {
+      const sp = Math.hypot(vLong, vLat);
+      // Scaled by hbYaw so anything that frees the back end (the Posi) frees this too.
+      this.yawSpin -= s.hbSwing * (s.hbYaw || 1) * (this.steer / s.steerMax) * Math.min(1, sp / HB_SWING_V) * dt;
+    }
     if (this.assist) {
       // Gentle counter-steer: pull the heading toward the direction of travel.
       // Backwards that is the other way round — the same term unsigned would
@@ -2399,6 +2672,20 @@ export class Vehicle {
     const slipBefore = vLat;
     vLat -= vLat * bite;
     this.skid = clamp((Math.abs(slipBefore) - 1.2) / 7, 0, 1) * clamp(Math.abs(vLong) / 8, 0, 1);
+    // S3-RANGER: what the tyres SAY, 0..1, for the smoke (reactive.js) and the
+    // squeal (audio.js). `skid` above stays the style chain's slide meter.
+    // `skid` is metres per second of slip, and on that scale the Ranger's lever
+    // slide (about 2.2 m/s round a doughnut) read 0.14, under the smoke and
+    // nearly silent, while a plain full-lock corner at 60 km/h read 0.37
+    // (feel.md 4). The slip ANGLE tells them apart: 0.39 rad in the doughnut,
+    // 0.22 in the corner. And a locked rear axle scrubs whatever the angle,
+    // so the lever has a floor of its own. Physics reads none of this.
+    {
+      const ang = Math.abs(slipBefore) / Math.max(Math.abs(vLong), 4);
+      let sq = clamp((ang - SQUEAL_ANG0) / SQUEAL_ANG_SPAN, 0, 1);
+      if (ctl.handbrake) sq = Math.max(sq, SQUEAL_LEVER);
+      this.squeal = inAir ? 0 : sq * clamp((Math.hypot(vLong, slipBefore) - 2) / 4, 0, 1);
+    }
 
     // Back to world space using the PRE-turn axes: that lag is what drifting is.
     this.vx = fx * vLong + rx * vLat;
@@ -2434,6 +2721,9 @@ export class Vehicle {
       this.air = true;
       this.airT += dt;
     } else {
+      // A tick on the deck after a tick on the deck: no kerb hop in progress.
+      // The landing tick keeps the flag, so main.js can still read it there.
+      if (!wasAir) this.kerbAir = false;
       // What the deck actually absorbs is the DIFFERENCE between the vertical
       // speed the car had and the vertical speed the surface is moving at. On a
       // steady slope that is one frame of gravity and nothing happens; out of
@@ -2442,7 +2732,10 @@ export class Vehicle {
       this.y = gh;
       this.vy = climb;
       this.air = false;
-      if (wasAir && this.airT > 0.05) this.lastAir = this.airT;
+      // S3-JUMPS: a bounce under 0.05 s used to leave the LAST flight's time
+      // here, so the bounce after a 1.8 s landing was scored again as a second
+      // 1.8 s jump of 0 m (the « 0 m, CHAÎNE x2, +2 $ » board). Now it reads 0.
+      if (wasAir) this.lastAir = this.airT > 0.05 ? this.airT : 0;
       this.airT = 0;
       let scrubL = 1, scrubT = 1;
       if (drop > LAND_MIN) {
@@ -2544,10 +2837,12 @@ export class Vehicle {
    * whatever we hit toward us. Returns the damage actually added.
    */
   hit(closing, nx = 0, nz = 0, damageScale = 1) {
+    // A-02: under 3 km/h of closing speed is a touch, not an impact.
+    if (!(Math.abs(closing) >= KNOCK.min)) return 0;
     const force = Math.min(1, Math.abs(closing) / 18);
     this.impact = Math.max(this.impact, force);
     this.lastHit = Math.max(this.lastHit, force);
-    const add = Math.max(0, force - 0.055) * 46 * damageScale * (this.damageSensitivity ?? 1);
+    const add = knockDamage(closing) * damageScale * (this.damageSensitivity ?? 1);
     if (add <= 0) return 0;
     const before = this.damage;
     this.damage = clamp(this.damage + add, 0, DAMAGE.DEAD);
@@ -2715,7 +3010,7 @@ export class Vehicle {
         world.snapPole(p, ux, uz, into);
         // 14.8 damage for a hard hit: six from a healthy Ranger leave it
         // battered but running; the seventh exhausts its 100-point condition.
-        this.hit(into, -ux, -uz, .34);
+        this.hit(into, -ux, -uz, POLE_SCALE);
         const scrub = clamp(1 - 1.9 / Math.max(2.5, Math.abs(this.vLong)), 0.60, 0.94);
         this.vx *= scrub; this.vz *= scrub;
         const lat = dx * Math.cos(this.yaw) - dz * Math.sin(this.yaw);
@@ -2746,6 +3041,13 @@ export class Vehicle {
     const s = this.spec;
     const out = [];
     if (s.seats >= 1) out.push([-s.seatX, s.seatY, s.seatZ]);
+    // A 2+2 (`rowGap`, Margaret's SC2) has two bucket-shaped places in the back
+    // and nothing in the middle, set closer behind the fronts than a sedan's.
+    if (s.rowGap != null) {
+      if (s.seats >= 2) out.push([-s.seatX * 0.85, s.seatY, s.seatZ - s.rowGap]);
+      if (s.seats >= 3) out.push([s.seatX * 0.85, s.seatY, s.seatZ - s.rowGap]);
+      return out.slice(0, s.seats);
+    }
     // A bench (the Ranger, the cart) seats the second person beside you.
     if (s.seats >= 2) out.push([0, s.seatY, s.seatZ - (s.style === 'truck' || s.style === 'cart' ? 0 : 1.1)]);
     if (s.seats >= 3) out.push([s.seatX, s.seatY, s.seatZ - 1.1]);

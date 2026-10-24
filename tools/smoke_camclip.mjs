@@ -1,282 +1,189 @@
-// The chase camera does not stand in a wall:  node tools/smoke_camclip.mjs
-//
-// Thomas's first playtest screenshot was the inside of a house: the boom had
-// been placed nine metres behind the car with no regard for what was in the
-// way, so it ended up in the bricks with the car on the far side. game/camclip.js
-// is the fix, and it is a pure module against a `world` duck type precisely so
-// this file can drive it without a canvas — main.js touches `document` on line
-// one and cannot be imported here (docs/VERIFY.md, "green tests, broken game").
-//
-// What is being protected, in the order each one broke while it was written:
-//
-//   1. Nothing in the way changes nothing. A clip that quietly shortens the
-//      boom on an open road is a worse bug than the one it fixes.
-//   2. A wall between the car and the camera puts the camera on the CAR's side
-//      of it, with a margin, never on the far side and never on the line.
-//   3. A camera point inside a footprint comes out even when the boom never
-//      crossed a wall segment of it (a courtyard, a dropped near wall).
-//   4. Coming in is instantaneous and going out is not. One frame of lag on the
-//      way in and you have already seen through the wall; no lag on the way out
-//      and a boom flicking across the corner of a house pumps at frame rate.
-//   5. A fence is not a building. `querySegments` hands back hoardings and
-//      chain-link with no height on them, and a 1.6 m fence does not hide a car
-//      from a camera 3.7 m up.
+// Finite geometry, continuous sphere sweeps and final-render camera evidence.
+import assert from 'node:assert/strict';
+import { MeshBuilder } from '../src/core/mesh.js';
+import { MAP } from '../src/game/mapdata.js';
+import { buildHouse, houseRng } from '../src/game/houses.js';
+import MATS from '../src/game/materials_stub.js';
+import { makeCameraColliders, sphereTriangle, sweepCamera } from '../src/game/camera-colliders.js';
+import { makeClip, clipCamera, guardView, recordCameraFrame, camClipStats, CAST_R, SKIN, RELEASE } from '../src/game/camclip.js';
+let passed = 0;
+function test(name, fn) { fn(); passed++; console.log('ok ' + name); }
+const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
+const wall = (mb, z, x0 = -8, x1 = 8, y0 = 0, y1 = 12) => mb.quad([x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], [1, 1, 1]);
+function world(build = () => {}) {
+  const mesh = new MeshBuilder(); build(mesh);
+  const index = makeCameraColliders(); index.addMesh(mesh);
+  return { queryCameraBlocks: index.query, index };
+}
+const empty = world();
+const front = world(m => wall(m, 5));
+const clip = (w, st = makeClip(), x = 0, y = 3.7, z = 9.2, dt = 1 / 60) => clipCamera(st, w, 0, 1.2, 0, x, y, z, dt);
+function clear(w, p, focus = [0, 1.2, 0]) {
+  assert.equal(sweepCamera(w, ...focus, ...p, 0, false).hit, false, 'final ray intersects rendered geometry');
+  assert.equal(sweepCamera(w, ...p, ...p, CAST_R, false).hit, false, 'final eye overlaps rendered geometry');
+}
 
-import {
-  makeClip, clipCamera, segCross,
-  MARGIN, LIFT, MIN_FRAC, RELEASE, FENCE_H,
-} from '../src/game/camclip.js';
-
-let pass = 0, fail = 0;
-const ok = (cond, name, extra) => {
-  if (cond) { pass++; console.log('  ok   ' + name); }
-  else { fail++; console.log('  FAIL ' + name + (extra ? '  — ' + extra : '')); }
-};
-const group = (n) => console.log('\n' + n);
-const r2 = (n) => Number(n).toFixed(2);
-
-// ---------------------------------------------------------------- fake world
-//
-// Segments are {ax, az, bx, bz} exactly as world.js hands them out (it reuses a
-// pool, which is why nothing here holds on to one). `boxes` are axis-aligned
-// footprints; a box contributes both its four wall segments and its interior to
-// buildingAt, so "there is a building here" and "there is a wall here" agree the
-// way they do in the real world. `fences` contribute segments only — that is a
-// collider with nothing behind it, which is what a fence is.
-function world({ boxes = [], fences = [] } = {}) {
-  const segs = [];
-  for (const b of boxes) {
-    segs.push({ ax: b.x0, az: b.z0, bx: b.x1, bz: b.z0 });
-    segs.push({ ax: b.x1, az: b.z0, bx: b.x1, bz: b.z1 });
-    segs.push({ ax: b.x1, az: b.z1, bx: b.x0, bz: b.z1 });
-    segs.push({ ax: b.x0, az: b.z1, bx: b.x0, bz: b.z0 });
+test('open road preserves the desired camera exactly', () => {
+  const c = clip(empty); assert.deepEqual([c.x, c.y, c.z], [0, 3.7, 9.2]); assert.equal(c.hit, false);
+  assert.equal(c, clip(empty), 'camera output reuses its scratch object');
+});
+test('wall stops the whole camera sphere in the first frame', () => {
+  const c = clip(front); near(c.z, 5 - CAST_R - SKIN * 9.2 / Math.hypot(9.2, 2.5)); clear(front, [c.x, c.y, c.z]);
+});
+test('low finite wall is passed above, not extruded to the sky', () => {
+  const w = world(m => wall(m, 5, -8, 8, 0, 1.3)); const c = clip(w); assert.equal(c.z, 9.2);
+  const low = clip(w, makeClip(), 0, 1.4, 9.2); assert.ok(low.z < 5); clear(w, [low.x, low.y, low.z]);
+});
+test('finite high roof does not block a camera below its eave', () => {
+  const w = world(m => m.quad([-5, 5, 3], [5, 5, 3], [5, 5, 12], [-5, 5, 12], [1, 1, 1]));
+  const c = clip(w); assert.equal(c.z, 9.2);
+});
+test('sloped roof blocks a rising boom where no 2D wall is crossed', () => {
+  const w = world(m => m.quad([-6, 3, 4], [6, 3, 4], [6, 5, 10], [-6, 5, 10], [1, 1, 1]));
+  const c = clip(w, makeClip(), 0, 7, 12); assert.ok(c.z < 8); clear(w, [c.x, c.y, c.z]);
+});
+test('sphere catches a finite wall edge missed by the center ray', () => {
+  const w = world(m => wall(m, 5, 0.3, 8)); assert.equal(sweepCamera(w, 0, 1.2, 0, 0, 3.7, 9.2, 0).hit, false);
+  const c = clip(w); assert.ok(c.z < 5); clear(w, [c.x, c.y, c.z]);
+});
+test('sphere catches a triangle vertex, without making an infinite wall', () => {
+  const p = new Float32Array([0, 0, 5, 2, 0, 5, 0, 2, 5]);
+  const t = sphereTriangle(-0.2, -0.2, 0, 0, 0, 10, 0.5, p, 0, 3, 6);
+  near(t, (5 - Math.sqrt(0.25 - 0.08)) / 10);
+  assert.equal(sphereTriangle(-1, -1, 0, 0, 0, 10, 0.5, p, 0, 3, 6), Infinity);
+});
+test('first surface wins independently of mesh insertion order', () => {
+  const w = world(m => { wall(m, 7); wall(m, 3); }); const c = clip(w); assert.ok(c.z < 3 && c.z > 2); clear(w, [c.x, c.y, c.z]);
+});
+test('two-sided triangle winding gives the same impact time', () => {
+  const p = new Float32Array([-3, 0, 5, 3, 0, 5, 0, 8, 5]);
+  near(sphereTriangle(0, 2, 0, 0, 0, 10, 0.4, p, 0, 3, 6), sphereTriangle(0, 2, 0, 0, 0, 10, 0.4, p, 6, 3, 0));
+});
+test('continuous sweep catches a thin wall between widely spaced points', () => {
+  const w = world(m => wall(m, 0.123)); const hit = sweepCamera(w, 0, 2, -20, 0, 2, 200, 0.45); near(hit.t, (20 + 0.123 - 0.45) / 220, 1e-7);
+});
+test('starting in a wall skin may move away without collapsing the camera', () => {
+  const w = world(m => wall(m, -0.2)); const c = clip(w); assert.equal(c.z, 9.2); clear(w, [c.x, c.y, c.z]);
+});
+test('starting in a wall skin may not move through the surface', () => {
+  const w = world(m => wall(m, 0.2)); const hit = sweepCamera(w, 0, 1.2, 0, 0, 3.7, 9.2, CAST_R); assert.equal(hit.t, 0);
+  const c = clip(w); assert.ok(c.alternate); clear(w, [c.x, c.y, c.z]); assert.ok(Math.hypot(c.x, c.y - 1.2, c.z) >= 1.7);
+});
+test('corner escape checks every adjacent surface', () => {
+  const w = world(m => { wall(m, 0.2); m.quad([0.2, 0, -8], [0.2, 0, 8], [0.2, 9, 8], [0.2, 9, -8], [1, 1, 1]); });
+  const c = clip(w); clear(w, [c.x, c.y, c.z]); assert.ok(c.x < 0.2 && c.z < 0.2);
+});
+test('alternate crash camera releases its actual boom without a full-distance jump', () => {
+  const w = world(m => wall(m, 0.2)), st = makeClip();
+  const first = clip(w, st); let last = [first.x, first.y, first.z]; assert.ok(first.alternate);
+  const paused = clip(empty, st, 0, 3.7, 9.2, 0); [paused.x, paused.y, paused.z].forEach((v, i) => near(v, last[i], 1e-10));
+  for (let i = 0; i < 240; i++) {
+    const c = clip(empty, st), p = [c.x, c.y, c.z];
+    assert.ok(Math.hypot(p[0] - last[0], p[1] - last[1], p[2] - last[2]) < 1, `camera jumped on release frame ${i}`);
+    assert.ok(Math.hypot(p[0], p[1] - 1.2, p[2]) >= 1.7, `release crossed the car on frame ${i}`);
+    last = p;
   }
-  for (const f of fences) segs.push({ ax: f[0], az: f[1], bx: f[2], bz: f[3] });
-  let calls = 0;
-  return {
-    get calls() { return calls; },
-    querySegments(x, z, r) {
-      calls++;
-      // Same contract as world.js: everything within r of the point. The real
-      // one is a grid query; this is the same answer, slowly.
-      return segs.filter((g) => distPtSeg2(x, z, g.ax, g.az, g.bx, g.bz) <= r * r);
-    },
-    buildingAt(x, z, pad = 0) {
-      for (const b of boxes) {
-        if (x >= b.x0 - pad && x <= b.x1 + pad && z >= b.z0 - pad && z <= b.z1 + pad) return b;
-      }
-      return null;
-    },
-  };
-}
-function distPtSeg2(x, z, ax, az, bx, bz) {
-  const ex = bx - ax, ez = bz - az, l2 = ex * ex + ez * ez || 1e-9;
-  let t = ((x - ax) * ex + (z - az) * ez) / l2;
-  t = t < 0 ? 0 : t > 1 ? 1 : t;
-  const dx = ax + ex * t - x, dz = az + ez * t - z;
-  return dx * dx + dz * dz;
-}
-
-// The chase cam's real numbers, so the assertions below are about the game and
-// not about a convenient toy. CAMS[0] is { dist: 9.2, height: 3.7 }.
-const DIST = 9.2, HEIGHT = 3.7;
-const CAR = { x: 0, y: 1.2, z: 0 };          // focus: bodyY 0 + 1.2 eye height
-const DT = 1 / 60;
-// The camera dead north of the car, which is where the boom points when the car
-// faces south. Every case below moves the wall, never the boom.
-const CAM = { x: 0, y: HEIGHT, z: DIST };
-
-const clipAt = (st, w, cam = CAM, dt = DT) =>
-  clipCamera(st, w, CAR.x, CAR.y, CAR.z, cam.x, cam.y, cam.z, dt, 0);
-
-// ------------------------------------------------------------ 0. the geometry
-group('segCross');
-ok(Math.abs(segCross(0, 0, 0, 10, -5, 4, 5, 4) - 0.4) < 1e-9,
-  'a crossing at 4 m along a 10 m ray reports 0.4');
-ok(segCross(0, 0, 0, 10, -5, 14, 5, 14) === -1,
-  'a wall past the end of the ray is not a crossing');
-ok(segCross(0, 0, 0, 10, -5, -3, 5, -3) === -1,
-  'a wall behind the start of the ray is not a crossing');
-ok(segCross(0, 0, 0, 10, 1, 4, 6, 4) === -1,
-  'a wall the ray misses sideways is not a crossing');
-ok(segCross(0, 0, 0, 10, -5, 4, -5, 9) === -1,
-  'a wall parallel to the ray is not a crossing');
-
-// ------------------------------------------------- 1. nothing in the way
-group('an unobstructed camera is left exactly where it was');
-{
-  const empty = world();
-  const st = makeClip();
-  const c = clipAt(st, empty);
-  ok(c.x === CAM.x && c.y === CAM.y && c.z === CAM.z,
-    'open ground: the camera point is unchanged',
-    `${r2(c.x)}, ${r2(c.y)}, ${r2(c.z)}`);
-  ok(c.frac === 1 && c.hit === false, 'and it does not claim a hit');
-  // A house well off to one side must not touch it either.
-  const aside = world({ boxes: [{ x0: 12, z0: -6, x1: 24, z1: 6 }] });
-  const st2 = makeClip();
-  const c2 = clipAt(st2, aside);
-  ok(c2.z === DIST && c2.y === HEIGHT, 'a house beside the boom is not in the boom');
-}
-
-// ------------------------------------------------- 2. a wall in the way
-group('a wall between the car and the camera pulls the camera to the near side');
-{
-  // A house whose front wall is 5 m behind the car, filling the boom.
-  const w = world({ boxes: [{ x0: -8, z0: 5, x1: 8, z1: 17 }] });
-  const st = makeClip();
-  const c = clipAt(st, w);
-  ok(c.z < 5, 'the camera is on the car\'s side of the wall', `z = ${r2(c.z)}`);
-  ok(c.z > 0, 'and not behind the car', `z = ${r2(c.z)}`);
-  // 5 m of boom minus the margin, to within the numerics.
-  ok(Math.abs(c.z - (5 - MARGIN)) < 0.05,
-    `it stands ${MARGIN} m in front of the wall`, `z = ${r2(c.z)}`);
-  ok(!w.buildingAt(c.x, c.z, 0), 'the final point is not inside the footprint');
-  ok(c.y > HEIGHT, 'and it rides a little higher so the shot still reads',
-    `y = ${r2(c.y)} vs ${HEIGHT}`);
-  ok(c.y <= HEIGHT + LIFT + 1e-9, `...by no more than ${LIFT} m`, `y = ${r2(c.y)}`);
-  ok(c.hit === true && c.frac < 1, 'and it reports the hit');
-}
-
-group('a nearer wall wins, and the wall of a courtyard 30 cm away does not crush it');
-{
-  const w = world({
-    boxes: [
-      { x0: -8, z0: 7.0, x1: 8, z1: 9 },     // the far one
-      { x0: -8, z0: 3.0, x1: 8, z1: 4 },     // the near one
-    ],
-  });
-  const c = clipAt(makeClip(), w);
-  ok(Math.abs(c.z - (3 - MARGIN)) < 0.05,
-    'the first crossing is the one that counts', `z = ${r2(c.z)}`);
-}
-{
-  // A wall pressed right up against the car: the boom cannot go to zero or the
-  // camera is inside the bonnet.
-  const w = world({ boxes: [{ x0: -8, z0: 0.3, x1: 8, z1: 9 }] });
-  const c = clipAt(makeClip(), w);
-  ok(c.frac >= MIN_FRAC - 1e-9, `the boom never shortens past ${MIN_FRAC} of itself`,
-    `frac = ${r2(c.frac)}`);
-  ok(Math.hypot(c.x - CAR.x, c.z - CAR.z) > 1.4,
-    'so the camera keeps some distance from the car even in a corner',
-    `${r2(Math.hypot(c.x - CAR.x, c.z - CAR.z))} m`);
-}
-
-// ------------------------------------------------- 3. inside a footprint
-group('a camera point inside a footprint is moved out');
-{
-  // The car sits in a courtyard whose near wall the world did not collide (it
-  // was on the asphalt, so world.js dropped it): only the FAR wall is a
-  // segment, and the boom never crosses it before the camera point lands
-  // indoors. Nothing but buildingAt can catch this.
-  const w = {
-    querySegments: () => [{ ax: -8, az: 30, bx: 8, bz: 30 }],
-    buildingAt: (x, z, pad = 0) =>
-      (x >= -8 - pad && x <= 8 + pad && z >= 6 - pad && z <= 30 + pad) ? {} : null,
-  };
-  const c = clipAt(makeClip(), w);
-  ok(!w.buildingAt(c.x, c.z, 0), 'the camera ends up outside the bricks', `z = ${r2(c.z)}`);
-  ok(c.z < 6, 'on the near side of the footprint', `z = ${r2(c.z)}`);
-}
-
-// ------------------------------------------------- 4. the smoothing
-group('pull-in is immediate, release is gradual');
-{
-  const blocked = world({ boxes: [{ x0: -8, z0: 5, x1: 8, z1: 17 }] });
-  const clear = world();
-  const st = makeClip();
-  // One frame. Not two, not "settles over a few".
-  const first = clipAt(st, blocked);
-  const zIn = first.z;
-  ok(zIn < 5, 'the very first frame is already clear of the wall', `z = ${r2(zIn)}`);
-  const fracIn = st.frac;
-  // Same wall again: it must not creep further in.
-  const again = clipAt(st, blocked);
-  ok(Math.abs(again.z - zIn) < 1e-9, 'holding against the wall is stable');
-
-  // The wall goes away. One frame later the camera is still nearly where it was.
-  const rel1 = clipAt(st, clear);
-  ok(rel1.z < zIn + 0.6,
-    'the frame after the way clears, the camera has barely moved',
-    `z = ${r2(rel1.z)} from ${r2(zIn)}`);
-  ok(rel1.z > zIn, 'but it has started back out', `z = ${r2(rel1.z)}`);
-  // The analytic value of the ease, so the assertion is about the rate and not
-  // about "some number bigger than before".
-  const wantFrac = fracIn + (1 - fracIn) * (1 - Math.exp(-RELEASE * DT));
-  ok(Math.abs(st.frac - wantFrac) < 1e-9,
-    `the release is a ${RELEASE}/s exponential ease`, `${r2(st.frac)} vs ${r2(wantFrac)}`);
-
-  // ...and it does get all the way home. Three seconds of frames. Exactly
-  // home: an exponential that never arrives leaves the boom two centimetres
-  // short forever, so camclip snaps the last SNAP of it.
-  for (let i = 0; i < 180; i++) clipAt(st, clear);
-  const home = clipAt(st, clear);
-  ok(home.z === DIST && home.y === HEIGHT,
-    'after three seconds in the open the boom is back to exactly full length',
-    `z = ${r2(home.z)}, y = ${r2(home.y)}`);
-  ok(home.frac === 1 && home.hit === false, 'and the lift and the hit flag have gone with it');
-
-  // Coming in is not rate limited even from full extension.
-  const snap = clipAt(st, blocked);
-  ok(Math.abs(snap.z - (5 - MARGIN)) < 0.05,
-    'and going back in is one frame again, from full extension',
-    `z = ${r2(snap.z)}`);
-}
-
-// ------------------------------------------------- 5. fences are not buildings
-group('a fence is not a wall as far as a camera 3.7 m up is concerned');
-{
-  // A 1.6 m chain-link fence across the boom. The collider is identical to a
-  // building's in every respect the query can see; the difference is that
-  // nothing stands behind it.
-  const w = world({ fences: [[-8, 5, 8, 5]] });
-  const c = clipAt(makeClip(), w);
-  ok(c.z === DIST && c.y === HEIGHT,
-    'the chase cam ignores it', `z = ${r2(c.z)}`);
-  // But a camera down at fence height does not get to see through it.
-  const low = { x: 0, y: 1.4, z: DIST };
-  const c2 = clipAt(makeClip(), w, low);
-  ok(c2.z < 5, `a boom below ${FENCE_H} m is stopped by it`, `z = ${r2(c2.z)}`);
-  // And a wall with a house behind it stops the high camera, fence or not.
-  const house = world({ boxes: [{ x0: -8, z0: 5, x1: 8, z1: 17 }] });
-  ok(clipAt(makeClip(), house).z < 5, 'a building stops it at any height');
-}
-
-// ------------------------------------------------- 6. it costs one query
-group('cost');
-{
-  const w = world({ boxes: [{ x0: -8, z0: 5, x1: 8, z1: 17 }] });
-  const st = makeClip();
-  clipAt(st, w);
-  ok(w.calls === 1, 'one segment query per camera per frame', `${w.calls}`);
-  const out1 = clipAt(st, w);
-  const out2 = clipAt(st, w);
-  ok(out1 === out2, 'and the result is shared scratch — nothing is allocated');
-}
-
-// ------------------------------------------------- 7. it never returns garbage
-group('robustness');
-{
-  const w = world({ boxes: [{ x0: -8, z0: 5, x1: 8, z1: 17 }] });
-  const st = makeClip();
-  // A camera on top of the car (dist 0) must not divide by zero.
-  const c = clipCamera(st, w, 0, 1.2, 0, 0, 1.2, 0, DT, 0);
-  ok(Number.isFinite(c.x) && Number.isFinite(c.y) && Number.isFinite(c.z),
-    'a zero-length boom is finite', `${c.x}, ${c.y}, ${c.z}`);
-  // No world at all (a suite, a stage that has not loaded one yet).
-  const c2 = clipCamera(makeClip(), null, 0, 1.2, 0, 0, HEIGHT, DIST, DT, 0);
-  ok(c2.z === DIST && c2.y === HEIGHT, 'no world means no clipping');
-  // A world with segments but no buildingAt (landmarks.js wraps querySegments).
-  const c3 = clipCamera(makeClip(), { querySegments: () => [] },
-    0, 1.2, 0, 0, HEIGHT, DIST, DT, 0);
-  ok(c3.z === DIST, 'a world without buildingAt still works');
-  // dt of 0 — a paused frame — holds rather than releasing.
-  const st4 = makeClip();
-  clipAt(st4, w);
-  const held = st4.frac;
-  clipAt(st4, world(), CAM, 0);
-  ok(st4.frac === held, 'a zero-length frame does not move the boom');
-}
-
-console.log(`\n${pass} passed, ${fail} failed`);
-process.exitCode = fail ? 1 : 0;
+  const c = clip(empty, st); assert.deepEqual([c.x, c.y, c.z], [0, 3.7, 9.2]); assert.equal(st.escaping, false);
+});
+test('snap inward and exponential outward release keep their different rates', () => {
+  const s = makeClip(); clip(front, s); const f = s.frac;
+  clip(empty, s); near(s.frac, f + (1 - f) * (1 - Math.exp(-RELEASE / 60)));
+  const held = s.frac; clip(empty, s, 0, 3.7, 9.2, 0); assert.equal(s.frac, held);
+  for (let i = 0; i < 240; i++) clip(empty, s); assert.equal(s.frac, 1);
+  clip(front, s); near(s.frac, f);
+});
+test('a teleport resets stale boom state instead of sweeping the previous town view', () => {
+  const st = makeClip(); clip(front, st); assert.ok(st.frac < 1);
+  clip(empty, st); assert.equal(st.teleported, false);
+  clipCamera(st, empty, 900, 1.2, 0, 900, 3.7, 9.2, 1 / 60);
+  assert.equal(st.teleported, true); assert.equal(st.frac, 1);
+});
+test('the final eye is corrected after smoothing has trailed inside the wall', () => {
+  const p = [0, 3.7, 7]; const s = makeClip(); assert.equal(guardView(s, front, 0, 1.2, 0, p), true); clear(front, p);
+});
+test('post-smoothing ground lift is checked against a roof', () => {
+  const w = world(m => m.quad([-5, 2.5, 4], [5, 2.5, 4], [5, 2.5, 12], [-5, 2.5, 12], [1, 1, 1]));
+  const p = [0, 1.8, 9]; guardView(makeClip(), w, 0, 1.2, 0, p, (_x, z) => z > 4 ? 2 : 0); clear(w, p);
+});
+test('zero-length boom and degenerate triangles remain finite', () => {
+  const p = new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]); assert.equal(sphereTriangle(0, 0, 0, 0, 0, 0, 1, p, 0, 3, 6), Infinity);
+  const c = clip(empty, makeClip(), 0, 1.2, 0); assert.ok([c.x, c.y, c.z].every(Number.isFinite));
+});
+test('surface capture copies only its range and survives builder release', () => {
+  const mesh = new MeshBuilder(); wall(mesh, -100); const from = mesh.i.length; wall(mesh, 5);
+  const index = makeCameraColliders(); index.addMesh(mesh, from, mesh.i.length, 'measured-wall');
+  assert.equal(index.stats.triangles, 2); assert.equal(index.stats.vertices, 4); assert.equal(index.stats.bytes, 60);
+  mesh.v.length = mesh.i.length = 0;
+  const w = { queryCameraBlocks: index.query }; assert.equal(sweepCamera(w, 0, 2, 0, 0, 2, 10, 0).source, 'measured-wall');
+  assert.equal(sweepCamera(w, 0, 2, -101, 0, 2, -99, 0).hit, false);
+});
+test('spatial broadphase deduplicates blocks across cells and includes negative coordinates', () => {
+  const w = world(m => wall(m, -65, -100, 100)); const list = w.queryCameraBlocks(-110, -1, -70, 110, 20, -60);
+  assert.equal(list.length, 1); assert.equal(w.queryCameraBlocks(-110, 20, -70, 110, 30, -60).length, 0);
+  w.index.free(); assert.equal(w.index.stats.bytes, 0); assert.equal(w.queryCameraBlocks(-110, -1, -70, 110, 20, -60).length, 0);
+});
+test('worker transfer round trip preserves buffers, ordering, queries and freeing', () => {
+  const w = world(m => { wall(m, 5); wall(m, 9); });
+  const packet = w.index.toPacket();
+  const received = structuredClone(packet, { transfer: packet.blocks.flatMap(b => [b.positions.buffer, b.indices.buffer]) });
+  assert.equal(packet.blocks[0].positions.byteLength, 0, 'worker buffers were transferred rather than retained');
+  const restored = makeCameraColliders(received), rw = { queryCameraBlocks: restored.query };
+  assert.equal(restored.query(-10, -10, -10, 10, 20, 20)[0].positions, received.blocks[0].positions);
+  near(sweepCamera(rw, 0, 2, 0, 0, 2, 10, CAST_R).t, (5 - CAST_R) / 10);
+  assert.equal(restored.stats.triangles, 4); restored.free();
+  assert.equal(restored.stats.bytes, 0);
+  assert.throws(() => makeCameraColliders({ ...received, version: 99 }), /unknown/);
+});
+test('final-eye statistics report a bad actual ray rather than a clipped target', () => {
+  camClipStats.reset(); const s = makeClip(); clip(front, s);
+  const vp = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  recordCameraFrame(s, front, 0, 1.2, 0, [0, 3.7, 7], vp, 0.02);
+  assert.equal(camClipStats.rayBlocked, 1); assert.equal(camClipStats.clearPct, 0); near(camClipStats.maxBlockedSeconds, 0.02);
+  const p = [0, 3.7, 7]; guardView(s, front, 0, 1.2, 0, p); recordCameraFrame(s, front, 0, 1.2, 0, p, vp, 0.02);
+  assert.equal(camClipStats.frames, 2); assert.equal(camClipStats.rayBlocked, 1); assert.equal(camClipStats.last.rayClear, true); assert.equal(camClipStats.clearPct, 50);
+});
+test('work evidence counts correction scans even when the final ray is clear', () => {
+  camClipStats.reset(); const w = world(m => wall(m, 0.2)), st = makeClip(); const c = clip(w, st);
+  const p = [c.x, c.y, c.z]; guardView(st, w, 0, 1.2, 0, p);
+  recordCameraFrame(st, w, 0, 1.2, 0, p, null);
+  assert.equal(camClipStats.rayBlocked, 0); assert.ok(camClipStats.maxQueries > 20);
+  assert.ok(camClipStats.maxScannedTriangles > 0 && camClipStats.maxTestedTriangles > 0);
+});
+test('missing geometry and out-of-frame focus are not recorded as success', () => {
+  camClipStats.reset(); recordCameraFrame(makeClip(), {}, 0, 1.2, 0, [0, 4, 9], null);
+  assert.equal(camClipStats.unknown, 1); assert.equal(camClipStats.clearPct, 0); assert.equal(camClipStats.unframed, 1);
+  recordCameraFrame(makeClip(), { queryCameraBlocks: empty.queryCameraBlocks, cameraReady: () => false }, 0, 1.2, 0, [0, 4, 9], null);
+  assert.equal(camClipStats.unknown, 2, 'an unloaded sector is unknown even when other sectors have geometry');
+  camClipStats.reset(); assert.equal(camClipStats.clearPct, null);
+});
+test('rigid rotations and large map coordinates preserve exact face impact', () => {
+  for (let i = 0; i < 100; i++) {
+    const angle = i * 0.173, c = Math.cos(angle), s = Math.sin(angle), offset = i * 173;
+    const P = (x, y, z) => [x * c + z * s + offset, y + i, -x * s + z * c - offset];
+    const p = new Float64Array([...P(-4, -4, 5), ...P(4, -4, 5), ...P(0, 4, 5)]);
+    const f = P(0, 0, 0), t = P(0, 0, 10);
+    near(sphereTriangle(...f, t[0] - f[0], t[1] - f[1], t[2] - f[2], 0.45, p, 0, 3, 6), 0.455, 1e-8);
+  }
+});
+test('the problem-location house keeps its actual rendered roof and porch surfaces', () => {
+  const bi = MAP.buildings.findIndex(b => b.id === 473653931), b = MAP.buildings[bi];
+  const mesh = new MeshBuilder();
+  const info = buildHouse(mesh, b, b.hs, MATS, houseRng(b, bi), { lod: 0, index: bi, streetYaw: -b.a, y: 11 });
+  const index = makeCameraColliders(); index.addMesh(mesh, 0, mesh.i.length, 'problem-house');
+  const w = { queryCameraBlocks: index.query };
+  let checked = 0, roofs = 0;
+  for (let j = 0; j < mesh.i.length; j += 3) {
+    const a = mesh.i[j] * 9, b = mesh.i[j + 1] * 9, c = mesh.i[j + 2] * 9;
+    const x = (mesh.v[a] + mesh.v[b] + mesh.v[c]) / 3;
+    const y = (mesh.v[a + 1] + mesh.v[b + 1] + mesh.v[c + 1]) / 3;
+    const z = (mesh.v[a + 2] + mesh.v[b + 2] + mesh.v[c + 2]) / 3;
+    const nx = mesh.v[a + 3], ny = mesh.v[a + 4], nz = mesh.v[a + 5];
+    const hit = sweepCamera(w, x + nx * 0.1, y + ny * 0.1, z + nz * 0.1, x - nx * 0.1, y - ny * 0.1, z - nz * 0.1, 0, false);
+    assert.ok(hit.hit, `rendered triangle ${j / 3} missing from camera index`); checked++;
+    if (ny > 0.2 && y > 14) roofs++;
+  }
+  assert.ok(checked >= 20 && roofs >= 4, JSON.stringify({ checked, roofs, info }));
+  assert.equal(index.stats.triangles, checked);
+  console.log('  source house:', JSON.stringify({ triangles: checked, roofs, packedBytes: index.stats.bytes }));
+});
+console.log(`camera: ${passed} passed`);

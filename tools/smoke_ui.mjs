@@ -154,11 +154,13 @@ group('i18n');
 {
   setLang('fr');
   eq(t('menu.drive'), 'EMBARQUE', 'French is the base dictionary');
-  // Thomas, 2026-09-07: English is selectable now — as the photocopy. French
-  // stays the master copy and the default; English is a click away and worse.
+  // Thomas, 2026-09-07: English is selectable. Tom, 20 Oct 2026: it is real
+  // English (the photocopy gag is no longer the default). French stays the
+  // master copy and the default.
   setLang('en');
   eq(getLang(), 'en', 'English can be selected');
-  eq(t('menu.drive'), 'ROLL', 'and the interface becomes the departmental translation');
+  eq(t('menu.drive'), 'GET IN', 'and the interface is real English');
+  eq(t('k.handbrake'), 'Handbrake', 'the controls are real English too');
   setLang('fr');
   eq(t('menu.drive'), 'EMBARQUE', 'French is exactly what it was, and the default');
   eq(t('intro.go'), 'GO', 'shared wording remains available');
@@ -175,9 +177,33 @@ group('i18n');
   for (const cap of ['Tab', 'Espace', 'Shift', '?']) {
     ok(kb.includes('>' + cap + '<'), `the diagram draws the ${cap} key`);
   }
-  ok(!/class="used[^"]*">M</.test(kb), 'M is no longer a lit key (mute moved to 0)');
+  // This used to assert M was dark (mute moved to 0). M has since become the
+  // modes picker and is in KEYMAP, so a dark M was the bug (UX review P8).
+  ok(/class="used[^"]*">M</.test(kb), 'M is lit: it opens the modes picker');
+  for (const cap of ['T', 'Y', 'V', 'M', 'K', 'U']) {
+    ok(new RegExp(`class="used[^"]*">${cap}<`).test(kb), `${cap} is bound, so it is lit`);
+  }
+  const { KEYBOARD_CAPS } = await import('../src/game/ui.js');
+  const drawn = new Set(KEYBOARD_CAPS);
+  for (const k of KEYMAP) for (const cap of k.caps) {
+    if (!drawn.has(cap)) continue;
+    const re = new RegExp(`class="used[^"]*">${cap.replace(/[?+]/g, '\\$&')}<`);
+    ok(re.test(kb), `KEYMAP cap ${cap} is lit on the drawn keyboard`);
+  }
   ok(/class="used[^"]*">0</.test(kb), '0 is the mute key now');
   ok(/class="used[^"]*">N</.test(kb), 'N cycles the minimap size');
+}
+
+group('damaged and newer save slots (save review SR-05, SR-06)');
+{
+  const { slotsHTML } = await import('../src/game/ui.js');
+  const corrupt = slotsHTML([{ slot: 'tom.1', character: 'tom', empty: false, corrupt: true, name: 'x' }], 'save');
+  ok(/class="slot corrupt"/.test(corrupt) && !/loadslot/.test(corrupt), 'a damaged slot has no Load');
+  ok(/delslot/.test(corrupt) && /saveslot/.test(corrupt), '...only Delete, and Save in the pause menu');
+  const row = { slot: 'tom.2', character: 'tom', empty: false, newer: true, name: 'n', savedAt: 0, carId: 'ranger', money: 1, jobs: 0, playtime: 0 };
+  const newer = slotsHTML([row], 'save');
+  ok(!/saveslot/.test(newer) && /loadslot/.test(newer), 'a slot from a newer build can be loaded, never saved over');
+  ok(/saveslot/.test(slotsHTML([{ ...row, newer: false }], 'save')), 'an ordinary slot still offers Save');
 }
 
 // ---------------------------------------------------------------- 3. storage
@@ -291,8 +317,33 @@ group('mission timer table');
     'it has the header row');
   const { MISSIONS } = await import('../src/game/missions.js');
   for (const m of MISSIONS) ok(md.includes('| ' + m.id + ' |'), `mission ${m.id} is in the table`);
-  ok(/\| \*\*tour\*\* \| \*\*total\*\*/.test(md), 'per-mission totals are present');
+  // « tour » was the sample here until the restructure retired it (29 Sept
+  // 2026); every listed job must carry a totals row now.
+  for (const m of MISSIONS) ok(md.includes('| **' + m.id + '** | **total**'), `per-mission totals are present for ${m.id}`);
   ok(!/\bNaN\b/.test(md), 'no stage failed to route');
+}
+
+// ---------------------------------------------------------------- S3-RANGER
+console.log('\nS3-RANGER: the speedo fits the car, the steering chip retires');
+{
+  const { gaugeScale } = await import('../src/game/hud.js');
+  const { carById } = await import('../src/game/cars.js');
+  const r = gaugeScale(carById('ranger').topSpeed * 3.6);
+  ok(r.max === 140 && r.red === 110, `the Ranger's dial ends at 140 with red from 110 (got ${r.max}/${r.red})`);
+  ok(116 >= r.red && 90 / r.max > 0.6, 'the speedRun top (116) is in the red and 90 km/h is past three fifths of the sweep');
+  ok(gaugeScale(25).max === 60, 'nothing gets a dial under 60');
+  // The tutorial: a light touch on A or D (under the 0.35 the step asks for)
+  // still retires the chip after 50 m driven with the wheel turned.
+  const { Tutorial } = await import('../src/game/ui.js');
+  const tu = new Tutorial();
+  tu.finished = false; tu.i = 1; tu.wait = 0; tu.hold = 0;
+  const step = (dt, c) => tu.update(dt, { speedKmh: 0, steer: 0, brake: 0, handbrake: false, ...c });
+  for (let k = 0; k < 60; k++) step(1 / 60, { speedKmh: 36, steer: 0 });      // 10 m straight: still up
+  const upStraight = tu.i === 1 && tu.hold === 0;
+  for (let k = 0; k < 4 * 60; k++) step(1 / 60, { speedKmh: 36, steer: 0.2 });  // 40 m with a light touch
+  const upAt40 = tu.hold === 0;
+  for (let k = 0; k < 2 * 60; k++) step(1 / 60, { speedKmh: 36, steer: 0.2 });  // past 50 m
+  ok(upStraight && upAt40 && (tu.hold > 0 || tu.i === 2), 'the « A / D » chip retires after 50 m of driving with steering on, not before');
 }
 
 // ---------------------------------------------------------------- report

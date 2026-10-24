@@ -23,16 +23,22 @@ const wallet = (v) => ({ value: v, can(c) { return this.value >= c; },
   add(a) { this.value = Math.max(0, this.value + a); return this.value; } });
 const hudSpy = () => { const h = { toasts: [] }; h.toast = (t) => h.toasts.push(t); return h; };
 
-ok('C1 the summer is 73 days, Saturday 26 June to Monday 6 September', () => {
-  assert.equal(cal.DAYS, 73);
-  assert.equal(cal.label(0), 'sam 26 juin');
+// RESTRUCTURE (29 Sept 2026): the summer starts on Tuesday 22 June so the
+// Saint-Jean (24 June) is in it, and the HUD's headline is the days left, not
+// the $1,200 envelope. The old 26 June / 73-day / envelope checks are replaced
+// on purpose, not loosened.
+ok('C1 the summer is 77 days, Tuesday 22 June to Monday 6 September', () => {
+  assert.equal(cal.DAYS, 77);
+  assert.equal(cal.label(0), 'mar 22 juin');
+  assert.equal(cal.label(2), 'jeu 24 juin');          // the Saint-Jean
   assert.equal(cal.label(cal.LAST), 'lun 6 sept');
   assert.equal(cal.iso(cal.LAST), '2004-09-06');
-  assert.equal(cal.label(5), 'jeu 1 juill');          // Canada Day
-  assert.equal(cal.label(27), 'ven 23 juill');        // Tom's birthday
-  assert.equal(cal.daysLeft(0), 72);
+  assert.equal(cal.label(9), 'jeu 1 juill');          // Canada Day
+  assert.equal(cal.label(31), 'ven 23 juill');        // Tom's birthday
+  assert.equal(cal.daysLeft(0), 76);
   assert.equal(cal.daysLeft(cal.LAST), 0);
-  assert.ok(!cal.isOver(71) && cal.isOver(72));
+  assert.ok(!cal.isOver(75) && cal.isOver(76));
+  assert.equal(cal.OLD_START_SHIFT, 4, 'an old 26 June day 0 is day 4 now');
 });
 
 ok('C2 hard starts the day after Tom’s birthday; the difficulty table is the plan’s', () => {
@@ -49,7 +55,7 @@ ok('C3 a job costs a day, half a day on easy, and Labour Day ends it', () => {
   assert.ok(cal.spendDay(G));
   assert.equal(G.day, 1);
   assert.equal(G.hud.toasts.length, 1);
-  assert.ok(G.hud.toasts[0].startsWith('Dim 27 juin'));
+  assert.ok(G.hud.toasts[0].startsWith('Mer 23 juin'), G.hud.toasts[0]);
   const E = cal.startSummer({ difficulty: 'easy', hud: hudSpy() });
   assert.ok(!cal.spendDay(E)); assert.equal(E.day, 0.5); assert.equal(E.hud.toasts.length, 0);
   assert.ok(cal.spendDay(E)); assert.equal(E.day, 1);
@@ -59,26 +65,30 @@ ok('C3 a job costs a day, half a day on easy, and Labour Day ends it', () => {
   assert.ok(!cal.spendDay(G), 'nothing is spent once the summer is over');
 });
 
-ok('C4 the envelope text and the moment the number is reached', () => {
+ok('C4 the HUD headline is the days left; there is no dollar goal', () => {
   const G = cal.startSummer({ difficulty: 'normal', hud: hudSpy(), wallet: wallet(340) });
   const e = cal.envelopeText(G);
-  assert.equal(e.amount, '340 $ / 1\u202f200 $');
-  assert.equal(e.day, 'sam 26 juin · 72 jours');
-  assert.ok(!cal.checkReached(G));
-  G.wallet.value = 1200;
-  assert.ok(cal.checkReached(G));
-  assert.ok(G.reached && G.hud.toasts.length === 1);
-  assert.ok(!cal.checkReached(G), 'only once');
+  assert.equal(e.amount, '76 jours d’été');
+  assert.equal(e.day, 'mar 22 juin · 340 $');
+  assert.equal(e.headline, 'days');
+  G.wallet.value = 5000;
+  assert.ok(!cal.checkReached(G), 'no « objectif atteint » toast, however much is saved');
+  assert.ok(!G.reached && G.hud.toasts.length === 0);
+  G.day = cal.LAST;
+  assert.equal(cal.envelopeText(G).amount, 'Fête du Travail');
   G.summerOver = true;
-  assert.equal(cal.envelopeText(G).day, 'L’été est fini.');
+  assert.equal(cal.envelopeText(G).amount, 'L’été est fini.');
 });
 
 ok('C5 the summer file, when present, puts the weather on the toast', () => {
   cal.setSummer(new Map([['2004-07-01', { date: '2004-07-01', tmaxC: 29.4, humidex: 36, sky: 'fair' }]]));
-  assert.equal(cal.weatherLine(5), '29°, humidex 36, beau');
-  assert.equal(cal.weatherLine(6), '');
-  assert.ok(cal.dayToast(5).startsWith('Jeu 1 juill · 29°'));
-  assert.ok(cal.dayToast(70).includes('2 jours avant la fête du Travail'));
+  assert.equal(cal.weatherLine(9), '29°, humidex 36, beau');
+  assert.equal(cal.weatherLine(10), '');
+  assert.ok(cal.dayToast(9).startsWith('Jeu 1 juill · 29°'));
+  assert.ok(cal.dayToast(74).includes('2 jours avant la fête du Travail'));
+  // 22-25 June come before the Environment Canada file: a clear sky, no invented numbers.
+  assert.equal(cal.dayInfo(2).synthetic, true);
+  assert.equal(cal.weatherLine(2), '');
   cal.setSummer(null);
 });
 
@@ -100,6 +110,7 @@ ok('P1 jobs take the lift × difficulty, races the difficulty alone, node suites
   const { ALL_MISSIONS } = await import('../src/game/missions.js');
   const { COURSES } = await import('../src/game/modes.js');
   const { LIFE_MISSIONS } = await import('../src/game/lifejobs.js');
+  const { mainIds, OPTIONAL } = await import('../src/game/campaign.js');
   const lifeIds = new Set(LIFE_MISSIONS.map(d => d.id));
   const G = cal.startSummer({ difficulty: 'normal' });
   let jobs = 0, gross = 0, coreGross = 0;
@@ -115,10 +126,13 @@ ok('P1 jobs take the lift × difficulty, races the difficulty alone, node suites
   let races = 0;
   for (const c of COURSES) races += scaledPay(G, { def: { mode: c.kind || 'blitz' } }, c.money || 0);
   ok(`P2 one clean pass: ${jobs} jobs net $${gross}, core $${coreGross}, ${COURSES.length} courses $${races}`, () => {
-    // 28 until « L'alternateur » became the first job of the summer.
-    assert.equal(jobs, 29 + LIFE_MISSIONS.length);
-    assert.ok(coreGross >= 950 && coreGross <= 1050, `original jobs net ${coreGross}`);
-    assert.ok(gross > coreGross, 'new life missions offer additional income');
+    // RESTRUCTURE (29 Sept 2026): the summer is the ten main missions, the
+    // finale and the optional jobs (campaign.js); eleven jobs were cut on
+    // purpose, so the old 29 + life count and the $950-1,050 pass (which was
+    // sized to fill the $1,200 envelope, no longer a goal) are gone.
+    assert.equal(jobs, mainIds((id) => ALL_MISSIONS.some((d) => d.id === id)).length + 1 + Object.keys(OPTIONAL).length);
+    assert.ok(gross > 0 && coreGross > 0, `a clean pass still earns something: ${gross} $`);
+    assert.ok(gross > coreGross, 'life missions offer additional income');
     assert.equal(races, 435);
   });
 }
@@ -190,14 +204,16 @@ ok('F3 the pump fills what you can pay for, and a dry tank coasts', () => {
   assert.ok(!fuel.jerrycan(G, spec), 'not when the tank has something in it');
 });
 
-ok('E1 both endings are three cards and say the number', () => {
-  const yes = endingCards(1240, 1200, true), no = endingCards(910, 1200, false);
-  assert.equal(yes.length, 3); assert.equal(no.length, 3);
-  assert.ok(yes[0].body.includes('1240 $'));
-  assert.ok(yes[1].body.includes('objectif est atteint'));
-  assert.ok(no[0].body.includes('910 $ sur 1200'));
-  assert.ok(no[1].body.includes('Ranger est toujours à toi'));
-  for (const c of [...yes, ...no]) assert.ok(c.title && c.body.length > 40);
+ok('E1 one ending, three cards, the streets counter under the last one', () => {
+  // RESTRUCTURE (29 Sept 2026): the ending cannot be failed and says no dollar
+  // figure; it is Tom's three cards, and the last carries the streets counter.
+  const cards = endingCards({ streets: 'Rues d’Aylmer que tu connais : 42 %' });
+  assert.equal(cards.length, 3);
+  assert.ok(cards[0].body.includes('on est tous partis'));
+  assert.ok(cards[1].body.includes('2011'));
+  assert.ok(cards[2].body.includes('solénoïde') && cards[2].body.includes('42 %'));
+  assert.ok(!endingCards()[2].body.includes('%'), 'no counter when none is passed');
+  for (const c of cards) assert.ok(c.title && !/\$/.test(c.body), `no dollar figure: ${c.body}`);
 });
 
 console.log(failed ? `${failed} FAILED` : 'all green');

@@ -17,7 +17,9 @@
 //   4. somebody speaks at both ends of it, and « Poutine express » is still in
 //      the game, still Sayyad's, and no longer first
 import fs from 'node:fs';
-import { MISSIONS, ALL_MISSIONS, missionById, missionPayout } from '../src/game/missions.js';
+import { MISSIONS, ALL_MISSIONS, RETIRED_MISSIONS, missionById, missionPayout } from '../src/game/missions.js';
+import { isRetired } from '../src/game/campaign.js';
+import { UNLOCKS } from '../src/game/garage.js';
 import { PLACES } from '../src/game/places.js';
 import { REPAIR_SPOTS } from '../src/game/damage.js';
 import { friendLines } from '../src/game/story.js';
@@ -94,18 +96,21 @@ group('a fresh save is offered it, and it, alone');
 
 // -------------------------------------------------------- 3. the poutine run
 
-group('« Poutine express » is still here, still Sayyad’s, and no longer first');
+group('« Poutine express » is retired, and what hung off it still works');
 {
-  const d = missionById('poutine');
-  ok(!!d, 'the job still exists — the Civic and two start points hang off it');
-  ok(MISSIONS.indexOf(d) > MISSIONS.indexOf(missionById('alternateur')),
-    'it comes after the alternator run');
-  ok(MISSIONS.indexOf(d) > MISSIONS.indexOf(missionById('gang'))
-    && MISSIONS.indexOf(d) > MISSIONS.indexOf(missionById('sayyad')),
-    '...and after « Ramasser la gang » and « Réveiller Sayyad », as Thomas asked');
-  ok(/Sayyad/.test(d.brief), `the brief says whose errand it is: « ${d.brief.slice(0, 60)}… »`);
-  const st = d.build(ctx);
-  ok(/Sayyad/.test(st[0].text), `and so does the first objective: « ${st[0].text} »`);
+  // RESTRUCTURE (29 Sept 2026, Tom's approved ten-mission plan): the poutine
+  // run is cut from the summer on purpose (campaign.js RETIRED). Its definition
+  // stays only so an old save still parses. The Civic it used to grant now
+  // comes with « Réveiller Sayyad », and a save that finished it keeps the car.
+  ok(!ALL_MISSIONS.some((m) => m.id === 'poutine') && !MISSIONS.some((m) => m.id === 'poutine'),
+    'it is on no list, map or count');
+  ok(RETIRED_MISSIONS.some((m) => m.id === 'poutine'), 'its definition is kept for old saves');
+  ok(isRetired('poutine'), 'campaign.js lists it as retired');
+  const civic = Object.values(UNLOCKS).find((u) => u.mission === 'sayyad');
+  ok(!!civic && (civic.legacy || []).includes('poutine'),
+    'the Civic comes with « Réveiller Sayyad », and an old save that finished the poutine run keeps it');
+  ok(MISSIONS.indexOf(missionById('sayyad')) > MISSIONS.indexOf(missionById('alternateur')),
+    '« Réveiller Sayyad » comes after the alternator run');
 }
 
 // ------------------------------------------------------------ 4. the talking
@@ -115,7 +120,9 @@ group('somebody speaks at both ends');
   const s = friendLines('alternateur', 'start'), e = friendLines('alternateur', 'end');
   ok(s.length >= 1 && e.length >= 1, `${s.length} lines at the start, ${e.length} at the end`);
   const who = new Set([...s, ...e].map(([w]) => w));
-  ok(who.has('Ton père'), 'his father gives it out: ' + [...who].join(', '));
+  // Canon changed (docs/STORY-LEDGER.md, 21 Sept 2026): Tom's father gave him
+  // the truck but did not live at 299 Fraser. His mother sends him off.
+  ok(who.has('Margaret') && !who.has('Ton père'), 'his mother sends him off: ' + [...who].join(', '));
   // Canon: the father is « Ton père » and nobody in this game has a surname
   // somebody made up.
   const text = JSON.stringify([...s, ...e]);

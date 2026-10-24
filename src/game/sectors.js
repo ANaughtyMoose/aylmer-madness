@@ -21,6 +21,8 @@
 import { MAP } from './mapdata.js';
 import { buildWorld, HOUSE_NEAR, baseHeightAt } from './world.js';
 import { buildSignage } from './signage.js';
+import { makeCameraColliders } from './camera-colliders.js';
+import { createSectorClient } from './world/sector-client.js';
 
 export const SEAM_X = 2540.6;
 export const CHELSEA_Z = -8500;
@@ -112,11 +114,13 @@ export function nearSectors(x, z, r) {
 // Same surface as buildWorld()'s return, so main.js, the physics closures,
 // landmarks.js (which wraps draw and querySegments) and the reactive world
 // cannot tell the difference. Queries fan out over the loaded slices.
-export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
+export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }, options = {}) {
   const loaded = new Map();               // id -> slice
   const fallen = [];                      // poles on their way down, all slices
   let houseNear = HOUSE_NEAR;
   const B = MAP.bounds;
+  const client = options.worker ? createSectorClient(renderer, mats, options) : null;
+  let pending = null, focus = home, generation = 0;
 
   const W = {
     bounds: B,
@@ -134,6 +138,7 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     terrain: null, terrainStats: null, furniture: null,
     intersections: 0, poleCount: 0, landmarkRoofs: 0,
     mats,
+    cameraColliders: makeCameraColliders(), // persistent hero surfaces, outside streamed slices
     stats: { resident: 0, residentNear: 0, residentFar: 0, tris: 0, draws: 0, near: 0, far: 0, chunks: 0 },
     version: 0,                           // bumps on every load/unload
   };
@@ -171,12 +176,7 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     W.version++;
   }
 
-  function load(id) {
-    if (loaded.has(id)) return loaded.get(id);
-    const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-    const w = buildWorld(renderer, mats, {
-      inside: insideOf(id), distant: !W.distant, signage: false, fallen,
-    });
+  function publish(id, w, t0) {
     w.id = id;
     w.setHouseNear(houseNear);
     if (!W.distant && w.distant) W.distant = w.distant;
@@ -185,6 +185,33 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     const ms = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) | 0;
     console.log(`sector: ${id} built in ${ms} ms (${w.chunks.length} chunks, ${w.stats.resident | 0} tris); resident: ${[...loaded.keys()].join('+')}`);
     return w;
+  }
+  function load(id) {
+    if (loaded.has(id)) return loaded.get(id);
+    if (!SECTOR_IDS.includes(id)) throw new Error('Unknown sector');
+    if (pending?.id === id) return pending.promise;
+    const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (client) {
+      const token = ++generation;
+      client.cancel();
+      // Pending uploaded handles count against the two-slice GPU ceiling.
+      // Keep the player's current slice if one resident must be evicted.
+      while (loaded.size >= 2) {
+        const keep = sectorAt(focus.x, focus.z);
+        const victim = [...loaded.keys()].find((key) => key !== keep) || loaded.keys().next().value;
+        unload(victim);
+      }
+      const promise = client.prepare(id, { distant: !W.distant, signage: false, fallen }).then((w) => {
+        if (token !== generation) { w.free(); if (w.distant) renderer.free?.(w.distant); throw new DOMException('Stale sector', 'AbortError'); }
+        return publish(id, w, t0);
+      }).finally(() => { if (pending?.token === token) pending = null; });
+      pending = { id, token, promise };
+      return promise;
+    }
+    const w = buildWorld(renderer, mats, {
+      inside: insideOf(id), distant: !W.distant, signage: false, fallen,
+    });
+    return publish(id, w, t0);
   }
   function unload(id) {
     const w = loaded.get(id);
@@ -197,22 +224,42 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
   // What should change for a player standing at (x, z): sectors within
   // APPROACH that are not built, and built ones with nothing inside LEAVE.
   function plan(x, z) {
+    focus = { x, z };
     const near = nearSectors(x, z, APPROACH);
     const keep = nearSectors(x, z, LEAVE);
     const out = { load: [], unload: [] };
-    for (const id of SECTOR_IDS) if (near.has(id) && !loaded.has(id)) out.load.push(id);
+    const here = sectorAt(x, z);
+    for (const id of [here, ...SECTOR_IDS.filter((key) => key !== here)]) if (near.has(id) && !loaded.has(id)) out.load.push(id);
     for (const id of loaded.keys()) if (!keep.has(id)) out.unload.push(id);
     return out;
   }
   function update(x, z) {
     const p = plan(x, z);
     for (const id of p.unload) unload(id);
+    if (client) return (async () => { for (const id of p.load.slice(0, 2)) await load(id); return p; })();
     for (const id of p.load) load(id);
     return p;
   }
 
   // ---- queries: fan out over the loaded slices ----------------------------
   const segOut = [];
+  const cameraOut = [];
+  W.queryCameraBlocks = (minX, minY, minZ, maxX, maxY, maxZ) => {
+    cameraOut.length = 0;
+    for (const w of loaded.values()) w.cameraColliders.query(minX, minY, minZ, maxX, maxY, maxZ, cameraOut);
+    W.cameraColliders.query(minX, minY, minZ, maxX, maxY, maxZ, cameraOut);
+    return cameraOut;
+  };
+  W.cameraReady = (fx, fz, ex, ez) => {
+    const n = Math.max(1, Math.ceil(Math.hypot(ex - fx, ez - fz) / 2));
+    for (let i = 0; i <= n; i++) if (!loaded.has(sectorAt(fx + (ex - fx) * i / n, fz + (ez - fz) * i / n))) return false;
+    return true;
+  };
+  Object.defineProperty(W, 'cameraStats', { get() {
+    const stats = { ...W.cameraColliders.stats };
+    for (const w of loaded.values()) for (const k of Object.keys(stats)) stats[k] += w.cameraColliders.stats[k];
+    return stats;
+  } });
   W.querySegments = (x, z, r) => {
     segOut.length = 0;
     for (const w of loaded.values()) {
@@ -235,8 +282,8 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     return null;
   };
   W.roadAt = (x, z) => { for (const w of loaded.values()) if (w.roadAt(x, z)) return true; return false; };
-  W.pavedAt = (x, z, skip, margin) => {
-    for (const w of loaded.values()) if (w.pavedAt(x, z, skip, margin)) return true;
+  W.pavedAt = (x, z, skip, margin, streetsOnly = false) => {
+    for (const w of loaded.values()) if (w.pavedAt(x, z, skip, margin, streetsOnly)) return true;
     return false;
   };
   W.buildingAt = (x, z, pad) => {
@@ -297,9 +344,11 @@ export function buildSectors(renderer, mats, home = { x: 932.9, z: 143.9 }) {
     has: (id) => loaded.has(id),
     loaded: () => [...loaded.keys()].join('+'),
     slice: (id) => loaded.get(id) || null,
+    cancel: () => { generation++; pending = null; return client?.cancel() || false; },
+    loading: () => ({ pending: client?.pending || null, history: client?.history || [], resident: loaded.size }),
   };
 
-  load(sectorAt(home.x, home.z));
+  W.ready = load(sectorAt(home.x, home.z));
   return W;
 }
 

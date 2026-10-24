@@ -1,0 +1,114 @@
+{
+ "sayyad 3/3": {
+  "pace": 18.316666666666908,
+  "split": [
+   18.3
+  ],
+  "top": 117,
+  "resets": 1,
+  "how": "pace car, Ranger"
+ },
+ "arcbache 2/5": {
+  "pace": 80.81666666666337,
+  "split": [
+   80.8
+  ],
+  "top": 117,
+  "resets": 0,
+  "how": "pace car, Ranger"
+ },
+ "golfcart 7/12": {
+  "pace": 84.52719823393177,
+  "how": "cart 29 km/h"
+ },
+ "school 1/1": {
+  "pace": 189.75000000004314,
+  "split": [
+   189.8
+  ],
+  "top": 117,
+  "resets": 0,
+  "how": "pace car, Ranger"
+ },
+ "russellroyal 2/13": {
+  "pace": 146.21068030081742,
+  "how": "cart 29 km/h"
+ },
+ "curfew 1/1": {
+  "pace": 116.81666666666132,
+  "split": [
+   116.8
+  ],
+  "top": 117,
+  "resets": 1,
+  "how": "pace car, Ranger"
+ },
+ "dep 2/2": {
+  "pace": 42.049999999998896,
+  "split": [
+   42
+  ],
+  "top": 117,
+  "resets": 0,
+  "how": "pace car, Ranger"
+ },
+ "margaretdental 2/2": {
+  "pace": 83.29999999999656,
+  "split": [
+   83.3
+  ],
+  "top": 117,
+  "resets": 0,
+  "how": "pace car, Ranger"
+ },
+ "highwayhull 1/3": {
+  "pace": 386.7166666666436,
+  "split": [
+   386.7
+  ],
+  "top": 117,
+  "resets": 0,
+  "how": "pace car, Ranger"
+ },
+ "highwayhull 2/3": {
+  "pace": 259.8333333334257,
+  "split": [
+   259.8
+  ],
+  "top": 117,
+  "resets": 0,
+  "how": "pace car, Ranger"
+ },
+ "highwayhull 3/3": {
+  "pace": 45.96666666666534,
+  "split": [
+   46
+  ],
+  "top": 116,
+  "resets": 1,
+  "how": "pace car, Ranger"
+ },
+ "chelsea 1/1": {
+  "pace": 340.8666666666853,
+  "split": [
+   340.9
+  ],
+  "top": 117,
+  "resets": 2,
+  "how": "pace car, Ranger"
+ },
+ "blitz 2/2": {
+  "pace": 149.86666666667807,
+  "split": [
+   24.4,
+   47.3,
+   84.8,
+   100.9,
+   125.7,
+   149.9
+  ],
+  "top": 115,
+  "resets": 4,
+  "how": "pace car, Ranger"
+ }
+}

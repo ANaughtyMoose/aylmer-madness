@@ -10,9 +10,11 @@
 //   * riders() reads the right person out of the `gang` job's stages, for both
 //     the three-seat car and the two-seat Ranger that has to do the run twice
 //   * nothing anywhere surfaces the historical `steph` / `marc` / `dave` keys
-//   * the driveway lines are French, in bubbles, and nobody is left mute
+//   * the driveway lines are English (the main cast's language), in bubbles,
+//     and nobody is left mute
 //
 // No browser and no WebGL: every build function returns a plain MeshBuilder.
+import { langOf } from './smoke_lang.mjs';
 import { MAP } from '../src/game/mapdata.js';
 import { PLACES, resolvePlaces } from '../src/game/places.js';
 import { MISSIONS } from '../src/game/missions.js';
@@ -238,10 +240,14 @@ for (const carId of ['ranger', 'saturn']) {
     seen.push(riders({ mission: { stages, idx } }).slice());
   }
   ok(seen[0].length === 0, label + ': nobody aboard before the first pickup');
-  // Margaret is always the first pickup, and Sayyad is always the second.
-  ok(seen[1][0] === 'margaret', label + ': Margaret gets in first', JSON.stringify(seen[1]));
-  ok(seen[2][0] === 'margaret' && seen[2][1] === 'sayyad',
+  // Canon changed (docs/STORY-LEDGER.md, 22 Sept; Tom, 29 Sept 2026): the
+  // first pickup, in Tom's own driveway, is Abraham, who has no avatar yet and
+  // rides as the anonymous head. Margaret is Tom's mother and never gets in.
+  // Sayyad is still the second.
+  ok(seen[1][0] === null, label + ': Abraham gets in first, anonymously', JSON.stringify(seen[1]));
+  ok(seen[2][0] === null && seen[2][1] === 'sayyad',
     label + ': then Sayyad', JSON.stringify(seen[2]));
+  ok(!seen.some((r) => r.includes('margaret')), label + ': Margaret never rides with the gang');
   ok(seen[seen.length - 1].length === 0, label + ': everybody is out at the end',
     JSON.stringify(seen[seen.length - 1]));
   for (const r of seen) {
@@ -284,9 +290,12 @@ for (const who of Object.keys(CAST)) {
     ok(line.startsWith('« ') && line.endsWith(' »'), 'quoted like the rest: ' + line.slice(0, 30));
     ok(!/["']/.test(line), 'typographic apostrophes only: ' + line.slice(0, 30));
   }
-  // Accents per line would be a lie — « Attends, je mets mon coton » has none
-  // and is still the most Québécois sentence in the file. Per pool it holds.
-  ok(/[àâçéèêëîïôùûüÀÂÇÉÈÊÎÔÙÛ]/.test(pool.join(' ')), who + ' speaks accented French');
+  // The main cast speaks English (Tom, 6 Oct and 20 Oct 2026): every driveway
+  // pool is English, judged line by line by smoke_lang's classifier (a French
+  // place name or a « dep » in an English line is still English). Margaret
+  // also calls him Tom (ledger s.0, 22 Sept 2026).
+  for (const line of pool) ok(langOf(line) !== 'fr' && langOf(line) !== 'mix', who + ' speaks English: ' + line.slice(0, 40));
+  if (who === 'margaret') ok(pool.some((l) => /\bTom\b/.test(l)), 'margaret calls him Tom');
   ok(greeting(who, 0) === pool[0] && greeting(who, pool.length) === pool[0],
     who + ': greeting() wraps');
 }
@@ -307,8 +316,11 @@ group('the draw loop survives a headless renderer');
   // riders() writes into the array the draw loop owns, so a frame allocates
   // nothing; the same array coming back is the whole point.
   const buf = [];
-  ok(riders({ mission: { stages: [{ passengers: 1, at: 'home' }], idx: 1 } }, buf) === buf
-    && buf.length === 1 && buf[0] === 'margaret', 'riders() fills a caller array');
+  ok(riders({ mission: { stages: [{ passengers: 1, at: 'steph' }], idx: 1 } }, buf) === buf
+    && buf.length === 1 && buf[0] === 'sayyad', 'riders() fills a caller array');
+  // Canon (ledger s.0): a pickup at 299 Fraser never seats Margaret.
+  ok(riders({ mission: { stages: [{ passengers: 1, at: 'home' }], idx: 1 } })[0] === null,
+    'a pickup in Tom’s driveway is not his mother');
   riders({}, buf);
   ok(buf.length === 0, 'and clears it');
   ok(a.draw(r, null, G, 0.016) === 0, 'no focus, no draws');
@@ -331,10 +343,13 @@ group('assets/text/*.json fold in without a browser');
     catch { return null; }
   };
   // The fallbacks have to stand on their own: the game runs with no files.
-  for (const who of ['Sayyad', 'Margaret', 'Adam', 'Ton père']) {
+  // « Ton père » is gone from the ride-along pools: canon (ledger s.1, s.3) is
+  // that he did not live at 299 Fraser. He is only a phone call (DAD_CALLS).
+  for (const who of ['Sayyad', 'Margaret', 'Adam']) {
     ok(!!personLine(who, 'start') && !!personLine(who, 'end'),
       who + ' has a fallback line before anything loads');
   }
+  ok(personLine('Ton père') === null, 'and his father has no ride-along pool');
   ok(personLine('Personne') === null, 'and a stranger has none');
 
   let n = 0;
@@ -347,7 +362,7 @@ group('assets/text/*.json fold in without a browser');
   ok(n >= 96, `${n} lines folded in from ${DIALOGUE_FILES.length} files`);
   ok(applyDialogue(null) === 0 && applyDialogue({}) === 0, 'a missing file takes nothing');
 
-  for (const who of ['Sayyad', 'Margaret', 'Adam', 'Ton père', 'Zahra']) {
+  for (const who of ['Sayyad', 'Margaret', 'Adam', 'Zahra']) {
     for (const when of ['start', 'end']) {
       const pool = DIALOGUE[who][when];
       ok(pool.length >= 12, `${who} has ${pool.length} ${when} lines`);
@@ -362,7 +377,10 @@ group('assets/text/*.json fold in without a browser');
   }
   ok(DIALOGUE.Zahra['about-sayyad'].length >= 8,
     'Zahra keeps her about-sayyad set instead of it being folded into start');
-  ok(/104\.7/.test(DIALOGUE.Sayyad.start.join(' ')), 'Sayyad still names the station');
+  // Canon changed (ledger s.4, 21 Sept 2026): MAX 104.7 and the Hawaiian shirt
+  // were never confirmed for Sayyad; Macs and tech were.
+  ok(!/104\.7|hawaïenne/i.test(DIALOGUE.Sayyad.start.join(' ')), 'Sayyad no longer names the station');
+  ok(/Mac|iPod|PowerBook/.test(DIALOGUE.Sayyad.start.join(' ')), 'he talks about Macs instead');
 }
 
 group('overheard street life');

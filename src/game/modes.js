@@ -1,4 +1,4 @@
-import { settleSpawn } from './tow.js';
+import { placementReason, roadSpot } from './tow.js';
 // The three modes.
 //
 // Midtown Madness shipped with three, and they are three because each one asks
@@ -23,12 +23,16 @@ import { settleSpawn } from './tow.js';
 import { PLACES } from './places.js';
 import { setModal } from './ui.js';
 import { raceMission, raceStages, endRace } from './racejobs.js';
+import { scaledPay, runPay } from './missionkit.js';
 // The written copy: course names by index into assets/text/racing.json, plus the
 // rivals' taunts. See racingtext.js — a name is a fallback, never a blank.
 import { writtenName, taunt, line as textLine } from './racingtext.js';
 // The twelve people you race against: who drives what, how they drive it, and
 // whose mouth each taunt comes out of.
 import { grid, rival, rivalName, rivalStyle, rivalWhenLosing, rivalSays } from './rivals.js';
+
+// « 1 job faite », « 3 jobs faites » (une job, in Quebec French; QA F7).
+const jobsDone = (n) => `${n} job${n > 1 ? 's' : ''} faite${n > 1 ? 's' : ''}`;
 
 // Gate rings. A blitz gate is the size of an intersection because you are
 // following a line into it; a checkpoint gate is wider because you might be
@@ -44,6 +48,101 @@ export const BLITZ_R = 18;
 export const CHECK_R = 26;
 
 const at = (c) => (typeof c === 'string' ? PLACES[c] : c);
+
+// ---------------------------------------------------------------- start poses
+//
+// Review 5 Oct 2026 (pack 20261005-212013-quick): « Le Raccourci du Curé »
+// put the truck inside the brick house on the south side of Principale, the
+// camera in the building, and in three runs it never got out. Every course's
+// `start` was a raw coordinate that nothing ever checked against the world:
+// all eight were inside a building footprint. The data below is now authored
+// on the road, and startCourse() still runs the pose through startPose() so a
+// future map rebake cannot put a start line back inside a house.
+
+/** Metres of clear road a start line must have straight ahead of it. */
+export const START_CLEAR = 15;
+
+/**
+ * Why driving `dist` metres straight ahead from `p` would hit something, or
+ * null if it would not: the whole body (tow.js placementReason) at every metre,
+ * plus the collider walls and the poles along the way.
+ */
+export function blockedAhead(world, p, spec = {}, dist = START_CLEAR) {
+  const fx = Math.sin(p.yaw || 0), fz = Math.cos(p.yaw || 0);
+  const hw = (spec.wid || 1.8) / 2, hl = (spec.len || 4.8) / 2;
+  for (let d = 0; d <= dist; d += 1) {
+    const q = { x: p.x + fx * d, z: p.z + fz * d, yaw: p.yaw || 0 };
+    const why = placementReason(world, q, spec);
+    if (why) return `${why} at ${d} m`;
+    // The nose sweeps the next metre; a wall or a pole inside half a width of
+    // the centreline there is a wall the truck drives into.
+    const nx = q.x + fx * hl, nz = q.z + fz * hl;
+    if (world.querySegments && world.querySegments(nx, nz, hw).length) return `wall at ${d} m`;
+    if (world.queryPoles && world.queryPoles(nx, nz, hw).length) return `pole at ${d} m`;
+  }
+  return null;
+}
+
+/** Why `p` is a bad start line (on the road, clear body, clear road ahead), or null. */
+export function startReason(world, p, spec = {}) {
+  if (!world) return null;
+  if (world.roadAt && !world.roadAt(p.x, p.z)) return 'off the road';
+  return placementReason(world, p, spec) || blockedAhead(world, p, spec);
+}
+
+/**
+ * A start pose that passes startReason, as close to the authored one as the
+ * road allows: the authored pose itself if it is good; otherwise the first
+ * good point along `route` (the GPS route to the first gate, as [x, z] pairs),
+ * facing along it; otherwise slide along the nearest road (facing whichever
+ * way along it is closer to the authored heading); otherwise tow.js roadSpot,
+ * turned the same way. Returns { x, z, a, yaw, moved }, `moved` being how far
+ * it had to go.
+ */
+export function startPose(world, start, spec = {}, route = null) {
+  const want = start.a != null ? start.a : (start.yaw || 0);
+  const pose = (x, z, yaw) => ({ x, z, a: yaw, yaw, moved: Math.hypot(x - start.x, z - start.z) });
+  const p0 = pose(start.x, start.z, want);
+  if (!world || !world.nearestRoad || !startReason(world, p0, spec)) return p0;
+  if (route && route.length > 1) {
+    // Walk the first 120 m of the route in 2 m steps, facing down it.
+    let walked = 0;
+    for (let i = 0; i + 1 < route.length && walked < 120; i++) {
+      const [ax, az] = route[i], [bx, bz] = route[i + 1];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (len < 0.5) continue;
+      const yaw = Math.atan2(bx - ax, bz - az);
+      for (let t = 0; t < len; t += 2) {
+        const p = pose(ax + (bx - ax) * t / len, az + (bz - az) * t / len, yaw);
+        if (!startReason(world, p, spec)) return p;
+      }
+      walked += len;
+    }
+  }
+  // Of the two ways along a road, the one nearer the authored heading.
+  const along = (yaw) => {
+    const d = Math.atan2(Math.sin(want - yaw), Math.cos(want - yaw));
+    return Math.abs(d) <= Math.PI / 2 ? yaw : yaw + Math.PI;
+  };
+  const r0 = world.nearestRoad(start.x, start.z);
+  if (r0 && Number.isFinite(r0.x)) {
+    const yaw0 = along(r0.yaw || 0);
+    const fx = Math.sin(yaw0), fz = Math.cos(yaw0);
+    // Back first (a start line is behind its first corner, never past it).
+    for (const off of [0, -4, -8, -12, -16, -20, -25, -30, 4, 8, 12, -40, -50, -60]) {
+      const r = world.nearestRoad(r0.x + fx * off, r0.z + fz * off);
+      if (!r || !Number.isFinite(r.x)) continue;
+      const p = pose(r.x, r.z, along(r.yaw || 0));
+      if (!startReason(world, p, spec)) return p;
+    }
+  }
+  const s = roadSpot(world, start.x, start.z, spec);
+  if (s) {
+    const p = pose(s.x, s.z, along(s.yaw || 0));
+    if (!startReason(world, p, spec)) return p;
+  }
+  return p0;
+}
 
 /**
  * What this course is called. `text` is its index in assets/text/racing.json's
@@ -86,14 +185,18 @@ export const BLITZ = [
     where: 'rue Principale, coin Bancroft',
     // The 1830s grid: Principale east, north up Frank-Robinson, west along du
     // Patrimoine, south down Bancroft, out to the dépanneur and back. 2.1 km.
-    start: { x: -877, z: -102, a: Math.PI / 2 },
+    // On Principale just west of Bancroft, facing east (review 5 Oct 2026: the
+    // old -877, -102 was inside the brick house on the south side).
+    start: { x: -895, z: -86.6, a: 1.663 },
     cps: [
       { x: -426, z: -130, label: 'Principale × Frank-Robinson' },
       { x: -416, z: -36, label: 'Frank-Robinson × du Patrimoine' },
       { x: -856, z: 4, label: 'du Patrimoine × Bancroft' },
       { x: -867, z: -99, label: 'Bancroft × Principale' },
       'dep',
-      { x: -877, z: -102, label: 'rue Principale — l’arrivée' },
+      // The finish ring is where it always was (r = 18), moved 9.5 m onto
+      // Bancroft so its pillar stands on the road and not in the house.
+      { x: -867.6, z: -103, label: 'rue Principale — l’arrivée' },
     ],
     // Pace car: 1:59. Budget 2:40.
     clock: 40, bonus: 20, money: 30, timeOfDay: 'morning',
@@ -104,7 +207,7 @@ export const BLITZ = [
     where: 'rue Principale, devant le Tim',
     // The long high-speed one: the whole commercial strip, then Fraser and the
     // Petro-Canada, then over to the Hôtel Deschênes. 5.6 km.
-    start: { x: -877, z: -102, a: Math.PI / 2 },
+    start: { x: -895, z: -86.6, a: 1.663 },
     cps: ['tims', 'mall', 'mcdo', 'ctire', 'home', 'gas', 'deschenes'],
     // Pace car: 4:58. Budget 6:24.
     clock: 48, bonus: 48, money: 45, timeOfDay: 'day',
@@ -115,9 +218,10 @@ export const BLITZ = [
     where: 'rue Principale, coin Bancroft',
     // The twisty one: out past the Auberge Symmes to the marina, down to the
     // Plage des Cèdres, back up Eardley and in to Saint-Paul. 4.3 km.
-    start: { x: -877, z: -102, a: -Math.PI / 2 },
+    // On Principale just east of Bancroft, facing west.
+    start: { x: -845, z: -91.1, a: -1.483 },
     cps: ['symmes', 'marina', 'beach', { x: -1719, z: -1012, label: 'chemin Eardley' },
-      'church', { x: -877, z: -102, label: 'rue Principale — l’arrivée' }],
+      'church', { x: -845, z: -91.1, label: 'rue Principale — l’arrivée' }],
     // Pace car: 3:48. Budget 5:03.
     clock: 45, bonus: 43, money: 40, timeOfDay: 'dusk',
   },
@@ -128,7 +232,9 @@ export const BLITZ = [
     // The one that crosses the whole map: the 148 the entire way, Aylmer to the
     // Hull sector. 11.3 km, and the bonus per gate is the only reason it is
     // possible at all.
-    start: { x: -18.9, z: -331.2, a: Math.PI / 2 },
+    // Principale in front of the Galeries, facing up the route (the old
+    // -18.9, -331.2 was inside the mall).
+    start: { x: -7.7, z: -278.4, a: 0.074 },
     cps: [
       { x: 1411, z: -309, label: 'chemin d’Aylmer × Fraser' },
       { x: 2518, z: -809, label: 'chemin d’Aylmer, Deschênes' },
@@ -148,14 +254,18 @@ export const CHECKPOINT = [
     where: 'Paroisse Saint-Paul',
     // Short and dense: the rivals will take the road graph between the gates,
     // and the road graph is not the shortest way across the 1830s grid.
-    start: { x: -924.1, z: -408.2, a: 0 },
+    // Denise-Friend at the church, facing east toward the dépanneur.
+    start: { x: -901, z: -433.2, a: 1.684 },
     cps: ['dep', 'sayyad', 'arena', 'mike', 'principale'],
     money: 35, timeOfDay: 'day',
     // Kevin Boucher trades paint in exactly the kind of narrow section this
-    // course is made of, and Margaret is Margaret.
+    // course is made of. Margaret never races with the gang (canon, ledger
+    // s.0): Sayyad takes her slot in his Civic. The « margaret » entry in
+    // race.js SKILL is only a pace profile, kept so the grid is as hard as it
+    // was (the same trick racejobs.js uses).
     rivals: [
       ...grid('boucherk'),
-      { carId: 'saturn', name: 'Margaret', skill: 'margaret' },
+      { carId: 'civic', name: 'Sayyad', skill: 'margaret' },
     ],
   },
   {
@@ -164,7 +274,8 @@ export const CHECKPOINT = [
     where: 'Plage des Cèdres',
     // West end to your own driveway. 5.1 km of road — less if you know about the
     // rail berm, the mall dock and the ciné-parc field.
-    start: { x: -1918.1, z: -451.5, a: 0 },
+    // Helenore at the beach (the old -1918.1, -451.5 was in a cottage).
+    start: { x: -1804.2, z: -497.8, a: 1.663 },
     cps: ['marina', 'symmes', 'principale', 'arena', 'tims', 'mall', 'ctire', 'home'],
     money: 55, timeOfDay: 'day',
     rivals: [
@@ -178,7 +289,8 @@ export const CHECKPOINT = [
     where: 'Aréna Frank-Robinson',
     // The fast open one: out to the Club de Golf and back up chemin Vanier. 8 km
     // of tertiary road where the Sunfire's straight-line speed actually tells.
-    start: { x: -605.6, z: 79, a: Math.PI / 2 },
+    // Lord-Aylmer at the arena, facing the route out.
+    start: { x: -581.8, z: 85.5, a: -0.366 },
     cps: ['golf', 'aigle', 'gas', 'deschenes', 'vanier'],
     money: 60, timeOfDay: 'morning',
     // Eight kilometres of open tertiary road is where Big Dan's V8 momentum
@@ -194,7 +306,9 @@ export const CHECKPOINT = [
     where: 'Galeries d’Aylmer',
     // The cross-map checkpoint race. Same corridor as the Hull blitz, half the
     // gates, and somebody in a two-thousand-pound Civic beside you the whole way.
-    start: { x: -18.9, z: -331.2, a: Math.PI / 2 },
+    // Principale in front of the Galeries, facing up the route (the old
+    // -18.9, -331.2 was inside the mall).
+    start: { x: -7.7, z: -278.4, a: 0.074 },
     cps: [
       { x: 2518, z: -809, label: 'chemin d’Aylmer, Deschênes' },
       { x: 4014, z: -1566, label: 'la 148, secteur Lucerne' },
@@ -222,6 +336,17 @@ export function saveModeBest(id, secs) {
 }
 export const fmtTime = (s) =>
   s == null ? '—' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+// ---------------------------------------------------------------- the purse
+
+/** « +45 $ », « Nouveau record: +10 $ » or « Pas de bourse: t’as déjà gagné celle-là ». */
+export function purseLine(G, m, course) {
+  const pay = scaledPay(G, m, course.money);
+  const kind = runPay(G, m).kind;
+  if (kind === 'mode-pb') return `Nouveau record: +${pay} $`;
+  if (kind === 'mode-repeat') return 'Pas de bourse: tu l’as déjà gagnée. Bats ton record pour 10 $.';
+  return `+${pay} $`;
+}
 
 // ---------------------------------------------------------------- the missions
 
@@ -279,14 +404,16 @@ export function courseMission(course, kind = course.kind) {
       ? 'Suis la ligne bleue. Espace dans les courbes serrées, pis lâche pas le pied entre les checkpoints.'
       : 'Tab ouvre la grande carte: le prochain checkpoint est dessus. Coupe par où tu veux — eux autres suivent les rues.',
     clockFail: 'Le chrono est à zéro. Le blitz est fini.',
-    win: blitz
-      ? `${name.toUpperCase()} — FINI.\nT’as battu le chrono.\n+${course.money} $`
+    // A function: racejobs.js calls it at the finish line, when the purse is
+    // known. The full purse is a first win; after that only a new best pays.
+    win: (G, m) => { const purse = purseLine(G, m, course); return blitz
+      ? `${name.toUpperCase()} — FINI.\nT’as battu le chrono.\n${purse}`
       // Beaten rivals make excuses, and the written ones are very good excuses.
-      : [`${name.toUpperCase()} — PREMIER.`, `+${course.money} $`,
+      : [`${name.toUpperCase()} — PREMIER.`, purse,
         // The roster says what each of them does when they lose. It is the best
         // half of the writing and it belongs on the screen you see least often.
         lead && lead.rival ? rivalWhenLosing(rival(lead.rival)) : '',
-        saidBy(lead, 'beaten')].filter(Boolean).join('\n'),
+        saidBy(lead, 'beaten')].filter(Boolean).join('\n'); },
     // `rv` is the live Rival; match it back to the grid entry so the loser gets
     // his own voice and not a stranger's.
     lose: (rv) => {
@@ -425,7 +552,7 @@ function paint(G) {
     (state.mode === 'cruise'
       ? '<button class="c" data-id="cruise"><i>↵</i><span><span class="t">Partir en balade</span><br>' +
         '<span class="w">Aucun chrono. Les piliers jaunes sur la carte, c’est les jobs de la gang.</span></span>' +
-        `<span class="b">${G.done ? G.done.size : 0} jobs faites</span></button>`
+        `<span class="b">${jobsDone(G.done ? G.done.size : 0)}</span></button>`
       : list.map((c, i) => courseRow(G, c, i)).join('')) +
     (busy
       ? `<div class="busy">T’es en pleine job — « ${busy} ».\n` +
@@ -509,7 +636,20 @@ export function startCruise(G) {
 export function startCourse(G, course) {
   if (!state.api || !state.api.startMission) return false;
   if (G.mission && G.failMission) G.failMission('Abandonné.');
-  const p = at(course.start);
+  let p = at(course.start);
+  if (G.veh && p && G.world) {
+    // The authored line passes on today's map (tools/smoke_racestarts.mjs);
+    // this is the net for the car you are in and for the next rebake. A
+    // moved object start is written back so the grid pillar, the rivals and
+    // the Track all use the same line the truck is on.
+    const first = at(course.cps[0]);
+    const route = first && G.nav ? G.nav.route(p.x, p.z, first.x, first.z) : null;
+    const q = startPose(G.world, p, G.veh.spec, route);
+    if (q.moved > 0.01) {
+      if (typeof course.start === 'object') Object.assign(course.start, { x: q.x, z: q.z, a: q.a });
+      p = q;
+    }
+  }
   if (G.veh && p) {
     G.veh.reset(p.x, p.z, p.a != null ? p.a : (p.yaw || 0),
       G.phys && G.phys.groundY ? G.phys.groundY(p.x, p.z) : 0);

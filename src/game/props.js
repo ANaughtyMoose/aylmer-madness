@@ -10,6 +10,7 @@
 // Coordinates are the usual metres: +X east, +Z south, +Y up.
 import { MeshBuilder, rgb, shade } from '../core/mesh.js';
 import { m4 } from '../core/math.js';
+import { protoTree } from './vegetation.js';
 
 // ---------------------------------------------------------------- placements
 
@@ -24,10 +25,12 @@ import { m4 } from '../core/math.js';
 export const ISLAND = { x: -1227, z: 612, rx: 30, rz: 17.5, yaw: 0.42 };
 export const ISLAND_CLOSE = { x: -1742, z: 45, rx: 30, rz: 17.5, yaw: 0.42 };
 
-// Where you put the canoe in the water at Parc des Cèdres. 206 m along the shore
-// from PLACES.beach, picked because the straight line from here to the island is
-// unbroken water — from the beach itself the marina headland is in the way.
-export const PADDLE_LAUNCH = { x: -2044, z: -288 };
+// Where you put the canoe in the water: near the marina (Tom, 29 Sept: « paddled
+// from near the marina to Aylmer Island, the island in the middle of the Ottawa
+// River »). 53 m from PLACES.marina, 15 m off the shore, and the straight line
+// from here to the island is unbroken water (857 m; smoke.mjs checks both). It
+// used to be 206 m along the shore from the Plage des Cèdres (1.2 km).
+export const PADDLE_LAUNCH = { x: -1786, z: -38 };
 
 // 41 Promenade Wychwood — real address, real footprint at (-523.8, 219.8). The
 // road runs at x ≈ -545.6 here, so the sale is on the lawn between the two.
@@ -59,6 +62,7 @@ const C = {
   sand: 0xd9cba4, grass: 0x6a8449, trunk: 0x5b4632, leaf: 0x4f7a34,
   leaf2: 0x5d8a3a, rock: 0x807a70, log: 0x74624a, wake: 0xdfeaf0,
   win: 0xffd98a, winFrame: 0x3a3630,
+  chalk: 0xf1efe6, arc: 0xffd24a,
 };
 
 // A canoe, lofted from stations along its length. Sixteen feet of very tired
@@ -199,7 +203,10 @@ export function buildIsland(isle = ISLAND) {
   return b;
 }
 
+// Set by buildPropMeshes: the lit prototype renderer gets the leaf-card trees.
+let PROTO_NATURE = false;
 function islandTree(b, x, y, z, scale, conifer) {
+  if (PROTO_NATURE) { protoTree(b, x, y, z, scale, conifer); return; }
   const th = 3.0 * scale;
   const leaf = conifer ? 0x2f4f2e : (scale > 0.95 ? C.leaf2 : C.leaf);
   b.cyl(x, y + th / 2, z, 0.30 * scale, th, 4, rgb(C.trunk), 'y', false);
@@ -216,6 +223,14 @@ function islandTree(b, x, y, z, scale, conifer) {
 // and it exists as its own mesh so the couch has something specific to aim at.
 export function buildBigTree(t = MIKE_TREE) {
   const b = new MeshBuilder();
+  if (PROTO_NATURE) {
+    // Same height (crown top about crownY + 3.9) and the two low limbs stay.
+    const trunkH = t.crownY - 2.6;
+    b.box(-0.9, trunkH * 0.82, 0, 1.9, 0.22, 0.22, rgb(C.trunk), { yaw: 0.4 });
+    b.box(0.9, trunkH * 0.86, 0.2, 1.7, 0.20, 0.20, rgb(C.trunk), { yaw: -0.5 });
+    protoTree(b, 0, 0, 0, (t.crownY + 3.9) / 9.2, false, { species: 'maple' });
+    return b;
+  }
   const trunkH = t.crownY - 2.6;
   b.cyl(0, trunkH / 2, 0, t.trunkR, trunkH, 6, rgb(C.trunk), 'y', false);
   // two low limbs, so the couch has somewhere to sit
@@ -251,6 +266,43 @@ export function buildWake() {
   return b;
 }
 
+// B-05: Sayyad's doughnuts. A chalk ring on the ground where to do them, and
+// a live arc round the truck that fills as the current doughnut comes round.
+// Both are flat dashes (flatRot), drawn unlit with alpha like the wake, so
+// neither needs a texture or a new shader. DONUT_RING is the ring's radius;
+// sidejobs.js places it.
+export const DONUT_RING = { r: 7.5, dashes: 28, w: 0.34, y: 0.04 };
+export const DONUT_ARC = { r: 3.9, steps: 16, w: 0.26, y: 0.07 };
+
+// Dashes round a circle. Angle a sits at (sin a, cos a) * r, the same sense as
+// a heading (forward is (sin yaw, cos yaw)), so a prop yaw rotates it the way
+// it rotates the truck. `from`..`to` are radians.
+function dashRing(b, r, n, w, y, fill, col, from = 0, to = Math.PI * 2) {
+  const step = (to - from) / n;
+  for (let i = 0; i < n; i++) {
+    const a = from + (i + 0.5) * step;
+    // flatRot's w runs along its local X, which yaw a turns into the tangent
+    // (cos a, -sin a); its d runs along the radius.
+    b.flatRot(Math.sin(a) * r, Math.cos(a) * r, r * step * fill, w, y, a, col);
+  }
+}
+
+export function buildChalkRing(ring = DONUT_RING) {
+  const b = new MeshBuilder();
+  dashRing(b, ring.r, ring.dashes, ring.w, ring.y, 0.62, rgb(C.chalk));
+  return b;
+}
+
+// The arc after k of DONUT_ARC.steps steps: k segments from angle 0 round to
+// k/steps of a turn. buildPropMeshes uploads one per k (16 tiny meshes), so
+// filling the arc is a mesh swap, never a rebuild.
+export function buildDonutArc(k, arc = DONUT_ARC) {
+  const b = new MeshBuilder();
+  const step = (Math.PI * 2) / arc.steps;
+  if (k > 0) dashRing(b, arc.r, k, arc.w, arc.y, 0.86, rgb(C.arc), 0, k * step);
+  return b;
+}
+
 // A cardboard "SOLD" sticker of a canoe sitting on grass at the sale — reuses
 // the canoe mesh, so nothing extra to build.
 
@@ -258,6 +310,7 @@ export function buildWake() {
 
 // Called once from main.js's loadWorld(). Nothing here is ever rebuilt.
 export function buildPropMeshes(renderer) {
+  PROTO_NATURE = !!renderer?.isPrototype;
   return {
     canoe: renderer.upload(buildCanoe()),
     couch: renderer.upload(buildCouch()),
@@ -266,7 +319,17 @@ export function buildPropMeshes(renderer) {
     bigtree: renderer.upload(buildBigTree()),
     litwin: renderer.upload(buildLitWindows()),
     wake: renderer.upload(buildWake()),
+    chalkring: renderer.upload(buildChalkRing()),
+    ...donutArcMeshes(renderer),
   };
+}
+
+// donutarc1 .. donutarc16 (see buildDonutArc). Exported for sidejobs.js.
+export const donutArcId = (k) => 'donutarc' + Math.max(1, Math.min(DONUT_ARC.steps, k | 0));
+function donutArcMeshes(renderer) {
+  const out = {};
+  for (let k = 1; k <= DONUT_ARC.steps; k++) out[donutArcId(k)] = renderer.upload(buildDonutArc(k));
+  return out;
 }
 
 // ---------------------------------------------------------------- prop system

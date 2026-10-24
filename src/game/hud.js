@@ -4,6 +4,11 @@
 
 import { MAP } from './mapdata.js';
 import { MAP_SIZES, MAP_RANGE } from './store.js';
+// B-06: the new slots read the merged B1 modules directly (plan v2, B-06).
+import { ownVehicleStatus } from './tow.js';
+import { failToast } from './retry.js';
+import { jobKind } from './jobready.js';
+import { nearestJob } from './story.js';
 
 const TAU = Math.PI * 2;
 const DEFAULT_SIZE = MAP_SIZES[0];   // #minimap starts at 200x200 CSS px
@@ -13,7 +18,16 @@ const STATIC_SCALE = STATIC_PX / (MAP.bounds.maxX - MAP.bounds.minX);
 const DEFAULT_RANGE = MAP_RANGE.dflt;  // world radius shown on the live minimap
 const LARGE_MIN_PX = 260;            // at or above this the minimap redraws at 30 Hz
 const GAUGE_PX = 132;                // speedo gauge, CSS px
-const GAUGE_MAX = 180;               // km/h at the end of the sweep
+const GAUGE_MAX = 180;               // km/h at the end of the sweep, until a car says otherwise
+// S3-RANGER (feel.md 1): the sweep fits the car you are in. One step of 20 short
+// of its terminal speed, so flat out pins the needle in the red, and the red
+// starts 30 km/h before the end. The Ranger (150 km/h) gets 140 with red from
+// 110: 90 km/h is two thirds of the dial, not half, and the speedRun beat's
+// 116 is in the red. Never under 60.
+export function gaugeScale(topKmh) {
+  const max = Math.max(60, Math.ceil(topKmh / 20) * 20 - 20);
+  return { max, red: max - 30 };
+}
 
 // Minimap palette. Named for what they are on the map, not for whatever
 // places.js used to call them.
@@ -29,6 +43,7 @@ const C = {
   car: '#8fe38f',        // a friend's parked car
   route: '#4fd3ff',
   player: '#ffc94d',
+  own: '#ffe08a',        // B-06: your own truck, parked somewhere else
   rival: '#ff8a3d',      // a friend you are racing
   cop: '#6fb2ff',        // an auto-patrouille
   repair: '#9ee6a1',     // where you get the dents taken out
@@ -59,13 +74,131 @@ const ROAD_ORDER = [
   ['trunk', '#7a7a86'],
 ];
 
+// ---------------------------------------------------------------- A-04 rules
+
+// Every toast stays up at least this long, and only one is up at a time.
+export const TOAST_MIN_MS = 2500;
+
+/**
+ * The deadline a job has coming, when the stage on screen has none: the
+ * budget of the next timed stage, scaled the way main.js applyStage scales it.
+ * `peek` is { mission, scale } or null. Returns seconds, or null.
+ */
+export function upcomingDeadline(peek) {
+  const m = peek && peek.mission;
+  if (!m || m.failed || !Array.isArray(m.stages)) return null;
+  for (let i = (m.idx | 0) + 1; i < m.stages.length; i++) {
+    const t = m.stages[i] && m.stages[i].time;
+    if (t != null && Number.isFinite(+t)) return Math.max(1, Math.round(+t * (peek.scale || 1)));
+  }
+  return null;
+}
+
+// The middle of the screen, most important first. At most CENTRE_MAX of them
+// are visible at once (Lex, shot 083: objective, bubble, toast, prompt and the
+// tutorial chip, five layers of text over the road). The prompt is what to do
+// now, the toast is what just happened, the bubble is someone talking, the
+// tutorial chip is a tip that can wait. A story bubble (the main cast in the
+// middle of a job) outranks a toast; street chatter does not. A yielded
+// element is only hidden; its owner keeps its own state and it comes back
+// when there is room. A yielded toast is also frozen, so it plays out in full
+// once it is back instead of expiring unread.
+export const CENTRE_MAX = 2;
+export const CENTRE_ORDER = ['prompt', 'story', 'toast', 'heckles', 'tuto', 'prompt2'];
+const CENTRE_EL = { prompt: 'prompt', story: 'heckles', toast: 'toast', heckles: 'heckles', tuto: 'tuto', prompt2: 'prompt2' };
+
+/** Pure: which of the visible centre layers keep the screen. */
+export function centreKeep(visible, max = CENTRE_MAX) {
+  const keep = new Set();
+  for (const id of CENTRE_ORDER) {
+    if (keep.size >= max) break;
+    if (visible.includes(id)) keep.add(id);
+  }
+  return keep;
+}
+
+// ---------------------------------------------------------------- B-06 rules
+
+// The top-left sub line is the stage's how-to. It is read once, so it fades
+// 5 s after it changes, or as soon as the tutorial ticks a chip after it went
+// up (Lex, shot 030: objective, two lines of sub and a tip at once). The
+// objective line stays; a stuck nudge (pulseObjective) brings the sub back.
+export const SUB_FADE_MS = 5000;
+// The « Tab pour la carte » chip shows in the first two minutes at the wheel
+// only (Gemini: in every gameplay shot, because nobody in the pack opens the
+// map). After that the pause screen's keyboard still lists Tab.
+export const TAB_CHIP_S = 120;
+// How often the slots read the game state (style chain, own vehicle, fail
+// card). The readout must be up within 200 ms of a style event.
+export const SLOT_MS = 100;
+// A pillar this close is the one you are standing at.
+export const PILLAR_NEAR = 40;
+
+/** Pure: should the sub line be faded? `age` ms since it changed. */
+export function subFaded({ age = 0, ticked = false } = {}) {
+  return age >= SUB_FADE_MS || !!ticked;
+}
+
+/** Pure: is the tutorial chip the map tip, past its two minutes? */
+export function tabChipGone({ cap = '', playtime = 0 } = {}) {
+  return String(cap).trim() === 'Tab' && playtime >= TAB_CHIP_S;
+}
+
+const OWN_NAME = { ranger: 'ton Ranger', civic: 'ta Civic', dbike: 'ton vélo', forester: 'ton Forester', sienna: 'ta Sienna' };
+const ROLE_IN = { cart: 'en cart', bike: 'en vélo', loaner: 'avec un char prêté' };
+const KIND_WORD = { timed: 'chronométrée', race: 'de course', cargo: 'de livraison' };
+const fmtM = (d) => (d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', ',') + ' km');
+
+/** 'cart' | 'bike' | 'loaner' for a vehicle spec you do not own. */
+export function borrowedRole(spec) {
+  if (!spec) return 'loaner';
+  if (spec.style === 'cart' || spec.id === 'cart') return 'cart';
+  if (spec.twoWheel || spec.style === 'bike') return 'bike';
+  return 'loaner';
+}
+
+/**
+ * Pure: the wrong-vehicle chip. `st` is tow.js ownVehicleStatus(G); `role`
+ * from borrowedRole(); `pillarKind` is jobready.js jobKind() of the job whose
+ * pillar you are at ('timed' | 'race' | 'cargo' | null). The cart and a bike
+ * always get the chip (they are what strands you); a friend's car only at a
+ * pillar that will not take it. Narrator French. Returns { text, warn } or null.
+ */
+export function vehicleChip(st, role = 'loaner', pillarKind = null) {
+  if (!st || st.inOwn || !st.borrowed || st.jobVehicle) return null;
+  const own = OWN_NAME[st.id] || 'ton char';
+  if (pillarKind) {
+    return { text: `Pas ${ROLE_IN[role] || 'avec ça'} pour une job ${KIND_WORD[pillarKind] || 'comme ça'}. Y ramène ${own}.`, warn: true };
+  }
+  if (role === 'loaner') return null;
+  const where = st.at && st.dist > 0 ? ` (${fmtM(st.dist)})` : '';
+  const what = ROLE_IN[role];
+  return { text: `${what.charAt(0).toUpperCase() + what.slice(1)}. Y ramène ${own}${where}.`, warn: false };
+}
+
+/**
+ * Pure: the style readout from style.js hudState() (B-03:
+ * { on, mult, events, fade, total, text, ... }). Returns
+ * { text, mult, fade } or null when there is no chain.
+ */
+export function chainView(hs) {
+  if (!hs || !hs.on || !(hs.events > 0)) return null;
+  const mult = Math.max(1, Math.round(hs.mult || 1));
+  return { text: hs.text || `STYLE x${mult}`, mult, fade: Math.max(0, Math.min(1, +hs.fade || 0)) };
+}
+
 // ---------------------------------------------------------------- toasts
 
 // FIFO with at most `max` on screen at once. Time is passed in rather than
 // read, so the ordering and the durations are testable without a clock.
 export class ToastQueue {
-  constructor(max = 2) {
+  // A-04: `minMs` is the floor every toast gets on screen. The Hud runs one
+  // slot at 2.5 s (Sean, shot 277: two toasts stacked read as one mess); the
+  // class default stays two slots and no floor so the old tests keep their
+  // meaning.
+  constructor(max = 2, { minMs = 0 } = {}) {
     this.max = max;
+    this.minMs = Math.max(0, minMs | 0);
     this.active = [];     // [{ text, ms, until }] oldest first; until null = not started
     this.pending = [];    // [{ text, ms }] FIFO
     this.dirty = false;
@@ -73,7 +206,11 @@ export class ToastQueue {
   }
 
   push(text, ms = 2200, urgent = false) {
-    const item = { text: String(text ?? ''), ms: Math.max(1, ms | 0) };
+    const item = { text: String(text ?? ''), ms: Math.max(1, this.minMs, ms | 0) };
+    // The same line twice in a row is one line: a held E that refuses every
+    // frame, or a hint that fires on enter and on stuck, must not queue up.
+    if (!urgent && (this.active.some((a) => a.text === item.text)
+      || this.pending.some((p) => p.text === item.text))) return this;
     if (urgent) {
       // A button press needs an answer now, in the line the eye actually lands
       // on. `active[0]` is the big one; slot two is small and dim, and a
@@ -103,8 +240,10 @@ export class ToastQueue {
    * nobody read. What is already on screen restarts its clock when the modal
    * closes.
    */
-  hold(on) {
-    const v = !!on;
+  hold(on, why = 'modal') {
+    if (!this._holds) this._holds = new Set();
+    if (on) this._holds.add(why); else this._holds.delete(why);
+    const v = this._holds.size > 0;
     if (v === this.held) return this;
     this.held = v;
     if (v) for (const a of this.active) a.until = null;
@@ -140,6 +279,27 @@ export class ToastQueue {
   texts() { return this.active.map((a) => a.text); }
 
   clear() { this.active.length = 0; this.pending.length = 0; }
+
+  // B-12a: take one line off the screen and out of the queue (the fail card
+  // retry.js has dropped). Returns true when something went.
+  drop(text) {
+    const t = String(text ?? '');
+    const n = this.active.length + this.pending.length;
+    this.active = this.active.filter((a) => a.text !== t);
+    this.pending = this.pending.filter((p) => p.text !== t);
+    return this.active.length + this.pending.length !== n;
+  }
+}
+
+const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+// Is a centre layer showing something, ignoring a yield we put on it ourselves?
+function centreShows(el) {
+  if (el.classList.contains('hidden') || el.classList.contains('hud-gone')) return false;
+  if (el.style && el.style.display === 'none') return false;
+  if (el.id === 'toast') return el.classList.contains('show');
+  if (el.id === 'heckles') return !!el.querySelector('.bub');
+  return (el.textContent || '').trim().length > 0;
 }
 
 // ---------------------------------------------------------------- HUD
@@ -164,11 +324,13 @@ export class Hud {
     this.size = DEFAULT_SIZE;
     this.setSize(DEFAULT_SIZE);
 
-    // Two toast slots, built here so index.html stays a single <div id="toast">.
-    this.toasts = new ToastQueue(2);
+    // One toast slot, built here so index.html stays a single <div id="toast">.
+    // A-04: one at a time, 2.5 s at least each. Two slots meant two lines of
+    // big white text in the middle of the road on top of a bubble and a prompt.
+    this.toasts = new ToastQueue(1, { minMs: TOAST_MIN_MS });
     this.slots = [];
     if (this.elToast && typeof document !== 'undefined' && document.createElement) {
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 1; i++) {
         const d = document.createElement('div');
         d.className = 'toastline';
         this.elToast.appendChild(d);
@@ -176,12 +338,14 @@ export class Hud {
       }
     }
     this._toastTimer = 0;
+    this._buildSlots();
 
     this._lastKmh = -1;
     this._lastTimer = '';
     this._gear = 1;
     this._reverse = false;
     this._gaugeKmh = -1;
+    this._gMax = GAUGE_MAX; this._gRed = 140; this._gTop = 0;
     this._lastMapDraw = 0;
     this.range = DEFAULT_RANGE;
     this.staticMap = this._buildStatic();
@@ -202,24 +366,55 @@ export class Hud {
 
   setObjective(text, sub = '') {
     if (this.elObjective) this.elObjective.textContent = text ?? '';
-    if (this.elSub) this.elSub.textContent = sub ?? '';
+    if (this.elSub) {
+      const s = sub ?? '';
+      // B-06: a new sub line is shown, then fades (slots tick); the same line
+      // set again (free roam refreshes it every 0.3 s) keeps its clock.
+      if (s !== this._subText) { this._subText = s; this._subFresh(); }
+      this.elSub.textContent = s;
+    }
+    // A-04: paint the stage clock now, not on the first mission tick. main.js
+    // applyStage sets timeLeft on the line after this call, so wait for the
+    // current task to finish. Without this the clock only appeared once the
+    // card had closed and a frame had run, and a slow first frame (or a
+    // screenshot taken on it) showed a timed job with no clock.
+    if (!this._clockSoon && typeof queueMicrotask === 'function') {
+      this._clockSoon = true;
+      queueMicrotask(() => {
+        this._clockSoon = false;
+        const p = this.peekMission();
+        if (!p) return;
+        const t = p.mission.timeLeft;
+        this.setTimer(t != null && Number.isFinite(+t) ? Math.max(0, +t) : null);
+      });
+    }
   }
 
   setTimer(seconds) {
     const el = this.elTimer;
     if (!el) return;
     if (seconds == null) {
+      // A-04: no clock on this stage, but a later one has a deadline (the
+      // blitz grid, a timed run after untimed stages). Show that budget now,
+      // dimmed and still, so « Trop tard » never comes out of nowhere (Lex: "I didn't see a clock").
+      const up = upcomingDeadline(this.peekMission());
+      if (up != null) {
+        this._paintTimer(el, up);
+        el.classList.add('pending');
+        el.classList.remove('warn');
+        el.style.opacity = '';
+        el.style.transform = '';
+        return;
+      }
       el.classList.add('hidden');
+      el.classList.remove('pending');
       el.style.opacity = '';
       el.style.transform = '';
       return;
     }
     const s = Math.max(0, seconds);
-    el.classList.remove('hidden');
-    const m = Math.floor(s / 60);
-    const r = Math.floor(s - m * 60);
-    const txt = m + ':' + (r < 10 ? '0' : '') + r;
-    if (txt !== this._lastTimer) { el.textContent = txt; this._lastTimer = txt; }
+    el.classList.remove('pending');
+    this._paintTimer(el, s);
     el.classList.toggle('warn', s < 10);
     if (s < 5) {
       // flash on the half-second; keep the CSS centring transform intact
@@ -232,7 +427,66 @@ export class Hud {
     }
   }
 
+  /**
+   * Where setTimer(null) looks for the running job. main.js exposes it as
+   * window.AYLMER.G; a test or a later wiring can replace this function.
+   */
+  peekMission() {
+    const G = globalThis.AYLMER && globalThis.AYLMER.G;
+    if (!G || !G.mission) return null;
+    return { mission: G.mission, scale: G.timerScale || 1 };
+  }
+
+  _paintTimer(el, s) {
+    el.classList.remove('hidden');
+    const m = Math.floor(s / 60);
+    const r = Math.floor(s - m * 60);
+    const txt = m + ':' + (r < 10 ? '0' : '') + r;
+    if (txt !== this._lastTimer) { el.textContent = txt; this._lastTimer = txt; }
+  }
+
+  /**
+   * Hide the lowest-ranked centre layers beyond CENTRE_MAX. Cheap: called from
+   * setSpeed (once a frame) at most every 100 ms, and right after a toast or
+   * prompt change.
+   */
+  layoutCentre(force = false) {
+    if (typeof document === 'undefined' || !document.getElementById) return null;
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (!force && now - (this._centreAt || 0) < 100) return this._centreKeep || null;
+    this._centreAt = now;
+    const els = {};
+    const visible = [];
+    for (const key of CENTRE_ORDER) {
+      const id = CENTRE_EL[key];
+      const el = els[id] || document.getElementById(id);
+      if (!el) continue;
+      els[id] = el;
+      if (!centreShows(el)) continue;
+      if (id === 'heckles') {
+        const story = !!el.querySelector('.bub.story');
+        if ((key === 'story') !== story) continue;
+      }
+      visible.push(key);
+    }
+    const keep = centreKeep(visible);
+    for (const id of Object.keys(els)) {
+      const keys = CENTRE_ORDER.filter((k) => CENTRE_EL[k] === id && visible.includes(k));
+      const y = keys.length > 0 && !keys.some((k) => keep.has(k));
+      if (els[id].classList.contains('hud-yield') !== y) els[id].classList.toggle('hud-yield', y);
+      if (id === 'toast') {
+        const was = this.toasts.held;
+        this.toasts.hold(y, 'yield');
+        if (was && !this.toasts.held && !this._pumping) this._pumpToasts();
+      }
+    }
+    this._centreKeep = keep;
+    return keep;
+  }
+
   setSpeed(kmh) {
+    this.layoutCentre();
+    this.tickSlots();
     const v = Math.max(0, Math.round(kmh || 0));
     if (v === this._lastKmh) return;
     this._lastKmh = v;
@@ -242,6 +496,18 @@ export class Hud {
 
   // 1..5 for the fake five-speed main.js already computes for the engine note.
   // Accepts a string too, so 'R'/'N' work.
+  /** S3-RANGER: fit the speedo to this car's terminal speed (km/h). Cheap when unchanged. */
+  setGaugeTop(topKmh) {
+    if (!(topKmh > 0) || topKmh === this._gTop) return;
+    this._gTop = topKmh;
+    const g = gaugeScale(topKmh);
+    if (g.max === this._gMax && g.red === this._gRed) return;
+    this._gMax = g.max; this._gRed = g.red;
+    if (this._gaugeFace) this._gaugeFace = this._buildGaugeFace();
+    this._gaugeKmh = -1;
+    this._drawGauge(this._lastKmh < 0 ? 0 : (this._lastKmh || 0));
+  }
+
   setGear(gear) {
     if (gear === this._gear) return;
     this._gear = gear;
@@ -279,9 +545,10 @@ export class Hud {
     const best = p.mission || p.repair || p.shop || null;
     if (best === this._promptShown) return;
     this._promptShown = best;
-    if (!best) { el.textContent = ''; el.classList.add('hidden'); return; }
+    if (!best) { el.textContent = ''; el.classList.add('hidden'); this.layoutCentre(true); return; }
     el.textContent = best;
     el.classList.remove('hidden');
+    this.layoutCentre(true);
   }
 
   prompt(text) { this.setPrompt('mission', text); }
@@ -292,17 +559,46 @@ export class Hud {
     this._pumpToasts();
   }
 
-  _pumpToasts() {
-    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-    if (this.toasts.step(now) && this.slots.length) {
-      const lines = this.toasts.texts();
-      for (let i = 0; i < this.slots.length; i++) {
-        const el = this.slots[i];
-        el.textContent = lines[i] ?? '';
-        el.classList.toggle('show', i < lines.length);
-      }
-      if (this.elToast) this.elToast.classList.toggle('show', lines.length > 0);
+  /**
+   * B-07 / B-12a: the fail card. retry.js owns it (failToast(): { text, ms }
+   * or null); main.js passes it here once a frame and on a fail. It goes up
+   * once, in the front slot, and comes down the moment retry.js drops it.
+   */
+  failCard(ft) {
+    const text = ft && ft.text ? ft.text : null;
+    if (text === this._failText) return;
+    const old = this._failText;
+    this._failText = text;
+    if (old != null && this.toasts.drop(old)) this._paintToasts();
+    if (text != null) this.toast(text, ft.ms || 3000, true);
+  }
+
+  /** B-12a: empty the toast slot and the queue (a load, the menu). */
+  clearToasts() {
+    this._failText = null;
+    this.toasts.clear();
+    this._paintToasts();
+  }
+
+  _paintToasts() {
+    const lines = this.toasts.texts();
+    for (let i = 0; i < this.slots.length; i++) {
+      const el = this.slots[i];
+      el.textContent = lines[i] ?? '';
+      el.classList.toggle('show', i < lines.length);
     }
+    if (this.elToast) this.elToast.classList.toggle('show', lines.length > 0);
+    this.layoutCentre(true);
+  }
+
+  _pumpToasts() {
+    this._pumping = true;
+    try { this._pumpToastsNow(); } finally { this._pumping = false; }
+  }
+
+  _pumpToastsNow() {
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (this.toasts.step(now) && this.slots.length) this._paintToasts();
     if (this._toastTimer) { clearTimeout(this._toastTimer); this._toastTimer = 0; }
     const next = this.toasts.nextDeadline(now);
     if (next < Infinity && typeof setTimeout === 'function') {
@@ -330,11 +626,12 @@ export class Hud {
     g.strokeStyle = 'rgba(255,255,255,.20)'; g.lineWidth = 2;
     g.beginPath(); g.arc(cx, cy, R - 9, a0, a1); g.stroke();
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (let v = 0; v <= GAUGE_MAX; v += 20) {
-      const a = a0 + (a1 - a0) * (v / GAUGE_MAX);
+    const gMax = this._gMax || GAUGE_MAX, gRed = this._gRed != null ? this._gRed : 140;
+    for (let v = 0; v <= gMax; v += 20) {
+      const a = a0 + (a1 - a0) * (v / gMax);
       const ca = Math.cos(a), sa = Math.sin(a);
       const major = v % 40 === 0;
-      g.strokeStyle = v >= 140 ? 'rgba(255,95,77,.85)' : 'rgba(255,255,255,.6)';
+      g.strokeStyle = v >= gRed ? 'rgba(255,95,77,.85)' : 'rgba(255,255,255,.6)';
       g.lineWidth = major ? 2 : 1;
       g.beginPath();
       g.moveTo(cx + ca * (R - 16), cy + sa * (R - 16));
@@ -359,12 +656,12 @@ export class Hud {
     g.drawImage(this._gaugeFace, 0, 0, GAUGE_PX, GAUGE_PX);
     const R = GAUGE_PX / 2, cx = R, cy = R;
     const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;
-    const frac = Math.min(1, Math.max(0, kmh / GAUGE_MAX));
+    const frac = Math.min(1, Math.max(0, kmh / (this._gMax || GAUGE_MAX)));
     const a = a0 + (a1 - a0) * frac;
     g.save();
     g.translate(cx, cy);
     g.rotate(a);
-    g.fillStyle = kmh >= 140 ? '#ff5f4d' : '#ffc94d';
+    g.fillStyle = kmh >= (this._gRed != null ? this._gRed : 140) ? '#ff5f4d' : '#ffc94d';
     g.beginPath();
     g.moveTo(-6, 3); g.lineTo(-6, -3); g.lineTo(R - 18, -1.4); g.lineTo(R - 18, 1.4);
     g.closePath(); g.fill();
@@ -405,6 +702,10 @@ export class Hud {
     }
     const st = this.el && this.el.street;
     if (st && st.style) st.style.left = (20 + s + 16) + 'px';
+    // A-04: the job counters (reactive.js #reactstats) sit above the map, not
+    // on it; style.css reads the size from here.
+    const de = typeof document !== 'undefined' ? document.documentElement : null;
+    if (de && de.style && de.style.setProperty) de.style.setProperty('--mapsize', s + 'px');
     this._lastMapDraw = 0;
     return s;
   }
@@ -656,6 +957,28 @@ export class Hud {
       }
     }
 
+    // B-06: your own truck when you are not in it (the cart, a bike, a
+    // friend's car): a small square, on the rim with its distance when it is
+    // off the map.
+    const own = this._own;
+    if (own && own.at) {
+      const dx = own.at.x - px, dz = own.at.z - pz;
+      const d = Math.hypot(dx, dz);
+      const k = d <= range - 6 / s ? 1 : (MAP_R - 9) / (d * s);
+      const x = toX(dx * k, dz * k), y = toY(dx * k, dz * k);
+      g.fillStyle = 'rgba(0,0,0,.6)';
+      g.fillRect(x - 5.5, y - 5.5, 11, 11);
+      g.fillStyle = C.own;
+      g.fillRect(x - 4, y - 4, 8, 8);
+      if (k < 1 && !objShown) {
+        g.font = '600 10px Helvetica, Arial, sans-serif';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        const ux = (x - MAP_R) / (MAP_R - 9), uy = (y - MAP_R) / (MAP_R - 9);
+        g.fillText(fmtM(d), MAP_R + ux * (MAP_R - 26), MAP_R + uy * (MAP_R - 26));
+      }
+    }
+
     // Player: fixed yellow arrow at the centre, always pointing up.
     g.fillStyle = C.player;
     g.beginPath();
@@ -748,6 +1071,8 @@ export class Hud {
     // Force a reflow so re-adding the class restarts the animation.
     if (typeof el.offsetWidth === 'number') void el.offsetWidth;
     el.classList.add('pulse');
+    // B-06: the nudge brings the faded how-to line back for another 5 s.
+    this._subFresh();
     if (this._pulseT) clearTimeout(this._pulseT);
     if (typeof setTimeout === 'function') {
       this._pulseT = setTimeout(() => {
@@ -840,6 +1165,143 @@ export class Hud {
   }
 
   _byId(id) { return typeof document !== 'undefined' && document.getElementById ? document.getElementById(id) : null; }
+
+  // ---- B-06 slots -------------------------------------------------------
+  // Three slots built here (index.html stays as it is): the style chain
+  // readout, bottom right above the wanted stars; the wrong-vehicle chip,
+  // bottom left above the job counters; and, on the minimap, your own truck
+  // when you are not in it. They read the game straight from the modules
+  // (style.js through G.style, tow.js, retry.js, jobready.js), so main.js
+  // needs no new call: setSpeed() ticks them, at most every SLOT_MS.
+
+  _buildSlots() {
+    if (typeof document === 'undefined' || !document.createElement || !this.root) return;
+    const mk = (id, cls, html) => {
+      let el = document.getElementById(id);
+      if (!el) { el = document.createElement('div'); el.id = id; el.className = cls; el.innerHTML = html; this.root.appendChild(el); }
+      return el;
+    };
+    this.elChain = mk('stylechain', 'hidden', '<b></b><i></i><span></span>');
+    this.elVehChip = mk('vehchip', 'hidden', '');
+  }
+
+  /**
+   * B-03 contract: reactive.js sends each style tip here (« +12 $ FRÔLÉ x3 »)
+   * instead of into the one toast slot. It shows under the chain readout and
+   * repaints the readout at once, so the chain is up the frame the event is.
+   */
+  styleTip(text, ms = 1100) {
+    this._tip = { text: String(text || ''), until: nowMs() + Math.max(400, ms | 0) };
+    this.tickSlots(true);
+  }
+
+  /** The style chain readout. `hs` is style.js hudState(), or null. */
+  setStyle(hs) {
+    const el = this.elChain;
+    if (!el) return null;
+    const v = chainView(hs);
+    const tip = this._tip && this._tip.until > nowMs() ? this._tip.text : '';
+    const key = v ? v.text + '|' + Math.round(v.fade * 20) + '|' + tip : (tip ? '|tip|' + tip : '');
+    if (key === this._chainKey) return v;
+    this._chainKey = key;
+    if (!v && !tip) { el.classList.add('hidden'); return v; }
+    el.classList.remove('hidden');
+    const b = el.firstChild, bar = b && b.nextSibling, sp = bar && bar.nextSibling;
+    if (b) b.textContent = v ? v.text : '';
+    if (bar) bar.style.setProperty('--f', v ? Math.round(v.fade * 100) + '%' : '0%');
+    if (sp) sp.textContent = tip;
+    el.classList.toggle('x3', !!v && v.mult >= 3);
+    el.classList.toggle('tiponly', !v);
+    return v;
+  }
+
+  /** The wrong-vehicle chip, and the own-truck marker's data for draw(). */
+  setVehicle(G) {
+    let st = null;
+    try { st = G && G.veh ? ownVehicleStatus(G) : null; } catch (e) { st = null; }
+    this._own = st && !st.inOwn && st.at ? st : null;
+    let chip = null;
+    if (st && st.borrowed && !st.jobVehicle && !G.mission) {
+      const role = borrowedRole(G.veh && G.veh.spec);
+      let kind = null;
+      try {
+        const j = nearestJob(G);
+        if (j && j.dist <= PILLAR_NEAR) kind = jobKind(j.def);
+      } catch (e) { kind = null; }
+      chip = vehicleChip(st, role, kind);
+    }
+    const el = this.elVehChip;
+    const text = chip ? chip.text : '';
+    if (el && text !== this._chipText) {
+      this._chipText = text;
+      el.textContent = text;
+      el.classList.toggle('hidden', !text);
+      el.classList.toggle('warn', !!(chip && chip.warn));
+    }
+    return chip;
+  }
+
+  // The sub line just went up: clock it, and fade it on time even when no
+  // frame runs (a card, a slow frame): the fade is a timer, not a frame count.
+  _subFresh() {
+    this._subAt = nowMs(); this._subTick = this._tutTicks || 0; this._setSubFaded(false);
+    if (typeof setTimeout !== 'function') return;
+    if (this._subTimer) clearTimeout(this._subTimer);
+    this._subTimer = setTimeout(() => { this._subTimer = 0; this.tickSlots(true); }, SUB_FADE_MS + 20);
+    if (this._subTimer && typeof this._subTimer.unref === 'function') this._subTimer.unref();
+  }
+
+  _setSubFaded(on) {
+    const el = this.elSub;
+    if (!el || !el.classList) return;
+    if (el.classList.contains('faded') !== !!on) el.classList.toggle('faded', !!on);
+  }
+
+  /**
+   * Once a frame from setSpeed; does real work at most every SLOT_MS (or now,
+   * with `force`). Reads window.AYLMER.G like peekMission() does.
+   */
+  tickSlots(force = false) {
+    const now = nowMs();
+    if (!force && now - (this._slotAt || 0) < SLOT_MS) return;
+    this._slotAt = now;
+    const G = globalThis.AYLMER && globalThis.AYLMER.G;
+    // The tutorial chip: count its ticks (the green flash), and drop the map
+    // tip after its two minutes.
+    const tuto = this._tuto === undefined ? (this._tuto = this._byId('tuto')) : this._tuto;
+    if (tuto && tuto.classList) {
+      const ok = tuto.classList.contains('ok') && !tuto.classList.contains('hidden');
+      if (ok && !this._tutOk) this._tutTicks = (this._tutTicks || 0) + 1;
+      this._tutOk = ok;
+      const cap = tuto.firstChild ? tuto.firstChild.textContent : '';
+      const gone = tabChipGone({ cap, playtime: G ? +G.playtime || 0 : 0 });
+      if (tuto.classList.contains('hud-gone') !== gone) { tuto.classList.toggle('hud-gone', gone); this.layoutCentre(true); }
+    }
+    // The sub line.
+    if (this.elSub && this._subText) {
+      this._setSubFaded(subFaded({ age: now - (this._subAt || 0), ticked: (this._tutTicks || 0) > (this._subTick || 0) }));
+    }
+    if (!G) return;
+    // The fail card, from retry.js's state (main.js also passes it; same source).
+    this.failCard(failToast());
+    // The style chain (B-03 puts the chain on G.style).
+    let hs = null;
+    try { hs = G.style && typeof G.style.hudState === 'function' ? G.style.hudState() : null; } catch (e) { hs = null; }
+    this.setStyle(hs);
+    this.setVehicle(G);
+  }
+
+  /** For the checks: what the B-06 slots show now. */
+  slotState() {
+    const vis = (el) => !!el && !el.classList.contains('hidden');
+    return {
+      chain: vis(this.elChain) ? this.elChain.textContent : null,
+      vehChip: vis(this.elVehChip) ? this.elVehChip.textContent : null,
+      own: this._own ? { id: this._own.id, dist: Math.round(this._own.dist) } : null,
+      subFaded: !!(this.elSub && this.elSub.classList.contains('faded')),
+      tabGone: !!(this._tuto && this._tuto.classList && this._tuto.classList.contains('hud-gone')),
+    };
+  }
 }
 
 // A footprint worth drawing on a 200 px map: bounding box over ~55 m².

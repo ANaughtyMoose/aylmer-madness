@@ -1,0 +1,1732 @@
+{
+ "_": "Known language breaches frozen on 13 Oct 2026 (plan v2, B-15). Each entry names the task that owns its fix. Matched by who + exact text, so an edited line is checked strictly. This list may only shrink; tools/smoke_lang.mjs ALLOW_MAX is its frozen size. Empty by the wave E gate. Shrunk 20 Oct 2026 by S1-ENGLISH (main-path lines English-first) on the merged tree at 387bbda: 293 to 191.",
+ "frozen": "2026-10-13",
+ "count": 191,
+ "byOwner": {
+  "E-06": 78,
+  "E-07": 98,
+  "E-01": 14,
+  "B-06": 1
+ },
+ "entries": [
+  {
+   "who": "Vendeur",
+   "kind": "walkon",
+   "file": "assets/text/calls.json",
+   "line": 6,
+   "owner": "E-06",
+   "why": "walkon in English",
+   "text": "You leave your name and number and ask whether the Firebird behind the garage on Chemin Pink is still there."
+  },
+  {
+   "who": "Vendeur",
+   "kind": "walkon",
+   "file": "assets/text/calls.json",
+   "line": 12,
+   "owner": "E-06",
+   "why": "walkon in English",
+   "text": "Hello? Yeah, calling about the Golf GTI? Are you on the Quebec side?"
+  },
+  {
+   "who": "Vendeur",
+   "kind": "walkon",
+   "file": "assets/text/calls.json",
+   "line": 12,
+   "owner": "E-06",
+   "why": "walkon in English",
+   "text": "You'll need an out-of-province inspection to register it in Quebec, but mechanically it's mint. Timing belt done last spring."
+  },
+  {
+   "who": "Vendeur",
+   "kind": "walkon",
+   "file": "assets/text/calls.json",
+   "line": 20,
+   "owner": "E-06",
+   "why": "walkon in English",
+   "text": "You state your interest in the four fifteen-inch wheels listed in the classifieds."
+  },
+  {
+   "who": "Vendeur",
+   "kind": "walkon",
+   "file": "assets/text/calls.json",
+   "line": 26,
+   "owner": "E-06",
+   "why": "walkon in English",
+   "text": "Yes, hello. Just so we're clear, this is the genuine Si trim with the factory sunroof, not a base car with badges."
+  },
+  {
+   "who": "Vendeur",
+   "kind": "walkon",
+   "file": "assets/text/calls.json",
+   "line": 26,
+   "owner": "E-06",
+   "why": "walkon in English",
+   "text": "I have the original window sticker, the factory cassette head unit in bubble wrap, and both service manuals."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 247,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Mon Sunfire a encore pété son alternateur hier. Fait qu’on prend ton truck. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 252,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Pèse su’l gaz. Plus vite c’est fini, plus vite j’peux aller rien faire chez nous. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 257,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Touche pas au poste de radio. Le silence me dérange moins que tes goûts musicaux. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 262,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Si la transmission lâche, j’pousse pas. J’ai mal au dos. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 267,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Y fait trente degrés, ton air climatisé pousse du vent tiède. Formidable. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 272,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Le chemin Pink est plein de trous. Essaie d’en éviter au moins un sur deux. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 277,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Si quelqu’un demande, j’suis à Mayo. J’suis toujours à Mayo. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 282,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« On part. Essaie de pas faire caler le moteur aux lumières comme la semaine passée. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 287,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« J’ai un sac de chips sel et vinaigre sous le banc. Mange-les pas, c’est mon dîner. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 292,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Si on se fait pogner par les flics, c’est toé qui as le volant, j’te connais pas. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 297,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Encore une ride d’Aylmer... La ville où y se passe jamais rien à part la rouille qui pousse. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 302,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Envoye, décolle. J’ai deux heures à perdre avant de retourner à Mayo. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 307,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« C’est fini. Mon dos a survécu à ta suspension en bois d’arbre. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 312,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« On est vivants. C’est déjà plus que ce à quoi je m’attendais en partant. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 317,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Parke ça croche de même, de toute façon personne vient jamais dans ce coin-là. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 322,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Bon. J’m’en va m’coucher devant Télétoon en buvant du Tang. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 327,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« T’as manqué le poteau d’un pied. Beau travail d’improvisation. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 332,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« J’ai plus de sensation dans ma jambe droite, mais la livraison est faite. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 337,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Débarque-moé là. Le soleil me tape su’a tête pis ton banc sent le chien mouillé. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 342,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Au moins le moteur a pas explosé. Pas encore. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 347,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Voilà. Une autre journée passionnante qui s’achève dans le grand Aylmer. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 352,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« J’ai laissé un emballage de Jos Louis dans ta porte. Tu remercieras la visite. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 357,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« On a fini. Whatever. M’a aller voir si mon Sunfire veut démarrer. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/dialogue.json",
+   "line": 362,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Pas pire. On a évité la police pis la scrap pour aujourd’hui. »"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 19,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Heille! Coupe le moteur, ma mère dort à dix heures."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 21,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "ENFIN. Ça fait vingt minutes qu'on parle de rien."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 22,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Le nouveau PowerBook, le clavier s'allume. It LIGHTS UP."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 23,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Assis-toi. Y a de la place sur les marches."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 24,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Salut, man. J'ai amené ma guitare. Personne a demandé."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 25,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "...t'es en retard."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 26,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Ouais."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 27,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Sayyad a dit que t'avais pas ton permis pour vrai. Je le crois pas, mais il l'a dit."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 28,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Je rentre à dix heures. Pas parce que je veux."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 32,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "...faque le gars me dit que le moteur est correct. Correct! Écoute. Écoute-moi deux secondes."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 33,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Y a une manière de reculer dans l'entrée sans toucher au bac. Une seule. Je vais te la montrer avec mes mains."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 34,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Regarde-le. REGARDE-LE. Trois semaines qu'y est là-haut. Ça, c'est de l'ingénierie."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 35,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Ma mère l'a vu hier. A l'a rien dit. Rien! C'est ça le plus beau de l'affaire."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 36,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Le monde ralentit devant chez nous pour le voir. Le monde. Ralentit. Pour NOUS."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 37,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai un plan pour le divan. Un vrai plan. Faut juste que t'amènes ton truck."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 39,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'as battu sa Civic?! Attends. Attends attends attends. Recommence par le début."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 40,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Un canot. Au Bondo. Jusqu'à l'île. Je l'ai conté à trois personnes pis y a personne qui me croit."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 41,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'es venu en BUS. Un bus d'école. Dans MON entrée. Non mais."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 42,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "C'est... c'est un cart de golf. Ok. OK! Non mais ok. Explique."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 43,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Qu'est-ce qui est arrivé au char?! Non — dis-moi pas. Dis-moi. Dis-moi tout."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 44,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "T'as faite plus d'affaires cet été que moi dans toute ma vie, pis j'ai un an de plus que toi."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 45,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Non non non, écoute. Écoute-moi. Norm Lafleur va te charger le double si t'attends. Le DOUBLE. Regarde ma main."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 46,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "...pis c'est là que Zahra m'a dit que j'avais tort. Elle avait raison. Mais écoute pareil."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 47,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Attends attends attends. Les deux, là. Écoutez-moi les deux en même temps. C'est important."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 48,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Le Tour des Maringouins, c'est pas une course, c'est un test de nerfs. Je te le dis avec mes mains: c'est ÇA le virage."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 50,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "C'est quoi ça? Non. Non non non. Ôte-moi ça pis mets mon CD."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 50,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Non."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 51,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Y a pas de musique. Why is there no music? Pars le radio, man."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 52,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai gravé une compile hier soir. Blink, 50 Cent, pis une toune de Jean Leloup pour ma mère."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 53,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Ma Civic te mangerait tout rond. On se le dit une fois pis on l'oublie."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 54,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai laissé faire, c'te soir-là. C'tait pour te faire plaisir. Demande à Adam."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 55,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Trois doughnuts devant chez nous pis j'ai rien entendu. Ma mère, elle, en parle encore."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 56,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Le divan, c'tait mon idée. Mike va dire que c'tait la sienne. C'tait mon idée."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 57,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "T'es venu avec MA Civic. ...continue. Ça me dérange pas. Continue de parler."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 58,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'es cassé, hein? Ça paraît dans ta face, mon homme."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 59,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Où t'as pris c't'argent-là? Non. Laisse faire. J'veux pas le savoir."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 60,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Six checkpoints en soixante secondes. La ville t'appartient. Officiellement."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 61,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Trois courses. Y a plus personne dans Aylmer qui veut se mesurer à toi. Ça inclut moi."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 63,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Assis-toi deux minutes. Ça changera rien que tu partes à dix heures ou à dix heures et quart."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 64,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Y font le même party à Deschênes chaque vendredi pis y pensent qu'on le sait pas."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 65,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Ton truck, man. What happened to ton truck?"
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 66,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Des nachos à cinq heures du matin. J'en reprendrais."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 67,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Tu travailles pas mal pour un été. Y en aura pas d'autre comme celui-là, tu sais."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 68,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Y a un divan dans l'arbre. Je vais faire comme si je l'avais pas vu."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 68,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Y a un divan dans l'arbre."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 69,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Vous courez sur des rues où le monde reste. Un jour vous allez comprendre ça."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 70,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'es rendu que tu viens tous les soirs. C'est correct. C'est ça, un été."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 71,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Ta mère m'a donné du jus. Deux fois. Je pense qu'a m'aime. Ou a me surveille."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 72,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Tiens. Ten bucks. Non, prends-les. Tu me les redonneras en septembre."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 74,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "...ouais."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 75,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai marché depuis Mayo. ...non. J'ai le Sunfire. J'voulais juste voir si t'écoutais."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 76,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Mon Sunfire est plus vite que ton char. C'est mathématique."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 77,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Tu m'as battu. Une fois. Sur une rue. Un mardi. En juillet."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 78,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "C'est mon char, ça."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 80,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'es monté jusqu'à Chelsea. Pour rien. ...respect."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 81,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Ton char a l'air de ma vie."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 82,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Hull. T'es allé à Hull. Y ont un musée, paraît. J'irai pas."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 84,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Vous dites les mêmes affaires chaque soir. Je les ai comptées. Y en a onze."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 85,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Le divan va tomber. Pas à soir. Mais y va tomber, pis y va y avoir quelqu'un en dessous."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 86,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "T'as gagné combien de courses? Deux? Sayyad en a raconté cinq à ma mère."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 87,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'as de l'argent pis tu conduis encore le Ranger. Explique-moi ça."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 88,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "L'aile droite. Tu l'as frappée en reculant. J'ai vu la peinture sur le poteau."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 89,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'as volé un cart de golf. Je le dis à personne. Ça va te coûter cher, par exemple."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 90,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Trente-et-une secondes. Je t'ai chronométrée. Sayyad a dit quarante pis y ment."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 91,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'es icitte plus souvent que moi, pis moi je reste à trois rues."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 92,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'as faite toutes les jobs de la ville. Y te reste quoi, à part nous autres?"
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 93,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "L'île, c'est à 1,2 km. J'ai mesuré sur la carte de géo. Vous êtes tous fous."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 94,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Mike explique la même affaire depuis mardi. Personne lui a dit qu'on avait compris."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 95,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Amène-le à Norm Lafleur avant que ta mère le voie. Norm dira rien. Il dit jamais rien."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 96,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Le chat du voisin m'a suivie jusqu'icitte. Il reste. C'est mon chat, astheure."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 97,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Touche à mon sac pis tu vas connaître mes ongles."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 99,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Zahra, ton frère dit qu'y est l'heure. ...Je fais juste passer le message."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 100,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Écoute-la pas. A pense qu'a l'a raison. ...a l'a souvent raison."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 105,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Les bacs de ma mère sont déjà dans rue. Jusqu'à Smiley pis tu revires. Chrono."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 106,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai sorti les bacs. Slalom jusqu'à Smiley, pis tu reviens dans l'entrée. Dix piasses."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 107,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai la montre de mon père. Je pars le chrono quand tu bouges. Triche pas."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 108,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Les bacs sont dehors. Va jusqu'à Smiley. Reviens. C'est tout."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 111,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "OUAIS! T'AS VU ÇA? Quelqu'un a-tu vu ça?"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 112,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Le troisième bac — comment t'as faite pour le troisième bac? Montre-moi avec tes mains."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 113,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "C'est un bon temps. Je le dirai pas trop fort, y vont vouloir recommencer."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 114,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "...pas pire."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 115,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Beau travail. Astheure ramasse les bacs, c'est la collecte demain."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 119,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Laisse-moi essayer. LAISSE-MOI ESSAYER."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 120,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "T'as manqué deux barrières pis t'as pété un bac. J'ai tout écrit."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 121,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "C'est correct. C'est correct! Le bac était mal placé. C'est de ma faute."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 122,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Recommence donc. Y a personne qui s'en va nulle part."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 126,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Ayoye."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 127,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Un."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 128,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "C'est le bac du voisin, ça."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 133,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai de quoi pour toi. Embarque, je t'explique en chemin."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 134,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Y a une affaire à faire à soir. Ça te ferait de l'argent propre."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 135,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Y a une job. J'irais bien mais j'irai pas."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 136,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "AH! J'oubliais. J'oubliais! Attends. Écoute-moi."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 137,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "J'ai lu l'annonce. Personne d'autre l'a lue. Vas-y avant eux autres."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 141,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Reviens demain! J'aurai fini mon explication."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 142,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Klaxonne en passant. Tout le temps."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 143,
+   "owner": "E-07",
+   "why": "main cast in franglais",
+   "text": "Roule doucement dans rue. Y a des kids."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "assets/text/hangout.json",
+   "line": 145,
+   "owner": "E-07",
+   "why": "main cast in French",
+   "text": "Salut. Fais pas de niaiseries avant demain."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 230,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Regarde. Tout le monde chante. »"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 231,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Ben chante, d’abord! C’est la Saint-Jean! »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 232,
+   "owner": "E-01",
+   "why": "main cast in franglais",
+   "text": "« Attends. On parle-tu en français, là? »"
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 233,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Oui. Pis toi aussi. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 234,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« OK OK OK. Bonne Saint-Jean, tout le monde! »"
+  },
+  {
+   "who": "Tom",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 241,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Euh... bonne Saint-Jean, la gang! »"
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 242,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Ton accent, Tom. Mon Dieu. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 243,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Laisse-le. Y fait son possible. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 665,
+   "owner": "E-01",
+   "why": "main cast in franglais",
+   "text": "« Two months. Deux mois complets. What’s the plan? »"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 666,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Deux mois. J’ai une liste. Écoute-moi. »"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 694,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Tout le monde dans le truck. J'ai pensé à l'ordre des ponts. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 695,
+   "owner": "E-01",
+   "why": "main cast in franglais",
+   "text": "« Trois ponts. No reason. Best reason. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 698,
+   "owner": "E-01",
+   "why": "main cast in franglais",
+   "text": "« ...c'est beau, le Parlement, quand on le regarde de loin. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/arc.js",
+   "line": 699,
+   "owner": "E-01",
+   "why": "main cast in French",
+   "text": "« Dites-le pas à personne que j'ai trouvé ça beau. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 69,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "ENFIN. Ça fait vingt minutes qu’on parle de rien."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 71,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "...t’es en retard."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 75,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "...faque le gars me dit que le moteur est correct. Écoute-moi deux secondes."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 76,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "Regarde-le. REGARDE-LE. Y est encore là-haut. Ça, c’est de l’ingénierie."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 77,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "Le nouveau PowerBook, le clavier s’allume. It LIGHTS UP."
+  },
+  {
+   "who": "Abraham",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 79,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "Assis-toi deux minutes. Ça changera rien."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 81,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "Y a un divan dans l’arbre."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 82,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "Vous dites les mêmes affaires chaque soir. Je les ai comptées."
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 90,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "J’ai de quoi pour toi. Embarque, je t’explique en chemin."
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/hangout.js",
+   "line": 92,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "Reviens demain! J’aurai fini mon explication."
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/racejobs.js",
+   "line": 362,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Le perdant paye le gaz. Du gagnant. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/racejobs.js",
+   "line": 386,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Par le Vieux. Pas par le boulevard, c’est plate. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/racejobs.js",
+   "line": 424,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Trois tours. I’ve calculated the racing line. »"
+  },
+  {
+   "who": "Tom",
+   "kind": "main",
+   "file": "src/game/setpieces/nuittim.js",
+   "line": 77,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "Mon ami a trop bu. Il répond presque plus."
+  },
+  {
+   "who": "Tom",
+   "kind": "main",
+   "file": "src/game/setpieces/nuittim.js",
+   "line": 100,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "Ben oui. Tiens."
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 341,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« The blackberry one. Pas la framboise. Je suis pas un bébé. »"
+  },
+  {
+   "who": "Zahra",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 343,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Parfait. Les chats aimeraient ça, s’ils buvaient de la liqueur. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 344,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Merci d’avoir amené ma sœur. Elle t’a-tu griffé? »"
+  },
+  {
+   "who": "Tom",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 350,
+   "owner": "B-06",
+   "why": "main cast in French",
+   "text": "« Je stationne le Ranger, pis je rentre pour le repas. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 371,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Regarde pas la carte, regarde-moé. Pis si tu me perds, c’est pas moé qui t’attends. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 372,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« See? Shortcut. Dis-le pas à Adam. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 381,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Theory: la police de Gatineau lâche après deux rues. Teste-la. »"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 382,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Moé, je regarde. Juste je regarde. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 384,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Two streets. I called it. Je vais l’écrire quelque part. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 387,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Au bord de l’eau, proche du belvédère, là où on était l’an passé. Je te l’ai dit trois fois. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 388,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Le ticket? Quel ticket. …Ah. Ok. Je vais le payer en septembre. »"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 391,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Tout le monde dans le truck. Tom décide de l’ordre. Tom décide de tout, c’est son char. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 392,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« T’as ramené tout le monde. Ça fait de toé le gars responsable. Ris pas, c’est vrai. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 398,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Vertical Reality. Je me suis entraîné. Mentally. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 400,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Bon. Astheure faut retrouver le chemin pour revenir. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 404,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Continue sur la 105. Quand ça devient juste des arbres, t’es presque rendu. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 405,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Chelsea aller-retour pour aucune raison. That’s a real ride. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 437,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Deux grosses. Sauce à part. Pis grouille, le fromage attend pas. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 438,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Moé j’ai pas de char à midi. Toé oui. C’est de même que ça marche. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 441,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Still hot. T’es une légende, man. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 442,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« ...t’as-tu mangé des frites en chemin, toé? »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 447,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Liberty, le 750 grammes. Au Super C, c’est 1,99 $. Just saying. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 448,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« On est venus au parc pour manger du yogourt. OK. »"
+  },
+  {
+   "who": "Mike",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 472,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Cinq spots avant que le soleil tombe. Vas-y. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 473,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Tu la connais, ta ville, là. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 536,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Mon Sunfire est plus vite que ton char. C’est mathématique. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 539,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« ...bon. C’était la mathématique de l’autre sens. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 543,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« J’ai mis des jantes. Faut que le monde le sache. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 546,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Les jantes, c’est peut-être pas dans les jantes. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 550,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Trois tours. I’ve calculated the racing line. Twice. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 551,
+   "owner": "E-06",
+   "why": "main cast in franglais",
+   "text": "« Y a personne le dimanche matin. Personne. »"
+  },
+  {
+   "who": "Adam",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 553,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Ma suspension est finie. Elle l’était avant, mais quand même. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 558,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Le chrono arrête jamais. Moi non plus. »"
+  },
+  {
+   "who": "Sayyad",
+   "kind": "main",
+   "file": "src/game/story.js",
+   "line": 560,
+   "owner": "E-06",
+   "why": "main cast in French",
+   "text": "« Six sur six. T’as battu la ville. »"
+  }
+ ]
+}

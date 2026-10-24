@@ -14,7 +14,12 @@
 const PORT = process.argv[2] || '8139';
 const OUT = process.argv[3] || 'docs/shots';
 // Not named URL: that would shadow the global URL constructor used just below.
-const PAGE = `http://localhost:${PORT}/index.html`;
+// Storage: ?review=shots-ottawa, emptied first; the player's saves on this
+// origin are never touched. --wipe-origin clears everything, test ports only.
+import { planStorage, prepareStorage } from './storage_guard.mjs';
+let plan;
+try { plan = planStorage(`http://localhost:${PORT}/index.html`, process.argv, 'shots-ottawa'); } catch (e) { console.error(e.message); process.exit(2); }
+const PAGE = plan.url;
 
 const VIEWS = [
   // key, camera x, camera z, yaw (0 = +Z south, PI = -Z north), note
@@ -110,7 +115,7 @@ await S('Page.enable');
 await S('Network.enable');
 await S('Network.setCacheDisabled', { cacheDisabled: true });
 await S('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
-await S('Storage.clearDataForOrigin', { origin: new URL(PAGE).origin, storageTypes: 'all' });
+await prepareStorage(S, plan, true);
 console.log('navigating to', PAGE);
 await S('Page.navigate', { url: PAGE });
 await sleep(4000);
@@ -121,7 +126,8 @@ console.log('booting (the world bake blocks the main thread; on a loaded machine
 // standing when the world finishes baking anyway.
 const boot = await evaluate(`(async () => {
   const s = (ms) => new Promise(r => setTimeout(r, ms));
-  document.getElementById('start').click();
+  // « Balade libre » opens the picker; #start is New Game and plays the opening first.
+  (document.getElementById('btnFree') || document.getElementById('start')).click();
   await s(700);
   const list = document.getElementById('startpoints');
   if (!list || !list.children.length) return 'no start points';

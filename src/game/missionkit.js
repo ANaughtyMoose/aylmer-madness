@@ -50,7 +50,10 @@ export const HINT_AFTER = 6;
  */
 export function stageHint(m, st) {
   if (!st || !st.hint) return null;
-  if (!m || (m.stageTime || 0) < HINT_AFTER) return null;
+  // hintTime only runs while no story line or card is up (main.js sets
+  // G.hintHold); a bare stage from an old caller falls back to stageTime.
+  const t = m && m.hintTime != null ? m.hintTime : (m && m.stageTime) || 0;
+  if (!m || t < HINT_AFTER) return null;
   return 'Psst: ' + st.hint;
 }
 
@@ -70,6 +73,7 @@ export function stageTarget(G, m, st) {
 
 export function stageEnter(G, m, st) {
   m.stageTime = 0;
+  m.hintTime = 0;
   m.held = false;
   if (st.onEnter) st.onEnter(G, m, st);
 }
@@ -88,6 +92,7 @@ export function stageActor(G, st) {
 // the HUD prompt while it runs.
 export function stageStep(G, m, st, dt) {
   m.stageTime = (m.stageTime || 0) + dt;
+  if (!G.hintHold) m.hintTime = (m.hintTime || 0) + dt;
   const hud = G.hud;
   const v = stageActor(G, st);
 
@@ -153,35 +158,139 @@ export function blockedBy(G, m, st) {
 }
 
 // The pay scale is calendar.js's: PAY_LIFT × difficulty for jobs, difficulty
-// alone for races (a def with `mode`). Unset — every node suite — is 1, so the
-// dollar amounts those suites were written against still hold.
+// alone for races — both the M-menu courses (a def with `mode`) and the four
+// race jobs (racejobs.js sets `race: true` and no `mode`, which is why they
+// used to pick up the lift by mistake; progression review P9). Unset — every
+// node suite — is 1, so the dollar amounts those suites were written against
+// still hold.
+//
+// ...and then what KIND of run this is (progression review P3/P5). The
+// calendar used to cap farming, because every job cost a day; the prototype
+// runs on the clock, so nothing did. Now:
+//   * a campaign job pays in full the first time;
+//   * a replay of a job you have finished pays REPLAY.share (25 %), once per
+//     job per game day, and nothing on further replays that day. No style
+//     bonus on a replay either (missionStyleBonus reads the flag);
+//   * an M-menu course pays its purse on the first win, then MODE_PB_PAY only
+//     for beating your own best time (G.best, which the save carries), else
+//     nothing.
+// Ambushes (`mode: 'ambush'`, no `course`) are a bet, not a course: they pay
+// the bet every time, and cost it when you lose (ambush.js).
+export const REPLAY = { share: 0.25 };
+export const MODE_PB_PAY = 10;
+
+const today = (G) => Math.floor((G && Number.isFinite(G.day)) ? G.day : 0);
+
+/**
+ * What this run pays, as a fraction of the listed money, decided once at its
+ * first paid stage and remembered on `m.payKind` so a four-stage replay does
+ * not re-decide half way. Returns { kind, k } with kind one of 'first',
+ * 'replay', 'replay-unpaid', 'mode-first', 'mode-pb', 'mode-repeat', 'bet'.
+ */
+export function runPay(G, m) {
+  if (m && m.payKind) return m.payKind;
+  const def = m && m.def;
+  let out = { kind: 'first', k: 1 };
+  if (def && def.course) {
+    const prior = G && G.best ? G.best[def.id] : null;
+    if (prior == null) out = { kind: 'mode-first', k: 1 };
+    else if (m && Number.isFinite(m.elapsed) && m.elapsed < prior) out = { kind: 'mode-pb', k: 1, cap: MODE_PB_PAY };
+    else out = { kind: 'mode-repeat', k: 0 };
+    // Settled at the finish, so the time is final: decide every time.
+    return out;
+  }
+  if (def && def.mode) out = { kind: 'bet', k: 1 };
+  else if (def && G && G.done && G.done.has && G.done.has(def.id)) {
+    const paid = G.replayPaid || (G.replayPaid = {});
+    if (paid[def.id] === today(G)) out = { kind: 'replay-unpaid', k: 0 };
+    else {
+      out = { kind: 'replay', k: REPLAY.share };
+      paid[def.id] = today(G);
+      if (m) m.replayMarked = true;
+    }
+  }
+  if (m) {
+    m.payKind = out;
+    // The style bonus is worked out by main.js from m.styleStart; this is how
+    // it learns the run was a replay without main.js having to ask.
+    if (out.kind.startsWith('replay') && m.styleStart) m.styleStart.replay = true;
+  }
+  return out;
+}
+
 export function scaledPay(G, m, money) {
   if (!(money > 0)) return 0;
-  const race = !!(m && m.def && m.def.mode);
+  const race = !!(m && m.def && (m.def.mode || m.def.race));
   const k = (G && (race ? G.racePayScale : G.payScale)) || 1;
-  return Math.round(money * k);
+  const full = Math.round(money * k);
+  // Without a G (the node payout tables) there is no history: full price.
+  if (!G || !m || !m.def) return full;
+  const run = runPay(G, m);
+  let pay = Math.round(full * run.k);
+  if (run.cap != null) pay = Math.min(pay, run.cap);
+  return pay;
 }
 
 // Charge / pay for a stage that has just completed. `m.paid` is the running
 // ledger for THIS job: what a failed or abandoned job hands back (see
 // refundJob), because paying per stage and keeping it on failure was a money
-// press — « La surchauffe du pont » banked $90 per Backspace.
+// press: the old garage-bill job (cut, D31) banked $90 per Backspace.
 export function stageSettle(G, m, st) {
   if (!G.wallet) return;
   if (m && m.paid == null) m.paid = 0;
   if (st.cost) { G.wallet.spend(st.cost); if (m) m.paid -= st.cost; }
-  if (st.money) { const p = scaledPay(G, m, st.money); G.wallet.add(p); if (m) m.paid += p; }
+  if (st.money) { const p = scaledPay(G, m, st.money); if (p) G.wallet.add(p); if (m) m.paid += p; }
+}
+
+/**
+ * QA F7: a stage toast that names its own pay (« Bonus de formation, 22 $ »)
+ * shows what the wallet actually got, after PAY_LIFT and the replay rules
+ * (scaledPay). `stated` is the stage's written `money`; `actual` is the real
+ * change. Nothing paid: the amount is dropped rather than shown wrong.
+ */
+export function payText(text, stated, actual) {
+  if (!text || !(stated > 0)) return text;
+  const re = new RegExp('(,\\s*)?\\b' + Math.round(stated) + '\\s*\\$', 'g');
+  const got = Math.round(actual || 0);
+  return got > 0 ? text.replace(re, (all, lead) => (lead || '') + got + ' $')
+    : text.replace(re, '').replace(/\s+\./g, '.');
 }
 
 // A job ended badly: the stages it already paid for come back out of the
 // wallet (never below zero — you may have spent it on gas, and gas is gone).
-// Costs you paid stay paid. Returns what was clawed back.
+// Costs you paid stay paid. Returns what was clawed back. A replay that
+// failed gives its once-a-day slot back too: you did not get paid for it.
 export function refundJob(G, m) {
+  if (m && m.replayMarked && G && G.replayPaid && m.def) {
+    delete G.replayPaid[m.def.id];
+    m.replayMarked = false;
+  }
+  if (m) m.payKind = null;
   if (!G.wallet || !m || !(m.paid > 0)) return 0;
   const back = Math.min(m.paid, G.wallet.value);
   G.wallet.add(-back);
   m.paid = 0;
   return back;
+}
+
+/**
+ * index.html only: what « Recommencer la job » should cost. A restart is a
+ * failure you chose, so it costs what failMission would have: the day, once
+ * the job is past its first stage or 45 s in (main.js failMission's rule).
+ * main.js calls endOfJob() when this is true; see docs/review/progression-economy.md.
+ */
+export function restartCostsDay(m) {
+  return failCostsDay(m);
+}
+
+/**
+ * The rule failMission applies: a job you actually started (past its first
+ * stage, or 45 s in) costs the day; Backspace inside the first minute is
+ * reading the brief. retry.js uses the same rule to decide whether a fail has a
+ * day to defer while its free retry is on offer.
+ */
+export function failCostsDay(m) {
+  return !!(m && (m.idx > 0 || (m.elapsed || 0) > 45));
 }
 
 // Called when a job ends for any reason. `aborted` means we are bailing out of a
@@ -220,17 +329,53 @@ export function fillBar(frac, n = 12) {
 // control: thread traffic, find a ramp, or bring the car back in one piece.
 // Prop damage is tracked for the stats screen but is not paid here; otherwise
 // the optimal delivery route would be straight through every patio in Aylmer.
+//
+// B-03 (plan v2): once the style chain is live (style.js, ticked by
+// reactive.js, which keeps `G.stats.styleTips`), near misses and jumps are
+// paid as they happen, uncapped, by the chain's table; the 8 / 9 / 5 caps and
+// the 22 $ ceiling below no longer bind, and the end of the job pays only the
+// clean-car 5 $ and reports what the chain paid on the way. The capped sum is
+// kept for a caller that has no chain (a node table with bare stats), so the
+// two can never both pay the same near miss.
+export const STYLE_END = { near: 2, nearMax: 8, jump: 3, jumpMax: 9, clean: 5, cleanDamage: 4 };
 export function missionStyleBonus(start, now, damageNow) {
   const a = start?.stats || {};
   const b = now || {};
+  // Pedestrian grazes (nearMiss) plus, with the chain live, its traffic near
+  // misses (styleNear), for the feats line only.
   const near = Math.max(0, (b.nearMiss || 0) - (a.nearMiss || 0));
+  const nearAll = near + Math.max(0, (b.styleNear || 0) - (a.styleNear || 0));
   const jumps = Math.max(0, (b.jumps || 0) - (a.jumps || 0));
   const damage = Math.max(0, (damageNow || 0) - (start?.damage || 0));
-  const clean = damage <= 4;
-  const money = Math.min(8, near * 2) + Math.min(9, jumps * 3) + (clean ? 5 : 0);
+  const clean = damage <= STYLE_END.cleanDamage;
+  const live = b.styleTips !== undefined;
+  const tips = live ? Math.max(0, (b.styleTips || 0) - (a.styleTips || 0)) : 0;
+  const E = STYLE_END;
+  // A replay (runPay flagged it on the way through) earns the feats, not the money.
+  const money = start && start.replay ? 0
+    : live ? (clean ? E.clean : 0)
+      : Math.min(E.nearMax, near * E.near) + Math.min(E.jumpMax, jumps * E.jump) + (clean ? E.clean : 0);
   const feats = [];
-  if (near) feats.push(`${near} frôlement${near > 1 ? 's' : ''}`);
+  if (nearAll) feats.push(`${nearAll} frôlement${nearAll > 1 ? 's' : ''}`);
   if (jumps) feats.push(`${jumps} saut${jumps > 1 ? 's' : ''}`);
+  if (tips) feats.push(`${tips} $ de style en route`);
   if (clean) feats.push('char intact');
-  return { money, near, jumps, clean, text: feats.join(' · ') };
+  return { money, near, jumps, clean, tips, live, text: feats.join(' · ') };
+}
+
+/**
+ * B-03: may the style chain pay a tip right now? On a job's first run, and in
+ * free roam (S1-B03: driving well pays wherever you drive; STYLE_FREE_ROAM is
+ * the switch). Never on a replay of a job (the same rule as the end-of-job
+ * bonus: a replay earns the feats, not the money), and never on an M-menu
+ * course or a bet, which pay their own purse.
+ */
+export const STYLE_FREE_ROAM = true;
+export function styleTipsPaying(G) {
+  const m = G && G.mission;
+  if (!m || !m.def) return STYLE_FREE_ROAM && !!G;
+  if (m.def.mode || m.def.course) return false;
+  if (m.styleStart && m.styleStart.replay) return false;
+  if (G.done && G.done.has && G.done.has(m.def.id)) return false;
+  return true;
 }

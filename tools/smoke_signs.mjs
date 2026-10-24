@@ -114,5 +114,33 @@ if (process.argv.includes('--list')) {
   console.log();
 }
 
+// ------------------------------------------- D2: the rebuild keeps the hill
+{
+  const { buildSignage, primeSignage } = await import('../src/game/signage.js');
+  const ctx = new Proxy({}, { get: (t, k) => (k === 'measureText' ? () => ({ width: 10 }) : () => {}), set: () => true });
+  const hadDoc = 'document' in globalThis, hadFetch = globalThis.fetch;
+  globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => ctx }) };
+  globalThis.fetch = async () => ({ ok: true, json: async () => raw });
+  const uploads = [], freed = [];
+  const r = {
+    upload(b) { b.finish?.(); uploads.push(b); return { b }; },
+    free(h) { freed.push(h); }, texture() { return { dispose() {} }; },
+  };
+  const yAt = () => 25;                       // every board stands 25 m up
+  const first = buildSignage(r, yAt);
+  const firstMesh = first && first.mesh;
+  await primeSignage(r, first);
+  const b = uploads.at(-1);
+  let low = 0;
+  for (let i = 1; i < b.v.length; i += 9) if (b.v[i] < 25) low++;
+  if (uploads.length !== 2) fail(`primeSignage should rebuild once (uploads ${uploads.length})`);
+  else if (low) fail(`${low} rebuilt board vertices dropped below the height field`);
+  else ok('primeSignage rebuilds on the first bake\'s height field (no buried boards)');
+  if (!freed.includes(firstMesh)) fail('primeSignage leaked the first signage mesh');
+  else ok('primeSignage frees the mesh it replaces');
+  if (!hadDoc) delete globalThis.document;
+  globalThis.fetch = hadFetch;
+}
+
 console.log(failures ? `\n${failures} FAILURE(S)` : '\nsignage: all good');
 process.exit(failures ? 1 : 0);

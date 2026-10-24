@@ -75,6 +75,8 @@ export class Debris {
         x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
         rx: 0, ry: 0, rz: 0, wx: 0, wy: 0, wz: 0,
         bounced: 0, settled: false, age: 0,
+        // S3-CRASH: a thrown car panel wears the paint of its car.
+        tint: null, opts: { colorMul: null }, flat: false,
       });
     }
     this.nextBody = 0;
@@ -124,6 +126,7 @@ export class Debris {
     b.wy = (Math.random() - 0.5) * spin;
     b.wz = (Math.random() - 0.5) * spin * 2;
     b.bounced = 0; b.settled = false; b.age = 0;
+    b.tint = null; b.flat = !!K.flat;
     return b;
   }
 
@@ -189,7 +192,8 @@ export class Debris {
       if (b.settled) {
         // Ease onto its side and stop asking questions.
         const t = Math.min(1, dt * 6);
-        const want = b.rx >= 0 ? Math.PI / 2 : -Math.PI / 2;
+        // S3-CRASH: a thrown panel or hubcap lies flat; everything else tips over.
+        const want = b.flat ? 0 : b.rx >= 0 ? Math.PI / 2 : -Math.PI / 2;
         b.rx += (want - b.rx) * t;
         b.rz += (0 - b.rz) * t;
         b.y += (b.g + b.rest - b.y) * t;
@@ -268,7 +272,8 @@ export class Debris {
       const dx = b.x - fx, dz = b.z - fz;
       if (dx * dx + dz * dz > 260 * 260) continue;
       m4.compose(mm, b.x, b.y, b.z, b.ry, b.rx, b.rz);
-      r.draw(b.mesh, mm);
+      if (b.tint) { b.opts.colorMul = b.tint; r.draw(b.mesh, mm, b.opts); }
+      else r.draw(b.mesh, mm);
       draws++;
     }
     draws += this.drawPool(r, this.smokePool, SMOKE, this.puffMesh, fx, fz, 0.34, null);

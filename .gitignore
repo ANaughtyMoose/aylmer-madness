@@ -37,3 +37,24 @@ out/
 
 spike-log.txt
 data/raw/
+
+# Personal story photos - real people, public repo (see references/story/README.md)
+references/story/*
+!references/story/README.md
+
+# Cockpit runtime data and the decisions file hold Tom's private answers; the repo is public.
+tools/cockpit/state/
+tools/cockpit/shots/
+docs/roadmap.json
+src/core/*.orig
+
+# Privacy fence (B-14, refinement plan v2 hard rule 6). The repo is public.
+# Private notes, real addresses and real-people canon live outside git; the
+# ledger and the roadmap stay on disk and every tool keeps reading them locally.
+# tools/qa/privacy-scan.mjs fails on the same list.
+references/
+CODEX-*.md
+CHARACTER-*
+docs/qa/story-pass-*
+docs/roadmap.json
+docs/STORY-LEDGER.md

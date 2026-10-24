@@ -1,18 +1,25 @@
 // The dial, and there are no audio files in this repo.
 //
-// R walks it. With the written copy loaded (assets/text/radio.json) that is:
+// R walks it. With the written copy loaded (assets/text/radio.json) that is
+// Tom's ruling of 8 Sept 2026 (docs/HANDOFF.md), with CJRC kept because it is a
+// real Gatineau station:
 //
-//   0  CKOI 102.1     franco top forty — the one that shipped first
-//   1  MAX 104.7      CFOU-FM, modern rock, DJ Dan « Le Pitbull » Tremblay
-//   2  CHLL 99.9      classic rock, Gilles « The Bear » Larocque, ex-E.B. Eddy
-//   3  CKUQ 89.1      campus radio out of UQO, « B-O » at the microphone
-//   4  CFRL 101.3     country franco, Ti-Gars Pilon, de Quyon
-//   5  CJRC 1150 AM   ligne ouverte and municipal complaining, through an AM
-//                     speaker, and it sounds like one. A real Gatineau station
-//   6  CKOT 92.3      the Ottawa signal you have to drive for: it is modelled
-//                     off your distance from the transmitter, solid downtown
-//                     and mush by the time you are back at the Aylmer marina
-//   7  Cassette       whatever the player dropped in assets/radio/
+//   0  CHUM FM          hits, no frequency shown (Toronto, a memory); the
+//                       built-in synth station that used to be « CKOI 102.1 »
+//   1  CHEZ 106.1       Ottawa rock. The signal you have to drive for: it is
+//                       modelled off your distance from the transmitter, solid
+//                       downtown and mush by the Aylmer marina
+//   2  106.9 The Bear   CKQB, rock, Gilles « The Bear » Larocque, ex-E.B. Eddy
+//   3  CBC Radio One    CBO-FM 91.5, public talk, no ads
+//   4  Radio-Canada     CBOF-FM 90.7, Première chaîne, no ads
+//   5  CJRC 1150 AM     ligne ouverte and municipal complaining, through an AM
+//                       speaker, and it sounds like one
+//   6  Cassette         whatever the player dropped in assets/radio/
+//
+// (CKOI is a Montreal station on 96.9, so the name was wrong twice over. The
+// recorded stations in radio-library.js carry the real aircheck files: CHEZ,
+// CBC Radio One and Radio-Canada match this dial; the Bear, CHUM FM and CJRC
+// have no recording and are synthesised.)
 //
 // Without it, the six built-in stations in STATIONS below play instead and
 // nothing else changes.
@@ -54,7 +61,7 @@ import { loadRadio, saveRadio } from './store.js';
 
 // ---------------------------------------------------------------- the music
 
-// Seeded, so "CKOI at 14h07" is the same song every time you drive past.
+// Seeded, so "CHUM FM at 14h07" is the same song every time you drive past.
 function mulberry32(a) {
   return function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -82,7 +89,7 @@ export const STYLES = [
   { id: 'talk',    bpm: 96,  name: 'lit de nouvelles' },
 ];
 
-// The playlist CKOI works through. Titles are the joke; the seed is the song.
+// The playlist the built-in station (CHUM FM, ex-CKOI) works through. Titles are the joke; the seed is the song.
 export const CKOI_TRACKS = [
   { style: 'pop',   seed: 1999, title: 'Toute la nuit',            artist: 'Les Mardis Soir', seconds: 108 },
   { style: 'metal', seed: 8801, title: 'Chrome et Asphalte',       artist: 'Bourrasque',      seconds: 96 },
@@ -100,52 +107,26 @@ export const CKOI_TRACKS = [
 // AM station gets a narrow one and sounds like an AM station.
 export const STATIONS = [
   {
-    id: 'ckoi', name: 'CKOI 102.1', slogan: 'Toute la musique que j’aime',
+    id: 'chumfm', name: 'CHUM FM', slogan: 'Hit music',
     sting: [784, 988, 1319], tone: { freq: 900, q: 0.35 },
     tracks: CKOI_TRACKS,
     idents: [
-      'CKOI 102.1 — toute la musique que j’aime',
-      'T’écoutes CKOI. Monte le son.',
-      'CKOI 102.1, Gatineau-Ottawa',
+      'CHUM FM, hit music',
+      'You are listening to CHUM FM. Turn it up.',
+      'CHUM FM, all the hits',
     ],
     patter: [
-      'DJ: Y fait 31 pis y’est juste 2 h. Ouvre les fenêtres.',
-      'DJ: Bonne fête à Karine du secteur Aylmer, 17 ans aujourd’hui.',
-      'DJ: On s’en va au bloc de trois, pis après ça, le palmarès.',
-      'DJ: Si t’es pogné dans le trafic sur le pont, ben… bonne chance.',
-      'DJ: Prochain: du gros stock. Reste avec nous autres.',
+      'DJ: Thirty-one degrees and it is only two in the afternoon. Roll the windows down.',
+      'DJ: Happy birthday to Karine in Aylmer, seventeen today.',
+      'DJ: Three in a row coming up, then the countdown.',
+      'DJ: Stuck in traffic on the bridge? Well, good luck. Here is a song.',
+      'DJ: Next up, the big stuff. Stay with us.',
     ],
     ads: [
-      'PUB: Galeries d’Aylmer — la rentrée, c’est déjà commencé.',
-      'PUB: Canadian Tire, chemin d’Aylmer. Pneus, BBQ, pis le reste.',
-      'PUB: Dépanneur Palmyra. Ouvert tard. Loto, chips, glace.',
-      'PUB: Auberge Symmes — souper sur la terrasse, vue sur l’eau.',
-    ],
-  },
-  {
-    id: 'cimf', name: 'CIMF 94.9', slogan: 'Rock Détente — doux pis tranquille',
-    sting: [659, 784, 880], tone: { freq: 1000, q: 0.42 },
-    tracks: [
-      { style: 'ballade', seed: 5150, title: 'Reste encore un peu',  artist: 'Nathalie Pilon', seconds: 116 },
-      { style: 'ballade', seed: 2211, title: 'La Route de Chelsea',  artist: 'Yvon Chartrand', seconds: 104 },
-      { style: 'pop',     seed: 3312, title: 'Comme avant',          artist: 'Les Deux Rives', seconds: 110 },
-      { style: 'ballade', seed: 9091, title: 'Un dimanche à Deschênes', artist: 'Claudine',    seconds: 98 },
-    ],
-    idents: [
-      'CIMF 94.9 — Rock Détente, Gatineau',
-      'Doux pis tranquille, sur CIMF 94.9',
-      'La musique qui fait du bien. CIMF.',
-    ],
-    patter: [
-      'DJ: On garde ça doux jusqu’à cinq heures.',
-      'DJ: Une petite pensée pour ceux qui travaillent dehors aujourd’hui.',
-      'DJ: Ça, c’est une demande spéciale de Margaret, sur le chemin Fraser.',
-      'DJ: La météo dans deux minutes. Ça se gâte vers l’ouest.',
-    ],
-    ads: [
-      'PUB: Hôtel Deschênes — cinq à sept, tous les vendredis.',
-      'PUB: Club de Golf Gatineau. Le neuf trous d’après-midi, 22 $.',
-      'PUB: Paroisse Saint-Paul — bazar samedi, sous-sol de l’église.',
+      'AD: Galeries d’Aylmer. Back to school starts now.',
+      'AD: Canadian Tire, chemin d’Aylmer. Tires, barbecues, and the rest.',
+      'AD: Dépanneur Palmyra. Open late. Lotto, chips, ice.',
+      'AD: Auberge Symmes. Dinner on the terrace, view of the water.',
     ],
   },
   {
@@ -153,7 +134,7 @@ export const STATIONS = [
     sting: [330, 440, 587], tone: { freq: 1100, q: 0.5 },
     // The one signal you have to drive for. `x`/`z` is the transmitter, up on
     // the Ottawa side; `near` is where it is perfect and `far` where it is gone.
-    // Solid downtown Hull, mush by the time you are back at the marina — which
+    // Solid downtown Hull, mush by the time you are back at the marina, which
     // is exactly how an Ottawa FM behaved out here in 2004.
     weak: { x: 10668, z: -3330, near: 1800, far: 14000 },
     tracks: [
@@ -163,9 +144,9 @@ export const STATIONS = [
       { style: 'classic', seed: 6620, title: 'Two Lane Blacktop',  artist: 'The Grey Sedans', seconds: 118 },
     ],
     idents: [
-      'CHEZ 106 — Ottawa’s rock station',
+      'CHEZ 106, Ottawa’s rock station',
       'You’re on CHEZ 106.1',
-      'CHEZ 106 — all the rock, all the time',
+      'CHEZ 106, all the rock, all the time',
     ],
     patter: [
       'DJ: Doors at eight, tickets at the door. Get out of the house.',
@@ -174,66 +155,79 @@ export const STATIONS = [
       '…du sss… …grésillement… (le signal r’vire de bord)',
     ],
     ads: [
-      'PUB: Casino du Lac-Leamy — buffet, 15,95 $, tous les soirs.',
-      'PUB: Les Galeries de Hull. Stationnement gratuit.',
-      'PUB: Musée canadien de l’histoire — entrée libre le jeudi soir.',
+      'AD: Casino du Lac-Leamy. Buffet, $15.95, every night.',
+      'AD: Les Galeries de Hull. Free parking.',
+      'AD: Musée canadien de l’histoire. Free admission Thursday nights.',
     ],
   },
   {
-    id: 'ckcu', name: 'CKCU 93.1', slogan: 'Radio campus, Carleton',
-    sting: [523, 494, 698, 466], tone: { freq: 850, q: 0.3 },
+    id: 'the_bear', name: '106.9 The Bear', slogan: 'Real rock for real trucks',
+    sting: [330, 440, 587], tone: { freq: 1100, q: 0.5 },
     tracks: [
-      { style: 'campus', seed: 8118, title: 'Cassette Trouvée',     artist: 'Loque',           seconds: 104 },
-      { style: 'campus', seed: 3030, title: 'Sous-sol, 3 h du mat', artist: 'Les Colocs Fictifs', seconds: 96 },
-      { style: 'boom',   seed: 9512, title: 'Pont Champlain',       artist: 'DJ Vanier',       seconds: 108 },
-      { style: 'campus', seed: 6767, title: 'Bruit de Fond',        artist: 'Mémoire Vive',    seconds: 92 },
+      { style: 'classic', seed: 9901, title: 'Papermill Blues',     artist: 'The Grey Sedans', seconds: 112 },
+      { style: 'classic', seed: 9902, title: 'Deschênes Rapids',    artist: 'Bytown Bros',     seconds: 100 },
+      { style: 'metal',   seed: 9903, title: 'Long Weekend',        artist: 'Silver Lake',     seconds: 96 },
+      { style: 'classic', seed: 9904, title: 'Chemin d’Aylmer',     artist: 'La Sacoche',      seconds: 118 },
     ],
     idents: [
-      'CKCU 93.1 FM — radio campus, Université Carleton',
-      'You are listening to CKCU. Nous sommes CKCU.',
-      'CKCU 93.1 — non-commercial, listener supported',
+      '106.9 The Bear, real rock',
+      'The Bear, 106.9 FM. Ottawa and Gatineau.',
+      'You’re on The Bear. Turn it up.',
     ],
     patter: [
-      'DJ: C’tait quoi ça? Aucune idée. On l’a trouvé dans une boîte.',
-      'DJ: Funding drive next week. Pledge, or we play this one again.',
-      'DJ: Prochaine heure: deux heures de trames sonores de films tchèques.',
-      'DJ: Si quelqu’un a laissé un vélo devant le studio, viens le chercher.',
+      'DJ: Gilles on the mic. That was Rush. Bass with balls.',
+      'DJ: Keep your foot off the clutch at the lights, learn to drive.',
+      'DJ: Check your tire pressure in this heat.',
     ],
     ads: [
-      'PUB: Heritage College — inscriptions d’automne, secteur Hull.',
-      'PUB: Aréna Frank-Robinson — hockey libre, mercredi soir.',
-      'PUB: Le lot d’occasion du chemin d’Aylmer. Ça roule. À peu près.',
+      'AD: Petro-Canada. A tank, a coffee, and a car wash.',
+      'AD: Tim Hortons, rue Principale. Always open.',
+      'AD: McDo du chemin d’Aylmer. Drive-through till midnight.',
+      'AD: Club de Golf Gatineau. Firefighters’ tournament, Saturday.',
     ],
   },
   {
-    id: 'y105', name: 'Y105 · CKBY', slogan: 'Country capital of Canada',
-    sting: [392, 494, 587], tone: { freq: 1200, q: 0.4 },
+    id: 'cbc_radio_one', name: 'CBC Radio One', slogan: 'CBO-FM · 91.5 FM',
+    sting: [523, 659, 784], tone: { freq: 1000, q: 0.42 },
+    adFree: true,
     tracks: [
-      { style: 'country', seed: 2404, title: 'Half a Tank',          artist: 'Della Booth',    seconds: 106 },
-      { style: 'country', seed: 8842, title: 'Gravel and Gasoline',  artist: 'The Ridge Boys', seconds: 98 },
-      { style: 'folk',    seed: 5127, title: 'Reel du 148',          artist: 'La Sacoche',     seconds: 94 },
-      { style: 'country', seed: 3399, title: 'Ottawa Valley Moon',   artist: 'Della Booth',    seconds: 114 },
+      { style: 'talk', seed: 9151, title: 'Local news and weather', artist: 'CBC Radio One', seconds: 112 },
+      { style: 'talk', seed: 9152, title: 'The afternoon documentary', artist: 'CBC Radio One', seconds: 118 },
+      { style: 'talk', seed: 9153, title: 'The radio play',        artist: 'CBC Radio One', seconds: 100 },
     ],
     idents: [
-      'Y105 — CKBY, the country capital of Canada',
-      'Y105. Real country.',
-      'CKBY 105.3, Ottawa-Gatineau',
+      'This is CBC Radio One, 91.5 in Ottawa.',
+      'CBC Radio One. Ottawa and Gatineau.',
     ],
     patter: [
-      'DJ: Trucks, dogs pis des cœurs cassés. C’est tout c’qu’on a.',
-      'DJ: Big weekend out at the fairgrounds. Bring a chair.',
-      'DJ: On a une demande pour un gars qui répare des Ranger à Aylmer.',
-      'DJ: Coming up: three in a row, no talk.',
+      'Environment Canada has issued a heat warning for the region. Drink water.',
+      'Expect delays on the bridges this afternoon. Traffic at the half hour.',
+      'The time is a quarter past the hour. This is CBC Radio One.',
     ],
-    ads: [
-      'PUB: Petro-Canada — le plein, un café, pis un lave-auto.',
-      'PUB: McDo du chemin d’Aylmer. Le service au volant, jusqu’à minuit.',
-      'PUB: Tim Hortons de la rue Principale. Toujours ouvert.',
-      'PUB: Club de Golf Gatineau — tournoi des pompiers, samedi.',
-    ],
+    ads: [],
   },
   {
-    id: 'cjrc', name: 'CJRC 1150 AM', slogan: 'Nouvelles, sports pis opinions',
+    id: 'radio_canada', name: 'Radio-Canada', slogan: 'CBOF-FM · 90,7 FM',
+    sting: [523, 659, 784], tone: { freq: 1000, q: 0.42 },
+    adFree: true,
+    tracks: [
+      { style: 'talk', seed: 9071, title: 'Les nouvelles locales', artist: 'Radio-Canada', seconds: 112 },
+      { style: 'talk', seed: 9072, title: 'Le reportage',          artist: 'Radio-Canada', seconds: 118 },
+      { style: 'talk', seed: 9073, title: 'La pièce radiophonique', artist: 'Radio-Canada', seconds: 100 },
+    ],
+    idents: [
+      'Radio-Canada Première, 90,7 à Ottawa-Gatineau.',
+      'Ici Radio-Canada, 90,7 FM.',
+    ],
+    patter: [
+      'Environnement Canada émet un avertissement de chaleur. Buvez de l’eau.',
+      'Prévoyez des délais sur les ponts cet après-midi.',
+      'Il est un quart d’heure passé. Vous êtes à Radio-Canada.',
+    ],
+    ads: [],
+  },
+  {
+    id: 'cjrc_talk', name: 'CJRC 1150 AM', slogan: 'Nouvelles, sports pis opinions',
     sting: [440, 349], tone: { freq: 1450, q: 2.6 },
     tracks: [
       { style: 'talk', seed: 1150, title: 'La ligne ouverte',        artist: 'CJRC',  seconds: 118 },
@@ -241,7 +235,7 @@ export const STATIONS = [
       { style: 'talk', seed: 1152, title: 'L’heure des sports',      artist: 'CJRC',  seconds: 110 },
     ],
     idents: [
-      'CJRC 1150 — l’Outaouais vous parle',
+      'CJRC 1150, l’Outaouais vous parle',
       'Vous êtes au 1150 AM.',
       'CJRC 1150, Gatineau-Hull-Aylmer',
     ],
@@ -254,9 +248,9 @@ export const STATIONS = [
       'ANIMATEUR: Avis d’orage violent pour l’Outaouais. Rentrez les chaises.',
     ],
     ads: [
-      'PUB: Plage des Cèdres — surveillants de 10 h à 18 h.',
+      'PUB: Plage des Cèdres, surveillants de 10 h à 18 h.',
       'PUB: Marina d’Aylmer. Rampe de mise à l’eau, 8 $ la journée.',
-      'PUB: Canadian Tire du chemin d’Aylmer — les essuie-glaces, 2 pour 1.',
+      'PUB: Canadian Tire du chemin d’Aylmer, les essuie-glaces, 2 pour 1.',
       'PUB: Dépanneur Palmyra. La glace, le vendredi, avant qu’y en aye pu.',
     ],
   },
@@ -280,27 +274,31 @@ export const AD_CHUNK = 96;
 // patter, twelve local ad reads, six news/weather/traffic stingers and four
 // contest bits. This file supplies what the JSON cannot: the music.
 //
-// One deliberate keep: CKOI 102.1 stays at position 0 on the dial. It shipped
-// first, tools/smoke_garage.mjs pins it there, and a franco top-forty station is
-// not the same animal as the modern-rock one that arrived with the copy.
+// One deliberate keep: the built-in station (CHUM FM, once « CKOI 102.1 ») stays
+// at position 0 on the dial and the written stations follow it.
 //
 // `MUSIC[id]` is the sound of a station: its playlist, its logo notes and the
 // speaker it comes out of. Anything the JSON adds that has no entry here plays
 // the house band and comes out of an ordinary FM speaker.
 export const MUSIC = {
-  max_energie: {
-    name: 'MAX 104.7',            // the brand, which is what the DJ and the
-    sting: [880, 1175, 1568],     // dialogue both actually say out loud
-    tone: { freq: 950, q: 0.38 },
+  chez: {
+    name: 'CHEZ 106.1',
+    sting: [330, 440, 587],
+    tone: { freq: 1100, q: 0.5 },
+    // The one you have to drive for. The transmitter is on the Ottawa side; it
+    // is solid downtown and mush by the time you are back at the Aylmer marina,
+    // which is exactly what an Ottawa FM did out here in 2004. (The recorded
+    // CHEZ aircheck, chez106-1, lives in radio-library.js.)
+    weak: { x: 10668, z: -3330, near: 1800, far: 14000 },
     tracks: [
-      { style: 'metal',   seed: 1047, title: 'Douze Secondes',      artist: 'Bourrasque',      seconds: 96 },
-      { style: 'pop',     seed: 2047, title: 'Coup de Chaleur',     artist: 'Les Mardis Soir', seconds: 108 },
-      { style: 'classic', seed: 3047, title: 'Subs dans’ Valise',   artist: 'Z24',             seconds: 100 },
-      { style: 'metal',   seed: 4047, title: 'Pèse su’l Gaz',       artist: 'Bourrasque',      seconds: 92 },
+      { style: 'classic', seed: 7301, title: 'Highway Wind',       artist: 'The Grey Sedans', seconds: 112 },
+      { style: 'classic', seed: 9232, title: 'Two Lane Blacktop',  artist: 'The Grey Sedans', seconds: 118 },
+      { style: 'metal',   seed: 1102, title: 'Long Weekend',       artist: 'Silver Lake',     seconds: 96 },
+      { style: 'campus',  seed: 9233, title: 'Britannia Beach',    artist: 'Loque',           seconds: 96 },
     ],
   },
-  le_roc: {
-    name: 'CHLL 99.9',
+  the_bear: {
+    name: '106.9 The Bear',
     sting: [330, 440, 587],
     tone: { freq: 1100, q: 0.5 },
     tracks: [
@@ -310,26 +308,24 @@ export const MUSIC = {
       { style: 'classic', seed: 9904, title: 'Chemin d’Aylmer',     artist: 'La Sacoche',      seconds: 118 },
     ],
   },
-  radio_uqo: {
-    name: 'CKUQ 89.1',
-    sting: [523, 494, 698, 466],
-    tone: { freq: 850, q: 0.3 },
+  cbc_radio_one: {
+    name: 'CBC Radio One',
+    sting: [523, 659, 784],
+    tone: { freq: 1000, q: 0.42 },
     tracks: [
-      { style: 'campus', seed: 8911, title: 'Cassette Trouvée',      artist: 'Loque',              seconds: 104 },
-      { style: 'campus', seed: 8912, title: 'Sous-sol, 3 h du mat',  artist: 'Les Colocs Fictifs', seconds: 96 },
-      { style: 'boom',   seed: 8913, title: 'Pont Champlain',        artist: 'DJ Vanier',          seconds: 108 },
-      { style: 'campus', seed: 8914, title: 'Bruit de Fond',         artist: 'Mémoire Vive',       seconds: 92 },
+      { style: 'talk', seed: 9151, title: 'Local news and weather',    artist: 'CBC Radio One', seconds: 112 },
+      { style: 'talk', seed: 9152, title: 'The afternoon documentary', artist: 'CBC Radio One', seconds: 118 },
+      { style: 'talk', seed: 9153, title: 'The radio play',            artist: 'CBC Radio One', seconds: 100 },
     ],
   },
-  riviere_country: {
-    name: 'CFRL 101.3',
-    sting: [392, 494, 587],
-    tone: { freq: 1200, q: 0.4 },
+  radio_canada: {
+    name: 'Radio-Canada',
+    sting: [523, 659, 784],
+    tone: { freq: 1000, q: 0.42 },
     tracks: [
-      { style: 'country', seed: 1013, title: 'Demi-Réservoir',      artist: 'Ti-Gars Pilon',  seconds: 106 },
-      { style: 'country', seed: 1014, title: 'Le Traversier d’Quyon', artist: 'Della Booth',  seconds: 98 },
-      { style: 'folk',    seed: 1015, title: 'Reel du 148',          artist: 'La Sacoche',     seconds: 94 },
-      { style: 'country', seed: 1016, title: 'Lune su’a Vallée',     artist: 'Ti-Gars Pilon',  seconds: 114 },
+      { style: 'talk', seed: 9071, title: 'Les nouvelles locales',  artist: 'Radio-Canada', seconds: 112 },
+      { style: 'talk', seed: 9072, title: 'Le reportage',           artist: 'Radio-Canada', seconds: 118 },
+      { style: 'talk', seed: 9073, title: 'La pièce radiophonique', artist: 'Radio-Canada', seconds: 100 },
     ],
   },
   cjrc_talk: {
@@ -342,27 +338,13 @@ export const MUSIC = {
       { style: 'talk', seed: 1152, title: 'L’heure des sports',  artist: 'CJRC', seconds: 110 },
     ],
   },
-  the_buzz_ottawa: {
-    name: 'CKOT 92.3',
-    sting: [587, 784, 1047],
-    tone: { freq: 1050, q: 0.55 },
-    // The one you have to drive for. The transmitter is on the Ottawa side; it
-    // is solid downtown and mush by the time you are back at the Aylmer marina,
-    // which is exactly what an Ottawa FM did out here in 2004.
-    weak: { x: 10668, z: -3330, near: 1800, far: 14000 },
-    tracks: [
-      { style: 'campus',  seed: 9231, title: 'Across the River',   artist: 'Sandy Hill',      seconds: 104 },
-      { style: 'classic', seed: 9232, title: 'Two Lane Blacktop',  artist: 'The Grey Sedans', seconds: 118 },
-      { style: 'campus',  seed: 9233, title: 'Britannia Beach',    artist: 'Loque',           seconds: 96 },
-    ],
-  },
 };
 
 // The house band, for a station the copy adds that MUSIC has never heard of.
 const HOUSE = { sting: [523, 659, 784], tone: { freq: 950, q: 0.4 }, tracks: CKOI_TRACKS };
 
 /**
- * assets/text/radio.json -> the dial. CKOI keeps position 0; every station in
+ * assets/text/radio.json -> the dial. CHUM FM keeps position 0; every station in
  * the file follows it, wearing whatever music MUSIC has for it. Returns null if
  * the file is not the shape it should be, and the caller keeps its fallback.
  */
@@ -410,67 +392,83 @@ export function stationsFromJSON(json) {
 // station ids. This is the remap, by FORMAT rather than frequency, which is the
 // only way a modern-rock line ends up on the modern-rock station:
 export const CONTEXT_STATION = {
-  ENERGIE: 'max_energie',        // modern rock -> CFOU 104.7
-  ROCKDETENTE: 'le_roc',         // classic rock -> CHLL 99.9
+  ENERGIE: 'cjrc_talk',          // joual DJ lines -> CJRC 1150 AM, the talk station
+  ROCKDETENTE: 'radio_canada',   // calm French weather lines -> Radio-Canada 90.7
   CKOI: 'cjrc_talk',             // traffic and advisories -> CJRC 1150 AM
-  ENGLISH: 'the_buzz_ottawa',    // the English sets -> CKOT 92.3, merged
-  CHEZ: 'the_buzz_ottawa',
-  HOT: 'the_buzz_ottawa',
+  ENGLISH: 'chez',               // the English rock sets -> CHEZ 106.1, merged
+  CHEZ: 'chez',
+  HOT: 'chez',
 };
 export const CONTEXTS = ['fading', 'storm', 'latenight', 'heatwave', 'endofsummer'];
 
-// The file has nothing for the country station or the campus station, so their
-// lines are written here, in the voices radio.json already gave them: Ti-Gars
-// Pilon, sixty-two, de Quyon; and « B-O », a sociology grad student at UQO.
+// The file has nothing for The Bear, CBC Radio One or Radio-Canada, so their
+// lines are written here, in the voices radio.json gave them: Gilles Larocque,
+// and two calm public-radio announcers (one English, one French).
 export const EXTRA_CONTEXT = {
-  riviere_country: {
+  the_bear: {
     storm: [
-      'TI-GARS: Ça brasse en haut d’la côte. Rentre le linge, pis rentre le chien.',
-      'TI-GARS: Mon père disait: quand les vaches se couchent, tu couches pas dehors.',
-      'TI-GARS: Ça va tomber. Roule tranquille, y a pas d’prix pour arriver le premier.',
+      'GILLES: Thunder on the hills. Pull over if you can’t see the hood of your truck.',
+      'GILLES: Rain like this, I’d put the Zeppelin on and wait it out.',
     ],
     heatwave: [
-      'TI-GARS: Trente-deux d’gré. J’ai vu un chien courir après un chat, les deux à pied.',
-      'TI-GARS: Y fait assez chaud que l’asphalte du 148 colle aux pneus.',
+      'GILLES: Thirty-four degrees. The asphalt on the 148 is sticking to the tires.',
+      'GILLES: No air conditioning in my F-150, just sweat and Deep Purple.',
     ],
     latenight: [
-      'TI-GARS: Deux heures du matin. Si t’es su’a route, t’as une bonne raison ou une mauvaise.',
-      'TI-GARS: On joue doux jusqu’au lever du soleil. Bonne nuit, les camionneurs.',
+      'GILLES: Two in the morning. If you’re on the road, you’ve got a reason, good or bad.',
+      'GILLES: Night shift at the mill, I remember it. This one’s for you.',
     ],
     endofsummer: [
-      'TI-GARS: L’été achève. Les foins sont faits pis l’école recommence.',
-      'TI-GARS: Y commence à faire noir de bonne heure. Ça sent l’automne su’a rivière.',
+      'GILLES: Last week of August. The nights are getting cooler and the school buses are coming.',
+      'GILLES: Summer’s almost over. Play it loud while it lasts.',
     ],
     fading: [
-      'TI-GARS: …si ça grésille, c’est nos poteaux. Y datent d’avant moi.',
+      'GILLES: If the signal’s fuzzy, that’s the hills. Hit the dash.',
     ],
   },
-  radio_uqo: {
+  cbc_radio_one: {
     storm: [
-      'B-O: Il pleut. On a mis quarante minutes de field recordings de pluie. C’est méta.',
-      'B-O: Orage sur Aylmer. Le studio coule encore. On continue pareil.',
+      'Environment Canada has issued a thunderstorm warning for the region. Avoid driving through standing water.',
+      'Heavy rain is moving down the Ottawa Valley. Slow down and keep your headlights on.',
     ],
     heatwave: [
-      'B-O: Trente-et-un degrés pis pas d’air climatisé au sous-sol du pavillon Lucien-Brault.',
-      'B-O: Canicule. On passe une face B enregistrée dans un frigo. Sérieux.',
+      'A heat warning remains in effect for Ottawa and Gatineau. Drink water and check on your neighbours.',
+      'Humidex values near forty today. Take it easy outdoors.',
     ],
     latenight: [
-      'B-O: Trois heures du matin. Si t’écoutes, t’as pas d’examen demain, ou t’en as un.',
-      'B-O: La nuit, c’est nous autres pis les chauffeurs de taxi. Salut, les chauffeurs de taxi.',
+      'It is the middle of the night on CBC Radio One. Stay with us.',
+      'Overnight on Radio One: music, stories, and the odd weather report.',
     ],
     endofsummer: [
-      'B-O: La session recommence dans deux semaines. Profites-en, là.',
-      'B-O: Dernière semaine d’août. La programmation d’été meurt vendredi.',
+      'It is the last week of August. School starts soon, and the evenings are getting cooler.',
+      'Summer is winding down in the capital region.',
     ],
     fading: [
-      'B-O: Notre émetteur fait dix watts pis un vœu. Si tu nous entends, écris-nous.',
+      'If the signal is breaking up, you may be at the edge of our range.',
+    ],
+  },
+  radio_canada: {
+    storm: [
+      'Environnement Canada a émis un avertissement d’orages pour la région. Évitez les flaques d’eau.',
+    ],
+    heatwave: [
+      'Un avertissement de chaleur demeure en vigueur à Gatineau et Ottawa. Buvez de l’eau.',
+    ],
+    latenight: [
+      'Il est tard à la Première chaîne. Restez avec nous.',
+    ],
+    endofsummer: [
+      'C’est la dernière semaine d’août. La rentrée approche.',
+    ],
+    fading: [
+      'Si le signal faiblit, vous êtes peut-être en bordure de notre zone de réception.',
     ],
   },
 };
 
 /**
  * radio_extra.json's `contextual` -> { stationId: { context: [line, ...] } },
- * remapped and de-duplicated, with the two stations the file forgot filled in
+ * remapped and de-duplicated, with the two English stations the file forgot filled in
  * from EXTRA_CONTEXT. Unknown placeholders are reported, not dropped in silence.
  */
 export function contextFromJSON(json) {
@@ -793,10 +791,28 @@ export async function renderLoop(style, seed, sampleRate = 22050) {
 // Everything in the class talks in dial INDEXES, and the tape is always the far
 // end of it — `this.tapeIdx`, because the dial grows when the copy loads.
 
+// AUD-02: the deck's level (was 0.85) and what it ducks to under a voice and
+// under your horn.
+export const SYNTH_DECK = 1.0;
+export const SYNTH_DUCK = { dialogue: 0.5, horn: 0.28 };
+/**
+ * The speaker for a station's band. `tone` is the station record's
+ * { freq, q }: a high Q (the AM station, CJRC) is a narrow AM set, 300 Hz to
+ * 3.2 kHz with a presence peak at its freq; everything else is the car
+ * speaker (150 Hz to 5 kHz) with no colour at all.
+ */
+export function voicing(tone) {
+  const am = !!tone && tone.q >= 2;
+  return am
+    ? { hpHz: 300, lpHz: 3200, peakHz: tone.freq, peakQ: 1.2, peakDb: 4 }
+    : { hpHz: 150, lpHz: 5000, peakHz: 1000, peakQ: 0.7, peakDb: 0 };
+}
+
 export class Radio {
   /** @param audio the core/audio.js Audio instance (started or not). */
   constructor(audio) {
     this.audio = audio;
+    if (audio && audio.onStateChange) audio.onStateChange(() => this._emit());
     const saved = loadRadio();
     this.volume = saved.volume;
     this.wantOn = saved.on;                   // the deck only runs while driving
@@ -849,13 +865,34 @@ export class Radio {
     this.out.gain.value = 0;
     this.duckG = ctx.createGain();
     this.duckG.gain.value = 1;
-    this.tone = ctx.createBiquadFilter();     // a car speaker is not a monitor
-    this.tone.type = 'bandpass';
-    this.tone.frequency.value = 900;
-    this.tone.Q.value = 0.35;
+    // A car speaker is not a monitor: a paper cone that gives up below 150 Hz
+    // and has nothing past 5 kHz. A highpass and a lowpass rather than one
+    // bandpass, because the old 900 Hz bandpass took the bass AND the top and
+    // left a thin box that sat 17 dB under the engine.
+    this.tone = ctx.createBiquadFilter();
+    this.tone.type = 'highpass';
+    this.tone.frequency.value = 150;
+    this.tone.Q.value = 0.7;
+    this.toneLp = ctx.createBiquadFilter();
+    this.toneLp.type = 'lowpass';
+    this.toneLp.frequency.value = 5000;
+    this.toneLp.Q.value = 0.7;
+    // AUD-02: each band's own colour lives here, in its own node, so the car
+    // speaker above stays at 150 Hz whatever the station (radio.js used to
+    // write the station's 900 to 1450 Hz `tone` into the highpass itself and
+    // threw away every kick and bass note, 11 to 13 dB of the radio). FM: a
+    // flat peaking filter. AM (CJRC): a presence peak and a narrower speaker,
+    // see voicing().
+    this.voice = ctx.createBiquadFilter();
+    this.voice.type = 'peaking';
+    this.voice.frequency.value = 1000;
+    this.voice.Q.value = 0.7;
+    this.voice.gain.value = 0;
     this.out.connect(this.duckG);
-    this.duckG.connect(this.tone);
-    this.tone.connect(a.radioBus || a.master);
+    this.duckG.connect(this.voice);
+    this.voice.connect(this.tone);
+    this.tone.connect(this.toneLp);
+    this.toneLp.connect(a.radioBus || a.master);
     // The static that lives between the stations. One looping noise source that
     // is silent unless a weak station is fading, which is only ever CHEZ.
     this.hissG = ctx.createGain();
@@ -907,16 +944,24 @@ export class Radio {
 
   // ---- public API -----------------------------------------------------
 
-  /** Off -> station 0 -> ... -> the last one -> cassette, if any -> off. */
+  /** Power and tuning are separate controls: R / Shift+R. */
+  // F2/F3: when the deck wants to be on but is silent (a blocked play(), or a
+  // context the browser suspended), R means "play", not "off".
   toggle() {
-    if (!this.wantOn) { this.wantOn = true; this.station = 0; }
-    else if (this.station + 1 < this.count) this.station += 1;
-    else this.wantOn = false;
-    this.trackT = 0;
-    this.breakT = 0; this.breakQueue.length = 0;
-    this._restart();
-    this._persist();
-    return this.state();
+    if (this.wantOn && this._silent()) {
+      this.playbackError = '';
+      if (this.audio && this.audio.resume) this.audio.resume();
+      this._restart(); return this.state();
+    }
+    return this.power(!this.wantOn);
+  }
+  _ctxRunning() { const c = this.audio && this.audio.ctx; return !c || !c.state || c.state === 'running'; }
+  _silent() { return /autoriser/.test(this.playbackError || '') || (this.on && !this._ctxRunning()); }
+  nextStation() {
+    const power = this.wantOn;
+    this.station = (this.station + 1) % Math.max(1, this.count);
+    this.trackT = 0; this.breakT = 0; this.breakQueue.length = 0;
+    this.wantOn = power; this._restart(); this._persist(); return this.state();
   }
 
   /** Explicit power, for the missions ("elle amène le radio pis les cassettes"). */
@@ -956,6 +1001,7 @@ export class Radio {
 
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, Number(v) || 0));
+    this.audio?.setVolume?.({ radio: this.volume });
     this._persist();
     return this.volume;
   }
@@ -1037,8 +1083,10 @@ export class Radio {
     const playing = t
       ? (t.artist ? `${t.artist} — ${t.title}` : t.title)
       : (tape ? tape.label : '');
+    const muted = this.on && !this._ctxRunning();
+    const error = this.playbackError || (muted ? 'Son suspendu par le navigateur. Clique ou appuie sur R.' : '');
     return {
-      on: this.on, wantOn: this.wantOn, station: this.station,
+      on: this.on && !muted, wantOn: this.wantOn, station: this.station, error, blocked: this.wantOn && this._silent(),
       stationName: st ? st.name : TAPE_NAME,
       slogan: st ? st.slogan : '',
       // On a break the HUD line is the DJ, not the song. That is the whole
@@ -1062,6 +1110,7 @@ export class Radio {
    * network request the radio makes, and only for the player's own files.
    */
   async loadTape(base = 'assets/radio/') {
+    if (this.localTape) return true;
     try {
       const res = await fetch(base + 'playlist.json', { cache: 'no-cache' });
       if (!res.ok) return false;
@@ -1070,6 +1119,7 @@ export class Radio {
         .map((t) => (typeof t === 'string' ? { file: t, title: t.replace(/\.[^.]+$/, '') } : t))
         .filter((t) => t && typeof t.file === 'string');
       if (!list.length) return false;
+      if (this.localTape) return true; // A file picker may have won while fetch awaited.
       this.tape = { list, idx: 0, base, el: null, node: null };
       this.tapeReady = true;
       this._emit();
@@ -1079,23 +1129,37 @@ export class Radio {
     }
   }
 
+  /** Install browser-local files without uploading or replacing the server playlist. */
+  useLocalTracks(list) {
+    if (!Array.isArray(list) || !list.length) return false;
+    this._stopSource();
+    if(this.tape?.node)this.tape.node.disconnect();
+    if(this.tape?.el){this.tape.el.removeAttribute('src');this.tape.el.load();}
+    this.localTape=true;this.playbackError='';
+    this.tape={list,idx:0,base:'',el:null,node:null};this.tapeReady=true;
+    this._emit();return true;
+  }
+
   // ---- per-frame ------------------------------------------------------
 
   /**
    * `load` is engine load 0..1, `horn` whether you are leaning on it. A handful
    * of gain writes per frame; nothing is created here.
    */
-  update(dt, load = 0, horn = false) {
+  // AUD-02: no duck under engine load (the radio sits over the engine now,
+  // audio.md finding 3); the horn and a voice (`dialogue`, speechSynthesis
+  // speaking) still duck it, the same way the recorded deck does.
+  update(dt, load = 0, horn = false, dialogue = false) {
     if (!this.built) return;
     const t = this.ctx.currentTime;
-    const want = horn ? 0.28 : 1 - Math.min(0.42, load * 0.42);
+    const want = dialogue ? SYNTH_DUCK.dialogue : horn ? SYNTH_DUCK.horn : 1;
     this.duck += (want - this.duck) * Math.min(1, dt * 6);
     this.duckG.gain.setTargetAtTime(this.duck, t, 0.08);
     this._signal(dt);
-    const g = this.on && this.audio.enabled ? this.volume * 0.30 * (0.18 + 0.82 * this.signal) : 0;
+    const g = this.on && this.audio.enabled ? SYNTH_DECK * (0.18 + 0.82 * this.signal) : 0;
     this.out.gain.setTargetAtTime(g, t, 0.15);
     // Static rises as the station falls away, and only while it is on.
-    const hiss = this.on && this.audio.enabled ? this.volume * 0.14 * Math.pow(1 - this.signal, 1.4) : 0;
+    const hiss = this.on && this.audio.enabled ? 0.14 * Math.pow(1 - this.signal, 1.4) : 0;
     this.hissG.gain.setTargetAtTime(hiss, t, 0.25);
 
     if (!this.on) return;
@@ -1129,7 +1193,7 @@ export class Radio {
   _persist() {
     // The id is the truth; the index is written clamped so an older build that
     // only knows about four stations still finds one it can play.
-    writeStationPref(this.station === this.tapeIdx ? 'tape' : (this.def ? this.def.id : 'ckoi'));
+    writeStationPref(this.station === this.tapeIdx ? 'tape' : (this.def ? this.def.id : 'chumfm'));
     saveRadio({ on: this.wantOn, station: Math.min(3, this.station), volume: this.volume });
   }
 
@@ -1228,11 +1292,14 @@ export class Radio {
     if (!this.wantOn || this.suspended) { this.on = false; this._emit(); return; }
     // Each band gets its own speaker: the AM station's is narrow, and that is
     // most of why it sounds like 1150 on the dash of a Ranger.
-    const st = this.def;
-    const tn = (st && st.tone) || { freq: 900, q: 0.35 };
-    const now = this.ctx.currentTime;
-    this.tone.frequency.setTargetAtTime(tn.freq, now, 0.05);
-    this.tone.Q.setTargetAtTime(tn.q, now, 0.05);
+    const v = voicing(this.def && this.def.tone), now = this.ctx.currentTime;
+    if (this.voice) {
+      this.voice.frequency.setTargetAtTime(v.peakHz, now, 0.05);
+      this.voice.Q.setTargetAtTime(v.peakQ, now, 0.05);
+      this.voice.gain.setTargetAtTime(v.peakDb, now, 0.05);
+    }
+    if (this.tone) this.tone.frequency.setTargetAtTime(v.hpHz, now, 0.05);
+    if (this.toneLp) this.toneLp.frequency.setTargetAtTime(v.lpHz, now, 0.05);
     if (this.station === this.tapeIdx) this._playTape();
     else this._playSynth();
     this._emit();
@@ -1275,6 +1342,7 @@ export class Radio {
       const el = new globalThis.Audio();
       el.crossOrigin = 'anonymous';
       el.loop = false;
+      el.addEventListener('error',()=>{this.playbackError='Fichier audio illisible ou introuvable. Choisis un autre fichier.';this._emit();});
       el.addEventListener('ended', () => { if (this.wantOn && this.station === this.tapeIdx) this.next(); });
       this.tape.el = el;
       this.tape.node = this.ctx.createMediaElementSource(el);
@@ -1283,7 +1351,7 @@ export class Radio {
     const url = this.tape.base + t.file;
     if (!this.tape.el.src.endsWith(encodeURI(t.file))) this.tape.el.src = url;
     const p = this.tape.el.play();
-    if (p && p.catch) p.catch(() => { /* autoplay policy; the next E will do it */ });
+    if (p && p.catch) p.then(()=>{this.playbackError='';}).catch(e => { this.playbackError=e.name==='NotAllowedError'?'Clique Écouter pour autoriser le son.':'Lecture impossible : '+e.message; this._emit(); });
     this.on = true;
   }
 

@@ -1,92 +1,136 @@
-// The four-point memory measurement from docs/VERIFY.md, in one run.
-// Boots the real game in a headless Chrome (same protocol as headless.mjs),
-// then teleports the car to each point, lets the sim run long enough for the
-// chunks to come in, forces a full GC and reads the heap and GPU-buffer totals.
-// Usage: node tools/measure_memory.mjs [url] [--drive N]   (N = sim seconds per point)
-// Requires: "Google Chrome" --headless=new --remote-debugging-port=9222 --use-angle=swiftshader
-const url = process.argv[2] || 'http://localhost:8123/index.html';
-const driveIdx = process.argv.indexOf('--drive');
-const SIM = driveIdx > 0 ? Number(process.argv[driveIdx + 1]) : 3;   // sim seconds per point
+#!/usr/bin/env node
+// Isolated memory tour, or a real-time Metal soak with frame-time windows.
+//   node tools/measure_memory.mjs [owned-local-url] [--drive 3]
+//   node tools/measure_memory.mjs --soak-min=30 --window-seconds=60 --tier=med \
+//     --pose=chase_fraser --env=noon --out=<new.json>
+// Own server/CDP defaults: 8244/9544. The old external :9222 attachment is
+// intentionally unsupported: neither player profiles nor live servers are used.
+// A stopped soak cannot resume as one continuous run; its output stays intact.
+import path from 'node:path';
+import { ROOT, stamp, done, sleep } from './qa/lib/rig.mjs';
+import { planStorage } from './storage_guard.mjs';
+import { loadPoses, resolve } from './qa/lib/poses.mjs';
+import { options, numberArg, buildIdentity, machine, claimOutput, atomicJson, takeLock, summarizeTiming, drift, rowFailures, workloadFailures, finalizeMemoryReport } from './qa/lib/perf-core.mjs';
+import { reservedPorts, openRig, drainTiming, takeTimingWindow, onCleanup } from './qa/lib/perf-runtime.mjs';
+import { SET_TIER, PLACE, snapshotScript } from './qa/lib/perf-instrument.mjs';
 
-const POINTS = [
-  ['driveway', 932.9, 143.9],      // 299 Chemin Fraser
-  ['galeries', -18.9, -331.2],     // Galeries d'Aylmer
-  ['hull', 9510, -3364],           // Place du Portage
-  ['champlain', 6311, -1107],      // Ottawa end of the Champlain Bridge deck
-  ['parlement', 10668, -3330],     // Parliament Hill — the far east edge
-];
-
-const list = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then((r) => r.json());
-const ws = new WebSocket(list.webSocketDebuggerUrl);
-await new Promise((res) => (ws.onopen = res));
-let id = 0; const pending = new Map(); const logs = [];
-const send = (method, params = {}) => new Promise((res, rej) => {
-  const n = ++id; pending.set(n, { res, rej }); ws.send(JSON.stringify({ id: n, method, params }));
+const args = options();
+if (args.help) {
+  console.log('measure_memory.mjs [owned-local-url] [--drive 3] [--soak-min=30 --window-seconds=60 --warmup-seconds=60 --pose=chase_fraser --env=noon --tier=med] [--timer=on|off] [--out=new.json]');
+  done(0);
+}
+const POINTS = [['driveway', 932.9, 143.9], ['galeries', -18.9, -331.2], ['hull', 9510, -3364], ['champlain', 6311, -1107], ['parlement', 10668, -3330]];
+let report, out, lock, rig, page, activeWindow;
+let finished = false;
+const persist = () => { if (report && out) { report.updatedAt = new Date().toISOString(); atomicJson(out, report); } };
+onCleanup(() => {
+  if (report && !finished) { report.status = 'interrupted'; report.completed = false; report.pass = false; report.acceptancePass = false; if (activeWindow) activeWindow.complete = false; persist(); }
+  if (finished) lock?.release();
 });
-ws.onmessage = (ev) => {
-  const m = JSON.parse(ev.data);
-  if (m.id && pending.has(m.id)) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); return; }
-  if (m.method === 'Runtime.exceptionThrown') logs.push('[EXCEPTION] ' + (m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text));
-  else if (m.method === 'Runtime.consoleAPICalled' && (m.params.type === 'error')) logs.push('[error] ' + m.params.args.map((a) => a.value ?? a.description).join(' '));
-  else if (m.method === 'Runtime.consoleAPICalled' && /^(world|sector):/.test(m.params.args[0]?.value || '')) logs.push('[log] ' + m.params.args.map((a) => a.value ?? a.description).join(' ').slice(0, 160));
-};
-await send('Runtime.enable'); await send('Page.enable'); await send('HeapProfiler.enable');
-await send('Network.enable'); await send('Network.setCacheDisabled', { cacheDisabled: true });
-await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
-const evaluate = async (expression) => {
-  const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-  if (r.exceptionDetails) throw new Error('page: ' + (r.exceptionDetails.exception?.description || r.exceptionDetails.text));
-  return r.result.value;
-};
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const measure = async (label) => {
-  await send('HeapProfiler.collectGarbage');
-  await sleep(300);
-  await send('HeapProfiler.collectGarbage');
-  const h = await send('Runtime.getHeapUsage');
-  const page = await evaluate(`(() => { const G = window.AYLMER.G, s = G.world.stats;
-    return { gpuMB: +(G.renderer.gpuBytes / 1e6).toFixed(0), resident: s.resident, chunks: G.world.chunks.length,
-      drawn: s.chunks, x: Math.round(G.veh.x), z: Math.round(G.veh.z), sector: G.world.sectors ? G.world.sectors.loaded() : 'n/a' }; })()`);
-  const row = { point: label, heapMB: Math.round(h.usedSize / 1e6), heapTotalMB: Math.round(h.totalSize / 1e6), ...page };
-  console.log(JSON.stringify(row));
-  return row;
-};
-
-let code = 0;
 try {
-  await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
-  await send('Page.navigate', { url });
-  await sleep(1500);
-  const boot = await evaluate(`(async () => {
-    const b = document.getElementById('start'); if (!b) return 'no #start'; b.click();
-    let go = null;
-    for (let i = 0; i < 20 && !go; i++) { await new Promise(r => setTimeout(r, 100));
-      const c = document.getElementById('startconfirm'); if (c && !c.disabled && c.getBoundingClientRect().width > 0) go = c; }
-    if (go) go.click();
-    for (let i = 0; i < 600; i++) { await new Promise(r => setTimeout(r, 100)); if (window.AYLMER?.G?.mode === 'drive') return 'drive after ' + (i * 100) + ' ms'; }
-    return 'mode=' + window.AYLMER?.G?.mode;
-  })()`);
-  console.log('boot:', boot);
-  if (!/^drive/.test(boot)) throw new Error('did not reach drive');
-  const dl = await evaluate(`(() => { const r = performance.getEntriesByType('resource'); return +(r.reduce((s,x)=>s+(x.transferSize||0),0)/1e6).toFixed(1); })()`);
-  console.log('downloaded MB:', dl, ' buildMs:', await evaluate('window.AYLMER.G.buildMs ?? null'));
-  const rows = [];
-  for (const [label, x, z] of POINTS) {
-    // Escape swallows the new-game story card; a teleport with the card up still
-    // works but the sim would not step. Then SIM seconds of sim so the chunk
-    // fade and anything distance-triggered has had its chance to run.
-    await evaluate(`(async () => { const A = window.AYLMER; document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }));
-      A.teleport(${x}, ${z}, 0);
-      if (A.G.world.sectors) A.G.world.sectors.update(${x}, ${z});   // what sectorTick would do, minus the card
-      const n = Math.round(${SIM} * 60);
-      for (let i = 0; i < n; i++) { A.step(1/60); if (i % 20 === 0) { A.render(); await new Promise(r => setTimeout(r, 0)); } }
-      A.render(); })()`);
-    await sleep(500);
-    rows.push(await measure(label));
+  if (args.resume) throw new Error('a continuous soak cannot resume after a process or page restart; choose a new output file');
+  if (args['wipe-origin'] || args['player-storage']) throw new Error('memory measurements require an isolated review namespace; storage override flags are not supported');
+  const owned = reservedPorts(args);
+  const argUrl = args._[0] || `http://127.0.0.1:${owned.srv}/index.html`;
+  const u = new URL(argUrl);
+  if (u.protocol !== 'http:' || !['localhost', '127.0.0.1'].includes(u.hostname) || Number(u.port) !== owned.srv || !['/index.html', '/prototype.html'].includes(u.pathname)) throw new Error('URL must identify index.html or prototype.html on this run\'s owned local server port');
+  const plan = planStorage(argUrl, [], 'measure-memory');
+  if (!plan.name) throw new Error('review namespace required');
+  const soak = args['soak-min'] !== undefined;
+  const minutes = numberArg('soak-min', args['soak-min'] ?? 30, 0.01);
+  const windowSeconds = numberArg('window-seconds', args['window-seconds'] ?? 60, 1, 300);
+  const warmupSeconds = numberArg('warmup-seconds', args['warmup-seconds'] ?? 60, 0, 300);
+  const driveSeconds = numberArg('drive', args.drive ?? 3, 0, 120);
+  const timer = (args.timer ?? 'on') === 'on';
+  if (!['on', 'off'].includes(args.timer ?? 'on')) throw new Error('--timer must be on or off');
+  const { jobs, tiers } = resolve(loadPoses(), args.pose ?? 'chase_fraser', args.env ?? 'noon', args.tier ?? 'med');
+  if (jobs.length !== 1 || tiers.length !== 1) throw new Error('soak uses exactly one pose, environment and tier for a comparable start/end workload');
+  const job = jobs[0], tier = tiers[0];
+  out = path.resolve(args.out || path.join(ROOT, 'docs/qa/perf', `${stamp()}-${process.pid}-${soak ? 'soak' : 'memory'}.json`));
+  lock = await takeLock({ task: soak ? 'memory-soak' : 'memory-tour', ports: Object.values(owned), waitMs: numberArg('lock-wait-min', args['lock-wait-min'] ?? 120, 0) * 60e3 });
+  const build = buildIdentity(ROOT, [out]); claimOutput(out);
+  report = { schema: 'aylmer-memory', version: 2, startedAt: new Date().toISOString(), build, status: 'waiting', completed: false, pass: false,
+    params: { mode: soak ? 'soak' : 'tour', url: plan.url, ports: owned, minutes, windowSeconds, warmupSeconds, driveSeconds, timer, pose: job.pose, env: job.env, envId: job.envId, tier },
+    machine: machine(), results: [], windows: [], pageErrors: [], fatal: null,
+    note: 'Real wall-clock soak on uncapped ANGLE/Metal with normal simulation. Day-clock held; pose, residency, tier and full traffic population checked. Sampling continues across window collection/checkpoints. No forced GC inside measured windows. Both GC endpoints have empty timing arrays. GL counts are explicit create/delete balances, not driver allocations. Interrupted soaks are not resumable evidence.' };
+  persist();
+  report.lockWaitMs = lock.waitedMs; report.status = 'booting'; persist();
+  rig = await openRig({ ...owned, timer });
+  page = await rig.page(plan.url, { entry: u.pathname.includes('prototype') ? 'prototype' : 'index' });
+  report.renderer = page.renderer; report.browser = rig.browser; report.boot = page.bootResult;
+  await page.send('HeapProfiler.enable'); await page.send('Performance.enable');
+  await page.eval(SET_TIER(tier), 300000);
+  const snapshot = async (withTiming = false) => ({ ...await page.eval(snapshotScript(withTiming), 120000), heap: await page.send('Runtime.getHeapUsage'), performance: (await page.send('Performance.getMetrics')).metrics, machine: machine(), at: new Date().toISOString() });
+  const gcHeap = async () => { await page.send('HeapProfiler.collectGarbage'); await sleep(300); await page.send('HeapProfiler.collectGarbage'); return page.send('Runtime.getHeapUsage'); };
+  if (!soak) {
+    report.status = 'tour'; persist();
+    for (const [label, x, z] of POINTS) {
+      await page.eval(PLACE({ id: label, kind: 'chase', x, z, yaw: 0, camera: 'chase' }, job.env, Math.round(driveSeconds * 60)), 600000);
+      await sleep(500);
+      const heap = await gcHeap(), s = await snapshot(true);
+      const row = { point: label, heapMB: +(heap.usedSize / 1e6).toFixed(1), heapTotalMB: +(heap.totalSize / 1e6).toFixed(1), gpuMB: +(s.rendererGpuBytes / 1e6).toFixed(1), ...s, timing: undefined,
+        glErrors: s.timing.glErrors, fails: [...workloadFailures(s, { tier }), ...(s.timing.glErrors.length ? ['GL errors'] : [])] };
+      report.results.push(row); persist(); console.log(`${label}: heap ${row.heapMB} MB, GPU buffers ${row.gpuMB} MB`);
+    }
+    report.completed = report.results.length === POINTS.length; report.pass = report.completed && !page.errors.length;
+  } else {
+    await page.eval(PLACE(job.pose, job.env), 600000);
+    // Freeze just the environment clock, not simulation time or frame pacing.
+    await page.eval(`(() => { const G = window.AYLMER.G, value = G.dayClock; Object.defineProperty(G, 'dayClock', { configurable: true, get: () => value, set: () => {} }); return { dayClock: value, mode: G.mode }; })()`);
+    report.status = 'warming'; persist();
+    const warmUntil = performance.now() + warmupSeconds * 1000;
+    while (performance.now() < warmUntil) await sleep(Math.min(1000, warmUntil - performance.now()));
+    await drainTiming(page); await page.eval('window.__qa.perf.releaseSamples()');
+    report.startHeapAfterGC = await gcHeap(); report.startSnapshot = await snapshot(true); report.status = 'soaking'; persist();
+    report.workloadFailures = workloadFailures(report.startSnapshot, { tier });
+    if (report.workloadFailures.length) throw new Error(report.workloadFailures.join('; '));
+    const count = Math.ceil(minutes * 60 / windowSeconds);
+    await page.eval('window.__qa.perf.reset(250000); true');
+    const start = performance.now();
+    report.measurementStartedAt = new Date().toISOString();
+    for (let index = 0; index < count; index++) {
+      const winStart = performance.now(), plannedMs = Math.min(windowSeconds, minutes * 60 - index * windowSeconds) * 1000;
+      const row = { index: report.windows.length, startedAt: new Date().toISOString(), elapsedStartSeconds: (winStart - start) / 1000, plannedSeconds: plannedMs / 1000, complete: false };
+      report.windows.push(row); activeWindow = row; persist();
+      const until = winStart + plannedMs;
+      while (performance.now() < until) await sleep(Math.min(1000, until - performance.now()));
+      const rotated = await page.eval(`window.__qa.perf.rotate(${index + 1 < count})`);
+      const d = await takeTimingWindow(page, rotated.id), s = await snapshot();
+      Object.assign(row, summarizeTiming(d), { snapshot: s, elapsedEndSeconds: (performance.now() - start) / 1000, pageErrors: page.errors.slice(), finishedAt: new Date().toISOString(), tier });
+      row.complete = d.n >= 2 && !d.capped && !d.contextLost && !d.windowPending && d.interval.length === d.expectedIntervals
+        && (!timer || (d.ext && d.gpu.length === d.n && !d.disjoint)) && !d.glErrors.length && !page.errors.length;
+      row.fullWindow = d.sampledSeconds >= windowSeconds;
+      row.fails = [...rowFailures(row, { frames: d.n, timer }), ...workloadFailures(s, { tier, reference: report.startSnapshot })];
+      if (d.sampledSeconds < plannedMs / 1000) row.fails.push('timing window shorter than requested');
+      row.pass = row.complete && !row.fails.length;
+      activeWindow = null; persist();
+      console.log(`soak window ${row.index + 1}: ${(row.elapsedEndSeconds / 60).toFixed(2)} min, ${row.frames} frames, p50/p95 ${row.interval.p50}/${row.interval.p95} ms, heap ${(s.heap.usedSize / 2 ** 20).toFixed(1)} MiB, queries ${row.query.created}/${row.query.deleted}/${row.query.pending}`);
+    }
+    report.wallElapsedSeconds = (performance.now() - start) / 1000;
+    report.elapsedSeconds = report.windows.reduce((sum, w) => sum + w.sampledSeconds, 0);
+    await drainTiming(page); await page.eval('window.__qa.perf.releaseSamples()');
+    report.endHeapAfterGC = await gcHeap(); report.endSnapshot = await snapshot(true);
+    report.workloadFailures.push(...workloadFailures(report.endSnapshot, { tier, reference: report.startSnapshot }));
+    report.retainedHeapGrowthBytes = report.endHeapAfterGC.usedSize - report.startHeapAfterGC.usedSize;
+    report.drift = drift(report.windows.filter((w) => w.fullWindow));
+    report.completed = report.elapsedSeconds >= minutes * 60 && report.windows.length === count && report.windows.every((w) => w.complete);
+    console.log(`soak: ${report.elapsedSeconds.toFixed(1)} sampled seconds; p50 drift ${report.drift.percent ?? 'unmeasured'}%; final acceptance pending cleanup`);
   }
-  console.log('\nsummary: ' + rows.map((r) => `${r.point} ${r.heapMB} MB heap / ${r.gpuMB} MB gpu`).join(' · '));
-} catch (e) { console.log('HARNESS ERROR:', e.message); code = 1; }
-for (const l of logs) console.log(l);
-if (logs.some((l) => l.startsWith('[EXCEPTION]') || l.startsWith('[error]'))) code = 1;
-await send('Page.close').catch(() => {});
-ws.close(); process.exit(code);
+  report.pageErrors = rig.errors; if (report.pageErrors.length) report.pass = false;
+  report.status = report.completed ? 'complete' : 'incomplete';
+} catch (e) {
+  console.error('MEMORY ERROR:', e.message);
+  if (report) { report.fatal = e.message; report.completed = false; report.pass = false; report.acceptancePass = false; report.status = 'incomplete'; }
+} finally {
+  if (rig) { await rig.stop(); report.pageErrors = rig.errors; }
+  if (report) {
+    report.endedAt = new Date().toISOString(); report.machineEnd = machine();
+    report.buildEnd = buildIdentity(ROOT, [out]); report.buildConsistent = report.buildEnd.fingerprint === report.build.fingerprint;
+    if (!report.buildConsistent) { report.pass = false; report.acceptancePass = false; report.status = 'invalid'; report.fatal = 'source state changed during the run'; }
+    finalizeMemoryReport(report);
+    persist();
+  }
+  finished = true; lock?.release();
+}
+if (report) console.log(`memory: ${report.status}; wrote ${out}`);
+done(report?.pass ? 0 : 1);

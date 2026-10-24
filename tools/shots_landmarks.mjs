@@ -8,7 +8,13 @@
 // --far pulls every camera back to 420 m, past HERO_NEAR, so the shot uses the
 // far bake. --lod does the same but forces the NEAR bake at that distance, so
 // the pair can be flicked between: if the two images differ, the swap pops.
-const url = process.argv[2] || 'http://localhost:8138/index.html';
+// Storage: the game boots under ?review=shots-landmarks with that namespace
+// emptied first; --wipe-origin clears the whole origin, and only on a test port.
+import { planStorage, prepareStorage } from './storage_guard.mjs';
+const argUrl = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'http://localhost:8138/index.html';
+let plan;
+try { plan = planStorage(argUrl, process.argv, 'shots-landmarks'); } catch (e) { console.error(e.message); process.exit(2); }
+const url = plan.url;
 const outdir = process.argv[3] || 'docs/shots';
 const far = process.argv.includes('--far');
 const lod = process.argv.includes('--lod');   // near bake, shot from far-bake range
@@ -93,7 +99,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const fs = await import('node:fs');
 fs.mkdirSync(outdir, { recursive: true });
 
-await send('Storage.clearDataForOrigin', { origin: new URL(url).origin, storageTypes: 'all' });
+await prepareStorage(send, plan, true);
 await send('Page.navigate', { url });
 log('navigated');
 // Wait for the document rather than guessing at a sleep.
@@ -109,7 +115,8 @@ for (let i = 0; i < 120; i++) {
 // evaluate: one big page-side async function looks identical whether it is
 // waiting on a timer or wedged behind a synchronous 3.6 M triangle bake, and
 // under a shared Chrome it is always the second one.
-log('menu:', await evaluate("document.getElementById('start').click(); 'clicked'", 60000));
+// « Balade libre » opens the picker; #start is New Game and plays the opening first.
+log('menu:', await evaluate("(document.getElementById('btnFree') || document.getElementById('start')).click(); 'clicked'", 60000));
 await sleep(1500);
 log('picker:', await evaluate("document.getElementById('startpoints').childElementCount", 60000));
 log('point:', await evaluate(

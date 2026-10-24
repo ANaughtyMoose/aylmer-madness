@@ -27,7 +27,10 @@ import { clamp, m4 } from '../core/math.js';
 // It lives here rather than in main.js so a node suite can assert on it without
 // importing a module that touches `document`.
 export const CAMS = [
-  { name: 'chase', dist: 9.2, height: 3.7, pitch: -0.17, fovAdd: 0 },
+  // S3-RANGER (feel.md 1, 6): the default was 9.2 m back and 3.7 m up, a
+  // helicopter with the truck a small box in the lower third. 7.6 / 3.0 sits
+  // between that and `close`, so speed reads off the road near the camera.
+  { name: 'chase', dist: 7.6, height: 3.0, pitch: -0.155, fovAdd: 0 },
   { name: 'close', dist: 6.4, height: 2.9, pitch: -0.15, fovAdd: 0.03 },
   { name: 'far',   dist: 14.5, height: 6.4, pitch: -0.26, fovAdd: -0.03 },
   { name: 'hood',  dist: -0.2, height: 1.55, pitch: -0.04, fovAdd: 0.06 },

@@ -21,6 +21,7 @@ import { m4, clamp, mulberry32 } from '../core/math.js';
 // said. Rate-limited inside heckle.js, so calling it on every dive is fine.
 import { heckle } from './heckle.js';
 import { PLACES } from './places.js';
+import { dateOf } from './calendar.js';
 
 const POOL = 60;            // records built once, alive or not
 const TARGET = 52;          // how many we try to keep alive around you
@@ -109,10 +110,15 @@ function buildWhole(o, armsUp) {
 //
 // The pool below is the fallback, so the crowd still mutters with the file
 // missing. Nothing waits on the fetch.
+//
+// No chores (B-08): « Ferme le boyau », « Va chercher deux canettes » are
+// errands told to somebody in the house, and nobody yells them at a truck going
+// by. What the street says is about the street. tools/smoke_heckle_queue.mjs
+// counts the chore lines left in ambient.json and here.
 
 export const AMBIENT = [
   { where: 'residential', timeOfDay: 'afternoon', line: 'Y frotte son Sunfire à toutes les fins de semaine, y’a pas de bon sens.', en: 'He waxes that Sunfire every single weekend, it makes no sense.' },
-  { where: 'residential', timeOfDay: 'morning', line: 'Ferme le boyau d’arrosage, tu vas vider le puits!', en: "Turn off the hose, you're going to drain the well!" },
+  { where: 'residential', timeOfDay: 'morning', line: 'Le camion de vidanges est passé de bonne heure ce matin.', en: 'Garbage truck came early this morning.' },
   { where: 'commercial', timeOfDay: 'midday', line: 'Y’a une file au comptoir jusqu’à porte, j’te dis.', en: "There's a line to the door at the counter, I'm telling you." },
   { where: 'beach', timeOfDay: 'afternoon', line: 'Y’a un héron bleu planté là-bas su’ le banc de sable.', en: "There's a blue heron standing out there on the sandbar." },
   { where: 'marina', timeOfDay: 'golden hour', line: 'Y sort son bateau pis y’a même pas checké la météo.', en: "He's taking the boat out and he didn't even check the forecast." },
@@ -169,7 +175,7 @@ export function applyAmbient(json) {
   if (Array.isArray(json.ambient) && json.ambient.length) {
     AMBIENT.length = 0;
     for (const r of json.ambient) {
-      if (r && r.line) AMBIENT.push({ where: r.where || 'residential', timeOfDay: r.timeOfDay || '', line: r.line, en: r.en || '' });
+      if (r && r.line) AMBIENT.push({ where: r.where || 'residential', timeOfDay: r.timeOfDay || '', line: r.line, en: r.en || '', from: r.from || '', to: r.to || '' });
     }
   }
   if (Array.isArray(json.police)) {
@@ -190,13 +196,44 @@ if (typeof document !== 'undefined' && typeof fetch === 'function') {
   loadAmbient().then((n) => { if (n) console.log(`ambient: ${n} lines`); });
 }
 
+// The season, by the calendar on the wall (calendar.js G.day), not the sky.
+// The game is 22 June to Labour Day 2004, so anything that belongs to another
+// season is never said, and a line that belongs to one date in the summer is
+// only said around it. A record can carry its own window as `from` / `to`
+// (month-day, '06-22'); the table below dates the lines that name their day.
+// With no calendar at all (prototype, node suites) a dated line stays quiet:
+// a Saint-Jean scratch ticket in August is worse than one line fewer.
+export const OFF_SEASON = /neige|hiver|déneig|pelleter|souffleuse à neige|verglas|sloche|halloween|noël|rentrée scolaire|la rentrée|feuilles mortes|automne|ramasser les feuilles|brûler ses branches|cabane à sucre|tire d.érable|poisson d.avril/i;
+const DATED = [
+  // Loto-Québec's Saint-Jean scratch tickets are gone from the counter by Canada Day.
+  [/saint-jean|st-jean/i, '06-01', '07-01'],
+  [/fête du canada|1er juillet/i, '06-25', '07-02'],
+  [/fête du travail|labour day/i, '08-25', '09-06'],
+];
+const md = (d) => String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+
+/** Whether a record may be said on summer day `day` (calendar.js index; null = unknown). */
+export function inSeason(r, day) {
+  if (!r || OFF_SEASON.test(r.line)) return false;
+  let from = r.from || '', to = r.to || '';
+  if (!from && !to) {
+    for (const [re, f, t] of DATED) if (re.test(r.line)) { from = f; to = t; break; }
+  }
+  if (!from && !to) return true;
+  if (!Number.isFinite(day)) return false;
+  const today = md(dateOf(day));
+  return (!from || today >= from) && (!to || today <= to);
+}
+
 /**
  * One overheard line for a place and a time of day, as the whole record so the
  * `en` gloss travels with it. `i` walks the matching subset, so a street does
  * not say the same thing twice running. Falls back to the same zone at any
- * hour, then to anything at all, then to null.
+ * hour, then to anything at all, then to null. `skip(rec)`, when given, rules a
+ * record out (the street's ten-minute memory); a tier with nothing left after
+ * the skip falls through to the next one, and all of them empty is null.
  */
-export function ambientLine(where, phase, i = 0) {
+export function ambientLine(where, phase, i = 0, skip = null) {
   if (!AMBIENT.length) return null;
   const tags = PHASE_TAGS[phase] || null;
   for (const test of [
@@ -204,19 +241,25 @@ export function ambientLine(where, phase, i = 0) {
     (r) => r.where === where,
     () => true,
   ]) {
+    const ok = skip ? (r) => test(r) && !skip(r) : test;
     let n = 0;
-    for (const r of AMBIENT) if (test(r)) n++;
+    for (const r of AMBIENT) if (ok(r)) n++;
     if (!n) continue;
     let k = ((i % n) + n) % n;
-    for (const r of AMBIENT) if (test(r) && k-- === 0) return r;
+    for (const r of AMBIENT) if (ok(r) && k-- === 0) return r;
   }
   return null;
 }
 
 // How often the street is allowed to say something, and how close you have to
-// be to hear it. A bubble every eight seconds is background; every two is a
-// conversation you are trapped in.
-const CHAT_GAP = 8;
+// be to hear it. A bubble every eight seconds turned a long road into a loop
+// (the bread truck six times in four minutes, review 5 Oct 2026); twenty to
+// twenty-five reads as a town going about its day. CHAT_MEMORY is how long the
+// street remembers a line: nothing is said twice inside ten minutes of play.
+// When everything that fits has been said, the street stays quiet instead.
+export const CHAT_GAP = 20;
+export const CHAT_JITTER = 5;
+export const CHAT_MEMORY = 600;
 const CHAT_R = 22;
 
 // ---------------------------------------------------------------- the crowd
@@ -264,6 +307,7 @@ export class Peds {
     this.chatT = 3;            // seconds until the street says something
     this.chatN = 0;            // which line of the matching set is next
     this.lastChat = null;      // the whole record, gloss included
+    this.chatSaid = new Map(); // line -> this.time it was last said
   }
 
   /**
@@ -286,12 +330,23 @@ export class Peds {
       if (d < bd) { bd = d; near = p; }
     }
     if (!near) { this.chatT = 1.5; return null; }
-    this.chatT = CHAT_GAP;
-    const rec = ambientLine(zoneAt(near.x, near.z), (G && G.envKey) || 'day', this.chatN++);
-    if (!rec) return null;
+    const now = this.time;
+    const said = this.chatSaid;
+    const day = G && Number.isFinite(G.day) ? G.day : null;
+    const recent = (r) => {
+      if (!inSeason(r, day)) return true;
+      const t = said.get(r.line);
+      return t !== undefined && now - t < CHAT_MEMORY;
+    };
+    const rec = ambientLine(zoneAt(near.x, near.z), (G && G.envKey) || 'day', this.chatN++, recent);
+    if (!rec) { this.chatT = CHAT_GAP; return null; }
+    // Dropped by the limiter (a story line is up, a heckle just went): try
+    // again shortly, and the line is not spent.
+    if (!heckle.line('', rec.line, 2600)) { this.chatT = 2; return null; }
+    this.chatT = CHAT_GAP + this.rnd() * CHAT_JITTER;
+    said.set(rec.line, now);
     this.lastChat = rec;
     if (G) G.ambient = rec;
-    heckle.line('', rec.line, 2600);
     return rec;
   }
 

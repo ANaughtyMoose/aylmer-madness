@@ -368,7 +368,8 @@ group('the picker will not throw a story job away by accident');
   G.mission = null;
   api.start('bz_vieux');
   ok(started === 'bz_vieux', 'with nothing running, the course starts', String(started));
-  ok(G.veh.x === -877 && G.veh.z === -102, 'and the truck is on the start line',
+  // The line moved onto Principale (review 5 Oct 2026); read it, do not repeat it.
+  ok(G.veh.x === BLITZ[0].start.x && G.veh.z === BLITZ[0].start.z, 'and the truck is on the start line',
     `${G.veh.x}, ${G.veh.z}`);
   ok(G.modeNow === 'blitz', 'in Blitz mode', G.modeNow);
 }
@@ -409,6 +410,10 @@ group('a rival only ever drives a car the game has');
   }
   ok(!ROSTER.some((r) => rivalCarId(r) === 'saturn' || rivalCarId(r) === 'sunfire'),
     'Margaret keeps her Saturn and Adam keeps his Sunfire');
+  ok(!CHECKPOINT.some((c) => c.rivals.some((r) => /margaret/i.test(r.name || '') || r.carId === 'saturn')),
+    'and Margaret is on no grid at all: she never races with the gang');
+  ok(CHECKPOINT.find((c) => c.id === 'cp_ruelles').rivals.some((r) => r.name === 'Sayyad' && r.carId === 'civic'),
+    'Sayyad takes her slot in the ruelles, in his own Civic');
   ok(CHECKPOINT.every((c) => new Set(c.rivals.map((r) => r.carId)).size === c.rivals.length),
     'and no two cars on a grid are the same car');
 }

@@ -18,10 +18,13 @@ import { keyboardHTML } from './ui.js';
 
 // The graphics presets. They seed render scale / DPR / draw distance / fog, and
 // own the two things that are not sliders: the traffic count and the camera FOV.
+// Traffic: 14 on medium read as an empty town at 115 km/h on Lucerne (review,
+// 6 Oct 2026). Every car is kept inside 420 m of you (traffic.js CULL), so the
+// count is the density you see. Low stays at 8 for the weak machines.
 export const QUALITY = {
   low:  { scale: 0.68, dpr: 1.0, fov: 1.12, traffic: 8, drawDist: 520, fogMul: 2.0 },
-  med:  { scale: 0.85, dpr: 1.5, fov: 1.15, traffic: 14, drawDist: 720, fogMul: 1.45 },
-  high: { scale: 1.0,  dpr: 2.0, fov: 1.15, traffic: 20, drawDist: 950, fogMul: 1.1 },
+  med:  { scale: 0.85, dpr: 1.5, fov: 1.15, traffic: 26, drawDist: 720, fogMul: 1.45 },
+  high: { scale: 1.0,  dpr: 2.0, fov: 1.15, traffic: 32, drawDist: 950, fogMul: 1.1 },
 };
 
 // Changing the preset re-seeds the four numbers it owns; the sliders then
@@ -52,7 +55,8 @@ export const SECTIONS = [
       { k: 'volEngine', type: 'range', min: 0, max: 1, step: 0.05, fmt: 'pct' },
       { k: 'volEffects', type: 'range', min: 0, max: 1, step: 0.05, fmt: 'pct' },
       { k: 'volRadio', type: 'range', min: 0, max: 1, step: 0.05, fmt: 'pct' },
-      { k: 'engineSpeed', type: 'check' },
+      { k: 'volAmbience', type: 'range', min: 0, max: 1, step: 0.05, fmt: 'pct' },
+      { k: 'radioAuto', type: 'check' },
     ],
   },
   {
@@ -321,11 +325,10 @@ export function applySettings(G, s0) {
     a.enabled = s.audio;
     const vol = {
       master: s.audio ? s.volMaster : 0,
-      engine: s.volEngine, effects: s.volEffects, radio: s.volRadio,
+      engine: s.volEngine, effects: s.volEffects, radio: s.volRadio, ambience: s.volAmbience,
     };
     if (typeof a.setVolume === 'function') a.setVolume(vol);
     else a.setMaster?.(vol.master);
-    a.engineFollowsSpeed = s.engineSpeed;
   }
   G.radio?.setVolume?.(s.volRadio);
 

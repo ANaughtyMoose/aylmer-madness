@@ -121,6 +121,32 @@ export const FLAT = Object.freeze({ h: 0, nx: 0, ny: 1, nz: 0, kind: '' });
 // Coordinates are real Aylmer, in the mapdata frame. See docs at the top of
 // places.js for the projection. Everything here is hand-placed.
 
+// A pad laid along the line a->b. `off` moves the centre line to the driver's
+// left of a->b (u > 0). runs are [right (u < 0), left, back (at a), front (at b)],
+// as evalPad reads them.
+function padAlong(id, ax, az, bx, bz, off, hw, H, runs, kind, side, ext = 0) {
+  const L = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / L, dz = (bz - az) / L;
+  const ux = dz, uz = -dx;
+  return {
+    id, type: 'pad', abs: true, kind, side,
+    cx: (ax + bx) / 2 + ux * off, cz: (az + bz) / 2 + uz * off,
+    yaw: Math.atan2(dx, dz), hw, hl: L / 2 + ext, H, runs,
+  };
+}
+function marinaPads() {
+  return [
+    // the long west breakwater; its tip is widened for the lighthouse
+    padAlong('breakwaterW', -1858, -182, -1799, -34, 0, 2.6, 1.5, [4.6, 4.6, 6, 0], 'path', 'gravel'),
+    padAlong('breakwaterTip', -1804, -48, -1797, -30, 0, 4.6, 1.5, [3.4, 3.4, 0, 4], 'path', 'gravel'),
+    // the short south arm from the east shore
+    padAlong('breakwaterS', -1676, -36, -1764, -28, 0, 2.3, 1.4, [4.2, 4.2, 0, 4.5], 'path', 'gravel'),
+    // quays: the basin is on the right (run 0), 9.6 m of promenade, a lawn ramp inland
+    padAlong('quayE1', -1779, -202.5, -1727, -137, 3.3, 4.8, 1.35, [0, 5, 4, 0], 'concrete', 'grass', 0.6),
+    padAlong('quayE2', -1727, -137, -1677, -63, 3.3, 4.8, 1.35, [0, 5, 0, 3], 'concrete', 'grass', 0.6),
+    padAlong('quayN', -1846, -173, -1824, -186.5, 3.3, 4.8, 1.35, [0, 5, 3, 3], 'concrete', 'grass'),
+  ];
+}
+
 export const FEATURES = [
   // ---- the disused CN/QGRY rail embankment -----------------------------
   // OpenStreetMap has no railway left in the clip, so this is the line drawn
@@ -144,6 +170,18 @@ export const FEATURES = [
     cx: -1798, cz: -206, yaw: -0.5667, hw: 5.5, skirt: 3,
     prof: [-26, 0, -19, 0.85, -6, 1.05, 7, -0.35, 10, 0.55, 12, -1.6, 26, -1.9],
   },
+
+  // ---- the marina basin: breakwaters and quays -------------------------
+  // `abs` pads (see evalPad): the deck is an altitude, 1.3-1.5 m over the
+  // water quad, so the basin reads as a harbour cut below the promenade rather
+  // than a lawn sliding into a pond. The two breakwaters are riprap: a gravel
+  // path on top, 4-5 m rock slopes into the water each side (world.js
+  // `marinaScene` piles the rocks on them). The quays have a vertical face on
+  // the water side (run 0) standing 1.5 m out into the basin, so it hides the
+  // raster's bank; world.js lowers the raster under that bank (shapeRiver).
+  // Lines are the OSM basin outline: breakwater (-1862,-164)..(-1797,-24),
+  // east shore (-1785,-210)..(-1677,-63), south arm (-1682,-41)..(-1769,-22).
+  ...marinaPads(),
 
   // ---- Galeries d'Aylmer loading docks ---------------------------------
   // The mall's OSM footprint is the whole block (-125,-442 to 84,-256), so the
@@ -278,6 +316,9 @@ const CELL = 40;                 // broadphase cell for groundAt (metres)
 
 // Scratch for one feature evaluation. Never returned, never allocated per call.
 const E = { in: false, h: 0, dx: 0, dz: 0, top: false };
+// The raster under the point being scanned, for `abs` pads (see evalPad). Set
+// by groundAtBase before every scan; zero on the flat field.
+let sBaseH = 0, sBaseDx = 0, sBaseDz = 0;
 
 // Distance from (x,z) to segment (ax,az)-(bx,bz), and the unit vector pointing
 // from the closest point toward (x,z). Written into the module-level scratch.
@@ -322,10 +363,16 @@ function evalPad(f, x, z) {
   }
   E.in = true;
   let du = 0, dw = 0;
-  if (fu <= fw) { E.h = f.H * fu; du = f.H * dfu; } else { E.h = f.H * fw; dw = f.H * dfw; }
+  // `abs`: H is an altitude, not an offset. The deck is level whatever the
+  // raster does under it (a quay over a bank that falls into the basin), the
+  // slopes blend from H back down to the raster, and where the raster already
+  // stands higher the pad simply loses the max(). Offset = (H - base) * f.
+  const Hh = f.abs ? f.H - sBaseH : f.H;
+  if (fu <= fw) { E.h = Hh * fu; du = Hh * dfu; } else { E.h = Hh * fw; dw = Hh * dfw; }
   E.top = fu >= 1 && fw >= 1;
   E.dx = du * c + dw * s;
   E.dz = -du * s + dw * c;
+  if (f.abs) { const k = fu <= fw ? fu : fw; E.dx -= k * sBaseDx; E.dz -= k * sBaseDz; }
 }
 
 // --- ridge: polyline corridor, trapezoidal section. H = 0 is a flat patch.
@@ -644,6 +691,7 @@ export function buildTerrain(features = FEATURES, base = null) {
     R.h = 0; R.nx = 0; R.ny = 1; R.nz = 0; R.kind = '';
     const list = grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL)));
     if (list === undefined) return R;
+    sBaseH = 0; sBaseDx = 0; sBaseDz = 0;
     scan(features, list, x, z);
     let dx = 0, dz = 0;
     if (sBestH > 0) { R.h = sBestH; dx = sBdx; dz = sBdz; R.kind = sBestKind; }
@@ -667,6 +715,7 @@ export function buildTerrain(features = FEATURES, base = null) {
     R.h = h0; R.kind = '';
     const list = grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL)));
     if (list !== undefined) {
+      sBaseH = h0; sBaseDx = bdx; sBaseDz = bdz;
       scan(features, list, x, z);
       if (sBestH > 0) { R.h = h0 + sBestH; dx += sBdx; dz += sBdz; R.kind = sBestKind; }
       else if (sDigH < 0) { R.h = h0 + sDigH; dx += sDdx; dz += sDdz; R.kind = sDigKind; }

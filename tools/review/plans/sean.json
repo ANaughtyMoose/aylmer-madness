@@ -1,0 +1,26 @@
+{
+  "name": "sean",
+  "about": "Sean (28, Mississauga, PC critic): the whole loop as a stranger. Main missions, optional jobs, modes, economy, technical quality. Same as full.json; kept separate so his runs can diverge.",
+  "entry": "index.html",
+  "beats": [
+    { "do": "boot" },
+    { "do": "firstDrive", "seconds": 6 },
+    { "do": "mission", "id": "alternateur", "stageTimeout": 150 },
+    { "do": "mission", "id": "dep", "stageTimeout": 150 },
+    { "do": "mission", "id": "sayyad", "stageTimeout": 150 },
+    { "do": "mission", "id": "gang", "stageTimeout": 150 },
+    { "do": "mission", "id": "arcbache", "stageTimeout": 150 },
+    { "do": "mission", "id": "divan", "stageTimeout": 150 },
+    { "do": "mission", "id": "highwayhull", "stageTimeout": 150 },
+    { "do": "mission", "id": "canot", "stageTimeout": 150 },
+    { "do": "mission", "id": "golfcart", "stageTimeout": 150 },
+    { "do": "mission", "id": "russellroyal", "stageTimeout": 150 },
+    { "do": "modes" },
+    { "do": "course", "id": "bz_vieux", "index": 0, "stageTimeout": 150 },
+    { "do": "course", "id": "cp_ruelles", "mode": "checkpoint", "stageTimeout": 150 },
+    { "do": "speedRun", "seconds": 10, "frames": 10 },
+    { "do": "crash", "seconds": 7 },
+    { "do": "cops", "heat": 3, "seconds": 30 },
+    { "do": "radio", "taps": 4 }
+  ]
+}

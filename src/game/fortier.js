@@ -5,6 +5,8 @@ import { PLACES } from './places.js';
 import { apronSpot } from './save.js';
 
 export { SVX, NSX };
+// AUD-02: OS text-to-speech at volume 1 lands near -16 to -20 LUFS; 0.45 (-7 dB) puts it near -24.
+export const SPEECH_GAIN=0.45;
 export const SARA_LINE="You're such a loooooser, Tom";
 const CLAUDE=["Tabarnak, Tom! Ramène le char de Sara!", "Crisse de niaiseux! Arrête-toi!", "Câlisse, tu vas me le ramener, ce char-là!"];
 export function installFortierMeshes(r, meshes){
@@ -28,7 +30,9 @@ export class FortierChase {
     this.cancelVoice();
     const synth=globalThis.speechSynthesis;
     if(!synth||!globalThis.SpeechSynthesisUtterance||G.settings?.audio===false)return;
-    const vol=(G.settings?.volMaster??1)*(G.settings?.volEffects??1);if(!vol)return;
+    // AUD-02: speechSynthesis plays outside the Web Audio graph (no master, no limiter), so it is
+    // scaled here to sit near the radio instead of 10 dB over everything (SPEECH_GAIN).
+    const vol=SPEECH_GAIN*(G.settings?.volMaster??1)*(G.settings?.volEffects??1);if(!vol)return;
     const sara=who==='Sara';const lang=sara?'en-US':'fr-CA';
     const voices=synth.getVoices();
     const voice=voices.find(v=>v.lang===lang && (!sara||/female|zira|samantha|jenny|aria/i.test(v.name)))||voices.find(v=>v.lang===lang)||voices.find(v=>v.lang.startsWith(sara?'en':'fr'));

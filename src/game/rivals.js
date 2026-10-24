@@ -89,8 +89,9 @@ export const ROSTER = [
   {
     id: 'tremblay', text: 4, name: 'Sophie Tremblay', car: 'gti', standIn: null, voice: 'cold',
     // Smooth clinical European lines and flawless downshifts through the curves.
-    // No stand-in: the only four-door on the lot is Margaret's Saturn, and
-    // handing a rival somebody's real car is not a stand-in, it is a theft.
+    // No stand-in: nothing on the lot is a small European four-door, and
+    // handing a rival somebody's real car (Margaret's Saturn) is not a
+    // stand-in, it is a theft.
     skill: { cruise: 18.4, cornerK: 0.46, minSpeed: 8.6, gain: 1.70, damp: 0.28,
              band: { ahead: 0.92, behind: 1.05 } },
   },

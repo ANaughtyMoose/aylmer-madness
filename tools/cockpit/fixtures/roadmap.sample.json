@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "updated": "2026-10-06T09:30:00-04:00",
+  "northStar": "Drive a summer night in 2004 Aylmer that Tom recognises street by street: the right houses, the right light, the right radio, and ten missions worth finishing.",
+  "qualityBars": [
+    { "id": "smoke", "label": "Smoke suites passing", "target": 82, "current": 80, "unit": "suites", "status": "fail" },
+    { "id": "frame-p95", "label": "Frame time p95 on the Air", "target": 16.7, "current": 14.2, "unit": "ms", "status": "pass" },
+    { "id": "heap", "label": "JS heap after full drive", "target": 400, "current": 182, "unit": "MB", "status": "pass" },
+    { "id": "look-score", "label": "Places that read as the real place", "target": 4, "current": 2.1, "unit": "avg of 5", "status": "fail" },
+    { "id": "boot", "label": "Cold boot to DRIVE", "target": 6, "current": null, "unit": "s", "status": "unknown" }
+  ],
+  "visualDirection": {
+    "summary": "A warm July night in 2004: sodium lamps on wet asphalt, the lake going teal at the end of every north-south street, brick and clapboard lit from inside.",
+    "pillars": [
+      "Recognisable before beautiful: every landmark matches its 2009 Street View pose",
+      "Night is warm, not blue: sodium amber over everything, ambient never tints the grass lime",
+      "Period-correct clutter: parked Cavaliers, chain-link, hydro wires, lawn chairs",
+      "The lake is always there: a teal horizon at the bottom of the hill"
+    ],
+    "palette": [
+      { "name": "Sodium lamp", "hex": "#F2A93B", "use": "Street light pools, HUD accents" },
+      { "name": "Lake at dusk", "hex": "#2F8F87", "use": "Water, distant sky band" },
+      { "name": "Wet asphalt", "hex": "#1E2124", "use": "Roads, UI ground" },
+      { "name": "Red brick", "hex": "#8E3B2E", "use": "Fraser and Principale facades" },
+      { "name": "Clapboard white", "hex": "#E9E2D2", "use": "Arial gambrel, trim" },
+      { "name": "Maple canopy", "hex": "#2D4A2B", "use": "Tree mass at night" }
+    ]
+  },
+  "workstreams": [
+    { "id": "look", "label": "Look", "health": "amber", "summary": "Lighting math fixed on fix/look-on-qr; Arial house and garage still generic." },
+    { "id": "story", "label": "Story", "health": "green", "summary": "Ten missions plus finale merged; cold open in review." },
+    { "id": "driving", "label": "Driving feel", "health": "amber", "summary": "Camera jitter at speed on Aylmer Road; traffic side fix waiting on merge." },
+    { "id": "audio", "label": "Audio and radio", "health": "green", "summary": "Recorded radio resumes correctly; engine rebuilds tuned." },
+    { "id": "perf", "label": "Performance", "health": "green", "summary": "Heap 182 MB after full drive; Safari no longer reloads." },
+    { "id": "tooling", "label": "Tooling and verification", "health": "red", "summary": "Look comparison loop runs by hand; no nightly gate yet." }
+  ],
+  "phases": [
+    {
+      "id": "p1", "title": "Foundation", "goal": "A drivable Aylmer that stays in memory on Safari.", "status": "done",
+      "items": [
+        { "id": "p1-mem", "title": "Free dead vertex arrays after upload", "workstream": "perf", "status": "done", "effort": "S", "branch": "wave/1-memory", "owner": "Claude", "verify": ["tools/measure_memory.mjs"] },
+        { "id": "p1-topo", "title": "Real topography mesh from LiDAR", "workstream": "look", "status": "done", "effort": "L", "branch": "main", "owner": "Codex", "verify": ["smoke_topography_mesh"] }
+      ]
+    },
+    {
+      "id": "p2", "title": "Quality review merge", "goal": "One base everyone branches from: af9a48f.", "status": "done",
+      "items": [
+        { "id": "p2-restructure", "title": "Ten main missions, 22 June start, days-left HUD", "workstream": "story", "status": "done", "effort": "L", "branch": "qr/restructure", "owner": "Claude" },
+        { "id": "p2-setpieces", "title": "Golf night, cedar sauna, La nuit du Tim, Royal Ottawa", "workstream": "story", "status": "done", "effort": "M", "branch": "qr/setpieces", "owner": "Claude" }
+      ]
+    },
+    {
+      "id": "p3", "title": "Looks like Aylmer", "goal": "Every scored place reaches 4 of 5 against its reference photo.", "status": "active",
+      "items": [
+        { "id": "p3-light", "title": "Split ambient from dome colour", "workstream": "look", "status": "done", "effort": "S", "branch": "fix/look-on-qr", "worktree": "wt-qr-look", "owner": "Claude", "verify": ["lookfix-qr/lighting"] },
+        { "id": "p3-maple", "title": "Lift Mike's maple out of the lawn", "workstream": "look", "status": "in-progress", "effort": "S", "branch": "fix/look-on-qr", "worktree": "wt-qr-look", "owner": "Claude", "verify": ["lookfix-qr/props/mike_lawn_night.png"] },
+        { "id": "p3-british", "title": "Remove the black slab hiding the British Hotel door", "workstream": "look", "status": "in-progress", "effort": "S", "branch": "fix/look-on-qr", "worktree": "wt-qr-look", "owner": "Codex" },
+        { "id": "p3-arial", "title": "Rebuild 1 rue Arial as the white gambrel", "workstream": "look", "status": "blocked", "effort": "M", "branch": "feat/wave3-places", "worktree": "wt-places", "owner": "Claude", "notes": "Needs a rear photo of the garage", "needsTom": true },
+        { "id": "p3-principale", "title": "Paved walks, lamps and parked cars on Principale", "workstream": "look", "status": "todo", "effort": "L", "branch": "feat/wave5-look", "worktree": "wt-look" },
+        { "id": "p3-jitter", "title": "Camera jitter above 70 km/h", "workstream": "driving", "status": "in-progress", "effort": "M", "branch": "fix/camera-jitter", "worktree": "wt-jitter", "owner": "Codex", "verify": ["smoke_frame_timing", "smoke_camclip"] }
+      ]
+    },
+    {
+      "id": "p4", "title": "Story polish", "goal": "The cold open lands and every mission has a clean close.", "status": "next",
+      "items": [
+        { "id": "p4-cold", "title": "Cold open on Fraser at 21 h 40", "workstream": "story", "status": "in-progress", "effort": "M", "branch": "feat/story-cold-open", "worktree": "wt-story", "owner": "Claude" },
+        { "id": "p4-editor", "title": "Story editor for Tom", "workstream": "tooling", "status": "todo", "effort": "M", "branch": "feat/story-editor", "worktree": "wt-story-editor" },
+        { "id": "p4-algonquin", "title": "Algonquin run mission", "workstream": "story", "status": "todo", "effort": "M", "branch": "feat/algonquin-run", "worktree": "wt-algonquin", "needsTom": true, "notes": "Route choice: Vanier or Aylmer Road" }
+      ]
+    },
+    {
+      "id": "p5", "title": "Playtest and ship", "goal": "Tom plays start to finish on the Air without a crash.", "status": "later",
+      "items": [
+        { "id": "p5-traffic", "title": "Traffic drives on the right side everywhere", "workstream": "driving", "status": "todo", "effort": "S", "branch": "fix/traffic-side", "worktree": "wt-traffic" },
+        { "id": "p5-public", "title": "Public build without private references", "workstream": "tooling", "status": "todo", "effort": "M" }
+      ]
+    }
+  ],
+  "loops": [
+    { "id": "smoke", "name": "Smoke suites", "cadence": "every change", "command": "npm test", "gate": "All suites pass", "outputs": ["tools/cockpit/state/tests.json"], "exists": true },
+    { "id": "compare", "name": "Look comparison", "cadence": "per look fix", "command": "node tools/aylmer-compare/capture.mjs", "gate": "Score does not drop on any place", "outputs": ["references/places/_feedback/compare-index.json"], "exists": true },
+    { "id": "lookfix", "name": "Before and after shots", "cadence": "per look fix", "command": "node tools/shots_landmarks.mjs", "gate": "Tom reviews the slider", "outputs": ["references/places/_feedback/lookfix-qr"], "exists": true },
+    { "id": "memory", "name": "Memory after full drive", "cadence": "weekly", "command": "node tools/measure_memory.mjs", "gate": "Heap under 400 MB", "outputs": [], "exists": true },
+    { "id": "nightly", "name": "Nightly gate on the Mac mini", "cadence": "nightly", "command": "", "gate": "Smoke plus compare plus memory", "outputs": [], "exists": false }
+  ],
+  "decisions": [
+    { "id": "d1", "question": "Algonquin run: route via Vanier Road or Aylmer Road?", "status": "open" },
+    { "id": "d2", "question": "Can Paul shoot the rear of the 1 rue Arial garage this week?", "status": "open" },
+    { "id": "d3", "question": "Keep the British Hotel veranda out?", "status": "answered", "answer": "Yes, no veranda in 2004." }
+  ],
+  "worktrees": [
+    { "path": "/Users/thomaslever/Desktop/Coding Projects/wt-qr-look", "branch": "fix/look-on-qr", "purpose": "Look fixes on the newest base", "status": "active" },
+    { "path": "/Users/thomaslever/Desktop/Coding Projects/wt-look", "branch": "feat/wave5-look", "purpose": "Old look wave, superseded by wt-qr-look", "status": "stale" }
+  ]
+}

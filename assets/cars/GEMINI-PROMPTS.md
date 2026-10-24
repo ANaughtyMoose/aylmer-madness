@@ -1,3 +1,5 @@
+> **STALE, do not run (Gemini audit, 6 Oct 2026).** This pack contradicts canon: it asks for a Ranger XLT with chrome bumpers (canon: base XL, black bumpers, no chrome) and a 1997 Saturn SL 4-door (canon: 1997 SC2 coupe, dark navy, fixed headlights). Use `CHATGPT-car-orthos.md` from the Gemini audit set instead.
+
 # Gemini prompts for the car renders
 
 Run each car's four prompts separately (one image per prompt). Save the results

@@ -1,9 +1,9 @@
-// The summer, in five beats.
+// The summer, in four beats (five until D31 cut the bridge, 13 Oct 2026).
 //
 // The game had seventeen jobs and no shape. assets/text/arc.json gives it one:
-// the keys in late June, the town's logistics in July, the radiator hose on the
-// Champlain span, the last big night, and the morning the keys go back on the
-// kitchen counter. Each beat is an ordinary MISSIONS entry — same stage model,
+// the first favours with your own truck, the Saint-Jean bonfire at the beach,
+// a night of bridges, and one slow last lap of Principale. (The Ranger is Tom's from the first morning: his
+// father gave it to him, and nobody takes the keys back. Ledger s.1, s.3.) Each beat is an ordinary MISSIONS entry — same stage model,
 // same yellow pillar — so nothing in main.js has to know the arc exists.
 //
 // Two things are different from every other job:
@@ -20,8 +20,11 @@
 // Text comes from assets/text/arc.json at runtime (loadArcText), which
 // overwrites the titles and briefs below. The ones written here are the
 // fallback, so a missing assets/ costs you the wording and nothing else.
+import { isPrototype, dateMessage, DAY_CYCLE } from './jobwindows.js';
+import { LAST } from './calendar.js';
+import { storyBlocker, isRetired, dateLock, SAINT_JEAN_DAY } from './campaign.js';
 import { PLACES } from './places.js';
-import { restoreDamage } from './damage.js';
+import { toastLive } from './heckle.js';
 
 // ---------------------------------------------------------------- geography
 
@@ -29,29 +32,31 @@ import { restoreDamage } from './damage.js';
 // point on the real road graph (checked with Nav: each routes from Aylmer), so
 // the GPS line reaches them like any other target.
 //
-//   SPAN      mid-span on the Pont Champlain, where the hose lets go
-//   SHOULDER  228 m further on, the first place you can get off the road
+//   SPAN      mid-span on the Pont Champlain (the retired veillée's first bridge)
 //   CHAUDIERE / ALEXANDRA  two more of the river crossings
-//   NEPEAN    the Ottawa end of the Alexandra, under the Champlain statue —
-//             Nepean Point, with Parliament lit up across the water
+//   NEPEAN    the Ottawa end of the Alexandra, under the Champlain statue,
+//             with Parliament lit up across the water. The key keeps its old
+//             name; no player text names the place (Tom did not go there in
+//             2004: ledger s.3). Its beat is an open decision, STORY-REBUILD.md.
 //   LUCERNE_A / LUCERNE_B  1,5 km of Boulevard de Lucerne, which is where
-//             Sayyad's midnight time trials happen because it is empty at
-//             midnight and it always was
+//             Sayyad's time trials happen because it is empty and it always was
 export const SPAN = { x: 6194, z: -1491 };
-export const SHOULDER = { x: 6300, z: -1300 };
 export const CHAUDIERE = { x: 9078, z: -3194 };
 export const ALEXANDRA = { x: 10478, z: -3890 };
 export const NEPEAN = { x: 10660, z: -3855 };
 export const LUCERNE_A = { x: 942, z: 1010 };
 export const LUCERNE_B = { x: 2424, z: 805 };
 
-// What the hose costs, and what the Ranger is worth driving in the meantime.
-// 55 is above DAMAGE.COSMETIC (the HUD starts nagging and the map puts a wrench
-// on Norm's) and below DAMAGE.PERF (it does not start pulling to one side), so
-// you feel it without being punished for the next twenty minutes.
-export const HOSE = { damage: 55, parts: 60 };
-
 const say = (G, text, ms) => G && G.hud && G.hud.toast(text, ms);
+// The scene hush (B-08, heckle.js): while a scene told in toasts runs, the
+// street says nothing. Raised every tick, so it lapses on its own a second
+// after the scene stops ticking. sceneToast() also holds the street for as
+// long as that toast waits in the HUD's queue or stays on screen.
+const hush = (G, reason, secs) => { if (G && G.heckle && G.heckle.hush) G.heckle.hush(reason, secs); };
+const sceneToast = (G, reason, text, ms) => {
+  say(G, text, ms);
+  if (G && G.heckle && G.heckle.hushWhile && G.hud) G.heckle.hushWhile(reason + ':' + text, () => toastLive(G.hud, text));
+};
 
 // ---------------------------------------------------------------- the beats
 
@@ -61,19 +66,20 @@ const keys = {
   id: 'arckeys',
   beat: 'prologue',
   title: 'Le Ranger rend service',
-  brief: 'Avec ton Ranger, tu peux rendre service à la famille et aux amis. Les mêmes détours, un peu de gaz, pis chacun fait sa part.',
+  brief: 'Avec ton Ranger, tu peux rendre service à ta mère pis à la gang. Les mêmes détours, ton gaz, pis chacun fait sa part.',
   giver: 'home',
   timeOfDay: 'morning',
   build() {
     return [
       {
         kind: 'load',
-        text: '299 Chemin Fraser — charge les outils',
+        text: '299 Chemin Fraser : charge les outils',
         sub: 'Arrête-toi dans le pilier jaune de l’entrée, pis E pour charger',
         hint: 'Le pilier est sur ton propre char, dans ton entrée. Faut être arrêté pour que le E marche.',
         at: 'home', radius: 13, hold: true,
-        holdText: 'E — charger la tondeuse pis les outils',
-        toast: 'Ton père: « Tu fais le transport, tu mets ton gaz. C’est ça, le deal. »',
+        holdText: 'E : charger la tondeuse pis les outils',
+        // The truck was already Tom's: no deal, no lender (ledger s.1, s.3).
+        toast: 'Ta mère: « You have the truck. » Personne a parlé du gaz.',
       },
       {
         text: 'Livre-les à la paroisse Saint-Paul',
@@ -84,7 +90,7 @@ const keys = {
         money: 20,
       },
       {
-        text: 'Le dep — la gang t’attend',
+        text: 'Le dep : la gang t’attend',
         sub: 'GPS jusqu’au pilier jaune, arrête-toi dedans',
         hint: 'Dépanneur Palmyra, sur la rue Principale. Deux coins de rue de l’église.',
         at: 'dep', radius: 14,
@@ -102,276 +108,385 @@ const keys = {
   },
 };
 
-// 2 — La bâche bleue ---------------------------------------------------------
-
+// 3 · La Saint-Jean ---------------------------------------------------------
+//
+// Main mission 3 (restructure, 29 Sept 2026). Aylmer's big Saint-Jean bonfire
+// at the beach is very real (Tom, 28 Sept); what happens at it is the game's.
+// The summer starts on 22 June so the night itself, the 24th, is in it: in the
+// prototype the job is not offered before the 24th (campaign.js DATE_GATES) and
+// only in the evening (jobwindows.js). A player who gets here later still plays
+// it, and then nothing says it is the 24th: `datedText.after` is used
+// (missions.js applyDatedText). The stages never name the date.
+//
+// Mechanics kept from « La bâche bleue »: the fragile haul from the Galeries to
+// the beach. The Lucerne time trial is gone (it had nothing to do with a
+// bonfire); the last two stages bring Sayyad and Zahra to the fire at dusk.
 const bache = {
   id: 'arcbache',
   beat: 'turn1',
-  title: 'La bâche bleue',
-  brief: 'La Saint-Jean s’installe à la plage. T’es devenu le camion de la ville au complet.',
+  title: 'La Saint-Jean',
+  brief: 'Le 24 juin. Le gros feu de la Saint-Jean à la plage des Cèdres, pis toute la ville y va. Le son est dans ton truck.',
+  datedText: {
+    on: {
+      title: 'La Saint-Jean',
+      brief: 'Le 24 juin. Le gros feu de la Saint-Jean à la plage des Cèdres, pis toute la ville y va. Le son est dans ton truck.',
+    },
+    after: {
+      title: 'Le feu à la plage',
+      brief: 'Un soir de feu de joie à la plage des Cèdres, pis toute la ville y va. Le son est dans ton truck.',
+    },
+  },
   giver: 'mall',
-  timeOfDay: 'day',
+  timeOfDay: 'dusk',
   build(ctx) {
     return [
       {
         kind: 'load',
-        text: 'Galeries d’Aylmer — les haut-parleurs',
+        text: 'Galeries d’Aylmer : les haut-parleurs',
         sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour charger',
         hint: 'Le stationnement des Galeries, chemin d’Aylmer. Faut être arrêté dans le pilier.',
         at: 'mall', radius: 22, hold: true,
-        holdText: `E — charger les haut-parleurs pis la bâche bleue dans le ${ctx.carName}`,
+        holdText: `E : charger les haut-parleurs pis la bâche bleue dans le ${ctx.carName}`,
         toast: 'Deux caisses de son, une bâche bleue, pis huit tendeurs. Ça va tenir.',
       },
       {
-        text: 'Plage des Cèdres — sans rien casser',
-        sub: 'GPS, pis 35 km/h max dans le pilier (S pour freiner) — c’est fragile',
+        text: 'Plage des Cèdres, sans rien casser',
+        sub: 'GPS, pis 35 km/h max dans le pilier (S pour freiner). C’est fragile.',
         hint: 'Plein ouest par la Principale, jusqu’au bout, au bord de la rivière.',
-        at: 'beach', radius: 20, maxSpeed: 35, time: 320,
-        toast: 'Montés, branchés, pis ça marche. La plage a du son.',
+        // s1-timers: 2.1 km, pace car 81 s, so 115 s (was 320 s, 24 km/h: set
+        // dressing). Fast down the Principale, then 35 in the pillar.
+        at: 'beach', radius: 20, maxSpeed: 35, time: 115,
+        toast: 'Montés, branchés, pis ça marche. La plage a du son. Le bois est empilé pour le feu.',
         money: 35,
       },
       {
-        text: 'Sayyad t’attend sur Lucerne',
-        sub: 'GPS jusqu’au pilier jaune — il a sa montre à son père dans la main',
-        hint: 'Boulevard de Lucerne, à l’est du Vieux, le long de la rivière.',
-        at: LUCERNE_A, radius: 20,
-        toast: 'Sayyad: « Un kilomètre et demi. Je pars le chrono quand tu bouges. »',
+        kind: 'load',
+        text: 'Sayyad pis Zahra : 75 Denise-Friend',
+        sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E',
+        hint: 'Denise-Friend, dans le Vieux-Aylmer. Sayyad est réveillé, pour une fois.',
+        at: 'sayyad', radius: 16, hold: true,
+        holdText: 'E : klaxonner une fois, poliment',
+        toast: 'Zahra sort la première. Sayyad suit, en parlant déjà.',
       },
       {
-        kind: 'trial',
-        text: 'Le sprint de minuit — 1,5 km sur Lucerne',
-        sub: 'W à fond, suis le GPS jusqu’au dernier pilier. Pas de rival: juste le chrono.',
-        hint: 'Reste sur Lucerne, vers l’est. C’est droit. C’est vraiment juste droit.',
-        at: LUCERNE_B, radius: 22, time: 115,
-        failWhy: 'Sayyad: « ...bon. On recommencera. »',
-        toast: 'Sayyad: « Ok. OK. Refais-le pas devant du monde, je vais avoir l’air fou. »',
+        kind: 'park',
+        text: 'Le feu, à la plage',
+        sub: 'Retour à la plage des Cèdres. Pas de chrono. Stationne-toi, pis E.',
+        hint: 'La plage des Cèdres, au bout de la Principale. Suis la fumée.',
+        at: 'beach', radius: 22, hold: true, stopped: 4,
+        holdText: 'E : aller t’asseoir près du feu',
+        toast: 'Le feu monte plus haut que les arbres.\nToute la gang est là, pis la moitié de la ville.\nPersonne regarde l’heure.',
         money: 20,
       },
-    ];
-  },
-};
-
-// 3 — La surchauffe du pont --------------------------------------------------
-//
-// The beat that turns the economy from a menu into a consequence: the truck
-// breaks in public, Norm fixes it for money, and the money has to come from
-// somewhere. It does not build its own repair system — it sets the damage and
-// then charges the parts through the ordinary stage `cost`, which is the same
-// wallet gate the yard-sale canoe uses.
-
-const surchauffe = {
-  id: 'arcsurchauffe',
-  beat: 'turn2',
-  title: 'La surchauffe du pont',
-  brief: 'Canicule de juillet. Un divan, le pont Champlain, l’heure de pointe. Ça va bien aller.',
-  giver: 'home',
-  timeOfDay: 'day',
-  build(ctx) {
-    return [
+      // Tom, 6 Oct 2026: "We started speaking French to each other, getting
+      // caught up in the moment." The one place the gang, who speak English
+      // with each other, switch to French: one starts, the others follow,
+      // Tom answers and gets laughed at for his accent. Back to English in
+      // the morning (the toast, then ARC_LINES.arcbache.end).
       {
-        kind: 'load',
-        text: '299 Chemin Fraser — charge le divan',
-        sub: 'Arrête-toi dans le pilier de l’entrée, pis E pour charger',
-        hint: 'Chez vous. Le divan de ta tante s’en va à Hull. Faut être arrêté pour le E.',
-        at: 'home', radius: 13, hold: true,
-        holdText: `E — charger le divan sur le ${ctx.carName}`,
-        toast: 'Zahra embarque: « Y fait 34. T’as-tu regardé ton gauge une fois cet été? »',
-      },
-      {
-        kind: 'blow',
-        text: 'Le pont Champlain — plein est',
-        sub: 'W pis suis la ligne bleue du GPS jusqu’au pilier au milieu du pont',
-        hint: 'Prends le chemin d’Aylmer vers l’est, pis la 148. Le pont est indiqué.',
-        at: SPAN, radius: 30,
-        toast: 'BANG.\nUn boyau de radiateur, en plein milieu du pont, à l’heure de pointe.\nCent chars derrière toi. Cent klaxons.',
-        onExit(G) {
-          // The whole point of the beat. restoreDamage is damage.js's own
-          // "the car arrives already hurt" path, so the HUD, the map wrench and
-          // Norm's price all pick it up without a special case anywhere.
-          if (G.veh) restoreDamage(G.veh, Math.max(G.veh.damage || 0, HOSE.damage));
-          if (G.health && G.veh) G.health[G.veh.spec.id] = G.veh.damage;
-          if (G.repairHints) { G.repairHints.h25 = false; G.repairHints.h60 = false; }
+        kind: 'francais',
+        text: 'Le feu : la gang parle français',
+        sub: 'Reste près du feu pis écoute. Quand c’est ton tour, E pour répondre en français.',
+        hint: 'Attends que Sayyad embarque, lui aussi. Après, E.',
+        at: 'beach', radius: 30,
+        // Only onTick finishes it: the friends, then your E, then the laughs.
+        condition: () => false,
+        prompt: (G, m) => (!m || m.sjAnswered ? null : m.sjReady ? 'E : répondre en français' : 'Écoute-les.'),
+        onEnter(G, m) {
+          m.sjReady = false; m.sjAnswered = false; m.sjDone = false; m.sjT = 0; m.sjT2 = 0;
+          sceneToast(G, 'stjean', SAINT_JEAN_SCENE, 3600);
+          lines(G, SAINT_JEAN_FRENCH, () => { m.sjReady = true; });
         },
-      },
-      {
-        text: 'Sors-toi de là — l’accotement',
-        sub: 'Laisse-la rouler pis 30 km/h max dans le pilier (S pour freiner)',
-        hint: 'Deux cents mètres de plus, de l’autre bord du pont. Elle fume, mais elle avance.',
-        at: SHOULDER, radius: 18, maxSpeed: 30,
-        toast: 'Zahra, sans lever les yeux: « J’ai appelé Norm de la cabine. Y arrive. »',
-        onExit(G) {
-          // The flatbed. Norm does not drive you back — he drives the truck
-          // back, and you are at his garage when it gets there.
-          const p = PLACES.ctire;
-          if (G.veh && p) {
-            G.veh.reset(p.x, p.z, p.a || 0,
-              G.phys && G.phys.groundY ? G.phys.groundY(p.x, p.z) : 0);
-            G.veh.syncFrame && G.veh.syncFrame();
+        onTick(G, m, st, dt) {
+          hush(G, 'stjean');
+          const t = dt || 0;
+          m.sjT = (m.sjT || 0) + t;
+          if (m.sjT >= SAINT_JEAN_WAIT) m.sjReady = true;   // no bubbles (tests), or they were cut
+          if (!m.sjAnswered) {
+            const v = G && G.veh, p = m.target;
+            const here = v && p && Math.hypot(v.x - p.x, v.z - p.z) < p.r && v.speedKmh <= 4;
+            if (m.sjReady && here && G.wantStart) {
+              G.wantStart = false;
+              m.sjAnswered = true; m.sjT2 = 0;
+              lines(G, SAINT_JEAN_REPLY, () => { m.sjDone = true; });
+            }
+            return null;
           }
-          say(G, 'Norm charge le Ranger sur la plateforme sans dire un mot.\nSoixante-cinq kilomètres de silence.', 3600);
+          m.sjT2 = (m.sjT2 || 0) + t;
+          return m.sjDone || m.sjT2 >= SAINT_JEAN_REPLY_WAIT ? 'done' : null;
         },
-      },
-      {
-        kind: 'lecture',
-        text: 'Garage Lafleur — écoute Norm',
-        sub: 'T’es déjà dans le pilier: appuie sur E',
-        hint: 'Norm Lafleur, chemin d’Aylmer. Il a une Export A derrière l’oreille pis rien à te vendre.',
-        at: 'ctire', radius: 20, hold: true,
-        holdText: 'E — écouter Norm',
-        toast: 'Norm: « Un boyau, c’est huit piasses. Un moteur, c’est deux mille. »\n« Les pièces: 60 $. Fais-moi mes trois livraisons pis on est quittes. »',
-      },
-      {
-        text: 'Livraison 1/3 — Galeries d’Aylmer',
-        sub: 'GPS jusqu’au pilier jaune dans le stationnement, arrête-toi dedans',
-        hint: 'Les Galeries sont sur le chemin d’Aylmer, deux minutes du garage.',
-        at: 'mall', radius: 22,
-        toast: 'Un alternateur pour le gars du Canadian Tire. 30 $.',
-        money: 30,
-      },
-      {
-        text: 'Livraison 2/3 — le McDo du chemin d’Aylmer',
-        sub: 'GPS, pis 40 km/h max dans le pilier (S pour freiner)',
-        hint: 'Plus loin à l’est sur le chemin d’Aylmer. Le gérant attend une caisse.',
-        at: 'mcdo', radius: 18, maxSpeed: 40,
-        toast: 'Le gérant te donne un Coke avec. 30 $.',
-        money: 30,
-      },
-      {
-        text: 'Livraison 3/3 — la station',
-        sub: 'GPS jusqu’au pilier jaune, arrête-toi',
-        hint: 'Le Petro-Canada. Norm leur doit un jeu de filtres depuis mars.',
-        at: 'gas', radius: 18, time: 300,
-        toast: 'Trois sur trois. T’as gagné soixante piasses en une soirée.',
-        money: 30,
-      },
-      {
-        kind: 'pay',
-        text: 'Paye Norm — 60 $ de pièces',
-        sub: 'Retourne au garage par le GPS, arrête-toi dans le pilier, pis E',
-        hint: 'Garage Lafleur, chemin d’Aylmer. Faut avoir les 60 $ sur toi.',
-        at: 'ctire', radius: 20, hold: true, cost: HOSE.parts,
-        holdText: `E — payer Norm   ·   ${HOSE.parts} $`,
-        brokeText: 'Norm: « Reviens quand t’auras l’argent. Le camion bouge pas d’icitte. »',
-        toast: 'Norm: « Astheure tu sais ce que ça coûte. »\nLe Ranger est réparé.',
-        onExit(G) {
-          if (G.veh) G.veh.repair();
-          if (G.health && G.veh) G.health[G.veh.spec.id] = 0;
-          if (G.repairHints) { G.repairHints.h25 = false; G.repairHints.h60 = false; }
-          if (G.hud) { G.hud.setRepairHint(null); G.hud.setRepairPrompt(null); }
-        },
+        toast: 'Vous parlez français jusqu’à la fin du feu. Personne le fait exprès.\nLe lendemain matin, tout le monde reparle anglais. Personne en parle.',
       },
     ];
   },
 };
+
+// The French at the fire (Tom, 6 Oct 2026). Every other line the gang says to
+// each other is English; this is the exception, on purpose. Glosses:
+//   Zahra   Look. Everybody's singing.
+//   Mike    Well, sing then! It's Saint-Jean!
+//   Sayyad  Wait. Are we speaking French right now?
+//   Zahra   Yes. And so are you.
+//   Sayyad  OK OK OK. Happy Saint-Jean, everybody!
+export const SAINT_JEAN_SCENE = 'Les haut-parleurs jouent « Gens du pays ». Des drapeaux bleus partout. Toute la plage chante.';
+export const SAINT_JEAN_FRENCH = [
+  ['Zahra', '« Regarde. Tout le monde chante. »'],
+  ['Mike', '« Ben chante, d’abord! C’est la Saint-Jean! »'],
+  ['Sayyad', '« Attends. On parle-tu en français, là? »'],
+  ['Zahra', '« Oui. Pis toi aussi. »'],
+  ['Sayyad', '« OK OK OK. Bonne Saint-Jean, tout le monde! »'],
+];
+// Tom answers, and pays for it. Glosses:
+//   Tom     Uh... happy Saint-Jean, guys!
+//   Zahra   Your accent, Tom. My God.
+//   Adam    Leave him alone. He's doing his best.
+export const SAINT_JEAN_REPLY = [
+  ['Tom', '« Euh... bonne Saint-Jean, la gang! »'],
+  ['Zahra', '« Ton accent, Tom. Mon Dieu. »'],
+  ['Adam', '« Laisse-le. Y fait son possible. »'],
+];
+// Seconds before E works even if the bubbles never report back, and before
+// the beat ends after Tom's answer.
+export const SAINT_JEAN_WAIT = 16;
+export const SAINT_JEAN_REPLY_WAIT = 10;
+
+// A run of story bubbles; `done` once the last has left the screen.
+function lines(G, list, done) {
+  const last = list.length - 1;
+  list.forEach(([who, text], i) => {
+    if (G && G.heckle && G.heckle.line) G.heckle.line(who, text, 3000, { group: 'saintjean', then: i === last ? done : null });
+  });
+}
+
+// 3 — La surchauffe du pont: CUT (Tom, D31, 13 Oct 2026: « none of that
+// radiator shit is remotely real »). No code left; its id is in campaign.js
+// RETIRED so an old save that had it still loads and goes on to the sauna.
 
 // 4 — La dernière veillée ----------------------------------------------------
 
 const veillee = {
   id: 'arcveillee',
   beat: 'turn3',
+  // OPEN DECISION (STORY-REBUILD.md). The acceptance letters, the five-car
+  // convoy, the departures and Nepean Point did not happen (ledger s.3). What is
+  // left is neutral: one truck, three bridges, no reason. Stages unchanged.
   title: 'La dernière veillée',
-  brief: 'Les lettres d’acceptation sont arrivées. Un convoi, les ponts, pis du take-out à Nepean Point.',
+  brief: 'Un soir sans raison. Trois ponts, la rivière, pis le Parlement de l’autre bord.',
   giver: 'arena',
   timeOfDay: 'dusk',
   build() {
     return [
       {
         kind: 'load',
-        text: 'Stationnement de l’aréna — le convoi part d’ici',
+        text: 'Stationnement de l’aréna : tout le monde embarque',
         sub: 'Arrête-toi dans le pilier jaune, pis E quand t’es prêt',
-        hint: 'Aréna Frank-Robinson, au nord de la Principale. Cinq chars t’attendent.',
+        hint: 'Aréna Frank-Robinson, au nord de la Principale. La gang t’attend.',
         at: 'arena', radius: 18, hold: true,
-        holdText: 'E — partir le convoi',
-        toast: 'Cinq chars. Mike ouvre, toi tu fermes.\nMontréal pis Toronto dans trois semaines.',
+        holdText: 'E : on part',
+        toast: 'Mike part la radio. Personne sait où on va, à part toi.',
       },
       {
-        text: 'Pont 1 — le Champlain',
+        text: 'Pont 1 : le Champlain',
         sub: 'W pis suis la ligne bleue du GPS jusqu’au pilier au milieu du pont',
         hint: 'Plein est par le chemin d’Aylmer pis la 148. Pas de chrono à soir.',
         at: SPAN, radius: 30,
-        toast: 'Adam klaxonne en montant sur le pont. Tout le monde klaxonne.',
+        toast: 'Adam klaxonne en montant sur le pont. Avec ton klaxon. Tout le monde crie.',
       },
       {
-        text: 'Pont 2 — la Chaudière',
-        sub: 'GPS vers l’est jusqu’au pilier — reste avec le convoi (W)',
+        text: 'Pont 2 : la Chaudière',
+        sub: 'GPS vers l’est jusqu’au pilier (W)',
         hint: 'Continue vers Hull par Alexandre-Taché, la Chaudière est au bout.',
         at: CHAUDIERE, radius: 26,
-        toast: 'Sayyad a baissé les quatre vitres. Personne se plaint.',
+        toast: 'Sayyad baisse sa vitre. Personne se plaint.',
       },
       {
-        text: 'Pont 3 — l’Alexandra',
+        text: 'Pont 3 : l’Alexandra',
         sub: 'GPS jusqu’au pilier, traverse vers Ottawa (W)',
         hint: 'Par le centre-ville de Hull, pis le pont de fer vers le musée.',
         at: ALEXANDRA, radius: 26,
         toast: 'Le pont de fer fait le bruit qu’il fait. Zahra le filme avec rien.',
       },
       {
-        text: 'Nepean Point — les hayons, le take-out',
+        text: 'De l’autre bord : le belvédère sous la statue',
         sub: 'GPS jusqu’au dernier pilier, pis 30 km/h max en arrivant (S pour freiner)',
         hint: 'De l’autre bord de l’Alexandra, en haut, sous la statue. Le Parlement est en face.',
         at: NEPEAN, radius: 24, maxSpeed: 30,
-        toast: 'Assis sur les hayons, le Parlement allumé de l’autre bord de l’eau.\nPersonne dit rien pendant un bout.',
+        toast: 'Assis sur le hayon, le Parlement allumé de l’autre bord de l’eau.\nPersonne dit rien pendant un bout.',
         money: 45,
       },
     ];
   },
 };
 
-// 5 — Le dernier voyage ------------------------------------------------------
+// Finale · Le dernier soir ---------------------------------------------------
 //
-// No `time` on any stage, no rivals, and cops.clear() every tick. That is not a
-// style choice: a countdown here would turn the last thing you do in this game
-// into something you can fail.
+// Labour Day night (restructure, 29 Sept 2026; Tom's approved plan, ledger 29
+// Sept). No `time` on any stage, no rivals, and cops.clear() every tick: the
+// last thing you do in this game cannot be failed.
+//
+//   1. A free drive, untimed, no GPS line. Each main mission's place holds one
+//      small callback, and friends are where they would be on a Labour Day
+//      night, one line each. Nobody says goodbye. Home when you are ready.
+//   2. The landline rings at 299 Fraser: Dad, excited. « So? Ottawa or McGill? »
+//   3. On the kitchen table, next to Tom's Heritage nanotech project: a
+//      brochure. University of Waterloo, a new program, Nanotechnology
+//      Engineering. E picks it up; main.js plays the end cards (story.js).
+//
+// Starting it IS Labour Day evening: the calendar goes to the last day and, in
+// the prototype, the clock to 20 h (a job cannot wait weeks for its date).
+// The brochure's timing is a composite (docs/STORY-REBUILD.md).
 
 const noCops = (G) => { if (G && G.cops && G.cops.clear) G.cops.clear(); return null; };
+
+// Where the summer happened. `at` is a PLACES key; `line` is narration (a
+// toast), `who`/`say` a friend's one line (a bubble, <= 12 words).
+export const FINALE_CALLBACKS = [
+  { at: 'ctire', mission: 'alternateur', line: 'Le Canadian Tire. Les solénoïdes sont encore sur le crochet.' },
+  { at: 'sayyad', mission: 'sayyad', line: 'Le 75 Denise-Friend. La lumière de Sayyad est allumée.',
+    friends: [['Sayyad', '« I’m awake. On purpose. OK OK OK. Note it somewhere. »'], ['Zahra', '« Wrong. He didn’t sleep. He’s talking about the new iMac. »']] },
+  { at: 'beach', mission: 'arcbache', line: 'La plage des Cèdres. Le rond noir du feu est encore dans le sable.',
+    friends: [['Adam', '« Mayo’s far tonight. The town, not the sauce. I’m staying. »'], ['Alex', '« Hey. You’re right on time. »'], ['Robin', '« Sit down. There’s chips left. »']] },
+  { at: 'mike', mission: 'divan', line: 'Le 129 Frank-Robinson. Le divan est encore dans l’arbre.',
+    friends: [['Mike', '« It stays up there. Hear me out: it’s a monument now. »']] },
+  { at: 'marina', mission: 'canot', line: 'La marina. Le canot à 45 piasses, à l’envers sur le quai. Le Bondo tient.' },
+  { at: 'golf', mission: 'golfcart', line: 'La clôture du golf, entre le Loblaws pis le cimetière. Les carts dorment.' },
+  { at: 'stvincent', mission: 'stvincent', line: 'St. Vincent. Les lumières du troisième. C’est tranquille.' },
+  { at: 'tims', mission: 'nuittim', line: 'Le stationnement du Tim. Personne en arrière, à soir.' },
+  { at: 'royalottawa', mission: 'school', line: 'Le Royal Ottawa. Une balle de golf dans le fossé.',
+    friends: [['Russell', '« Not my ball. Probably not my ball. »']] },
+  { at: 'abraham', line: 'Wilfrid-Lavigne. Un vélo couché au milieu d’une entrée.',
+    friends: [['Abraham', '« One more lap? Just one. »']] },
+  { at: 'tyler', line: 'Samuel-Edey. Le char à Tyler, les portes ouvertes, la radio.',
+    friends: [['Tyler', '« Nachos next week? Same time, same movie. »']] },
+];
+export const FINALE_NEAR = 40;       // metres: close enough to notice
+export const FINALE_LEAVE = 200;     // metres from home before you may come back in
+
+// The call. Margaret answers (she never rides with the gang; Dad is only ever
+// on the landline at 299 Fraser). Dad speaks English with Tom.
+export const FINALE_CALL = [
+  ['Margaret', '« Tom! Phone! It’s your father. »'],
+  ['Ton père, au téléphone', '« Tom! Hey! Last night of the summer, eh? »'],
+  ['Ton père, au téléphone', '« So? Ottawa or McGill? »'],
+];
+
+function finaleState(m) { return m.fin || (m.fin = { seen: new Set(), left: false, todo: [], shown: -1 }); }
+
+// ---- S4-SUMMER finale (begin) ----
+// The places still to see tonight, with their points: the map pins them (main.js
+// finalePins) and the harness bot tours them. No GPS line, no list on screen:
+// a light on the map and a count in the objective, « 3/11 places de l’été ».
+export function finaleTodo(m) {
+  const f = finaleState(m);
+  return FINALE_CALLBACKS.filter((c) => !f.seen.has(c.at) && PLACES[c.at])
+    .map((c) => ({ at: c.at, x: PLACES[c.at].x, z: PLACES[c.at].z, label: PLACES[c.at].label || c.at }));
+}
+function finaleCount(G, m) {
+  const f = finaleState(m), n = f.seen.size, total = FINALE_CALLBACKS.length;
+  if (f.shown === n) return;
+  f.shown = n;
+  const st = m.stages && m.stages[m.idx];
+  if (!st || !G || !G.hud || !G.hud.setObjective) return;
+  const head = n ? `Le dernier soir : ${n}/${total} places de l’été` : st.text;
+  const sub = n >= total ? 'T’as fait le tour. Rentre au 299 Fraser, pis E.'
+    : (f.left ? 'Les lumières sur la carte, c’est l’été. Rentre quand t’es prêt, pis E.' : st.sub);
+  G.hud.setObjective(head, sub);
+}
+// ---- S4-SUMMER finale (end) ----
+
+/** Labour Day, evening. Exported for the campaign smoke test. */
+export function enterLastNight(G) {
+  if (!G) return;
+  G.day = LAST;
+  G.lastNight = true;
+  if (isPrototype(G)) G.dayClock = (20 / 24) * (G.dayCycle || DAY_CYCLE);
+}
+
+/** Once a tick in stage 1: the callbacks and the friends, one each. */
+export function finaleTick(G, m) {
+  noCops(G);
+  const v = G && G.veh;
+  if (!v) return null;
+  const f = finaleState(m);
+  const home = PLACES.home;
+  if (home && Math.hypot(v.x - home.x, v.z - home.z) > FINALE_LEAVE) f.left = true;
+  const wasLeft = f.shownLeft;
+  for (const c of FINALE_CALLBACKS) {
+    if (f.seen.has(c.at)) continue;
+    const p = PLACES[c.at];
+    if (!p || Math.hypot(v.x - p.x, v.z - p.z) > FINALE_NEAR) continue;
+    f.seen.add(c.at);
+    sceneToast(G, 'finale', c.line, 3400);
+    for (const [who, text] of c.friends || []) {
+      if (G.heckle && G.heckle.line) G.heckle.line(who, text, 3400);
+      else say(G, `${who}: ${text}`, 3400);
+    }
+    // S4-SUMMER: every place seen, once.
+    if (f.seen.size === FINALE_CALLBACKS.length) say(G, 'Toutes les places de l’été. Il reste juste chez vous.', 3600);
+  }
+  // ---- S4-SUMMER finale (begin): the count, and the pins' list ----
+  f.todo = finaleTodo(m);
+  if (f.left !== wasLeft) { f.shownLeft = f.left; f.shown = -1; }
+  finaleCount(G, m);
+  // ---- S4-SUMMER finale (end) ----
+  return null;
+}
 
 const dernier = {
   id: 'arcdernier',
   beat: 'epilogue',
-  title: 'Le dernier voyage',
-  brief: 'Fin août, première fraîche. Les dernières boîtes de Mike, la gare, pis un tour de Principale.',
+  title: 'Le dernier soir',
+  brief: 'La fête du Travail. Le dernier soir de l’été. Pas de chrono, pas de liste. Roule où tu veux, pis rentre au 299 Fraser quand t’es prêt.',
   giver: 'home',
-  timeOfDay: 'morning',
+  timeOfDay: 'dusk',
   build() {
     return [
       {
-        kind: 'load',
-        text: 'Chez Mike — 129 avenue Frank-Robinson',
-        sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour charger les boîtes',
-        hint: 'Frank-Robinson, au nord de la Principale. Le divan est encore dans l’arbre.',
-        at: 'mike', radius: 14, hold: true,
-        holdText: 'E — charger les dernières boîtes',
-        toast: 'Le divan est encore dans l’arbre. Personne l’a jamais descendu.\nMike: « Laisse-le. C’est correct. »',
-        onTick: (G) => noCops(G),
+        kind: 'drive',
+        text: 'Le dernier soir : roule où tu veux',
+        sub: 'Pas de chrono, pas de GPS. Les places de l’été sont encore là. Rentre quand t’es prêt, pis E.',
+        hint: 'Le Canadian Tire, la plage, chez Mike, la marina, le golf, le Tim. Ou nulle part. Chez vous, c’est E.',
+        at: 'home', radius: 13, hold: true, noRoute: true,
+        holdText: 'E : rentrer',
+        gate: (G, m) => (finaleState(m).left ? null : 'Pas tout de suite. Va faire un tour, c’est le dernier soir.'),
+        onEnter(G, m) {
+          enterLastNight(G);
+          finaleState(m);
+          say(G, 'La planche de cèdre sent encore, sur le dash.', 3200);
+        },
+        onTick: (G, m) => finaleTick(G, m),
+        toast: 'La lumière de la cuisine est allumée.',
       },
       {
-        // The 59 to Ottawa left from the Galeries lot, and the Montreal bus went
-        // from Ottawa. Nobody in Aylmer drove to a depot; you drove to the mall.
-        text: 'Les Galeries — l’autobus part d’icitte',
-        sub: 'Suis le GPS jusqu’au pilier dans le stationnement. Prends ton temps (W).',
-        hint: 'Le stationnement incitatif des Galeries, chemin d’Aylmer. Y a pas de chrono.',
-        at: 'mall', radius: 22,
-        toast: 'Le 59 vers Ottawa, pis l’autobus de Montréal après.\nMike te serre la main comme si c’était normal, une poignée de main.\n« Ben. Bon. »',
-        onTick: (G) => noCops(G),
-      },
-      {
-        text: 'Un dernier tour de la rue Principale',
-        sub: 'Reviens par le GPS, pis 40 km/h max dans le pilier (S pour freiner)',
-        hint: 'Le Vieux-Aylmer. Lentement. C’est le but.',
-        at: 'principale', radius: 16, maxSpeed: 40,
-        toast: 'Le Tim, la Palmyra, l’Auberge. Tout est encore là.',
-        onTick: (G) => noCops(G),
-      },
-      {
-        kind: 'park',
-        text: 'Chez vous — stationne-le comme il faut',
-        sub: 'GPS jusqu’à l’entrée, arrête-toi dans le pilier, pis E',
-        hint: '299 Chemin Fraser. Entre les deux lignes de l’entrée, pour une fois.',
-        at: 'home', radius: 13, hold: true, stopped: 4,
-        holdText: 'E — mettre les clés sur le comptoir',
-        toast: 'Tes clés dans ta poche.\nLa ville est encore là. Toi, t’es plus le même gars qu’en juin.',
+        kind: 'phone',
+        text: 'Le téléphone sonne dans la maison',
+        sub: 'E pour répondre',
+        hint: 'Le téléphone noir, dans la cuisine. E.',
+        at: 'home', radius: 20, hold: true,
+        holdText: 'E : répondre',
+        onEnter(G) {
+          if (G.audio && G.audio.blip) { G.audio.blip(440, 0.5, 'sine', 0.1); G.audio.blip(480, 0.5, 'sine', 0.1); }
+        },
+        onExit(G) {
+          for (const [who, text] of FINALE_CALL) {
+            if (G.heckle && G.heckle.line) G.heckle.line(who, text, 3400, { group: 'dad' });
+          }
+        },
+        toast: 'Au bout du fil, il a l’air tellement content.\nIl t’envoie 20 $ pour le gaz. Il insiste.\nTu réponds pas tout de suite.',
+        // Dad offers before being asked (ledger 28 Sept); the one payout of
+        // the finale, so the rule « every job pays » still holds.
         money: 20,
-        onTick: (G) => noCops(G),
+        onTick: (G) => { hush(G, 'finale'); return noCops(G); },
+      },
+      {
+        kind: 'table',
+        text: 'La table de cuisine',
+        sub: 'E pour prendre la brochure',
+        hint: 'À côté de ton projet de nanotech de Heritage. E.',
+        at: 'home', radius: 20, hold: true,
+        holdText: 'E : prendre la brochure',
+        toast: 'Sur la table, à côté de ton projet de nanotech de Heritage : une brochure.\nUniversity of Waterloo. Un nouveau programme : Nanotechnology Engineering.\nTu la prends.',
+        onTick: (G) => { hush(G, 'finale'); return noCops(G); },
       },
     ];
   },
@@ -379,34 +494,34 @@ const dernier = {
 
 // ---------------------------------------------------------------- the gates
 
-export const ARC = [keys, bache, surchauffe, veillee, dernier];
+export const ARC = [keys, bache, veillee, dernier];
 
 /**
- * When each beat turns up. `after` is the beat before it and `jobs` is how much
- * of the summer has to be behind you — a stand-in for the calendar, because the
- * day/night cycle is ten minutes long and July is not a thing the game can
- * count. The prologue is open from the first morning: it is the beat where you
- * get the keys.
+ * Restructure (29 Sept 2026): the beats no longer open on job counts. The
+ * story's order is campaign.js's (ten main missions, then the finale), and
+ * missions.js asks it, not this table. What is left here is the shape older
+ * callers read: `after` is the main mission a beat follows (or 'all' for the
+ * finale), `fromDay` the prototype's date gate (the Saint-Jean, 24 June = day
+ * 2). The retired beats (arckeys, arcveillee, and arcsurchauffe, which has no
+ * code left) have no row: they are never offered.
  */
 export const GATES = {
-  // One job first. The game opens with your father having left the keys in the
-  // change dish for a morning; « Le Ranger rend service » is him turning that into
-  // a deal with conditions, which only means something once you have driven it.
-  arckeys: { jobs: 1, after: null },
-  arcbache: { jobs: 3, after: 'arckeys' },
-  arcsurchauffe: { jobs: 6, after: 'arcbache' },
-  arcveillee: { jobs: 10, after: 'arcsurchauffe' },
-  arcdernier: { jobs: 14, after: 'arcveillee' },
+  arcbache: { after: 'sayyad', fromDay: SAINT_JEAN_DAY },
+  arcdernier: { after: 'all' },
 };
 
-/** Is this beat's gate open for a save with these finished jobs? */
+/** Is this beat's story gate open for a save with these finished jobs? */
 export function gateOpen(id, done) {
-  const g = GATES[id];
-  if (!g) return true;
-  const has = (k) => !!(done && done.has && done.has(k));
-  const n = (done && done.size) || 0;
-  if (g.after && !has(g.after)) return false;
-  return n >= g.jobs;
+  if (isRetired(id)) return false;
+  return storyBlocker(id, done || new Set()) == null;
+}
+
+/**
+ * Prototype only: the date line when a beat's calendar gate is still shut
+ * (« Pas avant le 24 juin »), else null. `day` is G.day.
+ */
+export function beatDateLock(G, id) {
+  return dateLock(G, id);
 }
 
 /** The beats a save with these finished jobs should be able to see. */
@@ -440,7 +555,8 @@ export function applyArcText(rows, list = ARC) {
   for (const row of rows) {
     const def = list.find((d) => d.beat === (row && row.beat));
     if (!def || !row.title) continue;
-    def.title = String(row.title);
+    // A beat whose title follows the date (the Saint-Jean) keeps its own.
+    if (!def.datedText) def.title = String(row.title);
     def.note = row.emotionalNote ? String(row.emotionalNote) : def.note;
     n++;
   }
@@ -457,52 +573,46 @@ export function applyArcText(rows, list = ARC) {
 export const ARC_LINES = {
   arckeys: {
     start: [
-      ['Ton père', '« Tu fais le transport de la famille, pis tu mets ton gaz dedans. »'],
-      ['Ton père', '« Merci du coup de main. Ça compte. »'],
+      ['Margaret', '« Take the mower to the church for me? You have the truck. »'],
+      ['Margaret', '« That wasn’t really a question, Tom. »'],
     ],
     end: [
-      ['Sayyad', '« Deux mois. On a deux mois complets. »'],
-      ['Margaret', '« Y va falloir que quelqu\'un le surveille, lui. »'],
+      ['Sayyad', '« Two months. Deux mois complets. What’s the plan? »'],
+      ['Mike', '« Deux mois. J’ai une liste. Écoute-moi. »'],
     ],
   },
+  // The gang in English, as always; at the fire they switch to French
+  // (SAINT_JEAN_FRENCH, Tom 6 Oct 2026). The end lines are the morning after.
   arcbache: {
     start: [
-      ['Sayyad', '« Les haut-parleurs, c\'est ceux de son père. Casse-les pas. »'],
-      ['Zahra', '« Y sont pas à son père. Y sont à l\'école. »'],
+      ['Sayyad', '« The speakers are his dad’s. Don’t break them. »'],
+      ['Zahra', '« Wrong. They’re the school’s. Don’t break those either. »'],
     ],
     end: [
-      ['Sayyad', '« Un kilomètre et demi. Ok. OK. »'],
-      ['Zahra', '« J\'ai le chrono icitte. Y va dire qu\'y a mal parti. »'],
+      ['Sayyad', '« Morning. So. Last night we were very French. »'],
+      ['Zahra', '« Tom was very... trying. »'],
     ],
   },
-  arcsurchauffe: {
-    start: [
-      ['Zahra', '« Y fait 34 degrés pis tu transportes un divan. Explique-moi ça. »'],
-      ['Zahra', '« Ton gauge est dans le rouge depuis Deschênes, en passant. »'],
-    ],
-    end: [
-      ['Norm Lafleur', '« Un boyau, c\'est huit piasses. Attends après, pis c\'est un moteur. »'],
-      ['Norm Lafleur', '« Reviens me voir avant que ça casse, la prochaine fois. Pas après. »'],
-    ],
-  },
+  // OPEN DECISION beat: no convoy, no letters, nobody leaving.
   arcveillee: {
     start: [
-      ['Mike', '« Cinq chars. CINQ. Écoute-moi, j\'ai pensé à l\'ordre. »'],
-      ['Margaret', '« Trois semaines. Faque à soir on fait ça comme il faut. »'],
+      ['Mike', '« Tout le monde dans le truck. J\'ai pensé à l\'ordre des ponts. »'],
+      ['Sayyad', '« Trois ponts. No reason. Best reason. »'],
     ],
     end: [
       ['Adam', '« ...c\'est beau, le Parlement, quand on le regarde de loin. »'],
       ['Sayyad', '« Dites-le pas à personne que j\'ai trouvé ça beau. »'],
     ],
   },
+  // Le dernier soir: Margaret in her own driveway, then the end cards. The
+  // friends' lines are the finale's own (FINALE_CALLBACKS), one each, where
+  // they would be; nobody says goodbye.
   arcdernier: {
     start: [
-      ['Mike', '« Y en reste quatre boîtes. Pis le divan. Le divan reste. »'],
-      ['Mike', '« ...merci d\'avoir un truck, mon homme. »'],
+      ['Margaret', '« Last night of the summer. Don’t be too late, Tom. »'],
     ],
     end: [
-      ['Ton père', '« T\'as mis ton gaz dedans tout l\'été. »'],
-      ['Ton père', '« Garde tes économies pour la suite. Tu les as gagnées. »'],
+      ['Margaret', '« Lights off when you go down, Tom. »'],
     ],
   },
 };

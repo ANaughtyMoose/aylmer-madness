@@ -7,6 +7,7 @@
   "scripts": {
     "serve": "node tools/serve.mjs",
     "test": "node tools/run_smoke.mjs",
+    "test:timing": "node tools/run_smoke.mjs --timing",
     "deploy": "wrangler deploy"
   }
 }

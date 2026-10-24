@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8"><title>Driving and new mission checks</title><style>body{background:#15272b;color:#fff;font:16px sans-serif}button{padding:12px}iframe{width:1200px;height:760px;border:0}pre{white-space:pre-wrap}</style>
-<button id="run">Run integration checks</button><button id="hospital">Play hospital challenge</button><button id="status">State</button><pre>Ready. Test origin only; simulated travel.</pre><iframe src="../index.html?life-check=17"></iframe>
+<button id="run">Run integration checks</button><button id="hospital">Play hospital challenge</button><button id="status">State</button><pre>Ready. Test origin only; simulated travel.</pre><iframe src="../index.html?life-check=17&review=life-check"></iframe>
 <script type="module">
 const f=document.querySelector('iframe'),out=document.querySelector('pre');let a;
 const wait=async fn=>{let n=0;while(!fn()){if(n++>900)throw Error('Timed out');await new Promise(r=>setTimeout(r,100));}};

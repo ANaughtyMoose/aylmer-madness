@@ -2,7 +2,7 @@
 <style>body{margin:0;background:#15212a;color:#fff;font:13px system-ui}nav{height:42px;display:flex;align-items:center;gap:8px;padding:0 10px}button{padding:6px 12px}iframe{display:block;border:0;width:100%;height:calc(100vh - 42px)}#report{position:fixed;right:10px;top:48px;max-width:460px;max-height:45vh;overflow:auto;background:#101820ee;white-space:pre-wrap;pointer-events:none;padding:8px}#report:empty{display:none}</style>
 <nav><button data-go="start">New test game</button><button data-go="fraser">Fraser</button><button data-go="cemetery">Saint-Paul</button><button data-go="glenwood">Glenwood</button><button data-go="pause">Pause checks</button><button data-go="resume">Resume</button><button data-go="report">Report</button><button data-go="clear">Hide report</button></nav>
 <nav><label>Impact target <select id="impact-kind"><option>streetlight</option><option>signal</option><option>stopsign</option><option>tree</option></select></label><button data-go="impact">Test 108 km/h impact</button><button data-go="settle">Settle debris</button></nav>
-<iframe id="game" src="../index.html" title="Running Aylmer Madness"></iframe><pre id="report"></pre>
+<iframe id="game" src="../index.html?review=repair-review" title="Running Aylmer Madness"></iframe><pre id="report"></pre>
 <script type="module">
 const f=document.querySelector('iframe'),out=document.querySelector('#report');
 let saved;

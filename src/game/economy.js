@@ -7,21 +7,27 @@
 // in game/upgrades.js, in game/kijiji.js and in game/famouscars.js.
 //
 // The one thing worth knowing before reading on: the upgrade layer never
-// touches a spec. Every frame this module checks whether G.veh.spec is the
-// derived spec the current parts imply and, if it is not, swaps it — which is
-// also how it survives enterDrive() and swapCar() rebuilding the Vehicle
-// without either of them knowing this file exists. Rivals and traffic build
-// their own Vehicles from the untouched CARS entries and are never tuned.
+// touches a shared spec. Which sheet the car drives is game/specstack.js's job
+// (architecture review E3): main.js's tick seats the tuned sheet under the
+// Vehicle, and this module only tells the stack when the parts change (fit,
+// paint, restore). It used to do that itself, every frame, from its own
+// requestAnimationFrame loop; that loop is gone and main.js calls pulse() once
+// a frame instead. Rivals and traffic build their own Vehicles from the
+// untouched CARS entries and are never tuned.
 import { buildCarBody } from './cars.js';
 import { restoreDamage } from './damage.js';
 import {
-  PARTS, BOARD, tuned, tunedSound, canFit, fit, priceOf, measure, bodyPrice, PAINT,
+  PARTS, BOARD, tuned, canFit, fit, priceOf, measure, bodyPrice, PAINT,
   PAINT_PRICE, PAINT_LABEL, BODY_LABEL, partsMul, isStock,
   NORM, loadMechanic, normSay,
   RESTORE_PRICE, GRISHA, loadRestorer, grishaSay, canRestore, restore,
 } from './upgrades.js';
-import { FAMOUS, JUMPS, OWNERS, RUMOURS, watchJumps, claimFamous, jumpsFound } from './famouscars.js';
+import { FAMOUS, JUMPS, RUMOURS, watchJumps, claimFamous, jumpsFound } from './famouscars.js';
+import { OWNER, homeKey } from './homes.js';
+import { couchInMaple } from './sidejobs.js';
+import { createSpecStack } from './specstack.js';
 import * as kijiji from './kijiji.js';
+import { collectTowDebt } from './tow.js';
 
 // The historical repair garage supplied by Tom. The legacy 'norm' key keeps
 // existing missions and saves connected to the same mechanic destination.
@@ -146,11 +152,11 @@ function div(id, cls) {
 // ---------------------------------------------------------------- install
 
 export function installEconomy(env) {
-  const { G, hud, audio, PLACES, OWNER, carById, curbSpot } = env;
+  // Whose driveway a car lives in comes from homes.js, the one owner table.
+  const { G, hud, audio, PLACES, carById, curbSpot } = env;
   inject();
-  // The famous cars and the Tempo need a driveway of their own or « Remettre
-  // les chars chez eux » would put them at (0, 0).
-  Object.assign(OWNER, OWNERS);
+  // The famous cars and the Tempo have their driveway in homes.js's OWNER,
+  // which already spreads famouscars.js's OWNERS: nothing to copy in here.
 
   // U8: the « U — Garage Norm · K — Kijiji » line used to be #econprompt, its
   // own element stacked under #prompt. It goes through hud.setShopPrompt() and
@@ -158,39 +164,31 @@ export function installEconomy(env) {
   const moment = div('moment', 'hidden');
 
   // ---- the modifier layer ------------------------------------------------
-  // One derived spec per (car, parts) pair, kept until the parts change. Built
-  // lazily because tuned() allocates and this runs sixty times a second.
-  let cache = { key: '', spec: null, sound: null };
-  function wanted() {
-    const base = carById(G.carId);
-    // rawMods, not modsFor: this runs sixty times a second and a stock car
-    // should not allocate a record just to be told it is stock.
-    const mods = G.garage ? G.garage.rawMods(G.carId) : null;
-    const key = G.carId + ':' + JSON.stringify(mods);
-    if (cache.key !== key) {
-      cache = { key, spec: tuned(base, mods), sound: tunedSound(base.sound, mods) };
-    }
-    return cache;
-  }
+  // The tuned sheet and its cache live in specstack.js. main.js hands its stack
+  // in; a test that installs the economy on its own gets a private one.
+  const specstack = env.specstack || createSpecStack({
+    carById,
+    modsOf: (id) => (G.garage ? G.garage.rawMods(id) : null),
+    setEngineProfile: (s) => { if (audio && audio.setEngineProfile) audio.setEngineProfile(s); },
+  });
 
-  // Put the parts on the car. Called every frame: enterDrive() and swapCar()
-  // both build a Vehicle straight off the CARS entry and neither knows about
-  // this file, so this is where a freshly-built car gets its camshaft back.
+  // Put the parts on the car you are in, now: after a fit, a repaint or a
+  // restoration. Returns true when the sheet (and so the engine voice) changed.
   function retune() {
-    if (!G.veh) return false;
-    const w = wanted();
-    if (G.veh.spec === w.spec) return false;
-    G.veh.spec = w.spec;
-    if (audio && audio.setEngineProfile) audio.setEngineProfile(w.sound);
-    return true;
+    return specstack.seat(G.veh);
   }
 
   // A repaint is the one upgrade the renderer has to be told about: the body
   // colour is baked into the vertex colours at upload time.
+  // The old body goes back to the GPU (it leaked a whole car mesh per coat of
+  // paint), and a car with its own body builder keeps it — main.js builds
+  // those with `buildBody`, and a repaint used to swap in the generic box.
   function repaint(id) {
     if (!G.renderer || !G.meshes || !G.meshes.cars) return;
     const spec = tuned(carById(id), G.garage.modsFor(id));
-    G.meshes.cars[id] = G.renderer.upload(buildCarBody(spec));
+    const old = G.meshes.cars[id];
+    G.meshes.cars[id] = G.renderer.upload((spec.buildBody || buildCarBody)(spec));
+    if (old && old !== G.meshes.cars[id] && G.renderer.free) G.renderer.free(old);
   }
 
   // ---- the moment --------------------------------------------------------
@@ -213,8 +211,7 @@ export function installEconomy(env) {
   // main.js's own newlyUnlocked() loop does for the lent cars.
   function deliver(id, quiet = false) {
     if (id === G.carId || !G.parked || G.parked[id]) return;
-    const key = OWNER[id] === 'usedlot' ? 'home' : OWNER[id];
-    const p = PLACES[key] || PLACES.home;
+    const p = PLACES[homeKey(id)] || PLACES.home;
     let slot = (OWNER[G.carId] === OWNER[id]) ? 1 : 0;
     for (const other of Object.keys(G.parked)) if (OWNER[other] === OWNER[id]) slot++;
     G.parked[id] = curbSpot(p, slot);
@@ -405,7 +402,7 @@ export function installEconomy(env) {
       G.wallet.spend(cost);
       mods.paint = hex;
       G.garage.setMods(id, mods);
-      cache.key = '';
+      specstack.invalidate();
       retune();
       repaint(id);
       const name = (PAINT.find((c) => c.hex === hex) || {}).name || '';
@@ -414,6 +411,21 @@ export function installEconomy(env) {
       paintShop();
       if (G.autosave) G.autosave('paint');
     }
+  }
+
+  // ---- the sim waits while a screen is up ---------------------------------
+  // Owner ruling (29 Sept): the shops pause the game, mission timers included.
+  // The same door modes.js uses: G.mode leaves 'drive', so main.js's frame
+  // stops ticking (clock, timers, traffic) until the last screen closes.
+  function holdSim() {
+    if (G.mode === 'drive') { G.shopPrevMode = 'drive'; G.mode = 'shop'; }
+  }
+  function releaseSim() {
+    if (shopOpen || volkovOpen || kijiji.isOpen()) return;
+    if (G.mode === 'shop') G.mode = G.shopPrevMode || 'drive';
+    G.shopPrevMode = null;
+    // Whatever closed the screen may be a key main.js also reads next frame.
+    if (G.input && G.input.consume) G.input.consume('Escape', 'KeyU', 'KeyK');
   }
 
   function openShop(shop) {
@@ -426,12 +438,14 @@ export function installEconomy(env) {
     shopEl.style.display = 'block';
     shopEl.classList.remove('hidden');
     paintShop();
+    holdSim();
     if (audio) { audio.engine(0, 0); audio.skid(0); }
   }
   function closeShop() {
     shopOpen = false;
     shopEl.style.display = 'none';
     shopEl.classList.add('hidden');
+    releaseSim();
   }
 
   // ---- Carrosserie Volkov -------------------------------------------------
@@ -504,8 +518,8 @@ export function installEconomy(env) {
     if (!r.ok) { if (volkovOpen) paintVolkov(); return r; }
     G.garage.setMods(id, mods);
     // The paint, the panels and the smoke all hang off the derived spec, so the
-    // cache key has to go before retune() will notice anything changed.
-    cache.key = '';
+    // cache has to go before retune() will notice anything changed.
+    specstack.invalidate();
     retune();
     repaint(id);
     // Twenty-eight years of dents go with the rust: you do not hand a car back
@@ -529,12 +543,14 @@ export function installEconomy(env) {
     volkovEl.style.display = 'block';
     volkovEl.classList.remove('hidden');
     paintVolkov();
+    holdSim();
     if (audio) { audio.engine(0, 0); audio.skid(0); }
   }
   function closeVolkov() {
     volkovOpen = false;
     volkovEl.style.display = 'none';
     volkovEl.classList.add('hidden');
+    releaseSim();
   }
 
   /** Stopped on Grigori's gravel? */
@@ -570,7 +586,7 @@ export function installEconomy(env) {
       // which is the twenty-five dollars you saved, and then some.
       onBuy: (id, deal = {}) => {
         deliver(id, true);
-        const p = PLACES[OWNER[id] === 'usedlot' ? 'home' : OWNER[id]] || PLACES.home;
+        const p = PLACES[homeKey(id)] || PLACES.home;
         const flaw = deal.flaw;
         if (flaw && flaw.damage) {
           G.health[id] = Math.max(G.health[id] || 0, flaw.damage);
@@ -587,8 +603,9 @@ export function installEconomy(env) {
         if (audio && audio.chime) audio.chime(true);
         if (G.autosave) G.autosave('kijiji');
       },
-      onClose: () => {},
+      onClose: () => releaseSim(),
     });
+    holdSim();
     if (audio) { audio.engine(0, 0); audio.skid(0); }
   }
 
@@ -600,9 +617,47 @@ export function installEconomy(env) {
   // modal is the one way a shop screen could put you in the river.
   const ROLLING = 3;
 
+  // Refine A-01: the flatbed's slate (tow.js chargeTow). When money comes in,
+  // half of it goes to the tow guy until he is paid; never more than that, so
+  // a broke player always keeps something from every job.
+  let lastCash = null;
+  function payTheSlate() {
+    const w = G.wallet;
+    if (!w || !Number.isFinite(w.value)) return;
+    // A new game or a load sets the wallet from the menu: that is not a payment.
+    if (G.mode === 'menu') { lastCash = null; return; }
+    const gained = lastCash == null ? 0 : w.value - lastCash;
+    if (gained > 0 && G.towDebt > 0) {
+      const took = collectTowDebt(G, gained);
+      if (took > 0 && hud && hud.toast) {
+        hud.toast(G.towDebt > 0
+          ? `Le gars de la dépanneuse prend sa part: ${took} $. Reste ${G.towDebt} $.`
+          : `Le gars de la dépanneuse prend ses derniers ${took} $. T’es quitte.`, 2600);
+      }
+    }
+    lastCash = w.value;
+  }
+
   function pulse() {
+    payTheSlate();
+    // A screen closed some other way (a new game, the menu) must not leave the
+    // sim held: 'shop' with nothing open goes back to driving.
+    if (G.mode === 'shop' && !shopOpen && !volkovOpen && !kijiji.isOpen()) releaseSim();
+    // Mike's couch is in the maple once you have put it there, and stays all
+    // summer (Tom: TRUE). Before « Le divan de Mike », the tree is empty.
+    const lf = G.world && G.world.landmarks && G.world.landmarks.flags;
+    if (lf) lf.couchInTree = couchInMaple(G);
+    // main.js adds Mike's maple at y = 0, and Frank-Robinson is 19 m up a hill:
+    // the tree was underground and the couch sat in a fork of nothing. Stand it
+    // on the same lawn height the couch's limbs use (landmarks ground 'mike').
+    // Belongs at main.js:1064; done here because main.js is not this branch's.
+    const mt = G.props && G.props.get && G.props.get('miketree');
+    if (mt && !mt.data.grounded) {
+      const lg = G.world && G.world.landmarks && G.world.landmarks.ground;
+      const y = (lg && lg.get && lg.get('mike')) || (G.phys && G.phys.groundY ? G.phys.groundY(mt.x, mt.z) : 0);
+      if (Number.isFinite(y)) { mt.y = y; mt.data.grounded = true; }
+    }
     if (!G.veh || G.mode !== 'drive') { hud.setShopPrompt(null); return; }
-    retune();
     if (Math.abs(G.veh.vLong) > ROLLING && (shopOpen || volkovOpen || kijiji.isOpen())) {
       closeShop();
       closeVolkov();
@@ -662,32 +717,29 @@ export function installEconomy(env) {
     });
   }
 
-  // Own rAF loop rather than a line inside main.js's tick(): the block main.js
-  // gives this agent is one import and one call, and a second rAF costs a few
-  // microseconds a frame.
-  function loop() {
-    try { pulse(); } catch (e) { console.warn('economy', e); }
-    requestAnimationFrame(loop);
-  }
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(loop);
-
-  // A headless test drives the sim through AYLMER.step() with no rAF at all,
-  // so the same pulse rides along with it.
-  if (env.api && typeof env.api.step === 'function') {
-    const step = env.api.step.bind(env.api);
-    env.api.step = (dt) => { const r = step(dt); try { pulse(); } catch (e) { console.warn('economy', e); } return r; };
-  }
+  // No loop of its own any more (architecture review E3): main.js's frame()
+  // calls api.pulse() once per display frame, after its ticks, which is where
+  // this module's second requestAnimationFrame used to land; and AYLMER.step()
+  // calls it after its one tick, which the old monkey-patch on step did.
 
   // ---- keys --------------------------------------------------------------
 
   window.addEventListener('keydown', (e) => {
+    // Every close here consumes the key too (releaseSim, and the moment card
+    // below): main.js's handleKeys() reads Escape off the same press on the
+    // next frame and put the pause menu straight up over the road.
     if (e.code === 'Escape') {
       if (kijiji.isOpen()) { kijiji.close(); e.preventDefault(); return; }
       if (shopOpen) { closeShop(); e.preventDefault(); return; }
       if (volkovOpen) { closeVolkov(); e.preventDefault(); return; }
     }
     if (momentVisible() && ['Space', 'KeyE', 'Enter', 'Escape'].includes(e.code)) {
-      hideMoment(); e.preventDefault(); return;
+      hideMoment();
+      // Consume the press AND drop it from the held keys: an E or Space that
+      // closed the card must not become take-job or the handbrake (UX P1, P2).
+      if (G.input && G.input.consume) G.input.consume(e.code);
+      if (G.input && G.input.keys && G.input.keys.delete) G.input.keys.delete(e.code);
+      e.preventDefault(); return;
     }
     if (G.mode !== 'drive' || shopOpen || volkovOpen || kijiji.isOpen() || momentVisible()) return;
     if (e.code !== 'KeyK' && e.code !== 'KeyU') return;
@@ -720,6 +772,8 @@ export function installEconomy(env) {
     restore: doRestore,
     canRestore: () => canRestore(carById(G.carId), G.garage.modsFor(G.carId), G.wallet),
     shopAt, retune, deliver, repaint,
+    // Once a display frame, from main.js (frame and AYLMER.step).
+    pulse,
     mods: () => G.garage.modsFor(G.carId),
     fit: (partId) => {
       const base = carById(G.carId), mods = G.garage.modsFor(G.carId);

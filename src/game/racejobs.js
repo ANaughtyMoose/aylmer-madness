@@ -25,6 +25,11 @@ export const GATE_R = 18;         // checkpoint ring radius, metres
 export const FINISH_R = 20;
 export const COUNT_IN = 3;        // 3 - 2 - 1 - GO
 export const BLITZ_BONUS = 15;    // seconds per checkpoint
+// The story blitz: 2.4 km, the pace car finishes in 150 s (gates at 24, 47, 85,
+// 101, 126, 150 s). 130 + 15 x 5 = 205 s = (150 + 3) x 1.35, and every gate is
+// inside its own share of the clock (tools/smoke_timers.mjs). It was 60 s: a
+// 65 km/h average through the Vieux grid.
+export const BLITZ_CLOCK = 130;
 
 const say = (G, text, ms) => G.hud && G.hud.toast(text, ms);
 const blip = (G, f, d, t, v) => G.audio && G.audio.blip(f, d, t, v);
@@ -288,7 +293,13 @@ export function raceStages(cfg, ctx) {
             say(G, `Tour ${R.track.lapOf(R.me.done)} — ${lapTime(lap)}\nMEILLEUR TOUR`, 2200);
           } else say(G, `Tour ${R.track.lapOf(R.me.done)} — ${lapTime(lap)}`, 1800);
         }
-        if (finished) return 'done';
+        if (finished) {
+          // A course's purse depends on whether this is a first win or a new
+          // best (missionkit.js runPay), so its win line is written at the
+          // line, not at the start.
+          if (typeof cfg.win === 'function') st.toast = cfg.win(G, m);
+          return 'done';
+        }
         // Move the marker (and the GPS line) onto the next gate.
         const g = R.track.gate(R.me.done);
         if (m.target) {
@@ -331,6 +342,11 @@ export function raceMission(cfg) {
     giver: cfg.giver,
     timeOfDay: cfg.timeOfDay || 'day',
     race: true,
+    // Who is on the grid, for the brief card's footer (main.js cardNote, A-06).
+    rivals: (cfg.rivals || []).map((r) => r.name),
+    // A clocked course (the story blitz) says what its clock covers, so
+    // tools/timers.mjs and smoke_timers can check it against the map.
+    clockCourse: cfg.clock != null ? { start: cfg.start, cps: cfg.cps, clock: cfg.clock, bonus: cfg.bonus || 0 } : undefined,
     cleanup(G) { endRace(G); },
     build(ctx) { return raceStages(cfg, ctx); },
   };
@@ -351,11 +367,11 @@ const daveRace = raceMission({
   gridText: 'Le stationnement de la marina',
   gridSub: 'E sur la grille pour partir — il chauffe le moteur depuis dix minutes, colle-toi à côté',
   gridHold: 'E — « trois, deux, un »',
-  gridToast: 'Adam: « Premier arrivé paye le Slush. »',
+  gridToast: 'Adam: « Le perdant paye le gaz. Du gagnant. »',
   intro: 'Adam: « Trois. Deux. UN— »',
   text: 'Galeries d’Aylmer — le stationnement',
   sub: 'W à fond, suis la ligne bleue du GPS jusqu’au pilier — la Principale, le chemin d’Aylmer, pis tout droit',
-  win: 'PREMIER.\nAdam arrive douze secondes plus tard, ben tranquille.\n+25 $ — il paye le Slush.',
+  win: 'PREMIER.\nAdam arrive douze secondes plus tard, ben tranquille.\n+25 $ — il paye ton gaz. Presque tout.',
   lose: (rv) => `${rv.name} est déjà stationné. Il te fait de la main.\n` +
     '« Tu veux-tu que je te montre le raccourci? »',
   rivals: [{ carId: 'sunfire', name: 'Adam', skill: 'dave' }],
@@ -401,7 +417,9 @@ export const CIRCUIT_START = { x: -800, z: -97, a: Math.PI / 2 };
 const circuit = raceMission({
   id: 'circuit',
   title: 'Circuit du Vieux-Aylmer',
-  brief: 'Trois tours. Principale, Frank-Robinson, du Patrimoine, Bancroft. Margaret pis Adam embarquent.',
+  // Margaret is Tom's mother and never raced the gang (ledger s.0, 22 Sept):
+  // Sayyad takes the second grid slot in his own Civic.
+  brief: 'Trois tours. Principale, Frank-Robinson, du Patrimoine, Bancroft. Sayyad pis Adam embarquent.',
   giver: 'arena',
   start: CIRCUIT_START,
   cps: CIRCUIT,
@@ -411,14 +429,16 @@ const circuit = raceMission({
   gridText: 'Ligne de départ — rue Principale, coin Bancroft',
   gridSub: 'E sur la grille pour le départ — trois chars sur deux voies, y a personne le dimanche matin',
   gridHold: 'E — départ',
-  gridToast: 'Margaret: « Trois tours. Pis touche pas à ma Saturn. »',
+  gridToast: 'Sayyad: « Trois tours. I’ve calculated the racing line. »',
   intro: 'Trois tours du Vieux. Départ arrêté.',
   text: 'Circuit du Vieux-Aylmer — 3 tours',
   sub: 'W à fond, Espace dans les quatre coins — Principale → Frank-Robinson → du Patrimoine → Bancroft, ×3',
-  win: 'TROIS TOURS, PREMIER.\nDave dit que sa suspension est finie. Elle l’était avant.\n+40 $',
+  win: 'TROIS TOURS, PREMIER.\nAdam dit que sa suspension est finie. Elle l’était avant.\n+40 $',
   lose: (rv) => `${rv.name} passe la ligne avant toi. Trois tours pour rien.`,
   rivals: [
-    { carId: 'saturn', name: 'Margaret', skill: 'margaret' },
+    // The « margaret » entry in race.js SKILL is only a pace profile; it is
+    // kept so this grid is exactly as hard as it was.
+    { carId: 'civic', name: 'Sayyad', skill: 'margaret' },
     { carId: 'sunfire', name: 'Adam', skill: 'dave' },
   ],
 });
@@ -432,12 +452,12 @@ const blitz = raceMission({
   giver: 'principale',
   start: 'principale',
   cps: ['church', 'dep', 'arena', 'mike', 'tims', 'mall'],
-  clock: 60,
+  clock: BLITZ_CLOCK,
   bonus: BLITZ_BONUS,
   money: 35,
   timeOfDay: 'dusk',
   gridText: 'Rue Principale — le départ du blitz',
-  gridSub: 'E sur la grille pour partir le chrono — soixante secondes, pis quinze de plus par checkpoint',
+  gridSub: 'E sur la grille pour partir le chrono — cent trente secondes, pis quinze de plus par checkpoint',
   gridHold: 'E — partir le chrono',
   gridToast: 'Six checkpoints. Le chrono arrête jamais.',
   intro: 'Le chrono part à zéro.',

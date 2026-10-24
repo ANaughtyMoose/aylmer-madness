@@ -345,8 +345,14 @@ export class Rival {
         Math.atan2(PA[0] - v.x, PA[1] - v.z)));
     };
     const bend = Math.max(bendAt(26, 30), bendAt(44, 52));
-    let want = s.cruise * (1 - Math.min(0.74, bend * s.cornerK));
+    // A wet road (ctx.grip < 1) makes every bend read tighter; a straight is
+    // still a straight, so top speed is untouched.
+    const grip = ctx && ctx.grip > 0 ? ctx.grip : 1;
+    let want = s.cruise * (1 - Math.min(0.74, bend * s.cornerK / grip));
     want = Math.max(s.minSpeed, want) * (ctx && ctx.band ? ctx.band : this.band);
+    // S3-COPS: a hard ceiling in m/s from the caller (cops.js: how fast a
+    // cruiser may close on the truck). Absent for every other rival.
+    if (ctx && ctx.cap != null) want = Math.min(want, Math.max(0, ctx.cap));
     // Fighting the wheel is its own reason to slow down.
     if (Math.abs(err) > 0.5) want = Math.min(want, s.minSpeed + 2);
     if (atEnd) want = Math.min(want, 9);
@@ -481,9 +487,16 @@ export function updateRivals(G, dt) {
   const traffic = G.traffic ? G.traffic.cars : null;
   for (let i = 0; i < list.length; i++) {
     const rv = list[i];
-    rv.ctx = rv.ctx || { traffic: null, band: 1 };
+    rv.ctx = rv.ctx || { traffic: null, band: 1, grip: 1 };
     rv.ctx.traffic = traffic;
     rv.ctx.band = rv.band;
+    // Rain is everybody's rain. The rival drives the same wet clone of its
+    // sheet the player's car gets (weather.specFor, cached per base sheet, so
+    // this allocates only when the 5 % bucket moves), and lifts earlier for a
+    // bend by the same grip it lost. `rv.spec` stays the dry sheet.
+    const w = G.weather;
+    rv.veh.spec = w && w.specFor ? w.specFor(rv.spec) : rv.spec;
+    rv.ctx.grip = w && w.gripMul > 0 ? w.gripMul : 1;
     rv.update(dt, G.phys, rv.ctx);
     sassOnPass(G, rv);
     const closing = collideRivals(G.veh, rv.veh);

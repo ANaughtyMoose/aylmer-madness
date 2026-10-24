@@ -20,29 +20,39 @@ import { ALL_MISSIONS, missionAvailable } from './missions.js';
 import { setModal } from './ui.js';
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
+import { waitLines } from './summer.js';
 
 export const STUCK_M = 20;        // metres you have to cover...
 export const STUCK_T = 20;        // ...in this many seconds, or you get a nudge
+export const ARM_M = 3;           // the clock only starts once you have rolled this far in the job
 
 // ---------------------------------------------------------------- the opener
 
 export const STORY_CARDS = [
   { title: 'ÉTÉ 2004', body: 'T’es Tom. Ton Ranger XL 1993, ton gaz, tes réparations. Un été à Aylmer pour préparer la suite.' },
-  { title: 'LA GANG', body: 'Margaret et sa Saturn, Sayyad et sa Civic, Adam et son Sunfire, Mike et son divan : les commissions, les coups de main pis les détours font partie de l’été.' },
-  { title: 'SEPTEMBRE', body: '1 200 $ à mettre de côté pour le Ranger et les études. Les commissions, les pourboires pis les détours : tu fais ta part.' },
+  { title: 'LA GANG', body: 'Sayyad pis sa Civic, Adam pis son Sunfire, Mike pis son divan, Zahra pis ses griffes. Ta mère, Margaret, pis sa Saturn : elle est sûre que vous préparez quelque chose.' },
+  { title: 'L’ÉTÉ', body: 'Du 22 juin à la fête du Travail. Le gaz pis les pièces, c’est toi. Les jobs paient souvent moins que le gaz.' },
   { title: 'LES COMMANDES', body: 'W accélère, S freine. ? affiche les commandes. Tab ouvre la carte. T remet le char sur le chemin.' },
   { title: 'PREMIÈRE JOB', body: 'Ta première job, l’alternateur au Canadian Tire des Galeries d’Aylmer, commence après la présentation. Aucun chrono : suis le GPS, freine dans le pilier jaune au comptoir, puis E pour ramasser ta pièce.' },
 ];
 
-export function endingCards(amount, target, madeIt) {
-  const a = Math.round(amount);
-  return [
-    { title: 'LA FÊTE DU TRAVAIL', body: `${a} $ sur ${target} $ mis de côté. Du gaz, des pièces, des commissions : tu sais ce que cet argent t’a coûté.` },
-    { title: madeIt ? 'LA SUITE' : 'ENCORE UN BOUT DE CHEMIN',
-      body: madeIt ? 'Ton objectif est atteint. Réparer le Ranger pour les études à Ottawa, ou préparer le loyer à Waterloo : septembre approche.'
-        : 'Le budget est plus serré que prévu. Tu peux continuer les jobs et préparer la suite à ton rythme. Le Ranger est toujours à toi.' },
-    { title: 'SEPTEMBRE', body: 'Les clés dans ta poche. La gang, les rues, les souvenirs de cet été. Tu reprends la route.' },
-  ];
+/**
+ * The end cards, after « Le dernier soir » (restructure, 29 Sept 2026; Tom's
+ * approved plan). In Tom's voice, looking back. They cannot be failed and say
+ * nothing about money. Waterloo is 2005 (ledger s.1): these cards are written
+ * from after it, and the brochure on the kitchen table (arc.js) is the only
+ * place the game shows it, as a composite. `streets` is the quiet counter's
+ * line (streets.js), shown here and on the pause screen only.
+ */
+export const END_CARDS = [
+  { title: 'LA FÊTE DU TRAVAIL', body: 'L’été d’après, on est tous partis.' },
+  { title: 'LE RANGER', body: 'Le Ranger a tenu jusqu’en 2011. Waterloo, Boston, Montréal, Toronto, chaque déménagement.' },
+  { title: 'L’ALTERNATEUR', body: 'Il marche encore, en passant. C’était juste le solénoïde.' },
+];
+export function endingCards(opts = {}) {
+  const cards = END_CARDS.map((c) => ({ ...c }));
+  if (opts && opts.streets) cards[cards.length - 1].body += `\n\n${opts.streets}`;
+  return cards;
 }
 
 /**
@@ -177,7 +187,7 @@ export function carArticle(id) { return CAR_ART[id] || 'le'; }
 // What each car is doing sitting there, so « E — prendre la Civic » has a reason.
 const CAR_WHY = {
   civic: 'il s’en fout, il dort',
-  saturn: 'Margaret a dit oui en 1998, ça compte encore',
+  saturn: 'ta mère a dit oui une fois, pis ça compte encore',
   sunfire: 'Adam a laissé les clés dedans, comme toujours',
   ranger: 'ton char, tes règles',
   cutlass: 'ça sent le cendrier pis c’est correct de même',
@@ -218,10 +228,12 @@ export function carUnderfoot(G, radius = 6.5) {
  */
 export function freeRoamLines(G, garage = null) {
   const car = carUnderfoot(G);
-  if (car) {
-    const owned = !garage || !garage.has || garage.has(car.id, G.done);
+  const owned = !car || !garage || !garage.has || garage.has(car.id, G.done);
+  const cost = car && !owned && garage.cost ? garage.cost(car.id) : 0;
+  // A car you do not have and cannot buy (cost 0: a friend's, locked behind a
+  // job) is not an offer at all: no « acheter … · 0 $ », fall through to the job.
+  if (car && (owned || cost > 0)) {
     if (!owned) {
-      const cost = garage.cost ? garage.cost(car.id) : 0;
       return {
         text: `E — acheter ${car.art} ${car.name}   ·   ${cost} $`,
         sub: `Arrête-toi à côté pis appuie sur E${car.why ? ' (' + car.why + ')' : ''}`,
@@ -249,12 +261,17 @@ export function freeRoamLines(G, garage = null) {
     };
   }
 
+  // S4-SUMMER: nothing new is open because the story is waiting on its date
+  // (campaign.js DATE_GATES): say which one and when, and how to get there.
+  const wait = waitLines(G);
+  if (wait) return wait;
+
   const again = nearestAnyJob(G);
   return {
     text: 'T’as tout fait. Roule.',
     sub: again
       ? `E sur un pilier pour refaire une job   ·   ${again.def.title}, ${fmtDist(again.dist)}`
-      : 'Tab pour la carte   ·   E sur un pilier pour refaire une job',
+      : 'E sur un pilier pour refaire une job',
     kind: 'done',
   };
 }
@@ -269,14 +286,24 @@ export function freeRoamLines(G, garage = null) {
  * State lives on G.stuck so nothing here is a module-level global; a new job or
  * a new stage resets it.
  */
-export function updateStuck(G, dt, hud = null) {
+export function updateStuck(G, dt, hud = null, opts = {}) {
   const m = G && G.mission;
   if (!m) { G.stuck = null; return null; }
   const v = G.focus || G.veh;
   if (!v) return null;
   let s = G.stuck;
-  if (!s || s.mission !== m) { s = G.stuck = { mission: m, idx: m.idx, x: v.x, z: v.z, t: 0 }; }
+  if (!s || s.mission !== m) {
+    s = G.stuck = { mission: m, idx: m.idx, x: v.x, z: v.z, t: 0, x0: v.x, z0: v.z, armed: false };
+  }
   if (s.idx !== m.idx) { s.idx = m.idx; s.x = v.x; s.z = v.z; s.t = 0; }
+  // QA F2 (29 Sept 2026): standing at spawn while Margaret's start lines play
+  // is not being stuck. `hold` (a story bubble or a card is up) freezes the
+  // clock; `requireMove` keeps it at zero until the player has first rolled a
+  // few metres in this job. main.js passes both; the defaults keep the bare
+  // 20 m / 20 s rule for callers that pass neither.
+  const o = opts || {};
+  if (!s.armed && Math.hypot(v.x - (s.x0 ?? v.x), v.z - (s.z0 ?? v.z)) >= ARM_M) s.armed = true;
+  if (o.hold || (o.requireMove && !s.armed)) { s.x = v.x; s.z = v.z; s.t = 0; return null; }
   s.t += dt;
   if (Math.hypot(v.x - s.x, v.z - s.z) >= STUCK_M) { s.x = v.x; s.z = v.z; s.t = 0; return null; }
   if (s.t < STUCK_T) return null;
@@ -295,33 +322,92 @@ export function updateStuck(G, dt, hud = null) {
 // Two or three lines each, at the start and at the end of their job. They are
 // bubbles, not toasts, so the name is in bold and they do not fight the big
 // mission text for the middle of the screen.
+//
+// Canon for every line below is docs/STORY-LEDGER.md (28 Sept 2026 rulings)
+// and docs/STORY-REBUILD.md, which labels each one USER CONFIRMED or PROPOSAL.
+// Language (Tom, 6 Oct and 20 Oct 2026): the main cast (Tom, Sayyad, Zahra,
+// Adam, Mike, Abraham, Tyler, Russell, Rob, Margaret) speaks English, Aylmer
+// English: a French place name or a « dep » is fine, a whole French line is
+// not. Staff, strangers and the narrator are Quebec French. The one exception
+// is the Saint-Jean fire (arc.js). Margaret is Tom's mother, speaks English
+// with him, calls him Tom, and never rides along with the gang. Tom's father
+// does not live at 299 Fraser: he is only ever on the phone (DAD_CALLS below).
+// New lines keep to 12 words / 70 characters.
+//
+// One trait and one tic each, from canon only, used about three times across
+// the summer and never shared (tools/smoke_lang.mjs checks the tics):
+//   Sayyad   sleeps, then a run-on about Macs. Tic « OK OK OK ».
+//   Mike     the speech nobody asked for. Tic « Hear me out. »
+//   Zahra    corrects you, then the nails. Tic « Wrong. »
+//   Adam     orders everything « frolicking in mayo » (Tom, 14 Oct); Mayo is
+//            also his town.
+//   Abraham  short and warm; the bike that never leaves Tom's driveway.
+//   Russell  never at fault. Tic « not my fault » / « the hill ».
+//   « Trust me » belongs to nobody: it was three people's and read as one writer.
 export const FRIEND_LINES = {
-  margaretdental: {start:[['Margaret','La boîte chez le Dr Morin, s’il te plaît. Je vais finir ça ici.']],end:[['Margaret','Merci ! Ça va me faire un petit extra ce soir.']]},
-  solerrand: {start:[['Sayyad','Passe chez Sol ! Zahra et moi, on adore ça.']],end:[['Zahra','Merci pour la commande. On y retourne bientôt !']]},
-  stvincent: {
-    start: [['Tom', '« Je stationne le Ranger, pis je rentre pour le repas. »']],
-    end: [['Une patiente', '« Merci d’avoir pris ton temps. »']],
+  // Tom, 6 Oct 2026: she finished Alanis Morissette's crowns at home, ran late,
+  // and told all his friends about it. English; she calls him Tom. She rides
+  // to the clinic with the box on her lap and talks the whole way
+  // (lifejobs.js MARGARET_RIDE).
+  margaretdental: {
+    start: [
+      ['Margaret', '« I’m late, Tom. You drive. I hold the box. »'],
+      ['Margaret', '« Those are Alanis Morissette’s crowns. Drive like you know that. »'],
+    ],
+    end: [['Margaret', '« You can tell your friends. I already told them. »']],
   },
+  // Zahra and the blackberry soda at Sol (28 Sept).
+  solerrand: {
+    start: [['Zahra', '« The blackberry one. Pas la framboise. Je suis pas un bébé. »']],
+    end: [
+      ['Zahra', '« Parfait. Les chats aimeraient ça, s’ils buvaient de la liqueur. »'],
+      ['Sayyad', '« Merci d’avoir amené ma sœur. Elle t’a-tu griffé? »'],
+    ],
+  },
+  // Tom worked at St. Vincent; Sayyad came along (28 Sept) and, awake, walks to
+  // NASA on Somerset for samosas during the shift (Tom, D31, 13 Oct 2026: his
+  // « I'll be asleep » line is cut; the English line is S1-ENGLISH's, 20 Oct).
+  // B-06: the first line is the narrator's; Tom's own English version waits in
+  // assets/text/story.proposed.json.
+  // S4-SAUNA (20 Oct): the start plays at Sayyad's fence, before the drive;
+  // the end after the samosas, with Sayyad back from NASA, not in the truck.
+  stvincent: {
+    start: [
+      ['Sayyad', '« OK OK OK. I have the jug. You have the truck. »'],
+      ['Sayyad', '« You work, I walk to NASA for samosas. Fair. »'],
+    ],
+    end: [
+      ['La préposée', '« Les plateaux vont sur le chariot. Même heure demain? »'],
+      ['Sayyad', '« Walked to NASA and back. Samosas, still warm. How was the shift? »'],
+    ],
+  },
+  // Russell is English; the golf carts are real (28 Sept).
   russellroyal: {
-    start: [['Russell', '« Peux-tu venir au Royal Ottawa? Je vais t’expliquer dans le char. »']],
-    end: [['Russell', '« Garde ça pour le gaz. Pis si le club rappelle, je suis disponible. »']],
+    start: [
+      ['Russell', '« Can you grab me at the Royal Ottawa? I’ll explain. »'],
+      ['Russell', '« It’s not what it sounds like. It’s mostly the carts. »'],
+    ],
+    end: [
+      ['Russell', '« The cart was fine. The hill was the problem. »'],
+      ['Margaret', '« Hello, Russell. ...Tom, why is Russell here again? »'],
+    ],
   },
   // Wave 3 — the jobs that are not deliveries (game/verbjobs.js).
   suis: {
     start: [['Sayyad', '« Regarde pas la carte, regarde-moé. Pis si tu me perds, c’est pas moé qui t’attends. »']],
-    end: [['Sayyad', '« Bon. Astheure tu sais où c’est. Dis-le pas à Adam. »']],
-  },
-  dames: {
-    start: [['Margaret', '« Le bingo commence à sept heures. J’ai mon sac. Pis mes lunettes. Pis… ok, on y va. »']],
-    end: [['Margaret', '« T’es fin. Ton père conduisait moins bien à ton âge. Dis-y pas. »']],
+    end: [['Sayyad', '« See? Shortcut. Dis-le pas à Adam. »']],
   },
   vitres: {
     start: [['Norm', '« C’est une vitre. Pas une planche. Roule comme si ta mère était dessus. »']],
     end: [['Norm', '« …Correct. Va te chercher un café, je te l’offre. »']],
   },
+  // The theories were Sayyad's, not Mike's (28 Sept). Mike watches.
   seme: {
-    start: [['Mike', '« Deux rues. Ma théorie, c’est deux rues. Fais-moé pas mentir. »']],
-    end: [['Mike', '« Je le savais. Je vais l’écrire. Personne va me croire, mais je vais l’écrire. »']],
+    start: [
+      ['Sayyad', '« Theory: la police de Gatineau lâche après deux rues. Teste-la. »'],
+      ['Mike', '« Moé, je regarde. Juste je regarde. »'],
+    ],
+    end: [['Sayyad', '« Two streets. I called it. Je vais l’écrire quelque part. »']],
   },
   sunfire: {
     start: [['Adam', '« Au bord de l’eau, proche du belvédère, là où on était l’an passé. Je te l’ai dit trois fois. »']],
@@ -331,36 +417,45 @@ export const FRIEND_LINES = {
     start: [['Mike', '« Tout le monde dans le truck. Tom décide de l’ordre. Tom décide de tout, c’est son char. »']],
     end: [['Sayyad', '« T’as ramené tout le monde. Ça fait de toé le gars responsable. Ris pas, c’est vrai. »']],
   },
+  // The drive to Hull is real, and Vertical Reality in the old mill (28 Sept).
   highwayhull: {
-    start: [['Sayyad', '« La 148 jusqu’à Hull? Mets ma cassette. Celle avec le gros solo. »']],
-    end: [['Margaret', '« Bon. Maintenant faut retrouver le chemin pour revenir. »']],
+    start: [
+      ['Margaret', '« Hull? Call me when you get there. Not after. When. »'],
+      ['Sayyad', '« Vertical Reality. Je me suis entraîné. Mentally. »'],
+    ],
+    end: [['Adam', '« Bon. Astheure faut retrouver le chemin pour revenir. »']],
   },
+  // The 105 to Chelsea is real (28 Sept).
   chelsea: {
     start: [['Adam', '« Continue sur la 105. Quand ça devient juste des arbres, t’es presque rendu. »']],
-    end: [['Sayyad', '« Chelsea aller-retour pour aucune raison. Ça, c’est une vraie ride. »']],
+    end: [['Sayyad', '« Chelsea aller-retour pour aucune raison. That’s a real ride. »']],
   },
+  // Late for the 5:45 a.m. shift at the Royal Ottawa (28 Sept).
   school: {
-    start: [['Ton père', '« Bonne route. Appelle si t’as besoin d’un coup de main. »']],
-    end: [['Ta mère', '« Ton prof a appelé. Il a dit que t’étais “à l’heure”. »']],
+    start: [['Margaret', '« Tom. TOM. It’s twenty to six. »']],
+    end: [['Le superviseur', '« Cinq heures quarante-cinq. T’es à l’heure. Presque. »']],
   },
+  // Abraham waiting in Tom's driveway, bike on the ground (Tom, 29 Sept).
+  // Margaret is in the driveway too, and does not get in.
   gang: {
     start: [
-      ['Margaret', '« Enfin. Ça fait vingt minutes que j’attends dans l’entrée. »'],
-      ['Sayyad', '« J’amène mes cassettes. Discute pas. »'],
+      ['Margaret', '« Tom. Your friend’s bike is in the middle of my driveway. »'],
+      ['Abraham', '« Hey man. Your mom gave me juice. Twice. »'],
     ],
     end: [
-      ['Adam', '« La prochaine fois, tu pars de chez nous. »'],
-      ['Margaret', '« Bon chauffeur. Pour un gars. »'],
+      ['Adam', '« Next time we leave from my place. Mayo. Bring a map. »'],
+      ['Abraham', '« Same time tomorrow. My bike lives here now. »'],
     ],
   },
+  // The alternator, with the twist: it was only the solenoid (28 Sept).
   alternateur: {
     start: [
-      ['Ton père', '« Vérifie que c’est le bon modèle avant de repartir du comptoir. »'],
-      ['Ton père', '« Mets la boîte où elle glissera pas quand tu freines. »'],
+      ['Margaret', '« Canadian Tire and straight back, Tom. I’m timing you. »'],
+      ['Margaret', '« Put the box where it won’t slide. »'],
     ],
     end: [
-      ['Ton père', '« C’est le bon. On regardera ça ensemble quand on aura un moment. »'],
-      ['Ta mère', '« Il a dit “garde le change”. Écris ça sur le calendrier. »'],
+      ['Margaret', '« That’s the whole alternator? For one little light? »'],
+      ['Tom', '« It was just the solenoid. I know. I know. »'],
     ],
   },
   poutine: {
@@ -369,72 +464,104 @@ export const FRIEND_LINES = {
       ['Sayyad', '« Moé j’ai pas de char à midi. Toé oui. C’est de même que ça marche. »'],
     ],
     end: [
-      ['Sayyad', '« Encore chaud. T’es une légende, mon homme. »'],
+      ['Sayyad', '« Still hot. T’es une légende, man. »'],
       ['Sayyad', '« ...t’as-tu mangé des frites en chemin, toé? »'],
     ],
   },
+  // Liberty yogurt, $1.99 for 750 g, at the Super C in the Galeries (28 Sept).
   dep: {
-    start: [['Margaret', '« Quatre slush bleues. Pas de rouge. Le rouge, c’est pour les enfants. »']],
-    end: [['Adam', '« Y en reste encore. C’est un miracle. »']],
+    start: [['Sayyad', '« Liberty, le 750 grammes. Au Super C, c’est 1,99 $. Just saying. »']],
+    end: [['Adam', '« On est venus au parc pour manger du yogourt. OK. »']],
   },
+  // OPEN DECISION (STORY-REBUILD.md): the CV run is not real. Guitar lessons
+  // are (Tom taught guitar), so the three stops post his lesson ads instead.
   cv: {
-    start: [['Ta mère', '« J’en ai imprimé douze. Reviens pas avec douze. »']],
-    end: [['Ta mère', '« Un essai samedi six heures du matin. Six heures, mon grand. »']],
+    start: [['Margaret', '« Guitar lessons. Put your number on it. Not mine. »']],
+    end: [['Margaret', '« Six in the morning? I’ll wake you. I won’t enjoy it. »']],
   },
+  // Breakfast nachos with Zahra and Tyler, home before « Little Big Man »
+  // ends at five (28 Sept).
   curfew: {
-    start: [['Ton père', '« Minuit. Pas minuit et cinq. Minuit. »']],
-    end: [['Ton père', '« ...j’dormais pas. J’lisais. »']],
+    start: [
+      ['Tyler', '« Nachos for breakfast. Most important meal of the day. »'],
+      ['Zahra', '« Wrong. Little Big Man ends at five. Drive. »'],
+    ],
+    // Main mission 10 (29 Sept): the whole gang in the kitchen, and at five
+    // Margaret comes down and, for the first time, sits and eats with them.
+    // Adam's Subway order is Tom's own fact (14 Oct): « frolicking in mayo ».
+    end: [
+      ['Russell', '« I brought the salsa. That counts as cooking. »'],
+      ['Adam', '« Mine frolicking in mayo. Yes, nachos. Frolicking. »'],
+      ['Margaret', '« Is there a plate for me, or what? »'],
+      ['Zahra', '« Shh. This is the good part. »'],
+    ],
   },
   tour: {
-    start: [['Margaret', '« Cinq spots avant que le soleil tombe. Vas-y. »']],
-    end: [['Margaret', '« Tu la connais, ta ville, là. »']],
+    start: [['Mike', '« Cinq spots avant que le soleil tombe. Vas-y. »']],
+    end: [['Sayyad', '« Tu la connais, ta ville, là. »']],
   },
+  // The $45 canoe is real (28 Sept).
   canot: {
     start: [
       ['Le monsieur', '« Quarante-cinq piasses. Il flotte. En principe. »'],
-      ['Sayyad', '« Un canot. T’as acheté un canot. »'],
+      ['Sayyad', '« A canoe. Forty-five bucks. Does the Ranger know? »'],
     ],
     end: [
-      ['Sayyad', '« T’as traversé le lac Deschênes dans un canot patché au Bondo. »'],
-      ['Sayyad', '« J’suis fier pis inquiet en même temps. »'],
+      ['Sayyad', '« You crossed Lac Deschênes in a canoe patched with Bondo. »'],
+      ['Sayyad', '« I’m proud and worried. Mostly worried. No, proud. Worried. »'],
     ],
   },
+  // Revving, doughnuts and honking outside Sayyad's; he sleeps through it,
+  // then he is awake and talking fast (28 Sept).
   sayyad: {
     start: [
-      ['Margaret', '« Il répond pas depuis mardi. Réveille-le. »'],
-      ['Margaret', '« ...pas trop fort quand même. »'],
+      ['Mike', '« He’s not answering. Go wake him. Honk. Make noise. »'],
+      ['Zahra', '« He won’t wake up. Ever. Good luck. »'],
     ],
     end: [
-      ['Sayyad', '« C’ÉTAIT TOÉ?! »'],
-      // « Réveiller Sayyad » comes before « Poutine express » now, so he may not
-      // have lent you the Civic yet. Same threat, one word further away.
-      ['Sayyad', '« Pis un jour, si tu scratches la Civic en conduisant de même, tu la répares. Tiens, 20 piasses pareil. »'],
+      ['Sayyad', '« THAT WAS YOU?! »'],
+      ['Sayyad', '« OK OK OK I’m up. Did you know Panther has Exposé? Magic. »'],
+      // The Civic is his; the threat stands whether or not he lends it.
+      ['Sayyad', '« Scratch the Civic driving like that, you fix it. Here. Twenty bucks. »'],
     ],
   },
+  // The couch in Mike's tree is 100% real: Tom and Sayyad, standing on the
+  // truck (21 and 28 Sept).
   divan: {
     start: [
-      ['Mike', '« Ma mère veut le divan dehors. Moi je le veux dans l’arbre. »'],
-      ['Mike', '« C’est pas la même affaire, mais c’est dehors pareil. »'],
+      ['Mike', '« My mom wants the couch outside. I want it in the tree. »'],
+      ['Mike', '« Hear me out. Outside, in the tree. Same thing. Better thing. »'],
     ],
     end: [
-      ['Mike', '« OSTIE. »'],
+      ['Mike', '« IT’S UP. Nobody touch anything. IT’S UP. »'],
+      ['Sayyad', '« We were standing on the truck. On. The. Truck. »'],
       ['La mère de Mike', '« Tiens, 30 piasses. Pis descends-le avant l’hiver. »'],
     ],
   },
-  golfcart: {
+  // nuittim (set-piece agent): mission 8, « La nuit du Tim » (setpieces/nuittim.js).
+  nuittim: {
     start: [
-      ['Le kid du pro shop', '« Les carts des membres disparaissent. Y en a un à l’école, encore. »'],
-      ['Le kid du pro shop', '« Le marshal fait son tour dans dix minutes. Fais ça vite. »'],
+      ['Mike', '« Tom. It’s Sam. He’s barely answering. Come now. »'],
+      ['Sayyad', '« I’m at Mike’s. Nobody drank. Just him. Come. »'],
     ],
     end: [
-      ['Le kid du pro shop', '« Merci. Dis rien au marshal. »'],
-      ['Le marshal', '« … C’était-tu toi, ça? »'],
+      ['Sayyad', '« I’ll come by tomorrow. With muffins. Go sleep. »'],
+    ],
+  },
+  // The golf-key night as Tom tells it (6 Oct 2026): Sayyad started it.
+  golfcart: {
+    start: [
+      ['Sayyad', '« Any small key fits a golf cart. Any. I’m serious. »'],
+      ['Sayyad', '« Mailbox key, bike lock, glovebox. Whatever. It works. »'],
+    ],
+    end: [
+      ['Sayyad', '« That never happened. But I was right. »'],
     ],
   },
   racedave: {
     start: [
       ['Adam', '« Mon Sunfire est plus vite que ton char. C’est mathématique. »'],
-      ['Adam', '« Premier arrivé paye le Slush. »'],
+      ['Adam', '« Le perdant paye le gaz. Du gagnant. »'],
     ],
     end: [['Adam', '« ...bon. C’était la mathématique de l’autre sens. »']],
   },
@@ -447,7 +574,7 @@ export const FRIEND_LINES = {
   },
   circuit: {
     start: [
-      ['Margaret', '« Trois tours. Pis touche pas à ma Saturn. »'],
+      ['Sayyad', '« Trois tours. I’ve calculated the racing line. Twice. »'],
       ['Adam', '« Y a personne le dimanche matin. Personne. »'],
     ],
     end: [['Adam', '« Ma suspension est finie. Elle l’était avant, mais quand même. »']],
@@ -466,29 +593,32 @@ export const FRIEND_LINES = {
 // voice as FRIEND_LINES, keyed by person instead of by job.
 export const GREETINGS = {
   sayyad: [
-    '« Heille. Tu passes devant chez nous pis tu klaxonnes même pas? »',
-    '« Deux minutes. Faut que je trouve mes gougounes. »',
-    '« Touche pas à la Civic. Regarde-la, c’est tout. »',
-    '« J’ai une cassette pour ça. J’ai une cassette pour tout. »',
+    '« Hey. You drive past my house and don’t even honk? »',
+    '« Two minutes. I can’t find my shoes. Or my keys. »',
+    '« Don’t touch the Civic. Look at it. That’s all. »',
+    '« Did you know Macs don’t get the Windows viruses? None. Zero. »',
   ],
+  // Tom's mother, in her own driveway at 299 Fraser. English, and she calls
+  // him Tom. Kind, and sure he is up to something (ledger s.1, 22 Sept).
   margaret: [
-    '« Ah ben, de la belle visite. Tu rentres-tu ou tu restes dans le truck? »',
-    '« Attends, je mets mon coton. Il fait frette le soir icitte. »',
-    '« Ta ceinture, mon grand. J’te regarde. »',
-    '« La Saturn part au premier tour. À chaque fois. »',
+    '« Tom. Where are you going? ...I’m just asking. »',
+    '« Did you eat? There’s pasta. Bring Sayyad, he’s polite. »',
+    '« Seatbelt, Tom. I can see you from here. »',
+    '« Home for supper? Say yes. »',
   ],
   mike: [
-    '« O.K. mais écoute. ÉCOUTE. Le divan, dans l’arbre, c’est de la physique. »',
-    '« J’ai trois points à te faire pis le premier en a deux. »',
-    '« Ma mère a dit non. Ma mère a pas vu le plan. »',
-    '« Non non non, attends, tu comprends pas encore. Ça va être court. »',
+    '« OK but listen. LISTEN. Two hundred songs on my iPod. »',
+    '« I have three points. The first one has two. Hear me out. »',
+    '« My mom said no. My mom hasn’t seen the plan. »',
+    '« No no no, wait, you don’t get it yet. It’s short. »',
   ],
-  // Sayyad's little sister, who is at Symmes and has heard all of it already.
+  // Sayyad's sister, 16, who has heard all of it already. Smart, fun, loves
+  // cats, and will go for you with her nails (21 Sept).
   zahra: [
-    '« Il est pas là. Pis non, j’sais pas où. »',
-    '« Si tu le vois, dis-y que c’est mon tour pour le Discman. »',
-    '« Vous avez quel âge, vous autres? Sérieux. »',
-    '« J’ai une pratique à Symmes à quatre heures. Tu me déposes-tu? … Non. Correct. »',
+    '« He’s not here. And no, I don’t know where. »',
+    '« If you see him, it’s my turn for the Discman. »',
+    '« The neighbour’s cat likes me more than people. Fair. »',
+    '« Don’t come closer. I did my nails. They’re sharp. »',
   ],
 };
 
@@ -501,8 +631,8 @@ export function greeting(who, i = 0) {
 
 // ------------------------------------------------------- the dialogue file
 //
-// FRIEND_LINES above is written per JOB: the specific thing Margaret says at
-// the start of the run to the beach. What follows is the other axis — what a
+// FRIEND_LINES above is written per JOB: the specific thing Margaret says as
+// Tom leaves for the Canadian Tire. What follows is the other axis — what a
 // person says when they get IN and when they get OUT, whatever the job is. It
 // is data, in assets/text/dialogue.json, so a writer can add a line without
 // opening a module.
@@ -511,35 +641,30 @@ export function greeting(who, i = 0) {
 // nothing here ever waits on the fetch, and the game runs with the file
 // deleted. applyDialogue() merges the file over them when it lands.
 //
-// « MAX 104.7 » in Sayyad's first line is not a mistake for CFOU: CFOU-FM is
-// the call sign in assets/text/radio.json and MAX 104.7 is the brand the
-// station's own idents use on air. Nobody in 2004 said the call letters.
 export const DIALOGUE = {
   Sayyad: {
     start: [
-      '« Embarque mon gars! Baisse la vitre pis mets MAX 104.7, on a une ride légendaire à faire! »',
-      '« Check ma chemise hawaïenne. C’est du pur style Denise-Friend, mon chum. »',
+      '« Two minutes. I’m up. I’m up. OK, go. »',
+      '« Get in. No wait, I’m the one getting in. Go. »',
     ],
-    end: ['« Bon. Ça, c’était une ride. »'],
+    end: ['« Okay. That was a ride. »'],
   },
+  // Margaret's pool is home, not the road: « start » is Tom leaving the
+  // driveway, « end » is Tom coming back to it (avatars.js picks the set).
   Margaret: {
-    start: ['« Bon. On y va-tu, là? »'],
-    end: ['« Merci mon grand. Rentre pas trop tard. »'],
+    start: ['« Where are you off to? ...I’m just asking. »'],
+    end: ['« You’re home. Good. What did you break? »'],
   },
   Adam: {
-    start: ['« J’embarque en arrière, j’ai les jambes courtes pareil. »'],
-    end: ['« Bon. À la prochaine. »'],
-  },
-  'Ton père': {
-    start: ['« Touche pas au radio. »'],
-    end: ['« T’as ramené le truck en un morceau. C’est déjà ça. »'],
+    start: ['« I’ll sit in the back. My legs are short anyway. »'],
+    end: ['« Okay. See you. »'],
   },
   // Zahra has a third category of her own: what she says about her brother
   // when the two of them are in the same place, which is most of the time.
   Zahra: {
-    start: ['« Embarque pas trop vite, j’ai un café. »'],
-    end: ['« Sept sur dix. Pour la conduite. »'],
-    'about-sayyad': ['« Mon frère pense qu’il est un génie de la mécanique. »'],
+    start: ['« Don’t pull out too fast, I have a coffee. »'],
+    end: ['« Seven out of ten. For the driving. »'],
+    'about-sayyad': ['« My brother thinks he’s a mechanical genius. »'],
   },
 };
 
@@ -606,6 +731,91 @@ if (typeof document !== 'undefined' && typeof fetch === 'function') {
     const n = counts.reduce((a, b) => a + b, 0);
     if (n) console.log(`dialogue: ${n} lines`);
   });
+}
+
+// ------------------------------------------------------------ Dad, on the phone
+//
+// Tom's father did not live at 299 Fraser (ledger s.1). He is in the game only
+// as a phone call when Tom is out of money (Tom, 28 Sept 2026): he offers before
+// he is asked, he is eager, it clearly costs him a lot, he never complains and
+// he tries to hide it. The electric piano is Tom's own example; the other two
+// are PROPOSAL wording in the same shape. He drove a Dodge Intrepid (1994, Tom
+// thinks). He speaks English with Tom, like the rest of the family
+// (PROPOSAL: Tom quoted him in English; the ledger does not rule on it).
+//
+// DATA ONLY. Nothing here touches the wallet, the HUD or the clock. The
+// economy owner wires it: see dadCall() and docs/STORY-REBUILD.md, « Dad's
+// call: the hook ».
+export const DAD_WHO = 'Ton père, au téléphone';
+// 2004: the call comes in on the landline at 299 Fraser, the black corded desk
+// phone (Tom, 29 Sept), so it only happens at home. Margaret picks up and calls
+// down to him first. PROPOSAL wording; English, like everything she says to Tom.
+export const DAD_PICKUP = ['Margaret', '« Tom! Phone! It’s your father. »'];
+
+export const DAD_CALLS = [
+  {
+    id: 'piano',
+    amount: 85,
+    lines: [
+      '« Tom! Before you say anything. How are you for money? »',
+      '« Don’t worry about me. I just sold my electric piano. »',
+      '« Eighty-five bucks. It’s yours. No, I insist. »',
+    ],
+    // What Tom hears down the line: the thing he says he sold.
+    tell: '« Clonk. Trois notes de piano électrique. »',
+    cover: '« ...that’s the radio. »',
+  },
+  {
+    id: 'spare',
+    amount: 40,
+    lines: [
+      '« Tom, it’s me. You sound broke. I can hear it. »',
+      '« I sold the spare out of the Intrepid. Who needs a spare? »',
+      '« Forty dollars. Take it. It’s nothing. »',
+    ],
+    tell: '« Pschhhh. Un pneu qui se dégonfle, pas loin. »',
+    cover: '« ...that’s the neighbour. Different tire. »',
+  },
+  {
+    id: 'coat',
+    amount: 60,
+    lines: [
+      '« I was just thinking about you. Money okay? »',
+      '« I found sixty in my winter coat. In July! Lucky. »',
+      '« It’s yours. I was going to call anyway. »',
+    ],
+    tell: '« Un pot de monnaie qu’on vide sur une table. »',
+    cover: '« ...I’m sorting buttons. »',
+  },
+];
+
+// The first suggested trigger. NOT what the game uses: dadcall.js (economy)
+// decides when he calls (under $15, a bill in front of Tom, stopped, once a
+// game week, three a summer) and reads the calls through dadCall(n).
+export const DAD_CALL_RULE = { walletBelow: 5, gapJobs: 3 };
+
+/**
+ * The n-th call (rotating), as data: who speaks, the bubbles in order, the tell
+ * and the cover line, and the amount he offers. Pure; never null.
+ *
+ * Wired by src/game/dadcall.js (maybeDadCall, run from fuel.tickFuel): the
+ * bubbles go through heckle.line() in order, the amount into the wallet, and
+ * G.dadCalls = { n, week, log } is saved with the slot.
+ */
+export function dadCall(n = 0) {
+  const i = ((Math.floor(n) % DAD_CALLS.length) + DAD_CALLS.length) % DAD_CALLS.length;
+  const c = DAD_CALLS[i];
+  return {
+    id: c.id,
+    amount: c.amount,
+    who: DAD_WHO,
+    bubbles: [
+      ...c.lines.map((t) => [DAD_WHO, t]),
+      ['Au bout du fil', c.tell],
+      [DAD_WHO, c.cover],
+    ],
+    toast: `Ton père t’envoie ${c.amount} $. Il a dit que ça le dérangeait pas.`,
+  };
 }
 
 /** [[who, text], ...] for a job's start or end; [] when nobody has anything to say. */

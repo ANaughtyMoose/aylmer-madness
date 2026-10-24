@@ -2,8 +2,8 @@
   "heckles": [
     {
       "trigger": "nearmiss",
-      "fr": "Où c'est qu't'as pogné ton permis, dans une boîte de Cracker Jack, calvince?!",
-      "en": "Where'd you get your licence, in a Cracker Jack box, damn it?!",
+      "fr": "Où c'est qu't'as pogné ton permis, dans une boîte de Cracker Jack?!",
+      "en": "Where'd you get your licence, in a Cracker Jack box?!",
       "note": "Classic Québécois insult implying your driving credentials came as a free junk-food toy."
     },
     {
@@ -14,14 +14,14 @@
     },
     {
       "trigger": "nearmiss",
-      "fr": "Regarde où tu vas avec ton asti d'tas d'ferraille!",
-      "en": "Watch where you're going with your damn pile of scrap metal!",
+      "fr": "Regarde où tu vas avec ton tas d'ferraille!",
+      "en": "Watch where you're going with your pile of scrap metal!",
       "note": "'Tas d'ferraille' is affectionate or scathing contempt for a rusted-out jalopy."
     },
     {
       "trigger": "nearmiss",
-      "fr": "T'as des yeux d'ins trous d'nez ou quoi, ciboire?!",
-      "en": "Do you have eyes in your nostrils or what, holy host?!",
+      "fr": "T'as des yeux d'ins trous d'nez ou quoi?!",
+      "en": "Do you have eyes in your nostrils or what?!",
       "note": "Vivid imagery for someone clearly unable to look in front of their face."
     },
     {
@@ -32,8 +32,8 @@
     },
     {
       "trigger": "nearmiss",
-      "fr": "Aye! J'suis pas un cône orange su'l chemin d'Aylmer, tabarnak!",
-      "en": "Hey! I'm not an orange traffic cone on chemin d'Aylmer, for fuck's sake!",
+      "fr": "Aye! J'suis pas un cône orange su'l chemin d'Aylmer!",
+      "en": "Hey! I'm not an orange traffic cone on chemin d'Aylmer!",
       "note": "Orange cones are the provincial tree of Québec; pedestrians dislike being treated like them."
     },
     {
@@ -44,8 +44,8 @@
     },
     {
       "trigger": "nearmiss",
-      "fr": "Y a des brakes là-dessus ou c'est juste pour décorer, esti d'chaudaille?!",
-      "en": "Are there brakes on that thing or are they just decoration, you drunk bastard?!",
+      "fr": "Y a des brakes là-dessus ou c'est juste pour décorer, espèce de chaudaille?!",
+      "en": "Are there brakes on that thing or are they just decoration, you old soak?!",
       "note": "'Chaudaille' refers to a notoriously tipsy character staggering home from the tavern."
     },
     {
@@ -80,8 +80,8 @@
     },
     {
       "trigger": "nearmiss",
-      "fr": "Prends donc toute la rue pendant qu't'es là, ciboire de sans-cœur!",
-      "en": "Why don't you take the whole damn street while you're at it, heartless prick!",
+      "fr": "Prends donc toute la rue pendant qu't'es là, espèce de sans-cœur!",
+      "en": "Why don't you take the whole street while you're at it, you heartless thing!",
       "note": "Sarcastic pedestrian rage when a wide pickup truck swerves across both lanes."
     },
     {
@@ -122,14 +122,14 @@
     },
     {
       "trigger": "nearmiss",
-      "fr": "Câlisse, y s'est manqué d'un cheveu d'bécyk!",
-      "en": "Holy shit, he missed by a bicycle spoke!",
+      "fr": "Ayoye, y s'est manqué d'un cheveu d'bécyk!",
+      "en": "Whoa, he missed by a bicycle spoke!",
       "note": "Hyperbolic Outaouais phrase indicating the narrowest possible escape."
     },
     {
       "trigger": "nearmiss",
-      "fr": "T'as failli m'envoyer ad patres direct dans fosse, ciboire!",
-      "en": "You almost sent me straight to kingdom come into the ditch, holy hell!",
+      "fr": "T'as failli m'envoyer ad patres direct dans fosse!",
+      "en": "You almost sent me straight to kingdom come into the ditch!",
       "note": "'Ad patres' is old-fashioned religious-tinted French for kicking the bucket."
     },
     {
@@ -320,8 +320,8 @@
     },
     {
       "trigger": "sidewalk",
-      "fr": "Descends d'là avant d'démolir mon bac de recyclage, tabarnak!",
-      "en": "Get off of there before you smash my recycling bin, damn it!",
+      "fr": "Descends d'là avant d'démolir mon bac de recyclage!",
+      "en": "Get off of there before you smash my recycling bin!",
       "note": "Blue recycling bins were sacred suburban curb furniture in 2004."
     },
     {
@@ -356,8 +356,8 @@
     },
     {
       "trigger": "sidewalk",
-      "fr": "T'as des pneus d'char ou des chenilles de tank, calvince?!",
-      "en": "Do you have car tires or tank tracks, damn it?!",
+      "fr": "T'as des pneus d'char ou des chenilles de tank?!",
+      "en": "Do you have car tires or tank tracks?!",
       "note": "Questioning why the driver feels entitled to mount raised pedestrian infrastructure."
     },
     {
@@ -386,8 +386,8 @@
     },
     {
       "trigger": "sidewalk",
-      "fr": "T'es tellement saoul que tu vois des routes partout, ciboire!",
-      "en": "You're so hammered you see highways everywhere, holy host!",
+      "fr": "T'es tellement saoul que tu vois des routes partout!",
+      "en": "You're so hammered you see highways everywhere!",
       "note": "Assumes curb-mounting requires a severe blood-alcohol level."
     },
     {
@@ -446,8 +446,8 @@
     },
     {
       "trigger": "sidewalk",
-      "fr": "C'est le trottoir municipal, pas ton raccourci personnel, crisse!",
-      "en": "It's the town sidewalk, not your personal shortcut, christ!",
+      "fr": "C'est le trottoir municipal, pas ton raccourci personnel!",
+      "en": "It's the town sidewalk, not your personal shortcut!",
       "note": "Indignant municipal citizen defending public goods."
     },
     {
@@ -476,8 +476,8 @@
     },
     {
       "trigger": "ranred",
-      "fr": "T'as brûlé l'feu comme si t'avais le feu au cul, tabarnak!",
-      "en": "You blew through that light like your ass was on fire, holy fuck!",
+      "fr": "T'as brûlé l'feu comme si t'avais le feu au cul!",
+      "en": "You blew through that light like your ass was on fire!",
       "note": "Vivid folk idiom describing frantic, heedless haste."
     },
     {
@@ -530,8 +530,8 @@
     },
     {
       "trigger": "ranred",
-      "fr": "T'as traversé l'intersection comme une balle de carabine, câlisse!",
-      "en": "You shot through that intersection like a rifle bullet, damn it!",
+      "fr": "T'as traversé l'intersection comme une balle de carabine!",
+      "en": "You shot through that intersection like a rifle bullet!",
       "note": "Hunting imagery common in the Outaouais countryside."
     },
     {
@@ -572,8 +572,8 @@
     },
     {
       "trigger": "ranred",
-      "fr": "En plein jour, à midi, devant tout l'monde! Zéro honte, calvince!",
-      "en": "In broad daylight, at noon, right in front of everyone! Zero shame, damn it!",
+      "fr": "En plein jour, à midi, devant tout l'monde! Zéro honte!",
+      "en": "In broad daylight, at noon, right in front of everyone! Zero shame!",
       "note": "Shock at the brazenness of daytime infraction."
     },
     {
@@ -608,8 +608,8 @@
     },
     {
       "trigger": "hitcar",
-      "fr": "Mon Cavalier 95! Y avait même pas une scratch dessus, tabarnak!",
-      "en": "My '95 Cavalier! It didn't even have a scratch on it, fuck!",
+      "fr": "Mon Cavalier 95! Y avait même pas une scratch dessus!",
+      "en": "My '95 Cavalier! It didn't even have a scratch on it!",
       "note": "Tragic dent on a pristine 10-year-old teal Chevy Cavalier."
     },
     {
@@ -680,8 +680,8 @@
     },
     {
       "trigger": "hitcar",
-      "fr": "J'viens d'finir de payer mes paiements su'l char le mois passé, câlisse!",
-      "en": "I just finished making my final car payments last month, damn it!",
+      "fr": "J'viens d'finir de payer mes paiements su'l char le mois passé!",
+      "en": "I just finished making my final car payments last month!",
       "note": "Peak tragedy: car wrecked the minute the loan is paid off."
     },
     {
@@ -740,8 +740,8 @@
     },
     {
       "trigger": "hitcar",
-      "fr": "Mon muffler est plié en deux comme une banane, calvince!",
-      "en": "My exhaust pipe is bent in two like a banana, damn it!",
+      "fr": "Mon muffler est plié en deux comme une banane!",
+      "en": "My exhaust pipe is bent in two like a banana!",
       "note": "Exhaust pipe transformed into fruit geometry."
     },
     {
@@ -884,8 +884,8 @@
     },
     {
       "trigger": "hitprop",
-      "fr": "La pancarte 'Attention à nos enfants' a revolé à trente pieds, l'ironie, tabarnak!",
-      "en": "The 'Slow Down - Children at Play' sign flew thirty feet, the irony, holy fuck!",
+      "fr": "La pancarte 'Attention à nos enfants' a revolé à trente pieds, l'ironie!",
+      "en": "The 'Slow Down, Children at Play' sign flew thirty feet, the irony!",
       "note": "Morbid comedic irony of destroying child-safety signs."
     },
     {
@@ -1010,9 +1010,9 @@
     },
     {
       "trigger": "speeding",
-      "fr": "Tu pèses su'l gaz comme si ton père payait les pneus... Oh wait, y paye pour!",
-      "en": "Stepping on the gas like your dad pays for the tires... Oh wait, he does!",
-      "note": "Calling out the teenager driving dad's truck on dad's dime."
+      "fr": "Tu pèses su'l gaz comme si quelqu'un d'autre payait les pneus!",
+      "en": "Stepping on the gas like somebody else pays for the tires!",
+      "note": "Tom pays for his own tires (ledger s.1); the stranger does not know that."
     },
     {
       "trigger": "speeding",
@@ -1352,12 +1352,6 @@
     },
     {
       "trigger": "stuck",
-      "fr": "T'es juché su'l banc d'neige comme une poule su'un piquet, champion!",
-      "en": "You're perched on that snowbank like a hen on a fencepost, champ!",
-      "note": "'Juché' means awkwardly perched high on an obstacle."
-    },
-    {
-      "trigger": "stuck",
       "fr": "Envoye, spinne tes roues! Ça sent l'caoutchouc brûlé dans tout l'voisinage!",
       "en": "Go on, spin your wheels! It smells like burnt rubber across the whole neighborhood!",
       "note": "Fruitlessly spinning tires while high-centered."
@@ -1532,9 +1526,9 @@
     },
     {
       "trigger": "cops",
-      "fr": "Planque tes cannettes de bière sous l'banc passager, câlisse!",
-      "en": "Stash your beer cans under the passenger seat, holy shit!",
-      "note": "Underage panic over contraband beverages in the cab."
+      "fr": "Planque ton ketchup chips sous l'banc passager, câlisse!",
+      "en": "Hide your ketchup chips under the passenger seat, holy shit!",
+      "note": "Tom never drank at that age (ledger s.3); the panic is about chips."
     },
     {
       "trigger": "cops",

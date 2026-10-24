@@ -2,7 +2,7 @@ import {rgb} from '../core/mesh.js';
 
 // OSM cemetery outlines can coincide with road centrelines. Offset a complete
 // straight run, rather than independently nudging posts into a crooked fence.
-export function buildCemeteryFences(areas,{clear,baseAt,bAt,addSegment,inside}) {
+export function buildCemeteryFences(areas,{clear,baseAt,bAt,addSegment,inside,cameraColliders}) {
   const result=[],color=rgb(0x495550);
   for(const area of areas.filter(a=>a.k==='cemetery' && a.name==='Cimetière Saint-Paul')) {
     const p=area.p;
@@ -29,12 +29,14 @@ export function buildCemeteryFences(areas,{clear,baseAt,bAt,addSegment,inside}) 
         for(let t=0;t<=1;t+=0.1)if(!clear(x+(xx-x)*t,z+(zz-z)*t,2.65)){blocked=true;break;}
         if(blocked)continue;
         const h=baseAt(x,z).h,hh=baseAt(xx,zz).h,bd=bAt(x,z);
+        const cameraFrom=bd.i.length;
         bd.box(x,h+0.57,z,0.075,1.14,0.075,color,{noBottom:true});
         for(const dy of [0.35,0.92]) {
           bd.quad([x,h+dy,z],[xx,hh+dy,zz],[xx,hh+dy+0.055,zz],[x,h+dy+0.055,z],color);
           bd.quad([xx,hh+dy,zz],[x,h+dy,z],[x,h+dy+0.055,z],[xx,hh+dy+0.055,zz],color);
         }
         addSegment(x,z,xx,zz);result.push([x,z,xx,zz]);
+        cameraColliders?.addMesh(bd,cameraFrom,bd.i.length,'cemetery-fence');
       }
     }
   }

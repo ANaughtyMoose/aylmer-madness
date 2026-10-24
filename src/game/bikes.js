@@ -458,6 +458,16 @@ export function bikeControl(G, ctl, dt) {
   BIKE.hopHeld = want;
 }
 
+/**
+ * Adrenaline: legs back up to at least `min` (0..1). A set piece calls this
+ * when a hop must be possible right now (the golf fence, golfnuit.js) however
+ * hard you pedalled to get there.
+ */
+export function topUpLegs(min = 1) {
+  if (BIKE.stam < min) BIKE.stam = Math.min(1, min);
+  return BIKE.stam;
+}
+
 /** For the HUD, the tests and anyone who wants to know how the legs are. */
 export function bikeState() {
   return { stamina: BIKE.stam, effort: BIKE.effort, hop: BIKE.hopT, on: !!BIKE.veh };

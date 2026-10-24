@@ -24,6 +24,14 @@ export class CarTurntable {
     this.cards = [];        // [{ id, ctx, w, h }]
     this.running = false;
     if (typeof document === 'undefined' || !document.createElement) return;
+    this.ok = this.init();
+  }
+
+  // Build the off-screen renderer and upload every car. Called again by start()
+  // after stop() released it (D7): the prototype renderer is a full second
+  // Three.js context with shadow maps and an environment map, and it used to
+  // stay resident for the whole drive.
+  init() {
     try {
       const cv = document.createElement('canvas');
       cv.width = GL_W; cv.height = GL_H;
@@ -33,6 +41,7 @@ export class CarTurntable {
       this.r = new Renderer(cv);
       this.r.maxDpr = 1;
       this.r.scale = 1;
+      this.r.shadows = false;
       this.r.setEnvironment(ENV);
       this.bodies = {}; this.wheels = {};
       this.steers = {};
@@ -47,12 +56,25 @@ export class CarTurntable {
       floor.flat(-14, -14, 14, 14, 0, rgb(0x1c242c));
       this.floor = this.r.upload(floor);
       this.mm = m4.create();
-      this.ok = true;
+      this.pixels = null; this.frameImage = null;
+      return true;
     } catch (e) {
       // No WebGL2 in this browser: the cards keep their paint swatch.
       console.warn('turntable off:', e && e.message);
-      this.ok = false;
+      return false;
     }
+  }
+
+  // Give the GPU back. Only renderers that can dispose themselves (the
+  // prototype's Three.js adapter) are released; the original renderer shares
+  // nothing heavy and keeps running exactly as before.
+  release() {
+    if (!this.r || typeof this.r.dispose !== 'function') return;
+    this.r.dispose();
+    this.glCanvas?.remove();
+    this.r = null; this.glCanvas = null;
+    this.bodies = {}; this.wheels = {}; this.steers = {}; this.floor = null;
+    this.pixels = null; this.frameImage = null;
   }
 
   // cards: [{ id, canvas }] — one small 2D canvas per menu card.
@@ -69,6 +91,7 @@ export class CarTurntable {
 
   start() {
     if (!this.ok || this.running) return;
+    if (!this.r && !(this.ok = this.init())) return;
     this.running = true;
     this.t0 = now();
     this.lastFrame = 0;
@@ -83,10 +106,11 @@ export class CarTurntable {
     requestAnimationFrame(loop);
   }
 
-  stop() { this.running = false; }
+  stop() { this.running = false; this.release(); }
 
   frame(ms) {
     const r = this.r, mm = this.mm;
+    if (!r) return;
     const spin = ms * 0.00035;
     // Front wheels sweep, so the steering knuckles are visibly doing something.
     const steer = Math.sin(ms * 0.0007) * STEER_SWING;

@@ -120,8 +120,11 @@ group('the loader merges the other agents\' files');
   ok(roast.length === 8, `Zahra's ${roast.length} lines about her brother only work with him standing there`);
   ok(/Civic|silencieux|Tim Hortons/.test(roast.map((l) => l.line).join(' ')),
     'and they are the ones that were written for her', roast[0] && roast[0].line);
-  ok((c.small.start.sayyad || []).length === 12 && (c.small.end.margaret || []).length === 12,
+  // Canon changed (ledger s.0, 22 Sept 2026): Margaret is Tom's mother and is
+  // never on this porch, so her dialogue.json lines stay at 299 Fraser.
+  ok((c.small.start.sayyad || []).length === 12 && (c.small.end.adam || []).length === 12,
     'dialogue.json is loaded for the ride-along moments');
+  ok(!c.small.start.margaret && !c.small.end.margaret, 'and Tom’s mother’s lines are not on Mike’s porch');
   ok((c.small.start.zahra || []).length === 12, 'zahra.json too');
   ok(c.ambient.length >= 4, `${c.ambient.length} lines drift over from the next yard`);
   ok(!c.small.start['Ton père'] && !c.small.start.pere, 'your father is not on this lawn');
@@ -247,9 +250,9 @@ group('the slalom is on a real street');
 group('the jobs come off the porch');
 {
   const G = { done: new Set() };
-  const jobs = porchJobs(G, ['mike', 'sayyad', 'margaret']);
+  const jobs = porchJobs(G, ['mike', 'sayyad', 'abraham']);
   ok(jobs.length === 2, 'two jobs on offer, not a wall of them');
-  ok(jobs.every((j) => ['mike', 'sayyad', 'margaret'].includes(j.who)),
+  ok(jobs.every((j) => ['mike', 'sayyad', 'abraham'].includes(j.who)),
     'offered by somebody who is actually sitting there');
   ok(jobs.every((j) => MISSIONS.includes(j.def)), 'and they are real MISSIONS entries');
   ok(new Set(jobs.map((j) => j.who)).size === jobs.length, 'one job each, so two people get to talk');
@@ -398,7 +401,8 @@ group('an evening at Mike\'s');
 group('...and they notice what you did');
 {
   const pool = REAL.catch;
-  const roster = ['mike', 'sayyad', 'margaret', 'adam', 'zahra'];
+  // Abraham has Margaret's old seat (Tom, 29 Sept 2026; ledger s.0).
+  const roster = ['mike', 'sayyad', 'abraham', 'adam', 'zahra'];
   // Everything the porch can be told about you, in one player.
   const heroG = fakeG({
     done: new Set(['divan', 'racedave', 'racecivic', 'circuit', 'blitz', 'canot', 'chelsea', 'golfcart']),
@@ -453,11 +457,11 @@ group('...and they notice what you did');
   }), {}, ['adam']), 'adam').some((l) => l === "C'est mon char, ça."),
     'Adam notices you are driving his Sunfire');
 
-  // Margaret and the ten dollars.
-  const broke = hangoutFacts(fakeG({ wallet: { value: 8 } }), {}, ['margaret']);
+  // The ten dollars: Abraham has the porch seat now (Margaret is at home).
+  const broke = hangoutFacts(fakeG({ wallet: { value: 8 } }), {}, ['abraham']);
   const gift = pool.find((l) => l.gift && matches(l.need, broke));
-  ok(gift && gift.gift === 10, 'Margaret notices you are broke and does something about it', gift && gift.line);
-  ok(!pool.some((l) => l.gift && matches(l.need, hangoutFacts(fakeG(), {}, ['margaret']))),
+  ok(gift && gift.gift === 10 && gift.who === 'abraham', 'Abraham notices you are broke and does something about it', gift && gift.line);
+  ok(!pool.some((l) => l.gift && matches(l.need, hangoutFacts(fakeG(), {}, ['abraham']))),
     '...and not when you have money');
 
   // Zahra, with her brother standing right there.

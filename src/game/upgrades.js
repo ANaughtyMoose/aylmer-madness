@@ -74,10 +74,10 @@ export const PARTS = [
     levels: [
       { price: 75, label: 'Plaquettes semi-métalliques NAPA Ultra',
         labelEn: 'NAPA Ultra semi-metallic pads',
-        mul: { brake: 1.14 } },
+        mul: { brake: 1.14, dirBrake: 1.14 } },
       { price: 190, label: 'Disques avant ventilés et rainurés',
         labelEn: 'Vented and slotted front rotors',
-        mul: { brake: 1.28 } },
+        mul: { brake: 1.28, dirBrake: 1.28 } },
     ],
   },
   {
@@ -220,7 +220,14 @@ export function tuned(spec, mods) {
     for (const k of Object.keys(row.mul || {})) mul[k] = (mul[k] || 1) * row.mul[k];
     Object.assign(set, row.set || {});
   }
-  for (const k of Object.keys(mul)) out[k] = spec[k] * mul[k];
+  // `dirBrake` is the floor under the S-key stop (cars.js). Brakes you pay for
+  // have to raise it too, or a car whose pedal sits at or under the floor -- a bus,
+  // the Ranger -- buys nothing. A sheet that predates it is read the same way
+  // the Vehicle reads it.
+  for (const k of Object.keys(mul)) {
+    const b = k === 'dirBrake' && typeof CARSMOD.dirBrakeOf === 'function' ? CARSMOD.dirBrakeOf(spec) : spec[k];
+    out[k] = b * mul[k];
+  }
   for (const k of Object.keys(set)) out[k] = set[k];
   if (m.paint != null) out.body = m.paint;
   // The restoration buys nothing the driving model reads — a rebuilt 240D is
@@ -245,7 +252,13 @@ export function tuned(spec, mods) {
   if (typeof CARSMOD.finalizeCar === 'function') {
     const wasTop = out.topSpeed;
     CARSMOD.finalizeCar(out);
-    if (mul.topSpeed && out.topSpeed !== wasTop) out.topSpeed *= mul.topSpeed;
+    // ...but never past a limiter. finalizeCar() has just clamped topSpeed to
+    // speedCap, and multiplying after that advertised a Moteur 3 Ranger at
+    // 149.5 km/h that holds 130 (review A4) -- and verbs.cruiseFor() paced
+    // mission leaders off the lie. The spec now says what the car does.
+    if (mul.topSpeed && out.topSpeed !== wasTop) {
+      out.topSpeed = Math.min(out.topSpeed * mul.topSpeed, out.speedCap || Infinity);
+    }
   }
   // `tune` is what the shop UI and the HUD read to know this is not a stock
   // car; nothing in the driving model looks at it.

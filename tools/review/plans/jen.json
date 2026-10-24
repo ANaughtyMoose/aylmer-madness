@@ -1,0 +1,22 @@
+{
+  "name": "jen",
+  "about": "Jen (22, Ottawa, PS2): handling, crashes, speed, cops, races and the couch factor.",
+  "entry": "index.html",
+  "beats": [
+    { "do": "boot" },
+    { "do": "firstDrive", "seconds": 6 },
+    { "do": "speedRun", "seconds": 12, "frames": 14 },
+    { "do": "crash", "seconds": 7 },
+    { "do": "crash", "seconds": 7, "side": -1, "place": "home" },
+    { "do": "cops", "heat": 2, "seconds": 30 },
+    { "do": "cops", "heat": 4, "seconds": 30 },
+    { "do": "modes" },
+    { "do": "course", "id": "bz_vieux", "index": 0, "stageTimeout": 150 },
+    { "do": "course", "id": "cp_ruelles", "mode": "checkpoint", "stageTimeout": 150 },
+    { "do": "mission", "id": "racedave", "stageTimeout": 150 },
+    { "do": "mission", "id": "racecivic", "stageTimeout": 150 },
+    { "do": "mission", "id": "golfcart", "stageTimeout": 150 },
+    { "do": "mission", "id": "russellroyal", "stageTimeout": 150 },
+    { "do": "tour", "places": ["principale", "marina", "beach"], "envs": ["day", "night"], "weather": ["clear", "rain"] }
+  ]
+}

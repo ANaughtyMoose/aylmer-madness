@@ -28,3 +28,23 @@ r.xml
 *.sh
 *.py
 .planning/
+
+# Personal audio/reference imports must never enter a deployment.
+assets/radio/
+references/
+
+# Local-only build output and tool state (review SR-15). Wrangler uploads the
+# working tree, not git, so anything gitignored as "local" must be listed here
+# too or it ships whenever it happens to exist on disk.
+out/
+public/
+dist/
+.openai/
+.claude/
+.planning/
+assets/models/src/
+gemini-inbox/
+spike-log.txt
+*.bat
+.DS_Store
+__pycache__/

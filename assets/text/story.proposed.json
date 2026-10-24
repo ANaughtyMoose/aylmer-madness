@@ -1,0 +1,36 @@
+{
+ "_": "Proposed main-cast lines, waiting for Tom's batch (plan v2 hard rule 9). Nothing in this file ships until Tom approves it. Each entry names the line it would replace and what the game says until then.",
+ "task": "B-06",
+ "written": "2026-10-14",
+ "status": "proposed",
+ "lines": [
+  {
+   "id": "stvincent.start.0",
+   "file": "src/game/story.js",
+   "where": "FRIEND_LINES.stvincent.start[0]",
+   "who": "Tom",
+   "lang": "en",
+   "text": "« I park the Ranger, then I go in for the meals. »",
+   "was": "« Je stationne le Ranger, pis je rentre pour le repas. »",
+   "now": {
+    "who": "",
+    "text": "(no line: since S4-SAUNA, 20 Oct, the start lines play at Sayyad’s fence before the drive, and sauna.js says the parking and going in at the lot: « Hôpital St. Vincent - entre travailler »)"
+   },
+   "source": "Tom worked as préposé aux repas at St. Vincent (plan v2 section 4, D31 ruling, 13 Oct 2026). Same meaning as the French line it replaces, nothing added."
+  },
+  {
+   "id": "stvincent.start.1",
+   "file": "src/game/story.js",
+   "where": "FRIEND_LINES.stvincent.start[1]",
+   "who": "Sayyad",
+   "lang": "en",
+   "text": "« I’m walking to NASA for samosas. »",
+   "was": "« J’attends dans le truck. I’ll be asleep. C’est correct. »",
+   "now": {
+    "who": "Sayyad",
+    "text": "« You work, I walk to NASA for samosas. Fair. » (S4-SAUNA, 20 Oct; sauna.js says it again at the lot: « Go feed people. I’m walking to NASA. The store, not space. »)"
+   },
+   "source": "Tom, D31, 13 Oct 2026: Sayyad lays the cedar on the dash, is awake, and walks from St. Vincent to NASA (802 Somerset St W) for samosas while Tom works. Task s1-d31 removed the asleep line."
+  }
+ ]
+}

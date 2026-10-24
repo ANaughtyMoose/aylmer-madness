@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><title>Radio library verification</title>
+<style>body{background:#18232a;color:#eee;font:16px system-ui;padding:20px}button{padding:10px}pre{white-space:pre-wrap}</style>
+<h1>Radio library import verification</h1><button id="run">Run local import checks</button><pre id="result">Ready</pre><div id="pause"><div class="panel"></div></div><div id="visual"><div class="visual-body"></div></div>
+<script>
+// SR-14: this page imports and reassigns files in the radio library. Without
+// the review flag it would do that to the player's real library, so it never
+// runs without it.
+if(!new URLSearchParams(location.search).has('audioReview')){const u=new URL(location.href);u.searchParams.set('audioReview','1');location.replace(u.href);}
+</script>
+<script type="module">
+if(!new URLSearchParams(location.search).has('audioReview'))throw new Error('radio library checks run only with ?audioReview=1');
+import {Audio} from '../src/core/audio.js';import {RecordedRadio} from '../src/game/recorded-radio.js';import {mountLocalRadio} from '../src/prototype/local-radio.js';import {readLibrary} from '../src/game/radio-storage.js';
+const result=document.querySelector('#result'),rows=[];const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const check=(name,pass,detail)=>{rows.push({name,pass:!!pass,detail});if(!pass)throw Error(name);};
+document.querySelector('#run').onclick=async()=>{document.querySelector('#run').disabled=true;let r;try{
+ const a=new Audio();r=new RecordedRadio(a,{storage:{getItem(){},setItem(){}}});window.AYLMER={pause(){}};
+ await mountLocalRadio(document.querySelector('#visual'),r);check('Local server library discovered',r.available().length===5,r.available().map(s=>s.id));
+ const data=await(await fetch('/__local_radio/majic100-1')).blob();const file=new File([data],"Ottawa's Majic 100.3 2003.mp3",{type:'audio/mpeg'});
+ const transfer=new DataTransfer();transfer.items.add(file);const input=document.querySelector('input[type=file]');input.files=transfer.files;input.dispatchEvent(new Event('change'));
+ let saved=[];for(let i=0;i<30;i++){saved=await readLibrary();if(saved.some(r=>r.id==='majic100-1'))break;await wait(100);}
+ check('Known filename assigned to Majic',r.recordings.get('majic100-1').stationId==='majic100');
+ check('Imported blob replaces local URL',r.sources.get('majic100-1').startsWith('blob:'));
+ check('Browser storage retains file bytes',saved.find(r=>r.id==='majic100-1')?.file.size===file.size,{bytes:file.size,count:saved.length});
+ check('Optional station remains disabled',!r.available().some(s=>s.id==='majic100'));
+ r.setEnabled('majic100',true);check('Optional station can be enabled',r.available().some(s=>s.id==='majic100'));
+ const unknown=new File([data],'Personal QA recording.mp3',{type:'audio/mpeg'});const t=new DataTransfer();t.items.add(unknown);input.files=t.files;input.dispatchEvent(new Event('change'));await wait(300);
+ check('Unknown file becomes personal cassette',r.tracks('personal-cassette').some(t=>t.filename==='Personal QA recording.mp3'));
+ const assignment=[...document.querySelectorAll('select')].find(s=>s.getAttribute('aria-label')==='Station pour Personal QA recording.mp3');assignment.value='cbc-radio-one';assignment.dispatchEvent(new Event('change'));await wait(200);
+ check('Manual reassignment updates playlist',r.tracks('cbc-radio-one').some(t=>t.filename==='Personal QA recording.mp3'));
+ result.textContent=JSON.stringify({pass:true,rows},null,2);
+}catch(e){result.textContent=JSON.stringify({pass:false,error:e.stack,rows},null,2);}finally{r?.dispose();document.querySelector('#run').disabled=false;}};
+</script>

@@ -9,4 +9,6 @@ echo "Aylmer Madness -> http://localhost:$PORT"
   for o in open xdg-open start; do
     command -v "$o" >/dev/null 2>&1 && "$o" "http://localhost:$PORT" 2>/dev/null && break
   done ) &
-exec python3 -m http.server "$PORT"
+# Loopback only (SR-13): the checkout holds .git/, references/ and other
+# private files, and python's default is every interface on the LAN.
+exec python3 -m http.server "$PORT" --bind 127.0.0.1

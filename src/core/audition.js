@@ -6,7 +6,7 @@
 // same EngineDriver on an OfflineAudioContext and feeds it from the same
 // Gearbox the game's tick() uses. If the WAV sounds wrong, the game sounds
 // wrong.
-import { EngineDriver, RoadDriver, SURFACE, makeMasterComp, makeNoise, fireCrash, fireLand } from './audio.js';
+import { EngineDriver, RoadDriver, SURFACE, makeMasterComp, makeNoise, fireCrash, fireLand, CRASH_GAIN, LAND_GAIN } from './audio.js';
 import { Gearbox } from '../game/gearbox.js';
 
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -177,8 +177,9 @@ export async function renderRoadAudition(spec, sampleRate = 22050) {
   };
   // A kerb thump at 14.4 and a solid hit at 15.2, on the master exactly as
   // main.js would fire them.
-  fireLand(ctx, master, 14.4, 6.0, noise, SURFACE.asphalt);
-  fireCrash(ctx, master, 15.2, 0.85, noise);
+  // AUD-02: at the game's own one-shot gains.
+  fireLand(ctx, master, 14.4, 6.0, noise, SURFACE.asphalt, LAND_GAIN);
+  fireCrash(ctx, master, 15.2, 0.85, noise, CRASH_GAIN);
 
   const STEP = 1 / 120;
   const contact = { kmh: 0, kind: 'asphalt', rough: 0, air: false, bump: 0 };

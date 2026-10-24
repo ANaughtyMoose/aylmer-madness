@@ -146,9 +146,17 @@ export function updateRepairs(state, dt, veh, opts = {}) {
  * bar. Both flags clear once the car is straight again, so the next time you
  * wreck it you get told again.
  */
-export function repairHint(state, damage) {
+export function repairHint(state, damage, opts = null) {
   const out = { toast: null, hint: null };
   if (!(damage > 0)) { state.h25 = false; state.h60 = false; return out; }
+  // S3-COPS (feel.md finding 3): no « va le faire réparer » banner across the
+  // middle of a chase. `quiet` holds the toast back without spending it, so it
+  // comes once the chase is over if the truck is still bent; the standing HUD
+  // line below still shows.
+  if (opts && opts.quiet) {
+    if (damage >= DAMAGE.COSMETIC) out.hint = 'réparer : 143 Principale · chez vous';
+    return out;
+  }
   if (damage >= DAMAGE.COSMETIC && !state.h25) {
     state.h25 = true;
     out.toast = 'Ton char est magané — Garage Caumartin, 143 Principale, ou ton entrée (E)';

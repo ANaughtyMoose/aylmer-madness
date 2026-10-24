@@ -60,7 +60,7 @@ const r2 = (v) => Math.round(v * 100) / 100;
 // ---------------------------------------------------------------- the game
 const {
   JUMPS, JUMP_FEATURES, installJumps, jumpSlope, jumpAir, jumpName,
-  predictAir, AirScorer, AIR, scoreText, nearestJump,
+  predictAir, AirScorer, AIR, scoreText, nearestJump, updateJumps, resetJumps,
 } = await import('../src/game/jumps.js');
 const { FEATURES, buildTerrain, SURF } = await import('../src/game/terrain.js');
 const { loadRacingText, TEXT } = await import('../src/game/racingtext.js');
@@ -185,7 +185,7 @@ function fly(j, kmh = j.kmh, opts = {}) {
     ctl.throttle = v.speedKmh < kmh ? 1 : 0.35;
     const dmg0 = v.damage;
     v.update(STEP, ctl, phys);
-    const rec = sc.update(STEP, v, { steer: opts.airSteer || 0, siteId: opts.repeat ? j.id : null });
+    const rec = sc.update(STEP, v, { steer: opts.airSteer || 0, siteId: opts.repeat ? j.id : null, ramp: true });
     if (rec) {
       const w0 = (sc.x0 - j.x) * S + (sc.z0 - j.z) * C;
       const off = Math.abs((sc.x0 - j.x) * C - (sc.z0 - j.z) * S);
@@ -326,9 +326,9 @@ group('chaining pays more');
   const pays = [];
   for (let n = 0; n < 3; n++) {
     const v = fake();
-    v.airT = 0.5; sc.update(1 / 60, v, {});
+    v.airT = 0.5; sc.update(1 / 60, v, { ramp: true });
     v.airT = 0; v.lastAir = 1.5; v.landed = 6;
-    pays.push(sc.update(1 / 60, v, {}).pay);
+    pays.push(sc.update(1 / 60, v, { ramp: true }).pay);
   }
   ok(pays[1] > pays[0] && pays[2] > pays[1], 'each link is worth more', pays.join(' -> '));
   ok(sc.combo === 3, 'and the chain counts', String(sc.combo));
@@ -336,6 +336,104 @@ group('chaining pays more');
   const v = { ...fake() };
   for (let i = 0; i < 60 * (AIR.comboWindow + 1); i++) sc.update(1 / 60, v, {});
   ok(sc.combo === 0, 'a chain lapses after the window', `${AIR.comboWindow} s`);
+}
+
+// ================================================================ 3b. the leak
+
+// Tom, 29 Sept: « sometimes when driving over uneven surfaces, the car racks up
+// a bunch of sequential $1 prizes, quickly adding up to $100+ ». The old scorer
+// paid every flight over 0.75 s at least a dollar, and its repeat decay keyed
+// on a 40 m cell, so a bumpy road crossed a fresh cell with every hop and never
+// decayed. This drives the real per-tick hook (updateJumps) down two minutes of
+// washboard a long way from any ramp, and then off a ramp the same way.
+const fakeCar = (x, z, yaw = 0) => ({
+  x, z, y: 0, gh: 0, yaw, vx: Math.sin(yaw) * 22, vz: Math.cos(yaw) * 22, vLong: 22,
+  roll: 0, pitch: 0, airT: 0, lastAir: 0, landed: 0, inAir: false, damage: 0,
+  speedKmh: 80, hit() {},
+});
+function hookG(v, day = 3) {
+  let cash = 0;
+  return {
+    veh: v, time: 0, day, stats: { nearMiss: 0 },
+    wallet: { add(n) { cash += n; }, get value() { return cash; } },
+    hud: { toast() {} }, input: { steer: 0 },
+    cash: () => cash,
+  };
+}
+// One flight of `air` seconds through the hook, moving the car as it goes.
+function hookFlight(G, air, dt = 1 / 60) {
+  const v = G.veh;
+  let t = 0;
+  while (t < air) {
+    v.airT = t + dt; v.inAir = true; v.y = 0.4;
+    v.x += v.vx * dt; v.z += v.vz * dt;
+    updateJumps(G, dt); G.time += dt; t += dt;
+  }
+  v.airT = 0; v.inAir = false; v.y = 0; v.lastAir = air; v.landed = 2;
+  updateJumps(G, dt); G.time += dt;
+  v.landed = 0;
+}
+function hookRoll(G, secs, dt = 1 / 60) {
+  const v = G.veh;
+  for (let t = 0; t < secs; t += dt) {
+    v.x += v.vx * dt; v.z += v.vz * dt;
+    updateJumps(G, dt); G.time += dt;
+  }
+}
+
+group('a bumpy road is not a cash machine (Tom, 29 Sept)');
+{
+  resetJumps();
+  // Pick a stretch of town at least a kilometre from every ramp.
+  const far = [[0, -2600], [3000, 2500], [-3000, 2000], [5000, 0]]
+    .find(([x, z]) => JUMPS.every((j) => Math.hypot(j.x - x, j.z - z) > 1500));
+  const G = hookG(fakeCar(far[0], far[1], 0.3));
+  // Two minutes of washboard: a hop every ~1.3 s, 0.8-1.4 s of air each
+  // (deterministic), rolling 22 m/s between them — so it crosses a new 40 m
+  // cell on almost every hop, which is exactly what used to defeat the decay.
+  let hops = 0, t = 0, seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  while (t < 120) {
+    const air = 0.8 + rnd() * 0.6;
+    hookFlight(G, air); hops++;
+    hookRoll(G, 0.3); t += air + 0.3;
+  }
+  const cap = AIR.offRampCap * Math.ceil(120 / AIR.offRampWindow);
+  ok(hops > 50, `${hops} hops in two minutes of bumpy road`);
+  ok(G.cash() <= cap, `off-ramp air earns at most ${cap} $ in two minutes`, `${G.cash()} $ (was ~1 $ a hop, ${hops}+ $)`);
+  // ...and a hop under the floor is worth nothing at all.
+  const sc = new AirScorer();
+  const v = fakeCar(0, 0);
+  v.airT = 0.5; sc.update(1 / 60, v, { siteId: 'g0,0', ramp: false });
+  v.airT = 0; v.lastAir = 0.9; v.landed = 1;
+  const r = sc.update(1 / 60, v, { siteId: 'g0,0', ramp: false });
+  ok(r && r.pay === 0, 'a 0.9 s kerb hop pays nothing', r ? `${r.pay} $` : 'no record');
+}
+
+group('a real ramp jump still pays, through the same hook');
+{
+  resetJumps();
+  const j = JUMPS.find((x) => x.id === 'chantier');
+  const S = Math.sin(j.yaw), C = Math.cos(j.yaw);
+  const G = hookG(fakeCar(j.x - S * 2, j.z - C * 2, j.yaw), 10);
+  // 2.1 s of air at 28 m/s: it lands ~60 m down the road, which is close to
+  // the edge of the ramp's radius. The take-off decides whose air it was.
+  G.veh.vx = S * 28; G.veh.vz = C * 28;
+  hookFlight(G, 2.1);
+  const first = G.cash();
+  ok(first >= 15, 'the chantier, landed straight, pays real money', `${first} $`);
+  hookRoll(G, 20);
+  G.veh.x = j.x - S * 2; G.veh.z = j.z - C * 2;
+  hookFlight(G, 2.1);
+  const second = G.cash() - first;
+  ok(second > 0 && second < first / 2, 'the same ramp again the same day pays a fraction', `${second} $`);
+  G.day = 11;
+  hookRoll(G, 10);   // past the chain window, so no multiplier muddies it
+  G.veh.x = j.x - S * 2; G.veh.z = j.z - C * 2;
+  hookFlight(G, 2.1);
+  const third = G.cash() - first - second;
+  ok(third === first, 'and in full again the next game day', `${third} $`);
+  resetJumps();
 }
 
 group('the board says what happened');
@@ -348,6 +446,51 @@ group('the board says what happened');
   ok(t.includes('CHAÎNE ×2'), 'the chain');
   ok(t.includes('+44 $'), 'and the money');
   ok(!/\b(steph|marc|dave)\b/i.test(JSON.stringify(JUMPS)), 'no internal ids in the jump table');
+}
+
+group('one landing, one readout (S3-JUMPS)');
+{
+  // The feel review's chantier frame: « 1.8 s / 0 m / CHAÎNE x2 / +2 $ » on top
+  // of main.js's own « 1.8 s dans les airs! ». The bounce after the landing
+  // was scored as a second flight with the first one's stale lastAir.
+  const j = JUMPS.find((x) => x.id === 'chantier');
+  const S = Math.sin(j.yaw), C = Math.cos(j.yaw);
+  const v = new Vehicle(carById('ranger'));
+  v.assist = true;
+  v.reset(j.x - S * 55, j.z - C * 55, j.yaw);
+  v.onRoad = phys.roadAt(v.x, v.z);
+  v.vLong = j.kmh / 3.6; v.vx = S * v.vLong; v.vz = C * v.vLong;
+  const sc = new AirScorer();
+  const recs = [];
+  for (let i = 0; i < 60 * 12; i++) {
+    v.update(1 / 60, { steer: 0, throttle: v.speedKmh < j.kmh ? 1 : 0.35, brake: 0, handbrake: false }, phys);
+    const rec = sc.update(1 / 60, v, { siteId: j.id, ramp: true });
+    if (rec) recs.push({ ...rec, w0: (sc.x0 - j.x) * S + (sc.z0 - j.z) * C });
+  }
+  // The spoil pile 48 m short is its own little hop; the chantier is the one off its lip.
+  const big = recs.filter((r) => r.air >= AIR.minAir && r.w0 > -16);
+  ok(big.length === 1, 'one flight off the chantier is one scored jump', recs.map((r) => `${r2(r.air)} s ${Math.round(r.dist)} m`).join(', '));
+  ok(big[0] && big[0].dist >= 25, 'and its distance is lip to touchdown, not 0 m', big[0] ? `${Math.round(big[0].dist)} m` : '');
+  ok(recs.filter((r) => r.w0 > -16).length === 1, 'and the bounce after it is not scored again', `${recs.length} records in all`);
+  const fs = await import('node:fs');
+  const main = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  ok(!/hud\.toast\([^)]*lastAir/.test(main), 'main.js no longer prints its own airtime toast over the board');
+  // The floor: a clean 1.5 s landing off a ramp pays at least 10 $.
+  const f = new AirScorer();
+  const fv = { x: 0, z: 0, y: 0, gh: 0, yaw: 0, vx: 0, vz: 20, vLong: 20, roll: 0, pitch: 0,
+    airT: 0, lastAir: 0, landed: 0, inAir: false, damage: 0, speedKmh: 72, hit() {} };
+  fv.airT = 0.5; f.update(1 / 60, fv, { ramp: true, siteId: 'x' });
+  fv.airT = 0; fv.lastAir = 1.5; fv.landed = 6;
+  const fr = f.update(1 / 60, fv, { ramp: true, siteId: 'x' });
+  ok(fr && fr.grade !== 'crooked' && fr.pay >= AIR.floorPay, `a clean 1.5 s ramp landing pays at least ${AIR.floorPay} $`, fr ? `${fr.pay} $` : 'no record');
+}
+
+group('the ramps are in the land the game draws (S3-JUMPS)');
+{
+  const fs = await import('node:fs');
+  const w = fs.readFileSync(new URL('../src/game/world/sector-worker.js', import.meta.url), 'utf8');
+  const at = w.indexOf('installJumps()'), bake = w.indexOf('bakeWorld(');
+  ok(at > 0 && at < w.indexOf('bakeWorld({'), 'the sector Worker installs the ramps before it bakes', at > 0 ? 'yes' : 'missing');
 }
 
 group('a jump you are driving at is a jump you are told about');

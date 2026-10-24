@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>Recorded radio integration checks</title>
+<style>body{background:#15202b;color:#e9f1f6;font:16px system-ui;padding:24px}button{padding:12px;margin:8px}pre{white-space:pre-wrap}</style>
+<h1>Recorded radio · real browser audio</h1>
+<p>Runs against the private local library. Real decoding, seeking, loops and output levels; no synthetic replacement recordings.</p>
+<button id="run">Run playback checks</button><button id="stop">Stop audio</button><pre id="result">Ready</pre>
+<script type="module">
+import {Audio} from '../src/core/audio.js';import {RecordedRadio} from '../src/game/recorded-radio.js';
+const output=document.querySelector('#result');let a,r;const wait=ms=>new Promise(q=>setTimeout(q,ms));
+const until=async(fn,ms=10000)=>{const start=performance.now();while(!fn()){if(performance.now()-start>ms)throw Error('Timeout: '+fn);await wait(50);}};
+const results=[];const check=(name,pass,detail)=>{results.push({name,pass:!!pass,detail});output.textContent=JSON.stringify({running:true,results},null,2);if(!pass)throw Error(name);};
+let timer;
+document.querySelector('#stop').onclick=()=>{r?.suspend();clearInterval(timer);a?.ctx?.suspend();};
+document.querySelector('#run').onclick=async()=>{
+ results.length=0;document.querySelector('#run').disabled=true;
+ try{
+ a=new Audio();a.start();await a.ctx.resume();
+ const saved=new Map(),storage={getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)};
+ const media=[];r=new RecordedRadio(a,{storage,mediaFactory:()=>{const el=new globalThis.Audio();media.push(el);return el;}});r.addSources((await(await fetch('/__local_radio/library.json')).json()).recordings);
+ const analyser=a.ctx.createAnalyser();analyser.fftSize=2048;a.comp.connect(analyser);
+ const meter=async()=>{let peak=0,sum=0,count=0;const b=new Float32Array(2048);for(let i=0;i<12;i++){analyser.getFloatTimeDomainData(b);for(const v of b){peak=Math.max(peak,Math.abs(v));sum+=v*v;count++;}await wait(50);}return{peak,rms:Math.sqrt(sum/count)};};
+ timer=setInterval(()=>r.update(.05,.5,false),50);r.resume();r.power(true);
+ await until(()=>r.on);await wait(500);
+ const first=await meter();check('CHEZ real media produces bounded output',first.rms>0.00001&&first.peak<1,first);
+ const dial=r.available().map(s=>s.id);check('Five default presets',dial.length===5,dial);
+ for(const id of dial){
+  r.tune(id);await until(()=>r.on&&r.session?.stationId===id);const t=r.current();check(id+' metadata/duration',r.session.el.duration>600,{duration:r.session.el.duration,title:t.title});
+  r.seek(35);await until(()=>r.session.el.currentTime>=35);await wait(150);r.power(false);await wait(150);const pos=r.positions[id].positionSeconds;
+  check(id+' off remembers selection',!r.session&&r.selectedStationId===id&&pos>=35,pos);
+  r.power(true);await until(()=>r.on);check(id+' on resumes',Math.abs(r.session.el.currentTime-pos)<1.5,{saved:pos,actual:r.session.el.currentTime});
+  const before=r.current().id;r.seek(r.session.el.duration-.25);await until(()=>r.on&&r.session?.el.currentTime<3,12000);
+  check(id+' natural ended transition',id==='cbc-radio-one'?r.current().id!==before:r.current().id===before,{before,after:r.current().id,time:r.session.el.currentTime});
+ }
+ r.tune('cbc-radio-one');await until(()=>r.on);const visited=[];for(let i=0;i<3;i++){visited.push(r.current().id);r.seek(r.session.el.duration-.2);await until(()=>r.on&&r.session?.el.currentTime<2,12000);}
+ check('CBC three-recording cycle wraps',new Set(visited).size===3,visited);
+ r.seek(42);r.persist();const restored=new RecordedRadio(a,{storage});check('Reload reconstructs selection and position',restored.selectedStationId===r.selectedStationId&&restored.positions[r.selectedStationId].positionSeconds>=42,restored.state());restored.dispose();
+ r.suspend();a.setPaused(true);await wait(250);const paused=await meter();check('Pause silent',paused.peak<.00001,paused);a.setPaused(false);r.resume();await until(()=>r.on);
+ r.setVolume(0);await wait(400);const muted=await meter();check('Radio slider zero silences output',muted.peak<.00001,muted);r.setVolume(.7);
+ r.power(false);await wait(150);r.nextStation();check('Off-state tuning stays silent',!r.wantOn&&!r.session,r.state());r.power(true);await until(()=>r.on);
+ for(let i=0;i<30;i++)r.nextStation();await until(()=>r.on);check('Rapid tuning settles on selected source',r.session.stationId===r.selectedStationId,r.state());
+ r.setEnabled('live885-later',true);r.tune('live885-later');await until(()=>r.on);r.next();await until(()=>r.on&&r.current().id==='live885-later-2');const short=r.current().id;
+ await until(()=>r.on&&r.current().id!==short,18000);check('Complete 10-second file plays through naturally',r.current().id==='live885-later-3',r.state());
+ for (const station of ['chez106','cbc-radio-one']) {
+   r.tune(station);await until(()=>r.on);r.seek(120);a.engine(3200,.8,65,.8,1);a.horn(true);a.crash(.8);a.land(4);
+   const mixed=await meter();check(station+' mixed engine/horn/impact headroom',mixed.peak>0&&mixed.peak<1,mixed);a.horn(false);a.engine(0,0);
+ }
+ let maxActive=0;
+ for(let i=0;i<40;i++){r.nextStation();await until(()=>r.on);await wait(100);maxActive=Math.max(maxActive,media.filter(el=>!el.paused&&el.hasAttribute('src')).length);}
+ check('Sustained switching keeps exactly one active media source',maxActive===1,{created:media.length,maxActive,retired:media.filter(el=>el.paused&&!el.hasAttribute('src')).length});
+ check('One media element for the whole session (F1)',media.length===1,{created:media.length});
+ await a.ctx.suspend();await until(()=>a.ctx.state==='suspended');check('Suspended context is reported, not claimed as playing (F2)',!r.state().on&&r.state().blocked&&r.wantOn,r.state());
+ r.toggle();await until(()=>a.ctx.state==='running'&&r.on);const woke=await meter();check('One R wakes the suspended context and plays (F2/F3)',r.wantOn&&r.state().on&&woke.rms>0.00001,{...woke,state:a.ctx.state});
+ r.suspend();check('All retired sources release media URLs',media.every(el=>el.paused&&!el.hasAttribute('src')),{created:media.length});
+ clearInterval(timer);await a.ctx.close();output.textContent=JSON.stringify({pass:true,results},null,2);
+ }catch(e){r?.suspend();clearInterval(timer);output.textContent=JSON.stringify({pass:false,error:e.stack,results},null,2);}finally{document.querySelector('#run').disabled=false;}
+};
+</script>

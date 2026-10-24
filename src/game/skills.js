@@ -78,7 +78,10 @@ export function specFor(spec, G) {
   const bucket = Math.round(m.brake * 250) * 1e6 + Math.round(m.grip * 250) * 1e3 + Math.round(m.accel * 250);
   let hit = cache.get(spec.id);
   if (hit && hit.bucket === bucket && hit.base === spec) return hit.spec;
-  const out = { ...spec, brake: spec.brake * m.brake, grip: spec.grip * m.grip, accel: spec.accel * m.accel };
+  // `dirBrake` (the S-key stop's floor, cars.js) takes the brake skill as well,
+  // or the skill only works with W and S held together.
+  const dir = spec.dirBrake != null ? spec.dirBrake : Math.max(spec.brake, 8);   // 8 = cars.js DIR_BRAKE
+  const out = Object.assign(Object.create(spec), { brake: spec.brake * m.brake, dirBrake: dir * m.brake, grip: spec.grip * m.grip, accel: spec.accel * m.accel });
   cache.set(spec.id, { bucket, base: spec, spec: out });
   return out;
 }

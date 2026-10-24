@@ -10,12 +10,18 @@
 //   aylmer.legend     "0" if the key legend is collapsed
 //
 // Game state (where the cars are, money, jobs, records) is NOT here any more:
-// it lives in explicit save slots, aylmer.save.1/2/3/auto — see save.js.
-// aylmer.progress / aylmer.money / aylmer.best are legacy scratch keys that the
-// migration reads once and nothing reads afterwards.
+// it lives in explicit save slots, aylmer.save.<character>.<1|2|3|auto> — see
+// save.js. aylmer.progress / aylmer.money / aylmer.best are legacy scratch keys
+// that the migration reads once and deletes once it is stamped.
+//
+// Which localStorage all of this lands in is decided by storage-ns.js: the
+// player's raw keys, or an isolated `aylmer.review.<name>.` namespace for
+// ?review=<name>, ?audioReview=1 and the tools/ harnesses.
 //
 // Settings are the exception to "nothing is written unless the player saves":
 // an option takes effect and is persisted the moment you move the slider.
+
+import './storage-boot.js';
 
 export const KEYS = {
   settings: 'aylmer.settings',
@@ -26,6 +32,19 @@ export const KEYS = {
   tutorial: 'aylmer.tutorial',
   legend: 'aylmer.legend',
 };
+
+// Every per-browser key that is PROGRESS rather than a preference: what
+// « Effacer toutes les sauvegardes » erases along with the slots (save.js
+// deleteAllSaves). Settings, the minimap, the radio and its imported library,
+// the tutorial / legend / slang latches and the migration stamp stay.
+export const PROGRESS_KEYS = [
+  'aylmer.cars',          // garage.js mirror of bought cars, parts and feats
+  'aylmer.hangout',       // hangout.js: evenings, slalom best, lines heard, one-time gifts
+  'aylmer.bestlap',       // racejobs.js best laps
+  'aylmer.modes',         // modes.js records
+  'aylmer.achievements',  // flavour.js
+  'aylmer.progress', 'aylmer.best', 'aylmer.garage', 'aylmer.money',   // legacy scratch
+];
 
 function store() {
   try { return globalThis.localStorage || null; } catch { return null; }
@@ -62,8 +81,10 @@ export const DEFAULT_SETTINGS = {
   volMaster: 1,
   volEngine: 1,
   volEffects: 1,
-  volRadio: 0.7,
-  engineSpeed: true,       // engine note volume follows speed (if audio supports it)
+  volRadio: 0.9,           // AUD-02: was 0.7; the radio sits over the engine now
+  volAmbience: 0.65,
+  radioAuto: true,         // AUD-02: the radio is on when a drive starts
+  mix: 2,                  // AUD-02: the mix version this store was written by (not an option)
   // ---- video
   quality: 'med',          // preset; it seeds the four numbers below
   renderScale: 0.85,       // 0.5 .. 1 of the CSS resolution
@@ -97,7 +118,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 export const LIMITS = {
-  volMaster: [0, 1], volEngine: [0, 1], volEffects: [0, 1], volRadio: [0, 1],
+  volMaster: [0, 1], volEngine: [0, 1], volEffects: [0, 1], volRadio: [0, 1], volAmbience: [0, 1],
   renderScale: [0.5, 1], drawDist: [400, 1200], fogMul: [0.5, 2],
   fov: [-0.15, 0.2], steerSens: [0.5, 1.6], damageSensitivity: [0, 2],
 };
@@ -120,8 +141,13 @@ export function normalizeSettings(raw) {
     volMaster: lim('volMaster', s.volMaster),
     volEngine: lim('volEngine', s.volEngine),
     volEffects: lim('volEffects', s.volEffects),
-    volRadio: lim('volRadio', s.volRadio),
-    engineSpeed: bool(s.engineSpeed, D.engineSpeed),
+    // AUD-02: a store written before the new mix (no `mix` field) still holds
+    // the old default 0.7, so that one value moves to the new default. Any other
+    // value is the player's own and stays.
+    volRadio: s.mix !== D.mix && s.volRadio === 0.7 ? D.volRadio : lim('volRadio', s.volRadio),
+    volAmbience: lim('volAmbience', s.volAmbience),
+    radioAuto: bool(s.radioAuto, D.radioAuto),
+    mix: D.mix,
 
     quality: pick(s.quality, QUALITIES, D.quality),
     renderScale: lim('renderScale', s.renderScale),

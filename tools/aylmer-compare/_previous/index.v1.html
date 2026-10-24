@@ -1,0 +1,1712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aylmer Madness - Look + Audio Review</title>
+<style>
+:root {
+  --bg-dark: #0a0e14;
+  --bg-card: #121822;
+  --bg-card-sub: #17212e;
+  --border: #233042;
+  --border-focus: #4b80b3;
+  --text-main: #e2e8f0;
+  --text-muted: #8e9eaf;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --warn: #eab308;
+  --danger: #ef4444;
+  --success: #10b981;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg-dark);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Header & Top Bar */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 14, 20, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand h1 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.tabs {
+  display: flex;
+  gap: 6px;
+  background: #0f1622;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tab-btn:hover { color: var(--text-main); }
+.tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.save-status {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.save-status.error { color: var(--danger); font-weight: 700; }
+.save-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+}
+.save-status.error .save-dot { background: var(--danger); }
+
+button.action-btn {
+  background: var(--bg-card-sub);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+button.action-btn:hover {
+  background: var(--border);
+  border-color: var(--border-focus);
+}
+button.action-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+button.action-btn.primary:hover { background: var(--accent-hover); }
+
+/* Global Container */
+main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Sections */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Filter & Global feel */
+.global-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.global-box h2 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #93c5fd;
+}
+.global-box textarea {
+  width: 100%;
+  height: 70px;
+  background: #0d121a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.global-box textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.filter-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.filter-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.filter-btn:hover { color: var(--text-main); }
+.filter-btn.active {
+  background: #1e293b;
+  color: #fff;
+  border-color: var(--border-focus);
+}
+.count-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Place Card */
+.place-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+.place-header {
+  padding: 12px 18px;
+  background: var(--bg-card-sub);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.place-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.place-title h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.slug-badge {
+  font-family: monospace;
+  font-size: 11px;
+  background: #090d14;
+  color: #94a3b8;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #1e293b;
+}
+.chips {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.chip {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #cbd5e1;
+}
+
+/* Comparison Bar */
+.compare-controls {
+  padding: 8px 18px;
+  background: #0d131c;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.compare-modes {
+  display: flex;
+  gap: 6px;
+}
+.mode-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.slider-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.slider-ctrl input[type="range"] {
+  width: 140px;
+}
+
+/* Viewer Grid */
+.viewer-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  min-height: 440px;
+  position: relative;
+}
+.viewer-container.mode-slider,
+.viewer-container.mode-overlay {
+  display: block;
+  position: relative;
+  height: 480px;
+}
+
+.viewer-panel {
+  background: #090d14;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+.panel-head {
+  padding: 6px 12px;
+  background: #0e1520;
+  border-bottom: 1px solid #1b2432;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.main-img-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #070a0e;
+  overflow: hidden;
+  cursor: zoom-in;
+  position: relative;
+  min-height: 320px;
+}
+.main-img-box img {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  display: block;
+}
+.no-image {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 40px;
+  text-align: center;
+  font-size: 13px;
+}
+.not-2004-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(234, 179, 8, 0.9);
+  color: #000;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Slider mode layers */
+.slider-view-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #070a0e;
+}
+.slider-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.slider-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.slider-layer.top {
+  overflow: hidden;
+  width: 50%;
+  border-right: 2px solid #3b82f6;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+}
+.slider-divider-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #3b82f6;
+  cursor: ew-resize;
+  z-index: 10;
+}
+
+/* Caption box */
+.caption-box {
+  padding: 8px 12px;
+  background: #0d131d;
+  border-top: 1px solid #1c2736;
+  font-size: 12px;
+  color: #cbd5e1;
+  min-height: 40px;
+}
+.caption-box .what { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
+.caption-box .tom-said { color: #fde047; font-style: italic; }
+
+/* Thumbnail strip */
+.thumbs-strip {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #090d14;
+  overflow-x: auto;
+  border-top: 1px solid #182230;
+}
+.thumb-item {
+  flex: 0 0 68px;
+  height: 52px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #233042;
+  cursor: pointer;
+  position: relative;
+  background: #000;
+}
+.thumb-item.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+.thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.75);
+  font-size: 9px;
+  text-align: center;
+  color: #e2e8f0;
+  padding: 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.thumb-label.ai { color: #fca5a5; }
+
+/* Feedback fields */
+.feedback-box {
+  padding: 16px 18px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 900px) {
+  .feedback-box { grid-template-columns: 1fr; }
+  .viewer-container { grid-template-columns: 1fr; }
+}
+
+.fb-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.fb-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  min-width: 90px;
+}
+.radio-options {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.radio-options label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.faults-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: #0d121a;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.faults-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #cbd5e1;
+}
+
+.notes-area {
+  width: 100%;
+  height: 75px;
+  background: #0d121a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.notes-area:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+.ref-file-line {
+  font-family: monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  background: #090d14;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tab 2 - Audio Styles */
+.audio-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.audio-group-head {
+  padding: 12px 18px;
+  background: var(--bg-card-sub);
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.audio-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.audio-item:last-child { border-bottom: none; }
+@media (max-width: 900px) {
+  .audio-item { grid-template-columns: 1fr; }
+}
+
+.audio-player-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.audio-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #f1f5f9;
+}
+.audio-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.audio-src-line {
+  font-family: monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  background: #090d14;
+  padding: 4px 6px;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.audio-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+audio {
+  width: 100%;
+  height: 36px;
+}
+
+.audio-feedback-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Lightbox Modal */
+.lightbox-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-out;
+}
+.lightbox-modal.active { display: flex; }
+.lightbox-modal img {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #1e293b;
+  color: #fff;
+  border: 1px solid #475569;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Aylmer Madness - Compare Tool</h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="look">Look</button>
+      <button class="tab-btn" data-tab="audio">Audio</button>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <div class="save-status" id="saveStatus">
+      <span class="save-dot"></span>
+      <span id="saveText">Saved in browser</span>
+    </div>
+    <button class="action-btn" id="btnExport">Export feedback</button>
+    <button class="action-btn primary" id="btnSaveRepo">Save into repo</button>
+    <button class="action-btn" id="btnImport">Import feedback</button>
+    <input type="file" id="importInput" accept=".json" style="display:none">
+  </div>
+</header>
+
+<main>
+  <!-- TAB 1: LOOK -->
+  <section class="tab-content active" id="tab-look">
+    <div class="global-box">
+      <h2>Overall Aylmer feel</h2>
+      <textarea id="overallFeel" placeholder="What would make it feel more like Aylmer overall..."></textarea>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">Show all</button>
+        <button class="filter-btn" data-filter="unscored">Unscored</button>
+        <button class="filter-btn" data-filter="low">Score 1 - 2</button>
+        <button class="filter-btn" data-filter="high-pri">High priority</button>
+      </div>
+      <div class="count-badge" id="scoredCount">Scored 0 of 0</div>
+    </div>
+
+    <div id="placesList">
+      <p style="text-align:center;padding:40px;color:var(--text-muted)">Loading places...</p>
+    </div>
+  </section>
+
+  <!-- TAB 2: AUDIO -->
+  <section class="tab-content" id="tab-audio">
+    <div class="global-box">
+      <h2>Global Audio notes</h2>
+      <textarea id="audioNotes" placeholder="General observations on the game audio environment..."></textarea>
+      <h2 style="margin-top:14px">What is missing</h2>
+      <textarea id="audioMissing" style="height:50px" placeholder="Sounds Aylmer in 2004 would have that the game lacks..."></textarea>
+    </div>
+
+    <div id="audioGroupsContainer">
+      <p style="text-align:center;padding:40px;color:var(--text-muted)">Loading audio tracks...</p>
+    </div>
+  </section>
+</main>
+
+<div class="lightbox-modal" id="lightboxModal">
+  <button class="lightbox-close" id="lightboxClose">Close (Esc)</button>
+  <img id="lightboxImg" src="" alt="Zoomed view">
+</div>
+
+<script type="module">
+import { CARS, carById } from "../../src/game/cars.js";
+import { renderAudition, renderRoadAudition } from "../../src/core/audition.js";
+import { STYLES, CKOI_TRACKS, STATIONS, renderLoop } from "../../src/game/radio.js";
+import { makeNoise, fireCrash, fireLand, Audio } from "../../src/core/audio.js";
+
+// Audio state
+let gameAudioInstance = null;
+function getAudioInstance() {
+  if (!gameAudioInstance) {
+    try {
+      gameAudioInstance = new Audio();
+      gameAudioInstance.start();
+    } catch (e) {
+      console.warn("Could not start live Audio instance:", e);
+    }
+  }
+  return gameAudioInstance;
+}
+
+// Convert Float32Array to 16-bit PCM WAV Blob
+function pcmToWavBlob(samples, sampleRate) {
+  const bytes = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(bytes);
+  const word = (p, s) => { for (let i = 0; i < s.length; i++) v.setUint8(p + i, s.charCodeAt(i)); };
+  word(0, "RIFF");
+  v.setUint32(4, bytes.byteLength - 8, true);
+  word(8, "WAVE");
+  word(12, "fmt ");
+  v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); // PCM format
+  v.setUint16(22, 1, true); // 1 channel
+  v.setUint32(24, sampleRate, true);
+  v.setUint32(28, sampleRate * 2, true);
+  v.setUint16(32, 2, true);
+  v.setUint16(34, 16, true);
+  word(36, "data");
+  v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(44 + i * 2, Math.round(s * 32767), true);
+  }
+  return new Blob([bytes], { type: "audio/wav" });
+}
+
+// State Management
+const STORAGE_KEY = "aylmer-compare-v1";
+let appState = {
+  overall_feel: "",
+  audio_notes: "",
+  audio_missing: "",
+  places: {}, // keyed by slug
+  audio: {},  // keyed by id
+};
+
+let placesData = [];
+let currentFilter = "all";
+
+// Load state from localStorage
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      appState = { ...appState, ...parsed };
+    }
+    updateSaveIndicator(true, "Saved in browser");
+  } catch (err) {
+    console.warn("localStorage read failed:", err);
+    updateSaveIndicator(false, "not saved in browser (storage blocked)");
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+    const now = new Date();
+    const timeStr = now.toTimeString().split(" ")[0];
+    updateSaveIndicator(true, `Saved ${timeStr}`);
+  } catch (err) {
+    console.warn("localStorage write failed:", err);
+    updateSaveIndicator(false, "not saved in browser (storage blocked)");
+  }
+  updateScoredCounter();
+}
+
+function updateSaveIndicator(ok, msg) {
+  const stat = document.getElementById("saveStatus");
+  const txt = document.getElementById("saveText");
+  if (ok) {
+    stat.classList.remove("error");
+  } else {
+    stat.classList.add("error");
+  }
+  txt.textContent = msg;
+}
+
+// Tabs
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+  };
+});
+
+// Lightbox
+const lightbox = document.getElementById("lightboxModal");
+const lightboxImg = document.getElementById("lightboxImg");
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add("active");
+}
+function closeLightbox() {
+  lightbox.classList.remove("active");
+}
+document.getElementById("lightboxClose").onclick = closeLightbox;
+lightbox.onclick = (e) => { if (e.target !== lightboxImg) closeLightbox(); };
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && lightbox.classList.contains("active")) closeLightbox();
+});
+
+// Render Look Tab
+async function initLookTab() {
+  try {
+    const res = await fetch("../../references/places/_feedback/compare-index.json");
+    placesData = await res.json();
+  } catch (e) {
+    document.getElementById("placesList").innerHTML = `<p style="color:var(--danger);padding:20px">Failed to load compare-index.json: ${e.message}</p>`;
+    return;
+  }
+
+  document.getElementById("overallFeel").value = appState.overall_feel || "";
+  document.getElementById("overallFeel").oninput = (e) => {
+    appState.overall_feel = e.target.value;
+    saveState();
+  };
+
+  renderPlacesList();
+  updateScoredCounter();
+}
+
+function renderPlacesList() {
+  const container = document.getElementById("placesList");
+  container.innerHTML = "";
+
+  const filtered = placesData.filter((p) => {
+    const fb = appState.places[p.slug] || {};
+    if (currentFilter === "unscored") return !fb.score;
+    if (currentFilter === "low") return fb.score && (fb.score === 1 || fb.score === 2);
+    if (currentFilter === "high-pri") return fb.priority === "High";
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<p style="padding:40px;text-align:center;color:var(--text-muted)">No places match the active filter.</p>`;
+    return;
+  }
+
+  filtered.forEach((p) => {
+    const card = createPlaceCard(p);
+    container.appendChild(card);
+  });
+}
+
+function createPlaceCard(p) {
+  const card = document.createElement("div");
+  card.className = "place-card";
+  card.id = `card-${p.slug}`;
+
+  if (!appState.places[p.slug]) {
+    appState.places[p.slug] = {
+      score: null,
+      priority: null,
+      faults: [],
+      notes: "",
+      selected_ref: null,
+      selected_game: null,
+    };
+  }
+  const fb = appState.places[p.slug];
+
+  // All reference photos
+  const refPhotos = [
+    ...p.tom_upload.map((x) => ({ ...x, group: "tom-upload" })),
+    ...p.streetview_capture.map((x) => ({ ...x, group: "streetview" })),
+    ...p.ai_rectified.map((x) => ({ ...x, group: "ai-rectified" })),
+  ];
+
+  if (!fb.selected_ref && refPhotos.length > 0) {
+    fb.selected_ref = refPhotos[0].file;
+  }
+  if (!fb.selected_game && p.game_shots.length > 0) {
+    fb.selected_game = p.game_shots[0].file;
+  }
+
+  let selectedRefObj = refPhotos.find((x) => x.file === fb.selected_ref) || refPhotos[0] || null;
+  let selectedGameObj = p.game_shots.find((x) => x.file === fb.selected_game) || p.game_shots[0] || null;
+
+  // Header
+  const header = document.createElement("div");
+  header.className = "place-header";
+  header.innerHTML = `
+    <div class="place-title">
+      <h3>${p.slug}</h3>
+      <span class="slug-badge">${p.slug}</span>
+    </div>
+    <div class="chips">
+      ${p.facades.length > 0 && p.facades[0].polygon_id ? `<span class="chip">OSM: ${p.facades[0].polygon_id}</span>` : ""}
+      <span class="chip">${refPhotos.length} ref photos</span>
+      <span class="chip">${p.game_shots.length} game shots</span>
+    </div>
+  `;
+  card.appendChild(header);
+
+  // Compare controls
+  const controls = document.createElement("div");
+  controls.className = "compare-controls";
+  controls.innerHTML = `
+    <div class="compare-modes">
+      <button class="mode-btn active" data-mode="side">Side by side</button>
+      <button class="mode-btn" data-mode="slider">Slider</button>
+      <button class="mode-btn" data-mode="overlay">Overlay</button>
+    </div>
+    <div class="slider-ctrl" id="ctrl-${p.slug}" style="display:none">
+      <span id="sliderLabel-${p.slug}">Split: 50%</span>
+      <input type="range" id="range-${p.slug}" min="0" max="100" value="50">
+    </div>
+  `;
+  card.appendChild(controls);
+
+  // Viewer Container
+  const viewer = document.createElement("div");
+  viewer.className = "viewer-container";
+  viewer.id = `viewer-${p.slug}`;
+
+  // Side by Side markup
+  function updateViewerMode(mode, splitVal = 50) {
+    if (mode === "side") {
+      controls.querySelector(`#ctrl-${p.slug}`).style.display = "none";
+      viewer.className = "viewer-container";
+      viewer.innerHTML = `
+        <div class="viewer-panel">
+          <div class="panel-head">
+            <span>Reference Photo</span>
+            <span style="font-weight:400;color:var(--text-muted)">${selectedRefObj?.group || "none"}</span>
+          </div>
+          <div class="main-img-box" id="refBox-${p.slug}">
+            ${selectedRefObj ? `
+              <img src="../../${selectedRefObj.file}" alt="Reference">
+              ${selectedRefObj.changed_since_2004 ? `<div class="not-2004-badge">not 2004: ${selectedRefObj.changed_since_2004}</div>` : ""}
+            ` : `<div class="no-image">no reference photo</div>`}
+          </div>
+          <div class="caption-box" id="refCaption-${p.slug}">
+            <div class="what">${selectedRefObj?.what_it_shows || "No caption"}</div>
+            ${selectedRefObj?.tom_said ? `<div class="tom-said">"${selectedRefObj.tom_said}"</div>` : ""}
+          </div>
+          <div class="thumbs-strip" id="refThumbs-${p.slug}"></div>
+        </div>
+
+        <div class="viewer-panel">
+          <div class="panel-head">
+            <span>Game Screenshot</span>
+            <span style="font-weight:400;color:var(--text-muted)">${selectedGameObj?.name || "none"}</span>
+          </div>
+          <div class="main-img-box" id="gameBox-${p.slug}">
+            ${selectedGameObj ? `
+              <img src="../../${selectedGameObj.file}" alt="Game shot">
+            ` : `<div class="no-image">no game shot yet (see report for position status)</div>`}
+          </div>
+          <div class="caption-box">
+            <div class="what">${selectedGameObj ? `Shot: ${selectedGameObj.name}` : "No game shot available"}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${selectedGameObj?.meta?.camera ? `Cam x:${selectedGameObj.meta.camera.x} z:${selectedGameObj.meta.camera.z} yaw:${selectedGameObj.meta.camera.yaw}` : ""}</div>
+          </div>
+          <div class="thumbs-strip" id="gameThumbs-${p.slug}"></div>
+        </div>
+      `;
+
+      // Fill thumbnails
+      const refThumbsContainer = viewer.querySelector(`#refThumbs-${p.slug}`);
+      refPhotos.forEach((item) => {
+        const th = document.createElement("div");
+        th.className = `thumb-item ${item.file === fb.selected_ref ? "active" : ""}`;
+        th.innerHTML = `
+          <img src="../../${item.file}" loading="lazy" alt="thumb">
+          <div class="thumb-label ${item.group === "ai-rectified" ? "ai" : ""}">${item.group === "ai-rectified" ? "AI, not photo" : item.group}</div>
+        `;
+        th.onclick = () => {
+          fb.selected_ref = item.file;
+          selectedRefObj = item;
+          card.querySelector(`#refFile-${p.slug}`).textContent = item.file;
+          saveState();
+          updateViewerMode("side");
+        };
+        refThumbsContainer.appendChild(th);
+      });
+
+      const gameThumbsContainer = viewer.querySelector(`#gameThumbs-${p.slug}`);
+      p.game_shots.forEach((item) => {
+        const th = document.createElement("div");
+        th.className = `thumb-item ${item.file === fb.selected_game ? "active" : ""}`;
+        th.innerHTML = `
+          <img src="../../${item.file}" loading="lazy" alt="thumb">
+          <div class="thumb-label">${item.name.replace(p.slug + "_", "").slice(0, 14)}</div>
+        `;
+        th.onclick = () => {
+          fb.selected_game = item.file;
+          selectedGameObj = item;
+          saveState();
+          updateViewerMode("side");
+        };
+        gameThumbsContainer.appendChild(th);
+      });
+
+      // Zoom click
+      const refBox = viewer.querySelector(`#refBox-${p.slug}`);
+      if (refBox && selectedRefObj) refBox.onclick = () => openLightbox(`../../${selectedRefObj.file}`);
+      const gameBox = viewer.querySelector(`#gameBox-${p.slug}`);
+      if (gameBox && selectedGameObj) gameBox.onclick = () => openLightbox(`../../${selectedGameObj.file}`);
+
+    } else if (mode === "slider") {
+      controls.querySelector(`#ctrl-${p.slug}`).style.display = "flex";
+      controls.querySelector(`#sliderLabel-${p.slug}`).textContent = `Split: ${splitVal}%`;
+      viewer.className = "viewer-container mode-slider";
+      viewer.innerHTML = `
+        <div class="slider-view-wrap">
+          <div class="slider-layer bottom">
+            ${selectedRefObj ? `<img src="../../${selectedRefObj.file}">` : ""}
+          </div>
+          <div class="slider-layer top" style="width:${splitVal}%">
+            ${selectedGameObj ? `<img src="../../${selectedGameObj.file}">` : ""}
+          </div>
+        </div>
+      `;
+    } else if (mode === "overlay") {
+      controls.querySelector(`#ctrl-${p.slug}`).style.display = "flex";
+      controls.querySelector(`#sliderLabel-${p.slug}`).textContent = `Opacity: ${splitVal}%`;
+      viewer.className = "viewer-container mode-overlay";
+      viewer.innerHTML = `
+        <div class="slider-view-wrap">
+          <div class="slider-layer bottom">
+            ${selectedRefObj ? `<img src="../../${selectedRefObj.file}">` : ""}
+          </div>
+          <div class="slider-layer" style="opacity:${splitVal / 100}">
+            ${selectedGameObj ? `<img src="../../${selectedGameObj.file}">` : ""}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Initialize side by side
+  updateViewerMode("side");
+
+  // Mode toggles
+  controls.querySelectorAll(".mode-btn").forEach((btn) => {
+    btn.onclick = () => {
+      controls.querySelectorAll(".mode-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const mode = btn.dataset.mode;
+      const range = controls.querySelector(`#range-${p.slug}`);
+      updateViewerMode(mode, range.value);
+    };
+  });
+
+  const rangeInput = controls.querySelector(`#range-${p.slug}`);
+  rangeInput.oninput = (e) => {
+    const activeMode = controls.querySelector(".mode-btn.active").dataset.mode;
+    updateViewerMode(activeMode, e.target.value);
+  };
+
+  card.appendChild(viewer);
+
+  // Feedback fields
+  const feedback = document.createElement("div");
+  feedback.className = "feedback-box";
+
+  const FAULTS = [
+    "wrong shape or height",
+    "wrong colour or material",
+    "wrong roof",
+    "wrong windows or doors",
+    "missing details",
+    "trees or landscape wrong",
+    "wrong era (not 2004)",
+    "signage"
+  ];
+
+  feedback.innerHTML = `
+    <div class="fb-group">
+      <div class="fb-row">
+        <span class="fb-label">Match score</span>
+        <div class="radio-options">
+          ${[1, 2, 3, 4, 5].map((num) => `
+            <label>
+              <input type="radio" name="score-${p.slug}" value="${num}" ${fb.score === num ? "checked" : ""}>
+              ${num}
+            </label>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="fb-row">
+        <span class="fb-label">Priority</span>
+        <div class="radio-options">
+          ${["High", "Medium", "Low", "Skip"].map((pri) => `
+            <label>
+              <input type="radio" name="priority-${p.slug}" value="${pri}" ${fb.priority === pri ? "checked" : ""}>
+              ${pri}
+            </label>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="fb-group" style="margin-top:6px">
+        <span class="fb-label">Common faults</span>
+        <div class="faults-grid">
+          ${FAULTS.map((f) => `
+            <label>
+              <input type="checkbox" data-fault="${f}" ${fb.faults?.includes(f) ? "checked" : ""}>
+              ${f}
+            </label>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+
+    <div class="fb-group">
+      <span class="fb-label">What is wrong</span>
+      <textarea class="notes-area" id="notes-${p.slug}" placeholder="Specific notes on facades, proportions, colors, era accuracy...">${fb.notes || ""}</textarea>
+      
+      <span class="fb-label" style="margin-top:8px">Reference photo referenced</span>
+      <div class="ref-file-line" id="refFile-${p.slug}">${fb.selected_ref || "None selected"}</div>
+    </div>
+  `;
+
+  // Bind events
+  feedback.querySelectorAll(`input[name="score-${p.slug}"]`).forEach((r) => {
+    r.onchange = () => {
+      fb.score = Number(r.value);
+      saveState();
+    };
+  });
+
+  feedback.querySelectorAll(`input[name="priority-${p.slug}"]`).forEach((r) => {
+    r.onchange = () => {
+      fb.priority = r.value;
+      saveState();
+    };
+  });
+
+  feedback.querySelectorAll(".faults-grid input").forEach((cb) => {
+    cb.onchange = () => {
+      if (!fb.faults) fb.faults = [];
+      const fault = cb.dataset.fault;
+      if (cb.checked) {
+        if (!fb.faults.includes(fault)) fb.faults.push(fault);
+      } else {
+        fb.faults = fb.faults.filter((x) => x !== fault);
+      }
+      saveState();
+    };
+  });
+
+  feedback.querySelector(`#notes-${p.slug}`).oninput = (e) => {
+    fb.notes = e.target.value;
+    saveState();
+  };
+
+  card.appendChild(feedback);
+  return card;
+}
+
+// Scored counter
+function updateScoredCounter() {
+  let scored = 0;
+  placesData.forEach((p) => {
+    if (appState.places[p.slug]?.score) scored++;
+  });
+  document.getElementById("scoredCount").textContent = `Scored ${scored} of ${placesData.length}`;
+}
+
+// Filters
+document.querySelectorAll(".filter-btn").forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentFilter = btn.dataset.filter;
+    renderPlacesList();
+  };
+});
+
+// TAB 2: AUDIO SETUP
+const AUDIO_ITEMS = [
+  // 1. Engines per car
+  { id: "engine-civic-pull", group: "Engines", title: "Honda Civic - Idle and Pull", sub: "Synthesized 1.6L inline-4 engine profile", source: "synthesized in src/core/audition.js: renderAudition(civic, 'pull')", staticFile: "docs/audio/civic.wav", type: "engine", car: "civic", kind: "pull" },
+  { id: "engine-civic-cruise", group: "Engines", title: "Honda Civic - Cruise", sub: "Cruise engine loop", source: "docs/audio/civic-cruise.wav", staticFile: "docs/audio/civic-cruise.wav", type: "static" },
+  { id: "engine-saturn-pull", group: "Engines", title: "Saturn SL2 - Idle and Pull", sub: "Synthesized 1.9L DOHC engine profile", source: "synthesized in src/core/audition.js: renderAudition(saturn, 'pull')", staticFile: "docs/audio/saturn.wav", type: "engine", car: "saturn", kind: "pull" },
+  { id: "engine-saturn-cruise", group: "Engines", title: "Saturn SL2 - Cruise", sub: "Cruise engine loop", source: "docs/audio/saturn-cruise.wav", staticFile: "docs/audio/saturn-cruise.wav", type: "static" },
+  { id: "engine-sunfire-pull", group: "Engines", title: "Pontiac Sunfire - Idle and Pull", sub: "Synthesized 2.2L Ecotec engine profile", source: "synthesized in src/core/audition.js: renderAudition(sunfire, 'pull')", staticFile: "docs/audio/sunfire.wav", type: "engine", car: "sunfire", kind: "pull" },
+  { id: "engine-sunfire-cruise", group: "Engines", title: "Pontiac Sunfire - Cruise", sub: "Cruise engine loop", source: "docs/audio/sunfire-cruise.wav", staticFile: "docs/audio/sunfire-cruise.wav", type: "static" },
+  { id: "engine-ranger-pull", group: "Engines", title: "Ford Ranger - Idle and Pull", sub: "Synthesized 3.0L Vulcan V6 engine profile", source: "synthesized in src/core/audition.js: renderAudition(ranger, 'pull')", staticFile: "docs/audio/ranger.wav", type: "engine", car: "ranger", kind: "pull" },
+  { id: "engine-ranger-cruise", group: "Engines", title: "Ford Ranger - Cruise", sub: "Cruise engine loop", source: "docs/audio/ranger-cruise.wav", staticFile: "docs/audio/ranger-cruise.wav", type: "static" },
+  { id: "engine-ranger-road", group: "Engines", title: "Surface Road Rolling Noise", sub: "Asphalt contact noise at variable speeds", source: "synthesized in src/core/audition.js: renderRoadAudition(ranger)", staticFile: "docs/audio/ranger-road.wav", type: "road", car: "ranger" },
+
+  // 2. Radio
+  { id: "radio-style-pop", group: "Radio", title: "Radio CKOI - Pop Style", sub: "Synthesized radio loop", source: "docs/audio/radio-pop.wav", staticFile: "docs/audio/radio-pop.wav", type: "radio", style: "pop" },
+  { id: "radio-style-metal", group: "Radio", title: "Radio CKOI - Metal Style", sub: "Synthesized radio loop", source: "docs/audio/radio-metal.wav", staticFile: "docs/audio/radio-metal.wav", type: "radio", style: "metal" },
+  { id: "radio-style-boom", group: "Radio", title: "Radio CKOI - Boom Style", sub: "Synthesized radio loop", source: "docs/audio/radio-boom.wav", staticFile: "docs/audio/radio-boom.wav", type: "radio", style: "boom" },
+  { id: "radio-style-folk", group: "Radio", title: "Radio CKOI - Folk Style", sub: "Synthesized radio loop", source: "docs/audio/radio-folk.wav", staticFile: "docs/audio/radio-folk.wav", type: "radio", style: "folk" },
+  { id: "radio-style-ballade", group: "Radio", title: "Radio CKOI - Ballade Style", sub: "Synthesized radio loop", source: "synthesized in src/game/radio.js: renderLoop('ballade')", type: "radio", style: "ballade" },
+  { id: "radio-style-classic", group: "Radio", title: "Radio CKOI - Classic Style", sub: "Synthesized radio loop", source: "synthesized in src/game/radio.js: renderLoop('classic')", type: "radio", style: "classic" },
+  { id: "radio-style-country", group: "Radio", title: "Radio CKOI - Country Style", sub: "Synthesized radio loop", source: "synthesized in src/game/radio.js: renderLoop('country')", type: "radio", style: "country" },
+  { id: "radio-style-campus", group: "Radio", title: "Radio CKOI - Campus Style", sub: "Synthesized radio loop", source: "synthesized in src/game/radio.js: renderLoop('campus')", type: "radio", style: "campus" },
+  { id: "radio-style-talk", group: "Radio", title: "Radio CKOI - Talk Style", sub: "Synthesized radio loop", source: "synthesized in src/game/radio.js: renderLoop('talk')", type: "radio", style: "talk" },
+  { id: "radio-station-idents", group: "Radio", title: "Station Idents and Patter", sub: "CKOI 102.1, MAX 104.7, CHLL 99.9, CKUQ 89.1, CFRL 101.3, CJRC 1150 AM, CKOT 92.3", source: "src/game/radio.js: STATIONS metadata", type: "info" },
+  { id: "radio-cassette", group: "Radio", title: "Player Cassette Tape", sub: "No cassette tracks yet (assets/radio/playlist.json is empty)", source: "assets/radio/playlist.json", type: "info" },
+
+  // 3. Ambient
+  { id: "ambient-environmental", group: "Ambient", title: "Ambient Environmental Sound", sub: "none found in code (described in gemini-inbox/audio/SOUND-DESIGN.md: cicadas, lake breeze, lawnmower)", source: "gemini-inbox/audio/SOUND-DESIGN.md", type: "info" },
+
+  // 4. Sound Effects
+  { id: "sfx-crash", group: "Sound effects", title: "Vehicle Crash Impact", sub: "Synthesized impact noise and distortion", source: "synthesized in src/core/audio.js: fireCrash()", type: "sfx-crash" },
+  { id: "sfx-land", group: "Sound effects", title: "Suspension Landing Thud", sub: "Synthesized landing impact", source: "synthesized in src/core/audio.js: fireLand()", type: "sfx-land" },
+  { id: "sfx-horn", group: "Sound effects", title: "Car Horn", sub: "Dual-tone automotive horn", source: "synthesized in src/core/audio.js: Audio.prototype.horn()", type: "sfx-live", method: "horn" },
+  { id: "sfx-honk", group: "Sound effects", title: "Traffic Honk", sub: "Ambient traffic honk cue", source: "synthesized in src/core/audio.js: Audio.prototype.honk()", type: "sfx-live", method: "honk" },
+  { id: "sfx-siren", group: "Sound effects", title: "Police Siren", sub: "Emergency vehicle wail", source: "synthesized in src/core/audio.js: Audio.prototype.siren()", type: "sfx-live", method: "siren" },
+  { id: "sfx-skid", group: "Sound effects", title: "Tire Skid", sub: "Lateral tire friction noise", source: "synthesized in src/core/audio.js: Audio.prototype.skid()", type: "sfx-live", method: "skid" },
+  { id: "sfx-whoosh", group: "Sound effects", title: "Passing Vehicle Whoosh", sub: "Doppler pass-by effect", source: "synthesized in src/core/audio.js: Audio.prototype.whoosh()", type: "sfx-live", method: "whoosh" },
+  { id: "sfx-misfire", group: "Sound effects", title: "Engine Misfire / Backfire", sub: "Exhaust pop", source: "synthesized in src/core/audio.js: Audio.prototype.misfire()", type: "sfx-live", method: "misfire" },
+  { id: "sfx-heille", group: "Sound effects", title: "Heille! Pedestrian Shout", sub: "Voice-like vocal formant cue", source: "synthesized in src/core/audio.js: Audio.prototype.heille()", type: "sfx-live", method: "heille" },
+  { id: "sfx-thud", group: "Sound effects", title: "Thud Kinds (Metal/Body/Debris)", sub: "Impact thud variations", source: "synthesized in src/core/audio.js: Audio.prototype.thud()", type: "sfx-live", method: "thud" },
+  { id: "sfx-wrench", group: "Sound effects", title: "Mechanic Wrench Clink", sub: "Repair shop metal clang", source: "synthesized in src/core/audio.js: Audio.prototype.wrench()", type: "sfx-live", method: "wrench" },
+
+  // 5. UI
+  { id: "ui-blip", group: "UI", title: "Menu Selection Blip", sub: "Light interface feedback blip", source: "synthesized in src/core/audio.js: Audio.prototype.blip()", type: "sfx-live", method: "blip" },
+  { id: "ui-chime", group: "UI", title: "Objective Complete Chime", sub: "Ascending reward chime", source: "synthesized in src/core/audio.js: Audio.prototype.chime()", type: "sfx-live", method: "chime" },
+];
+
+function initAudioTab() {
+  document.getElementById("audioNotes").value = appState.audio_notes || "";
+  document.getElementById("audioNotes").oninput = (e) => {
+    appState.audio_notes = e.target.value;
+    saveState();
+  };
+
+  document.getElementById("audioMissing").value = appState.audio_missing || "";
+  document.getElementById("audioMissing").oninput = (e) => {
+    appState.audio_missing = e.target.value;
+    saveState();
+  };
+
+  const container = document.getElementById("audioGroupsContainer");
+  container.innerHTML = "";
+
+  const groups = ["Engines", "Radio", "Ambient", "Sound effects", "UI"];
+  groups.forEach((grp) => {
+    const items = AUDIO_ITEMS.filter((x) => x.group === grp);
+    const grpEl = document.createElement("div");
+    grpEl.className = "audio-group";
+    grpEl.innerHTML = `
+      <div class="audio-group-head">
+        <span>${grp}</span>
+        <span style="font-size:12px;font-weight:400;color:var(--text-muted)">${items.length} items</span>
+      </div>
+    `;
+
+    items.forEach((item) => {
+      if (!appState.audio[item.id]) {
+        appState.audio[item.id] = { decision: null, rating: null, notes: "" };
+      }
+      const fb = appState.audio[item.id];
+      const row = document.createElement("div");
+      row.className = "audio-item";
+
+      row.innerHTML = `
+        <div class="audio-player-col">
+          <div class="audio-title">${item.title}</div>
+          <div class="audio-sub">${item.sub}</div>
+          <div class="audio-src-line">${item.source}</div>
+          <div class="audio-actions" id="audioActions-${item.id}">
+            ${item.staticFile ? `
+              <audio controls src="../../${item.staticFile}"></audio>
+            ` : item.type === "info" ? `
+              <span style="font-size:12px;font-style:italic;color:var(--text-muted)">No playable sample available</span>
+            ` : `
+              <button class="action-btn" id="btnRender-${item.id}">Render WAV</button>
+              ${item.method ? `<button class="action-btn" id="btnPlayLive-${item.id}">Play live</button>` : ""}
+            `}
+          </div>
+        </div>
+
+        <div class="audio-feedback-col">
+          <div class="fb-row">
+            <span class="fb-label">Decision</span>
+            <div class="radio-options">
+              ${["keep", "change", "cut"].map((d) => `
+                <label>
+                  <input type="radio" name="dec-${item.id}" value="${d}" ${fb.decision === d ? "checked" : ""}>
+                  ${d}
+                </label>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="fb-row">
+            <span class="fb-label">Rating</span>
+            <div class="radio-options">
+              ${[1, 2, 3, 4, 5].map((num) => `
+                <label>
+                  <input type="radio" name="rate-${item.id}" value="${num}" ${fb.rating === num ? "checked" : ""}>
+                  ${num}
+                </label>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="fb-group">
+            <span class="fb-label">Notes</span>
+            <textarea class="notes-area" id="notes-${item.id}" style="height:55px" placeholder="Feedback on balance, fidelity, repetition...">${fb.notes || ""}</textarea>
+          </div>
+        </div>
+      `;
+
+      // Wire up render buttons
+      const renderBtn = row.querySelector(`#btnRender-${item.id}`);
+      if (renderBtn) {
+        renderBtn.onclick = async () => {
+          renderBtn.innerHTML = `<span class="spinner"></span> Rendering...`;
+          renderBtn.disabled = true;
+          try {
+            let wavBlob = null;
+            if (item.type === "engine") {
+              const spec = carById(item.car);
+              const r = await renderAudition(spec, item.kind, 22050);
+              wavBlob = pcmToWavBlob(r.samples, r.sampleRate);
+            } else if (item.type === "road") {
+              const spec = carById(item.car);
+              const r = await renderRoadAudition(spec, 22050);
+              wavBlob = pcmToWavBlob(r.samples, r.sampleRate);
+            } else if (item.type === "radio") {
+              const buf = await renderLoop(item.style, 2004, 22050);
+              wavBlob = pcmToWavBlob(buf.getChannelData(0), buf.sampleRate);
+            } else if (item.type === "sfx-crash") {
+              const actx = new OfflineAudioContext(1, 44100 * 2, 44100);
+              const noise = makeNoise(actx, 2);
+              fireCrash(actx, actx.destination, 0, 1.0, noise);
+              const rendered = await actx.startRendering();
+              wavBlob = pcmToWavBlob(rendered.getChannelData(0), rendered.sampleRate);
+            } else if (item.type === "sfx-land") {
+              const actx = new OfflineAudioContext(1, 44100 * 2, 44100);
+              const noise = makeNoise(actx, 2);
+              fireLand(actx, actx.destination, 0, 1.0, noise);
+              const rendered = await actx.startRendering();
+              wavBlob = pcmToWavBlob(rendered.getChannelData(0), rendered.sampleRate);
+            } else if (item.type === "sfx-live") {
+              // Record from live WebAudio
+              const actx = new OfflineAudioContext(1, 44100 * 1.5, 44100);
+              const aud = new Audio();
+              // offline substitute or fallback
+              renderBtn.textContent = "Live only";
+            }
+
+            if (wavBlob) {
+              const audioEl = document.createElement("audio");
+              audioEl.controls = true;
+              audioEl.src = URL.createObjectURL(wavBlob);
+              const actionsDiv = row.querySelector(`#audioActions-${item.id}`);
+              actionsDiv.innerHTML = "";
+              actionsDiv.appendChild(audioEl);
+            }
+          } catch (e) {
+            console.error("Render failed:", e);
+            renderBtn.textContent = "Render error";
+          }
+        };
+      }
+
+      const liveBtn = row.querySelector(`#btnPlayLive-${item.id}`);
+      if (liveBtn) {
+        liveBtn.onclick = () => {
+          const a = getAudioInstance();
+          if (a && typeof a[item.method] === "function") {
+            a[item.method]();
+          }
+        };
+      }
+
+      // Bind feedback
+      row.querySelectorAll(`input[name="dec-${item.id}"]`).forEach((r) => {
+        r.onchange = () => { fb.decision = r.value; saveState(); };
+      });
+      row.querySelectorAll(`input[name="rate-${item.id}"]`).forEach((r) => {
+        r.onchange = () => { fb.rating = Number(r.value); saveState(); };
+      });
+      row.querySelector(`#notes-${item.id}`).oninput = (e) => {
+        fb.notes = e.target.value;
+        saveState();
+      };
+
+      grpEl.appendChild(row);
+    });
+
+    container.appendChild(grpEl);
+  });
+}
+
+// EXPORT & SAVE HANDLERS
+function generateFeedbackJSON() {
+  const placesList = placesData.map((p) => {
+    const fb = appState.places[p.slug] || {};
+    return {
+      slug: p.slug,
+      polygon_id: p.facades[0]?.polygon_id || null,
+      reference_image: fb.selected_ref || null,
+      game_shot: fb.selected_game || null,
+      score: fb.score || null,
+      priority: fb.priority || null,
+      faults: fb.faults || [],
+      notes: fb.notes || "",
+      tom_caption: p.tom_upload[0]?.tom_said || "",
+    };
+  });
+
+  const audioList = AUDIO_ITEMS.map((item) => {
+    const fb = appState.audio[item.id] || {};
+    return {
+      id: item.id,
+      group: item.group,
+      source: item.source,
+      decision: fb.decision || null,
+      rating: fb.rating || null,
+      notes: fb.notes || "",
+    };
+  });
+
+  return {
+    schema: "aylmer-compare-feedback",
+    version: 1,
+    exported: new Date().toISOString(),
+    overall_feel: appState.overall_feel || "",
+    audio_notes: appState.audio_notes || "",
+    audio_missing: appState.audio_missing || "",
+    places: placesList,
+    audio: audioList,
+  };
+}
+
+function generateFeedbackMarkdown(json) {
+  const lines = [];
+  lines.push("# Aylmer Madness - Look + Audio Comparison Feedback");
+  lines.push("");
+  lines.push(`Exported: ${json.exported}`);
+  lines.push("");
+  lines.push("## Overall Feel");
+  lines.push(json.overall_feel ? json.overall_feel : "No overall feel comments entered.");
+  lines.push("");
+  lines.push("## Audio Notes");
+  lines.push(json.audio_notes ? json.audio_notes : "No global audio notes entered.");
+  lines.push("");
+  lines.push("## Audio What is Missing");
+  lines.push(json.audio_missing ? json.audio_missing : "None recorded.");
+  lines.push("");
+
+  lines.push("## Places Feedback");
+  const priOrder = { High: 1, Medium: 2, Low: 3, Skip: 4 };
+  const sortedPlaces = [...json.places].sort((a, b) => {
+    const pa = priOrder[a.priority] || 99;
+    const pb = priOrder[b.priority] || 99;
+    if (pa !== pb) return pa - pb;
+    return (a.score || 99) - (b.score || 99);
+  });
+
+  const reviewedPlaces = sortedPlaces.filter((p) => p.score || p.priority || p.notes || (p.faults && p.faults.length > 0));
+  const unreviewedSlugs = sortedPlaces.filter((p) => !reviewedPlaces.includes(p)).map((p) => p.slug);
+
+  reviewedPlaces.forEach((p) => {
+    lines.push(`### ${p.slug}`);
+    lines.push(`- Priority: ${p.priority || "Not set"}`);
+    lines.push(`- Match Score: ${p.score ? p.score + " / 5" : "Not scored"}`);
+    if (p.faults && p.faults.length > 0) lines.push(`- Faults: ${p.faults.join(", ")}`);
+    if (p.notes) lines.push(`- Notes: ${p.notes}`);
+    if (p.reference_image) lines.push(`- Reference: ${p.reference_image}`);
+    if (p.game_shot) lines.push(`- Game Shot: ${p.game_shot}`);
+    lines.push("");
+  });
+
+  if (unreviewedSlugs.length > 0) {
+    lines.push(`Not reviewed: ${unreviewedSlugs.join(", ")}`);
+    lines.push("");
+  }
+
+  lines.push("## Audio Feedback");
+  const audioCut = json.audio.filter((a) => a.decision === "cut");
+  const audioChange = json.audio.filter((a) => a.decision === "change");
+  const audioKeep = json.audio.filter((a) => a.decision === "keep");
+  const audioOther = json.audio.filter((a) => !["cut", "change", "keep"].includes(a.decision));
+
+  const printAudioSection = (title, list) => {
+    lines.push(`### ${title}`);
+    if (list.length === 0) {
+      lines.push("None.");
+    } else {
+      list.forEach((item) => {
+        lines.push(`- **${item.id}** (${item.group}) - Rating: ${item.rating ? item.rating + "/5" : "None"}`);
+        lines.push(`  Source: ${item.source}`);
+        if (item.notes) lines.push(`  Notes: ${item.notes}`);
+      });
+    }
+    lines.push("");
+  };
+
+  printAudioSection("Cut", audioCut);
+  printAudioSection("Change", audioChange);
+  printAudioSection("Keep", audioKeep);
+
+  const audioUnreviewed = audioOther.filter((a) => !a.rating && !a.notes).map((a) => a.id);
+  if (audioUnreviewed.length > 0) {
+    lines.push(`Not reviewed audio: ${audioUnreviewed.join(", ")}`);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+function downloadFile(content, fileName, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+function formatDateStamp() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+}
+
+// "Export feedback" button
+document.getElementById("btnExport").onclick = () => {
+  const stamp = formatDateStamp();
+  const json = generateFeedbackJSON();
+  const md = generateFeedbackMarkdown(json);
+  downloadFile(JSON.stringify(json, null, 2), `aylmer-compare-feedback_${stamp}.json`, "application/json");
+  downloadFile(md, `aylmer-compare-feedback_${stamp}.md`, "text/markdown");
+};
+
+// "Save into repo" button
+document.getElementById("btnSaveRepo").onclick = async () => {
+  const stamp = formatDateStamp();
+  const json = generateFeedbackJSON();
+  const md = generateFeedbackMarkdown(json);
+
+  if ("showDirectoryPicker" in window) {
+    try {
+      const handle = await window.showDirectoryPicker({ id: "aylmer-repo", mode: "readwrite" });
+      // Validate repo
+      let valid = false;
+      try {
+        const toolsDir = await handle.getDirectoryHandle("tools");
+        const compareDir = await toolsDir.getDirectoryHandle("aylmer-compare");
+        await compareDir.getFileHandle("index.html");
+        valid = true;
+      } catch (e) {
+        valid = false;
+      }
+
+      if (!valid) {
+        alert("The selected folder does not appear to be the Aylmer Madness repository root (tools/aylmer-compare/index.html was not found). Falling back to browser downloads.");
+        downloadFile(JSON.stringify(json, null, 2), `aylmer-compare-feedback_${stamp}.json`, "application/json");
+        downloadFile(md, `aylmer-compare-feedback_${stamp}.md`, "text/markdown");
+        return;
+      }
+
+      // Create target directory in references/places/_feedback/<YYYYMMDD-HHMM>/
+      const refsDir = await handle.getDirectoryHandle("references");
+      const placesDir = await refsDir.getDirectoryHandle("places");
+      const fbDir = await placesDir.getDirectoryHandle("_feedback", { create: true });
+      const targetDir = await fbDir.getDirectoryHandle(stamp, { create: true });
+
+      const jsonFileHandle = await targetDir.getFileHandle(`aylmer-compare-feedback_${stamp}.json`, { create: true });
+      const jsonWritable = await jsonFileHandle.createWritable();
+      await jsonWritable.write(JSON.stringify(json, null, 2));
+      await jsonWritable.close();
+
+      const mdFileHandle = await targetDir.getFileHandle(`aylmer-compare-feedback_${stamp}.md`, { create: true });
+      const mdWritable = await mdFileHandle.createWritable();
+      await mdWritable.write(md);
+      await mdWritable.close();
+
+      alert(`Successfully saved feedback into references/places/_feedback/${stamp}/`);
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.warn("showDirectoryPicker failed, falling back:", err);
+        downloadFile(JSON.stringify(json, null, 2), `aylmer-compare-feedback_${stamp}.json`, "application/json");
+        downloadFile(md, `aylmer-compare-feedback_${stamp}.md`, "text/markdown");
+      }
+    }
+  } else {
+    downloadFile(JSON.stringify(json, null, 2), `aylmer-compare-feedback_${stamp}.json`, "application/json");
+    downloadFile(md, `aylmer-compare-feedback_${stamp}.md`, "text/markdown");
+    alert("File System Access API is not supported in this browser. Feedback files downloaded via browser.");
+  }
+};
+
+// "Import feedback" button
+const importInput = document.getElementById("importInput");
+document.getElementById("btnImport").onclick = () => {
+  importInput.click();
+};
+
+importInput.onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const confirmed = confirm("Importing feedback will overwrite current unsaved changes. A backup will be downloaded first. Do you want to proceed?");
+  if (!confirmed) {
+    importInput.value = "";
+    return;
+  }
+
+  // Backup current state
+  const stamp = formatDateStamp();
+  try {
+    localStorage.setItem(`aylmer-compare-v1-backup-${Date.now()}`, JSON.stringify(appState));
+  } catch {}
+  downloadFile(JSON.stringify(appState, null, 2), `aylmer-compare-feedback-backup_${stamp}.json`, "application/json");
+
+  try {
+    const text = await file.text();
+    const imported = JSON.parse(text);
+
+    if (imported.schema !== "aylmer-compare-feedback") {
+      alert("Invalid schema in imported JSON.");
+      return;
+    }
+
+    if (imported.overall_feel) appState.overall_feel = imported.overall_feel;
+    if (imported.audio_notes) appState.audio_notes = imported.audio_notes;
+    if (imported.audio_missing) appState.audio_missing = imported.audio_missing;
+
+    if (Array.isArray(imported.places)) {
+      imported.places.forEach((p) => {
+        if (!appState.places[p.slug]) appState.places[p.slug] = {};
+        if (p.score != null) appState.places[p.slug].score = p.score;
+        if (p.priority != null) appState.places[p.slug].priority = p.priority;
+        if (p.faults) appState.places[p.slug].faults = p.faults;
+        if (p.notes) appState.places[p.slug].notes = p.notes;
+        if (p.reference_image) appState.places[p.slug].selected_ref = p.reference_image;
+        if (p.game_shot) appState.places[p.slug].selected_game = p.game_shot;
+      });
+    }
+
+    if (Array.isArray(imported.audio)) {
+      imported.audio.forEach((a) => {
+        if (!appState.audio[a.id]) appState.audio[a.id] = {};
+        if (a.decision != null) appState.audio[a.id].decision = a.decision;
+        if (a.rating != null) appState.audio[a.id].rating = a.rating;
+        if (a.notes) appState.audio[a.id].notes = a.notes;
+      });
+    }
+
+    saveState();
+    initLookTab();
+    initAudioTab();
+    alert("Feedback imported successfully!");
+  } catch (err) {
+    alert(`Failed to parse imported file: ${err.message}`);
+  } finally {
+    importInput.value = "";
+  }
+};
+
+// Startup
+loadState();
+initLookTab();
+initAudioTab();
+</script>
+</body>
+</html>

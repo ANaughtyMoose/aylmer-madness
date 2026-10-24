@@ -32,7 +32,38 @@
 export const GAP = 4;             // seconds between any two heckles
 export const COOLDOWN = 30;       // seconds before the same line can repeat
 export const BUBBLE_MS = 2200;    // how long one bubble sticks around
-export const MAX_BUBBLES = 2;
+export const MAX_BUBBLES = 2;     // (kept for callers; the queue below shows one at a time)
+// A player who is stopped or crawling — stuck in a driveway, reading a prompt,
+// lining up a parking spot — is not doing anything worth a remark every four
+// seconds. The lead counted seven barks in four seconds at the spawn.
+export const SLOW_KMH = 8;
+export const SLOW_GAP = 12;
+// Story lines (the friends, the plot) play ONE AT A TIME, in order, each for
+// clamp(max(1, 0.3 s per word), 2.5, 5) seconds of game time, with a short
+// breath between them. Tom approved the sequencing on 29 Sep 2026.
+export const STORY_GAP = 0.35;
+export const STORY_QUEUE_MAX = 8;
+export function storySeconds(text) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+  return Math.min(5, Math.max(2.5, Math.max(1, 0.3 * words)));
+}
+// The scene hush (B-08). A scripted scene told in toasts (the Centre antipoison
+// call in the Nuit du Tim, the finale's kitchen, the Saint-Jean fire) is not a
+// story bubble, so storyBusy() did not protect it, and a passer-by's gag landed
+// between « Couchez-le sur le côté » and « Restez avec lui ». A scene raises
+// hush(reason) every tick it runs; while any reason is live, say() and
+// ambient() emit nothing. Story lines still play. Each raise lasts HUSH_TTL
+// seconds of game time, so a scene that ends without saying so (a fail, a quit,
+// a teleport) lets the town talk again on its own a moment later.
+//
+// A toast can be queued behind others and come up after its stage is over (the
+// HUD shows one at a time, 2.5 s each; the harness saw the four antipoison
+// lines land 40 s after the call stage, during the drive to the Tim). So a
+// scene can also hushWhile(reason, test): the street stays quiet for as long
+// as test() says the scene's toast is still queued or on screen, up to
+// HUSH_MAX seconds of game time.
+export const HUSH_TTL = 1.0;
+export const HUSH_MAX = 60;
 export const CLEAN_AFTER = 60;    // seconds of clean driving before the praise
 export const CLEAN_MOVING = 25;   // ...of which this many actually moving
 
@@ -45,12 +76,12 @@ export const HECKLES = {
     'Tabarnak, r’garde où tu vas!',
     'T’as-tu eu ton permis dans une boîte de Cracker Jack?',
     'Câlisse de malade!',
-    'Ostie que t’es dangereux!',
+    'Mon doux que t’es dangereux!',
     'Va donc chier!',
     'Es-tu soûl, toé?',
     'C’est un trottoir, ça, pas une piste!',
     'Y’a des enfants qui jouent icitte!',
-    'Ralentis, mon tabarnak!',
+    'Ralentis, coudonc!',
     'J’appelle la police, moé, là!',
     'T’sais qu’y a des freins dans c’te char-là?',
     'Mon Dieu Seigneur!',
@@ -185,12 +216,12 @@ export const GLOSS = {
   'Tabarnak, r’garde où tu vas!': ['Christ, watch where you’re going!', '“Tabarnak” is the tabernacle off the altar. Québec swears with church furniture.'],
   'T’as-tu eu ton permis dans une boîte de Cracker Jack?': ['Did you get your licence out of a Cracker Jack box?', 'Cracker Jack came with a cheap plastic prize buried in the caramel corn.'],
   'Câlisse de malade!': ['You goddamn lunatic!', '“Câlisse” is the chalice; “malade” — sick — means dangerous here, not ill.'],
-  'Ostie que t’es dangereux!': ['God, you are dangerous!', '“Ostie” is the communion host. Another altar word doing duty as a swear.'],
+  'Mon doux que t’es dangereux!': ['Good grief, you are dangerous!', '“Mon doux” is short for « mon doux Seigneur »: the gasp of somebody who does not swear.'],
   'Va donc chier!': ['Go to hell!', 'Literally “go take a crap”. Not affectionate.'],
   'Es-tu soûl, toé?': ['Are you drunk or what?', '“Toé” is “toi”, tacked on the end for emphasis. Everybody does it.'],
   'C’est un trottoir, ça, pas une piste!': ['That’s a sidewalk, not a racetrack!'],
   'Y’a des enfants qui jouent icitte!': ['There are kids playing here!', '“Icitte” is “ici” — here — with the Québec ending on it.'],
-  'Ralentis, mon tabarnak!': ['Slow down, you son of a—!'],
+  'Ralentis, coudonc!': ['Slow down, would you!', '“Coudonc” is « écoute donc », worn down to one word.'],
   'J’appelle la police, moé, là!': ['I am calling the cops, right now!'],
   'T’sais qu’y a des freins dans c’te char-là?': ['You do know that car has brakes?', '“Char” — chariot — is the Québec word for a car.'],
   'Mon Dieu Seigneur!': ['Good Lord above!'],
@@ -304,7 +335,9 @@ export class Heckle {
     this.cleanMove = 0;     // ...of which this many were spent above 20 km/h
     this.root = undefined;  // #heckles, looked up lazily
     this.live = [];         // bubbles on screen
-    this.pending = [];      // bubbles waiting for a slot
+    this.pending = [];      // story lines waiting their turn, oldest first
+    this.storyNow = null;   // the story line on screen: { who, text, group, until, entry }
+    this.storyGapUntil = 0; // the breath after a story line
     // The slang gloss (G). `glossOn` is the latch, `held` is the key being held
     // down right now, and `history` is what the panel shows when nothing is on
     // screen any more — you always get to read the last thing that was yelled.
@@ -315,6 +348,11 @@ export class Heckle {
     // The written corpus, once load() has been round the network. Null means
     // "use the built-in pools", which is what every headless test sees.
     this.pools = null;
+    // The scene hush: reason -> game time it lapses. `hushDropped` counts the
+    // heckles and street lines it ate (the harness and the smoke read it).
+    this.hushes = new Map();
+    this.hushTests = new Map();   // reason -> { test, until }
+    this.hushDropped = 0;
   }
 
   bind(G) { this.G = G; return this; }
@@ -385,10 +423,83 @@ export class Heckle {
     return !s || s.heckles !== false;
   }
 
+  // ---- the scene hush -----------------------------------------------------
+
+  /**
+   * A scripted scene has the floor for the next `secs` seconds of game time
+   * (HUSH_TTL by default; scenes call this every tick they run). Raising it
+   * takes any heckle or street bubble already on screen down; story lines
+   * stay. Returns true.
+   */
+  hush(reason = 'scene', secs = HUSH_TTL) {
+    const was = this.hushed;
+    const until = this.t + (Number.isFinite(secs) ? Math.max(0, secs) : HUSH_TTL);
+    const key = String(reason || 'scene');
+    if (!(this.hushes.get(key) >= until)) this.hushes.set(key, until);
+    if (!was && this.hushed) this._dropChatter();
+    return true;
+  }
+
+  /**
+   * Hold the street quiet while `test()` is true (a scene toast still queued
+   * or showing), for at most `maxSecs` of game time. A test that throws or
+   * returns false ends that reason. Returns true.
+   */
+  hushWhile(reason, test, maxSecs = HUSH_MAX) {
+    if (typeof test !== 'function') return false;
+    const was = this.hushed;
+    const max = Number.isFinite(maxSecs) ? Math.max(0, maxSecs) : HUSH_MAX;
+    this.hushTests.set(String(reason || 'scene'), { test, until: this.t + max });
+    if (!was && this.hushed) this._dropChatter();
+    return true;
+  }
+
+  /** The scene is over: lift one reason, or every reason with none given. */
+  unhush(reason = null) {
+    if (reason == null) { this.hushes.clear(); this.hushTests.clear(); return; }
+    this.hushes.delete(String(reason));
+    this.hushTests.delete(String(reason));
+  }
+
+  /** Is any scene holding the street quiet right now? */
+  get hushed() {
+    for (const [k, until] of this.hushes) {
+      if (until > this.t) return true;
+      this.hushes.delete(k);
+    }
+    for (const [k, h] of this.hushTests) {
+      let on = false;
+      if (h.until > this.t) { try { on = !!h.test(); } catch { on = false; } }
+      if (on) return true;
+      this.hushTests.delete(k);
+    }
+    return false;
+  }
+
+  /** The live reasons, for tests and the harness. */
+  hushReasons() {
+    const out = [];
+    for (const [k, until] of this.hushes) if (until > this.t) out.push(k);
+    for (const [k, h] of this.hushTests) {
+      let on = false;
+      if (h.until > this.t) { try { on = !!h.test(); } catch { on = false; } }
+      if (on) out.push(k);
+    }
+    return out;
+  }
+
+  // Heckle and street bubbles off the screen; story bubbles stay.
+  _dropChatter() {
+    for (const b of this.live.slice()) if (!b.story) this._drop(b.el, b);
+  }
+
   reset() {
+    this.hushes.clear(); this.hushTests.clear(); this.hushDropped = 0;
     this.t = 0; this.lastAt = -1e9; this.said.clear();
     this.count = 0; this.last = null; this.cleanT = 0; this.cleanMove = 0;
+    this._flushThen();
     this.pending.length = 0;
+    this.storyNow = null; this.storyGapUntil = 0;
     this.history.length = 0;
     this.held = false;
     this._clearBubbles();
@@ -403,7 +514,11 @@ export class Heckle {
     const pool = this.poolFor(key);
     if (!pool || !pool.length) return null;
     if (!this.enabled) return null;
-    if (this.t - this.lastAt < GAP) return null;
+    // A scripted scene has the floor: nobody on the street says anything.
+    if (this.hushed) { this.hushDropped++; return null; }
+    // The plot has the floor: no heckle while a friend is talking or waiting to.
+    if (this.storyBusy()) return null;
+    if (this.t - this.lastAt < this.gap()) return null;
     // Anything not said in the last COOLDOWN seconds is fair game; the oldest
     // wins the tie so the pool rotates instead of favouring index 0.
     let best = null, bestAt = Infinity;
@@ -430,15 +545,82 @@ export class Heckle {
     if (this.history.length > 6) this.history.length = 6;
   }
 
+  /** Seconds between heckles right now: longer while you are barely moving. */
+  gap() {
+    const v = this.G && this.G.veh;
+    return v && Number.isFinite(v.speedKmh) && Math.abs(v.speedKmh) < SLOW_KMH ? SLOW_GAP : GAP;
+  }
+
+  /** Is a story line on screen, queued, or in the breath after one? */
+  storyBusy() {
+    return !!this.storyNow || this.pending.length > 0 || this.t < this.storyGapUntil;
+  }
+
   /**
    * A line of story dialogue — a friend at the start or the end of a job. Not a
    * heckle: it ignores the limiter and the « les gens gueulent » switch, because
    * it is the plot.
+   *
+   * It is QUEUED, not shown: the queue is pumped by update(), which only runs
+   * while the game does, so a line said under a full-screen card (the mission
+   * card, the end card, pause) waits for the card to close instead of dying
+   * underneath it (story audit, major #7). Lines play one at a time for
+   * storySeconds(text). `ms` is accepted for old callers and ignored.
+   * `opts.group` tags a line so it can be cut when the job moves on:
+   * main.js says 'friend' for the start/end lines and cancels that group when
+   * a stage completes or the job ends.
+   *
+   * A line with no speaker is street chatter (peds.js), not plot: it goes
+   * through ambient() and its limiter.
    */
-  line(who, text, ms = BUBBLE_MS) {
+  line(who, text, ms = BUBBLE_MS, opts = {}) {
     if (!text) return null;
-    this._bubble(who || '', text, ms, true);
+    if (!who) return this.ambient('', text, ms);
+    if (this.pending.length >= STORY_QUEUE_MAX) this.pending.shift();
+    // `opts.then`: called once when this line leaves the screen, whether it
+    // played out or was cut (dadcall.js shows the money after his last line).
+    const then = opts && typeof opts.then === 'function' ? opts.then : null;
+    this.pending.push({ who, text, group: (opts && opts.group) || 'story', dur: storySeconds(text), then });
     return text;
+  }
+
+  /**
+   * Background talk: the street, the next yard over. Never over a story line,
+   * and it shares the heckles' limiter so the two together cannot pile up.
+   * Returns the line, or null when it was dropped.
+   */
+  ambient(who, text, ms = BUBBLE_MS) {
+    if (!text) return null;
+    if (this.hushed) { this.hushDropped++; return null; }
+    if (this.storyBusy()) return null;
+    if (this.t - this.lastAt < this.gap()) return null;
+    this.lastAt = this.t;
+    this._bubble(who || '', text, ms, false);
+    return text;
+  }
+
+  /**
+   * Cut story lines: every one tagged `group`, or all of them with no group.
+   * The one on screen goes too. Used when the mission state changes (a stage
+   * done, a job failed or quit) so the friends do not keep talking about a job
+   * that is over.
+   */
+  cancel(group = null) {
+    const hit = (x) => !group || x.group === group;
+    const cut = [];
+    for (let i = this.pending.length - 1; i >= 0; i--) if (hit(this.pending[i])) cut.unshift(...this.pending.splice(i, 1));
+    if (this.storyNow && hit(this.storyNow)) this._endStory();
+    for (const p of cut) this._then(p);
+  }
+
+  /** Everything off the screen and out of the queue (the menu). */
+  clear() {
+    this.hushes.clear(); this.hushTests.clear();
+    this._flushThen();
+    this.pending.length = 0;
+    this.storyNow = null;
+    this.storyGapUntil = 0;
+    this._clearBubbles();
   }
 
   /** One tick. Advances the clock and, eventually, hands out a compliment. */
@@ -465,15 +647,15 @@ export class Heckle {
     return this.root;
   }
 
-  _bubble(who, text, ms = BUBBLE_MS, story = false) {
+  // One bubble on screen. A story line takes the screen from a heckle.
+  _bubble(who, text, ms = BUBBLE_MS, story = false, group = null) {
+    for (const b of this.live.slice()) this._drop(b.el, b);
+    const entry = { el: null, until: this.t + ms / 1000, ms, story, group };
+    this.live.push(entry);
     const root = this._mount();
-    if (!root) return;
-    if (this.live.length >= MAX_BUBBLES) {
-      if (this.pending.length > 3) this.pending.shift();
-      this.pending.push({ who, text, ms, story });
-      return;
-    }
+    if (!root) return entry;
     const el = document.createElement('div');
+    entry.el = el;
     el.className = 'bub' + (story ? ' story' : '');
     // A little tilt, so two in a row do not look like a list.
     el.style.setProperty('--tilt', ((this.count + this.live.length) % 2 ? 1.6 : -1.4) + 'deg');
@@ -498,35 +680,68 @@ export class Heckle {
     }
     root.appendChild(el);
     this._paintGloss();
-    this.live.push({ el, until: this.t + ms / 1000, ms });
-    // The clock only runs while the game does, so hold a wall-clock backstop:
-    // a bubble raised in a menu still goes away.
-    if (typeof setTimeout === 'function') {
-      setTimeout(() => this._drop(el), ms + 600);
-    }
+    // No wall-clock backstop any more. It was there so a bubble raised in a
+    // menu still went away, and it is what killed the friends' lines under the
+    // mission card: 3.6 s of real time while the game clock stood still.
+    // Bubbles are only raised from the game clock now, and main.js clears them
+    // on the way to the menu.
+    return entry;
+  }
+
+  /** Run a line's `then` once. A throw there never breaks the queue. */
+  _then(p) {
+    const f = p && p.then;
+    if (!f) return;
+    p.then = null;
+    try { f(); } catch (e) { console.warn('heckle then', e); }
+  }
+
+  /** Everything queued or on screen is going away: run their `then`s first. */
+  _flushThen() {
+    const all = [this.storyNow, ...this.pending];
+    for (const p of all) this._then(p);
+  }
+
+  _endStory() {
+    const now = this.storyNow;
+    this.storyNow = null;
+    this._then(now);
+    this.storyGapUntil = this.t + STORY_GAP;
+    const e = now && this.live.find((b) => b === now.entry);
+    if (e) this._drop(e.el, e);
   }
 
   _expire() {
+    if (this.storyNow && this.storyNow.until <= this.t) this._endStory();
     for (let i = this.live.length - 1; i >= 0; i--) {
-      if (this.live[i].until <= this.t) this._drop(this.live[i].el);
+      const b = this.live[i];
+      if (!b.story && b.until <= this.t) this._drop(b.el, b);
     }
-    while (this.live.length < MAX_BUBBLES && this.pending.length) {
+    if (!this.storyNow && this.pending.length && this.t >= this.storyGapUntil) {
       const p = this.pending.shift();
-      this._bubble(p.who, p.text, p.ms, p.story);
+      const entry = this._bubble(p.who, p.text, p.dur * 1000, true, p.group);
+      this.storyNow = { ...p, until: this.t + p.dur, entry };
     }
   }
 
-  _drop(el) {
-    const i = this.live.findIndex((b) => b.el === el);
+  _drop(el, entry = null) {
+    const i = entry ? this.live.indexOf(entry) : this.live.findIndex((b) => b.el === el);
     if (i >= 0) this.live.splice(i, 1);
+    if (this.storyNow && this.storyNow.entry && (this.storyNow.entry === entry || (el && this.storyNow.entry.el === el))) {
+      this._then(this.storyNow);
+      this.storyNow = null;
+      this.storyGapUntil = this.t + STORY_GAP;
+    }
     if (!el || !el.parentNode) return;
     el.classList.add('out');
     setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 240);
   }
 
   _clearBubbles() {
-    for (const b of this.live.slice()) this._drop(b.el);
+    this._then(this.storyNow);
+    for (const b of this.live.slice()) this._drop(b.el, b);
     this.live.length = 0;
+    this.storyNow = null;
   }
 
   // ---- painting the gloss ------------------------------------------------
@@ -605,6 +820,21 @@ function readGlossPref() {
 function writeGlossPref(on) {
   if (typeof window === 'undefined') return;
   try { window.localStorage?.setItem(GLOSS_KEY, on ? '1' : '0'); } catch { /* private mode */ }
+}
+
+/**
+ * Is `text` still in a HUD's toast queue or on screen? Reads hud.toastLive()
+ * when the HUD has one, else its ToastQueue (src/game/hud.js) directly. A
+ * scene passes this to hushWhile() so the street waits for its toasts.
+ */
+export function toastLive(hud, text) {
+  if (!hud) return false;
+  if (typeof hud.toastLive === 'function') return !!hud.toastLive(text);
+  const q = hud.toasts;
+  if (!q) return false;
+  const t = String(text ?? '');
+  return (Array.isArray(q.active) && q.active.some((a) => a && a.text === t))
+    || (Array.isArray(q.pending) && q.pending.some((p) => p && p.text === t));
 }
 
 // One per page. main.js binds it to G; peds/traffic/cops/race just talk to it.

@@ -1,0 +1,696 @@
+{
+ "schema": "aylmer-poses",
+ "version": 1,
+ "notes": [
+  "x is east, z is SOUTH (tools/build_map.py projection). yaw is the game camera yaw in radians: an eye pose looking at compass heading h has yaw = -h; a chase pose is the CAR yaw, forward = (sin yaw, cos yaw), so heading h means yaw = PI - h.",
+  "Eye poses: free camera at the ground height under (x, z) plus `eye` metres, car not drawn, HUD, pedestrians and avatars hidden. fov is the vertical field of view in radians for a 1280x800 frame whose centred crop (`crop`, the reference aspect) spans `hfov`. `ref` is the 2009 reference, relative to CMP_REF_ROOT.",
+  "Chase poses: the car is placed at (x, z) facing yaw on the road and the game camera (`camera`: chase or hood) settles behind it. The car is drawn. No crop: the full 1280x800 frame is what the player sees.",
+  "regions: tagged rectangles [x0,y0,x1,y1] as fractions of the shot (the cropped frame for eye poses), the lawn, road, wall and sky samples tools/qa/look-diff.mjs compares with assets/look/palette.json. They are outlined on the AFTER panel of every contact sheet, so a wrong one is visible; move them here."
+ ],
+ "envs": {
+  "morning": {
+   "label": "07:00 clear",
+   "phase": "morning",
+   "weather": "clear"
+  },
+  "noon": {
+   "label": "13:00 clear",
+   "phase": "day",
+   "weather": "clear"
+  },
+  "haze": {
+   "label": "14:00 haze",
+   "phase": "day",
+   "weather": "haze"
+  },
+  "golden": {
+   "label": "19:30 clear",
+   "phase": "day",
+   "clock": 0.45,
+   "weather": "clear",
+   "note": "the game blends day into dusk over the last 55 percent of the day phase; 0.45 of the cycle is late afternoon, about 40 percent of the way to dusk"
+  },
+  "dusk": {
+   "label": "20:45 clear",
+   "phase": "dusk",
+   "weather": "clear"
+  },
+  "night": {
+   "label": "23:30 clear",
+   "phase": "night",
+   "weather": "clear"
+  },
+  "overcast": {
+   "label": "12:00 overcast",
+   "phase": "day",
+   "weather": "overcast"
+  },
+  "rain": {
+   "label": "16:00 rain",
+   "phase": "day",
+   "weather": "rain"
+  },
+  "storm": {
+   "label": "16:30 storm",
+   "phase": "day",
+   "weather": "storm"
+  }
+ },
+ "tiers": [
+  "low",
+  "med",
+  "high"
+ ],
+ "poses": {
+  "fraser_front": {
+   "id": "fraser_front",
+   "kind": "eye",
+   "place": "299 chemin Fraser",
+   "camera": "free",
+   "x": 905.1,
+   "z": 146.8,
+   "y": null,
+   "eye": 2.5,
+   "yaw": -1.5708,
+   "heading": 90,
+   "pitch": 0.0873,
+   "hfov": 65,
+   "fov": 0.8915,
+   "crop": "1024:768",
+   "car": false,
+   "ref": "references/places/299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+   "note": "Street View pano point on Chemin Fraser 28 m west of the house, looking east",
+   "regions": {
+    "sky": [
+     0.15,
+     0.02,
+     0.55,
+     0.18
+    ],
+    "lawn": [
+     0.45,
+     0.74,
+     0.9,
+     0.79
+    ],
+    "road": [
+     0.2,
+     0.93,
+     0.95,
+     0.99
+    ],
+    "wall": [
+     0.6,
+     0.4,
+     0.7,
+     0.46
+    ]
+   }
+  },
+  "mike_lawn": {
+   "id": "mike_lawn",
+   "kind": "eye",
+   "place": "129 avenue Frank-Robinson",
+   "camera": "free",
+   "x": -409.6,
+   "z": 58.6,
+   "y": null,
+   "eye": 2.5,
+   "yaw": 1.0472,
+   "heading": 300,
+   "pitch": 0.0873,
+   "hfov": 65,
+   "fov": 0.8915,
+   "crop": "1024:768",
+   "car": false,
+   "ref": "references/places/129-avenue-frank-robinson/streetview-capture/60b6f207_129_frank_from_south_300.jpg",
+   "note": "from the south across the lawn, heading 300",
+   "regions": {
+    "sky": [
+     0.62,
+     0.02,
+     0.9,
+     0.12
+    ],
+    "lawn": [
+     0.5,
+     0.8,
+     0.9,
+     0.86
+    ],
+    "road": [
+     0.7,
+     0.55,
+     0.9,
+     0.58
+    ],
+    "wall": [
+     0.08,
+     0.52,
+     0.17,
+     0.6
+    ]
+   }
+  },
+  "denise_friend": {
+   "id": "denise_friend",
+   "kind": "eye",
+   "place": "75 rue Denise-Friend",
+   "camera": "free",
+   "x": -722.3,
+   "z": -451.1,
+   "y": null,
+   "eye": 2.5,
+   "yaw": 0.1745,
+   "heading": 350,
+   "pitch": 0.1047,
+   "hfov": 65,
+   "fov": 0.8915,
+   "crop": "1024:768",
+   "car": false,
+   "ref": "references/places/75-rue-denise-friend/streetview-capture/60b6f207_75_denise_2009_front.jpg",
+   "note": "front elevation, heading 350",
+   "regions": {
+    "sky": [
+     0.05,
+     0.02,
+     0.45,
+     0.15
+    ],
+    "lawn": [
+     0.1,
+     0.85,
+     0.45,
+     0.95
+    ],
+    "wall": [
+     0.52,
+     0.17,
+     0.58,
+     0.3
+    ]
+   }
+  },
+  "arial": {
+   "id": "arial",
+   "kind": "eye",
+   "place": "1 rue Arial",
+   "camera": "free",
+   "x": 971.9,
+   "z": 750.5,
+   "y": null,
+   "eye": 2.5,
+   "yaw": -1.3963,
+   "heading": 80,
+   "pitch": 0.1047,
+   "hfov": 65,
+   "fov": 0.7579,
+   "crop": "1600:1000",
+   "car": false,
+   "ref": "references/places/1-rue-arial-house/streetview-capture/gi-streetview_front_elevation.jpg",
+   "note": "approximate: pose point is the index target, camera put on the road along the heading",
+   "regions": {
+    "sky": [
+     0.1,
+     0.02,
+     0.7,
+     0.2
+    ],
+    "lawn": [
+     0.1,
+     0.8,
+     0.9,
+     0.92
+    ],
+    "wall": [
+     0.4,
+     0.5,
+     0.6,
+     0.62
+    ]
+   }
+  },
+  "principale_british": {
+   "id": "principale_british",
+   "kind": "eye",
+   "place": "British Hotel, rue Principale",
+   "camera": "free",
+   "x": -914.5,
+   "z": -85.1,
+   "y": null,
+   "eye": 2.5,
+   "yaw": 0,
+   "heading": 0,
+   "pitch": 0.0873,
+   "hfov": 70,
+   "fov": 0.9671,
+   "crop": "1024:768",
+   "car": false,
+   "ref": "references/places/principale-storefronts/streetview-capture/comm/60b6f207_comm_13_north.jpg",
+   "note": "street centreline at the hotel longitude, looking north",
+   "regions": {
+    "wall": [
+     0.27,
+     0.18,
+     0.37,
+     0.3
+    ],
+    "lawn": [
+     0.1,
+     0.86,
+     0.9,
+     0.92
+    ]
+   }
+  },
+  "principale_strip": {
+   "id": "principale_strip",
+   "kind": "eye",
+   "place": "rue Principale looking east",
+   "camera": "free",
+   "x": -883.3,
+   "z": -85.1,
+   "y": null,
+   "eye": 2.5,
+   "yaw": -1.5708,
+   "heading": 90,
+   "pitch": 0.0873,
+   "hfov": 70,
+   "fov": 0.9671,
+   "crop": "1024:768",
+   "car": false,
+   "ref": "references/places/principale-storefronts/streetview-capture/strip/60b6f207_strip_02_east_street.jpg",
+   "note": "the corridor, both sides of the street",
+   "regions": {
+    "sky": [
+     0.2,
+     0.05,
+     0.8,
+     0.25
+    ],
+    "road": [
+     0.25,
+     0.78,
+     0.55,
+     0.92
+    ],
+    "wall": [
+     0.02,
+     0.4,
+     0.12,
+     0.5
+    ],
+    "lawn": [
+     0.8,
+     0.82,
+     0.95,
+     0.88
+    ]
+   }
+  },
+  "galeries_lot": {
+   "id": "galeries_lot",
+   "kind": "eye",
+   "place": "Les Galeries d'Aylmer",
+   "camera": "free",
+   "x": -78.2,
+   "z": -154.8,
+   "y": null,
+   "eye": 2.5,
+   "yaw": -0.3246,
+   "heading": 18.6,
+   "pitch": 0.0524,
+   "hfov": 75,
+   "fov": 1.0444,
+   "crop": "1024:768",
+   "car": false,
+   "ref": "references/places/les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+   "note": "approximate: camera on the road in front of the mall, heading unknown (pack Maps URL says 340)",
+   "regions": {
+    "sky": [
+     0.2,
+     0.05,
+     0.5,
+     0.2
+    ],
+    "road": [
+     0.3,
+     0.85,
+     0.9,
+     0.95
+    ],
+    "lawn": [
+     0.45,
+     0.64,
+     0.85,
+     0.67
+    ],
+    "wall": [
+     0.4,
+     0.47,
+     0.55,
+     0.5
+    ]
+   }
+  },
+  "marina_quay": {
+   "id": "marina_quay",
+   "kind": "eye",
+   "place": "Marina, Parc des Cedres",
+   "camera": "free",
+   "x": -1845,
+   "z": -250,
+   "y": null,
+   "eye": 2.5,
+   "yaw": 1.0472,
+   "heading": 300,
+   "pitch": 0.0524,
+   "hfov": 70,
+   "fov": 0.9671,
+   "crop": "1024:768",
+   "car": false,
+   "ref": "references/places/marina-parc-des-cedres/streetview-capture/60b6f207_lm_marina_2009_se.jpg",
+   "note": "on the quay looking south-east over the basin; heading and spot to be tuned against the ref",
+   "regions": {
+    "sky": [
+     0.1,
+     0.03,
+     0.6,
+     0.2
+    ],
+    "lawn": [
+     0.8,
+     0.9,
+     0.98,
+     0.98
+    ]
+   }
+  },
+  "chase_fraser": {
+   "id": "chase_fraser",
+   "kind": "chase",
+   "place": "leaving 299 chemin Fraser, westbound",
+   "camera": "chase",
+   "x": 911.3,
+   "z": 144,
+   "y": null,
+   "yaw": -1.4694,
+   "heading": 264,
+   "pitch": null,
+   "fov": null,
+   "car": true,
+   "ref": null,
+   "note": "the driveway at 299, nose to the street (fraserPoint(-8, 21) with FRASER.yaw, src/game/fraser.js)",
+   "regions": {
+    "sky": [
+     0.2,
+     0.02,
+     0.5,
+     0.15
+    ],
+    "road": [
+     0.7,
+     0.52,
+     0.95,
+     0.66
+    ],
+    "lawn": [
+     0.7,
+     0.88,
+     0.85,
+     0.97
+    ],
+    "wall": [
+     0.37,
+     0.33,
+     0.45,
+     0.42
+    ]
+   }
+  },
+  "chase_principale": {
+   "id": "chase_principale",
+   "kind": "chase",
+   "place": "rue Principale eastbound at the British",
+   "camera": "chase",
+   "x": -950,
+   "z": -85.1,
+   "y": null,
+   "yaw": 1.5708,
+   "heading": 90,
+   "pitch": null,
+   "fov": null,
+   "car": true,
+   "ref": null,
+   "note": "eastbound toward the British Hotel",
+   "regions": {
+    "sky": [
+     0.6,
+     0.02,
+     0.9,
+     0.1
+    ],
+    "road": [
+     0.7,
+     0.55,
+     0.9,
+     0.7
+    ],
+    "lawn": [
+     0.15,
+     0.55,
+     0.25,
+     0.65
+    ],
+    "wall": [
+     0.0,
+     0.15,
+     0.2,
+     0.3
+    ]
+   }
+  },
+  "chase_lucerne_golden": {
+   "id": "chase_lucerne_golden",
+   "kind": "chase",
+   "place": "boulevard de Lucerne westbound toward Lac Deschenes",
+   "camera": "chase",
+   "x": 875.1,
+   "z": 994,
+   "y": null,
+   "yaw": -1.8326,
+   "heading": 285,
+   "pitch": null,
+   "fov": null,
+   "car": true,
+   "ref": null,
+   "note": "meant for the golden hour",
+   "regions": {
+    "sky": [
+     0.1,
+     0.0,
+     0.5,
+     0.1
+    ],
+    "road": [
+     0.3,
+     0.85,
+     0.7,
+     0.97
+    ],
+    "lawn": [
+     0.05,
+     0.6,
+     0.2,
+     0.7
+    ],
+    "wall": [
+     0.01,
+     0.31,
+     0.1,
+     0.34
+    ]
+   }
+  },
+  "chase_galeries": {
+   "id": "chase_galeries",
+   "kind": "chase",
+   "place": "in the Galeries lot",
+   "camera": "chase",
+   "x": -100,
+   "z": -227,
+   "y": null,
+   "yaw": 0,
+   "heading": 180,
+   "pitch": null,
+   "fov": null,
+   "car": true,
+   "ref": null,
+   "note": "parked-lot centroid north of the mall (OSM parking area 12.6k m2), nose to the mall",
+   "regions": {
+    "sky": [
+     0.1,
+     0.05,
+     0.7,
+     0.2
+    ],
+    "road": [
+     0.1,
+     0.75,
+     0.5,
+     0.95
+    ],
+    "wall": [
+     0.35,
+     0.33,
+     0.55,
+     0.36
+    ]
+   }
+  },
+  "chase_chemin_aylmer": {
+   "id": "chase_chemin_aylmer",
+   "kind": "chase",
+   "place": "chemin d'Aylmer, the long view east",
+   "camera": "chase",
+   "x": 120.1,
+   "z": -177.4,
+   "y": null,
+   "yaw": 1.6581,
+   "heading": 85,
+   "pitch": null,
+   "fov": null,
+   "car": true,
+   "ref": null,
+   "note": "long straight east of the Galeries",
+   "regions": {
+    "sky": [
+     0.1,
+     0.02,
+     0.6,
+     0.1
+    ],
+    "road": [
+     0.35,
+     0.88,
+     0.65,
+     0.97
+    ],
+    "lawn": [
+     0.03,
+     0.45,
+     0.15,
+     0.52
+    ],
+    "wall": [
+     0.75,
+     0.3,
+     0.95,
+     0.4
+    ]
+   }
+  },
+  "hood_hull_bridge": {
+   "id": "hood_hull_bridge",
+   "kind": "chase",
+   "place": "hood cam on the Champlain Bridge approach",
+   "camera": "hood",
+   "x": 5614.7,
+   "z": -2005.2,
+   "y": null,
+   "yaw": 0.8901,
+   "heading": 129,
+   "pitch": null,
+   "fov": null,
+   "car": true,
+   "ref": null,
+   "note": "hood camera, Quebec end of the Champlain Bridge heading to Ottawa",
+   "regions": {
+    "sky": [
+     0.1,
+     0.02,
+     0.45,
+     0.12
+    ],
+    "road": [
+     0.3,
+     0.45,
+     0.7,
+     0.55
+    ]
+   }
+  }
+ },
+ "sets": {
+  "core": {
+   "poses": [
+    "fraser_front",
+    "mike_lawn",
+    "denise_friend",
+    "arial",
+    "principale_british",
+    "principale_strip",
+    "galeries_lot",
+    "marina_quay"
+   ],
+   "envs": [
+    "noon"
+   ]
+  },
+  "chase": {
+   "poses": [
+    "chase_fraser",
+    "chase_principale",
+    "chase_lucerne_golden",
+    "chase_galeries",
+    "chase_chemin_aylmer",
+    "hood_hull_bridge"
+   ],
+   "envs": [
+    "noon",
+    "golden",
+    "night"
+   ]
+  },
+  "allday": {
+   "poses": [
+    "fraser_front",
+    "principale_strip",
+    "chase_lucerne_golden"
+   ],
+   "envs": [
+    "morning",
+    "noon",
+    "haze",
+    "golden",
+    "dusk",
+    "night",
+    "overcast",
+    "rain",
+    "storm"
+   ]
+  },
+  "perf8": {
+   "poses": [
+    "chase_fraser",
+    "mike_lawn",
+    "principale_british",
+    "principale_strip",
+    "galeries_lot",
+    "marina_quay",
+    "chase_chemin_aylmer",
+    "hood_hull_bridge"
+   ],
+   "envs": [
+    "noon",
+    "night",
+    "rain"
+   ],
+   "tiers": [
+    "low",
+    "med",
+    "high"
+   ]
+  }
+ }
+}

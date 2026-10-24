@@ -1,5 +1,8 @@
-// The summer, counted. Saturday 26 June 2004 to Monday 6 September 2004 —
-// Labour Day — is 73 days, and every job and every race costs one of them.
+// The summer, counted. Tuesday 22 June 2004 to Monday 6 September 2004 —
+// Labour Day — is 77 days, and every job and every race costs one of them.
+// (Restructure, 29 Sept 2026: the summer starts on the 22nd so the Saint-Jean,
+// 24 June, is in it. It used to start on Saturday 26 June; save.js moves an old
+// save's day index forward by four so its date does not change.)
 // That single rule is the whole difficulty system: it bounds farming without a
 // replay penalty, it makes the date on screen mean something, and it never
 // punishes an ordinary player, who does everything once in about 35 days and
@@ -11,10 +14,19 @@
 // atmosphere; the calendar is progress. Keeping them apart is what lets the
 // seam card freeze the sim without a day going missing.
 
-export const SUMMER_START = Date.UTC(2004, 5, 26);   // Sat 26 June 2004
-export const DAYS = 73;                               // through Mon 6 Sept
+export const SUMMER_START = Date.UTC(2004, 5, 22);   // Tue 22 June 2004
+export const DAYS = 77;                               // through Mon 6 Sept
+// How far the old 26 June day 0 sits from the new one (save.js migration).
+export const OLD_START_SHIFT = 4;
+// The first day the recorded weather file covers (assets/text/summer2004.json).
+export const WEATHER_FROM = '2004-06-26';
 export const LAST = DAYS - 1;                         // day index of Labour Day
-export const TARGET = 1200;                           // the envelope, in dollars
+// The old $1,200 envelope. No longer the HUD's headline or a win condition
+// (restructure: the headline is the days left in the summer and the ending
+// cannot be failed); kept so old saves and the save format keep their field.
+export const TARGET = 1200;
+// The beat that ends the summer in index.html (arc.js « Le dernier voyage »).
+export const FINALE = 'arcdernier';                           // the envelope, in dollars
 // Every job's money was worth an hour of a 17-year-old's time in 1994, not
 // 2004: one clean pass of all 22 jobs netted $724 against a $1,200 goal. The
 // lift lands the pass at ~$950 (the budget table) without touching a def.
@@ -31,7 +43,7 @@ export const PAY_LIFT = 1.05;   // was 1.3 with 22 jobs; the six Wave 3 jobs car
 export const DIFF = {
   easy:   { firstDay: 0,  dayCost: 0.5, pay: 1.3, rival: 0.70, ticket: 40,  timer: 1.4 },
   normal: { firstDay: 0,  dayCost: 1,   pay: 1.0, rival: 0.82, ticket: 75,  timer: 1.0 },
-  hard:   { firstDay: 28, dayCost: 1,   pay: 0.8, rival: 0.92, ticket: 120, timer: 0.9 },
+  hard:   { firstDay: 32, dayCost: 1,   pay: 0.8, rival: 0.92, ticket: 120, timer: 0.9 },
 };
 export function diff(G) { return DIFF[G && G.difficulty] || DIFF.normal; }
 
@@ -50,7 +62,7 @@ export function isOver(day) { return day >= LAST; }
 
 // ---------------------------------------------------------------- the state
 //
-// Lives on G so save.js can carry it: G.day (float, 0..72), G.target, and two
+// Lives on G so save.js can carry it: G.day (float, 0..76), G.target, and two
 // flags. `startSummer` is a new game; `restoreSummer` is a load.
 
 export function startSummer(G) {
@@ -85,13 +97,69 @@ export function restoreSummer(G, save) {
  * countdown once it is short enough to matter.
  */
 export function spendDay(G, hud = G.hud) {
+  // B-07: a main story job that just failed keeps its day (keepDay, below).
+  // The mark is good for one spendDay, and only while that job is still the
+  // one on G (main.js's failMission spends before closeMission).
+  const kept = G.dayKept;
+  G.dayKept = null;
+  if (kept && G.mission && G.mission.def && G.mission.def.id === kept) return false;
   if (G.summerOver) return false;
   const before = Math.floor(G.day);
-  G.day = Math.min(LAST, G.day + diff(G).dayCost);
+  // A day a failed job still owes (deferDay, below) is paid with this one, so
+  // a retry window that never got settled cannot turn into a free day.
+  const owed = Math.max(0, G.dayOwed | 0);
+  G.dayOwed = 0;
+  G.day = Math.min(LAST, G.day + diff(G).dayCost * (1 + owed));
+  // index.html (progression review P7): the ending needs Labour Day, which is
+  // 72 day-spends, but there are only 33 jobs, so a player who did everything
+  // never saw it without replaying 39 more. « Le dernier voyage » is written as
+  // the end of the summer and arc.js gates it behind every other job, so when
+  // it is done the summer is: the calendar goes to Labour Day, and main.js's
+  // endOfJob() runs the ending off isOver() like any other last day.
+  if (G.done && G.done.has && G.done.has(FINALE)) G.day = LAST;
   const after = Math.floor(G.day);
   const changed = after !== before;
   if (changed && hud && hud.toast) hud.toast(dayToast(G.day), 2800);
   return changed;
+}
+
+// ------------------------------------------------------------ owed days
+//
+// A failed job that offers a free retry (retry.js) does not spend its day at
+// the fail: it puts it on the slate. Taking the free retry forgives it; letting
+// the retry window run out settles it. G.dayOwed is a small integer on G, and
+// spendDay above pays whatever is still owed along with its own day.
+
+// B-07: a failed story job's day is kept, not spent. retry.js marks it with the
+// job's id; the next spendDay (main.js's endOfJob in failMission) consumes the
+// mark and spends nothing. unkeepDay drops a mark nobody consumed.
+export function keepDay(G, id) {
+  G.dayKept = id || null;
+  return G.dayKept;
+}
+export function unkeepDay(G) {
+  const had = !!G.dayKept;
+  G.dayKept = null;
+  return had;
+}
+
+export function deferDay(G) {
+  G.dayOwed = Math.max(0, G.dayOwed | 0) + 1;
+  return G.dayOwed;
+}
+
+export function forgiveDay(G) {
+  const had = Math.max(0, G.dayOwed | 0);
+  G.dayOwed = Math.max(0, had - 1);
+  return had > 0;
+}
+
+/** Spend the days still owed, if any. Returns true when the date changed. */
+export function settleDay(G, hud = G.hud) {
+  const owed = Math.max(0, G.dayOwed | 0);
+  if (!owed) return false;
+  G.dayOwed = owed - 1;          // spendDay pays the rest along with this one
+  return spendDay(G, hud);
 }
 
 export function dayToast(day) {
@@ -103,14 +171,24 @@ export function dayToast(day) {
   return head;
 }
 
-/** The two lines the envelope on the HUD prints. */
+/** « 74 jours d’été », the HUD's headline (restructure: not a dollar goal). */
+export function daysLeftText(day) {
+  const left = daysLeft(day || 0);
+  if (left <= 0) return 'Fête du Travail';
+  return `${left} jour${left > 1 ? 's' : ''} d’été`;
+}
+
+/**
+ * The two lines of the box top right. The first (big) line is the days left in
+ * the summer; the second is the date and the wallet, which still matters (gas
+ * and repairs cost, and Dad's call on the landline is the rescue).
+ * The field names are the old envelope's so hud.setEnvelope is unchanged.
+ */
 export function envelopeText(G) {
   const v = Math.round(G.wallet ? G.wallet.value : 0);
-  const amount = `${fmt(v)} $ / ${fmt(G.target || TARGET)} $`;
-  if (G.summerOver) return { amount, day: 'L’été est fini.' };
-  const left = daysLeft(G.day || 0);
-  const day = `${label(G.day || 0)} · ${left} jour${left > 1 ? 's' : ''}`;
-  return { amount, day };
+  const money = `${fmt(v)} $`;
+  if (G.summerOver) return { amount: 'L’été est fini.', day: money, headline: 'days' };
+  return { amount: daysLeftText(G.day || 0), day: `${label(G.day || 0)} · ${money}`, headline: 'days' };
 }
 
 /**
@@ -118,6 +196,9 @@ export function envelopeText(G) {
  * that is Labour Day — but the father notices, and so should the player.
  */
 export function checkReached(G, hud = G.hud) {
+  // Restructure (29 Sept 2026): there is no dollar goal any more. Kept as a
+  // no-op so old callers and saves (`reached`) keep working.
+  if (!G || !G.useTarget) return false;
   if (G.reached || G.summerOver || !G.wallet) return false;
   if (G.wallet.value < (G.target || TARGET)) return false;
   G.reached = true;
@@ -148,7 +229,20 @@ export async function loadSummer(fetchImpl, url = 'assets/text/summer2004.json')
   } catch { return null; }
 }
 export function setSummer(map) { SUMMER = map; }
-export function dayInfo(day) { return SUMMER ? SUMMER.get(iso(day)) || null : null; }
+/**
+ * The recorded day, or for 22-25 June (before the Environment Canada file
+ * starts on the 26th) a plain clear default with no numbers, so the prototype's
+ * sky is fair for the Saint-Jean instead of whatever the last run left. Marked
+ * `synthetic`: weatherLine() says nothing about it rather than invent a
+ * temperature.
+ */
+export function dayInfo(day) {
+  if (!SUMMER) return null;
+  const k = iso(day);
+  const i = SUMMER.get(k);
+  if (i) return i;
+  return k < WEATHER_FROM ? { date: k, sky: 'clear', synthetic: true } : null;
+}
 
 const SKY_FR = {
   clear: 'ciel dégagé', fair: 'beau', cloudy: 'nuageux', overcast: 'couvert',
@@ -156,7 +250,7 @@ const SKY_FR = {
 };
 export function weatherLine(day) {
   const i = dayInfo(day);
-  if (!i) return '';
+  if (!i || i.synthetic) return '';
   const parts = [];
   if (Number.isFinite(i.tmaxC)) parts.push(`${Math.round(i.tmaxC)}°`);
   if (i.humidex && i.humidex >= 30) parts.push(`humidex ${Math.round(i.humidex)}`);

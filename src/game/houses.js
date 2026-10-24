@@ -529,8 +529,14 @@ function recipe(spec, mats, rng) {
 
 // The per-house arming kit. `M` is the projection origin — the building centre,
 // so the repeat counts stay small and fract() in the shader stays exact.
-function matKit(mb, mats, R, cx, cz) {
-  const M = { ox: cx, oy: 0, oz: cz, uOffset: R.uOff };
+function matKit(mb, mats, R, cx, cz, y0 = 0) {
+  // Prototype renderer only: measure v from the footing and add a whole-number
+  // 1000 sentinel. The texture phase is unchanged (fract), but the prototype
+  // shader can then tell a house wall from any other tiled surface and knows
+  // how high above the footing each fragment is (foundation strip, grounding).
+  const M = mats.prototypeStyle
+    ? { ox: cx, oy: y0, oz: cz, uOffset: R.uOff, vOffset: 1000 }
+    : { ox: cx, oy: 0, oz: cz, uOffset: R.uOff };
   const mt = {
     M,
     wall: () => mats.tile(mb, R.wallTile, M),
@@ -729,6 +735,9 @@ export function buildPlain(mb, b, mats, rng, opts = {}) {
 // --------------------------------------------------------------------- houses
 
 const PORCH_D = 2.1;
+const FLOOR_LIFT = 0.6;   // basement wall showing above grade
+const DOOR_LIFT = 0.45;   // front-door threshold above the lawn (the stoop)
+const WHITE_T = [0.955, 0.955, 0.955];
 
 export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   const lod = opts.lod | 0;
@@ -751,7 +760,7 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
       }
     }
     const info = buildGlenwood(mb, gw.variant, {
-      fw: gw.fw, D: gw.D, side: gw.side, lod, y0, mats, seed: gw.seed,
+      fw: gw.fw, D: gw.D, side: gw.side, lod, y0, mats, seed: gw.seed, groundAt: opts.groundAt,
       cap: Number.isFinite(opts.budget) ? opts.budget : GLENWOOD_BUDGET[Math.min(lod, 2)],
     });
     return {
@@ -772,7 +781,7 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   // The recipe is drawn first at EVERY lod, from the same rng draws, so the far
   // silhouette wears the same brick and shingle as the near one.
   const R = recipe(spec, mats, rng);
-  const mt = matKit(mb, mats, R, b.c[0], b.c[1]);
+  const mt = matKit(mb, mats, R, b.c[0], b.c[1], y0);
   if (lod >= 2) {
     buildPlain(mb, b, mats, rng, {
       y: y0, h: attrs.height, gable: attrs.roof !== 'flat',
@@ -783,6 +792,14 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   }
 
   const detail = lod === 0;
+  // Per-house façade style, from the seed (not rng, so nothing downstream moves):
+  // shutters on about a third of the older and colonial houses, brown window
+  // frames on some brick ones. Only the prototype shader reads it.
+  const hseed = houseSeed(b, opts.index || 0);
+  const proto = !!mats.prototypeStyle;
+  const shutter = proto && spec.era !== 'modern' && !spec.row && ((hseed >>> 7) & 7) < 3
+    ? 1 + ((hseed >>> 11) & 3) : 0;
+  const winStyle = proto ? shutter + (R.wallTile.startsWith('brick') && ((hseed >>> 14) & 3) === 0 ? 0.5 : 0) : null;
   // Hard triangle budget. Everything structural (walls, caps, roofs, garage
   // door, driveway) is unconditional; the trimmings below check `room()` in
   // priority order and drop off the end of a fat footprint rather than blowing
@@ -797,7 +814,7 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   // walls alone still will — nothing optional is left to drop by then.)
   const room = (n) => spent() + n <= cap - 6;
 
-  const ang = attrs.ridgeYaw;
+  const ang = squareRidge(attrs.ridgeYaw, b.a);
   const yaw = -ang;                       // MeshBuilder yaw for the ridge frame
   const ca = Math.cos(ang), sa = Math.sin(ang);
   const ox = b.c[0], oz = b.c[1];
@@ -875,14 +892,17 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
   mb.capPoly(b.p, b.t, y0 + (wallRect ? garageEave : eave), roofCol);
 
   // ---- roofs, one per rect, on the real footprint's oriented rectangles
-  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol, mt, eave);
+  // Fascia costs 12 triangles a roof; only near houses, and only inside the budget.
+  const fasciaCol = mats.color(hseed & 0x300 ? 'trim' : 'deck');
+  const fas = () => (detail && room(30) ? fasciaCol : null);
+  roofOn(mb, main, L2M, yaw, y0 + eave, roofRise, attrs.roof, spec, roofCol, mt, eave, fas());
   if (wing && wing !== garageRect) {
-    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol, mt, eave);
+    roofOn(mb, wing, L2M, yaw, y0 + eave, roofRise * 0.8, attrs.roof, spec, roofCol, mt, eave, fas());
   }
   if (garageRect) {
     roofOn(mb, garageRect, L2M, yaw, y0 + garageEave, Math.max(0.7, roofRise * 0.65),
       carport ? 'flat' : (attrs.roof === 'flat' ? 'gable' : attrs.roof), spec, roofCol, mt,
-      garageEave);
+      garageEave, fas(), L2M((main.u0 + main.u1) / 2, (main.v0 + main.v1) / 2));
   }
   mt.off();
 
@@ -902,11 +922,35 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
 
   if (detail) {
     // door + steps first — a house without a front door reads as a warehouse
-    mb.panel(dx0, y0 + 1.12, dz0, 0.98, 2.15, front.nx, front.nz, doorCol, uvDoor, OUT);
-    // front step: local +X is the outward normal, so wBot is the tread depth
+    // The ground floor of a Quebec house sits over a basement, ~45-60 cm above
+    // grade: the door is up a stoop, not at lawn level.
+    mb.panel(dx0, y0 + DOOR_LIFT + 1.075, dz0, 0.98, 2.15, front.nx, front.nz, doorCol, uvDoor, OUT);
+    // front stoop: local +X is the outward normal, so wBot is the tread depth
     if (room(10)) {
-      mb.tower(dx0 + front.nx * 0.7, y0, dz0 + front.nz * 0.7, 1.3, 1.9, 0.19, conc,
+      mb.tower(dx0 + front.nx * 0.7, y0, dz0 + front.nz * 0.7, 1.3, 1.9, DOOR_LIFT - 0.03, conc,
         { yaw: -front.yaw, noBottom: true });
+    }
+    // Lived-in details by the door: a porch lamp (lit after dark on most
+    // houses), the house number and, on older streets, a wall mailbox.
+    if (proto && room(4)) {
+      const side = doorSide > 0 ? -1 : 1;
+      const lx = dx0 + fw.tx * 0.78 * side, lz = dz0 + fw.tz * 0.78 * side;
+      mb.curRect = [0.17, 0.28, -0.8, 0];
+      mb.panel(lx, y0 + DOOR_LIFT + 1.95, lz, 0.17, 0.28, front.nx, front.nz, WHITE_T, uvWin, OUT + 0.03);
+      mb.curRect = null;
+      const nx0 = dx0 - fw.tx * 0.8 * side, nz0 = dz0 - fw.tz * 0.8 * side;
+      mb.panel(nx0, y0 + DOOR_LIFT + 1.75, nz0, 0.34, 0.13, front.nx, front.nz,
+        (hseed & 16) ? shade(0x1c1c1c, 1) : shade(0xb89a4a, 1), null, OUT + 0.01);
+      if (spec.era !== 'modern' && ((hseed >>> 3) & 3) !== 0 && room(12)) {
+        mb.box(nx0 + front.nx * 0.08, y0 + DOOR_LIFT + 1.3, nz0 + front.nz * 0.08, 0.14, 0.3, 0.36,
+          shade((hseed & 32) ? 0x1d1d1f : 0x6b5a3a, 1), { yaw: -front.yaw, noBottom: true });
+      }
+    }
+    // Garbage day: a blue recycling bin (bac bleu) at the curb on some lots.
+    if (proto && ((hseed >>> 17) & 7) < 3 && room(10)) {
+      const out = (spec.setback || 6) + 0.6, al = fw.len * 0.5 + 0.8;
+      mb.box(fw.cx + front.nx * out + fw.tx * al, y0 + 0.47, fw.cz + front.nz * out + fw.tz * al,
+        0.62, 0.94, 0.7, shade(((hseed >>> 20) & 3) === 0 ? 0x2d6b3a : 0x2a5ea8, 1), { yaw: -front.yaw, noBottom: true });
     }
     // A short front walk connects the entrance to the verge. Apart from being
     // normal residential geometry, this gives the eye a strong front/back cue
@@ -921,16 +965,37 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
         3.0, trimCol, roofCol, mt);
     }
 
+    // Quebec duplex: an upper gallery across the front with a straight
+    // exterior stair down to the walk (old two-storey semis in Vieux-Aylmer).
+    if (spec.units === 2 && attrs.storeys >= 2 && fw.len > 7 && room(40)) {
+      const deckCol = mats.color('deck'), floorY = y0 + eave / 2 + 0.05;
+      const gl = fw.len * 0.78, dep = 1.5;
+      const gx = fw.cx + front.nx * (dep / 2 + 0.02), gz = fw.cz + front.nz * (dep / 2 + 0.02);
+      mb.box(gx, floorY, gz, dep, 0.16, gl, deckCol, { yaw: -front.yaw });
+      mb.panel(gx + front.nx * (dep / 2 - 0.02), floorY + 0.55, gz + front.nz * (dep / 2 - 0.02),
+        gl, 0.95, front.nx, front.nz, trimCol, mats.decalUV('porch_rail'), 0.02);
+      for (const sgn of [-1, 1]) {
+        mb.post(gx + fw.tx * gl * 0.48 * sgn + front.nx * 0.62, y0, gz + fw.tz * gl * 0.48 * sgn + front.nz * 0.62,
+          0.12, floorY - y0, trimCol, yaw);
+      }
+      // the stair: a sloped run from the gallery's end to the lawn
+      const ex = gx + fw.tx * gl * 0.5, ez = gz + fw.tz * gl * 0.5, run = Math.max(2.6, (floorY - y0) * 1.1);
+      const sx = ex + front.nx * 0.2, sz = ez + front.nz * 0.2, w2 = 0.5;
+      const A = (along, out, y) => [sx + fw.tx * along + front.nx * out, y, sz + fw.tz * along + front.nz * out];
+      mb.quad(A(0, -w2, floorY + 0.08), A(0, w2, floorY + 0.08), A(-run, w2, y0 + 0.05), A(-run, -w2, y0 + 0.05), shade(0x4a4038, 1));  // underside
+      mb.quad(A(-run, -w2, y0 + 0.05), A(-run, w2, y0 + 0.05), A(0, w2, floorY - 0.12), A(0, -w2, floorY - 0.12), deckCol);          // treads
+    }
+
     // windows, per storey, along every face longer than 3 m
     const storeys = Math.max(1, Math.round(attrs.storeys));
     const wBudget = Math.max(2, Math.floor((cap - 8 - spent()) / 2));
     const door = { x: dx0, z: dz0, w: 0.98 };
     let placed = windows(mb, main, b.p, L2M, y0, eave, storeys, spec, winCol, uvWin,
-      front, door, Math.min(14, wBudget));
+      front, door, Math.min(14, wBudget), winStyle);
     for (const r of habitable) {
       if (r === main) continue;
       placed += windows(mb, r, b.p, L2M, y0, eave, storeys, spec, winCol, uvWin,
-        front, door, Math.max(0, Math.min(4, wBudget - placed)));
+        front, door, Math.max(0, Math.min(4, wBudget - placed)), winStyle);
     }
 
     // picture window (midcentury) / bay window (suburban). The wide 'window_bay'
@@ -938,18 +1003,23 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
     if (spec.picture && room(2)) {
       const px = fw.cx - fw.tx * fw.len * 0.22, pz = fw.cz - fw.tz * fw.len * 0.22;
       const uvPic = mats.decalUV('window_bay') || uvWin;
-      mb.panel(px, y0 + 1.75, pz, Math.min(3.0, fw.len * 0.42), 1.5,
+      const pw = Math.min(3.0, fw.len * 0.42);
+      if (proto) mb.curRect = [pw, 1.62, -0.5, winStyle % 1];
+      mb.panel(px, y0 + DOOR_LIFT + (proto ? 1.54 : 1.6), pz, pw, proto ? 1.62 : 1.5,
         front.nx, front.nz, winCol, uvPic, OUT);
+      mb.curRect = null;
     }
     if (spec.bay && fw.len > 7.5 && room(12)) {
       // bay: local +X is the outward normal, so wBot is how far it projects
       const px = fw.cx - fw.tx * fw.len * 0.26, pz = fw.cz - fw.tz * fw.len * 0.26;
-      mb.tower(px + front.nx * 0.28, y0 + 0.85, pz + front.nz * 0.28, 0.62, 2.5, 1.65,
+      mb.tower(px + front.nx * 0.28, y0 + DOOR_LIFT + 0.75, pz + front.nz * 0.28, 0.62, 2.5, 1.65,
         jitter(mats.color(spec.winTile), 1.1), { yaw: -front.yaw, noBottom: true, top: trimCol });
       // glazing on the front of the box, or it reads as a packing crate
       const uvBay = mats.decalUV('window_bay') || uvWin;
-      mb.panel(px + front.nx * 0.59, y0 + 1.7, pz + front.nz * 0.59, 2.2, 1.35,
+      if (proto) mb.curRect = [2.2, 1.35, -0.5, winStyle % 1];
+      mb.panel(px + front.nx * 0.59, y0 + DOOR_LIFT + 1.6, pz + front.nz * 0.59, 2.2, 1.35,
         front.nx, front.nz, winCol, uvBay, OUT);
+      mb.curRect = null;
     }
 
     // dormers on the street slope
@@ -970,6 +1040,16 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
       mt.off();
     }
 
+    // Downspouts at the two front corners: the vertical line that says "gutter".
+    if (proto && room(16)) {
+      const ff = faceOf(main, L2M, front);
+      for (const sgn of [-1, 1]) {
+        const px = ff.cx + ff.tx * (ff.len / 2 - 0.12) * sgn + front.nx * 0.07;
+        const pz = ff.cz + ff.tz * (ff.len / 2 - 0.12) * sgn + front.nz * 0.07;
+        mb.post(px, y0 + 0.15, pz, 0.075, eave - 0.3, fasciaCol, yaw);
+      }
+    }
+
     // detached shed / garage in the back yard
     if ((attrs.garage === 'detached' || spec.shed) && room(16)) {
       backShed(mb, ext, L2M, yaw, y0, front, wallCol, roofCol,
@@ -985,7 +1065,9 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
     const gdUV = mats.decalUV(gdName);
     const gw = Math.min(bays === 2 ? 5.2 : 3.0, gf.len - 0.7);
     if (!carport && gw > 1.6 && detail) {
+      if (mats.prototypeStyle) mb.curRect = [gw, 2.15, -0.5, 0];
       mb.panel(gf.cx, y0 + 1.12, gf.cz, gw, 2.15, front.nx, front.nz, gdCol, gdUV, OUT);
+      mb.curRect = null;
     }
     if (carport && detail) {
       // two posts and a flat lid instead of a door
@@ -996,9 +1078,9 @@ export function buildHouse(mb, b, hs, mats, rng, opts = {}) {
       }
     }
     driveway(mb, gf, front, y0, Math.max(3.0, Math.min(bays === 2 ? 6.0 : 3.4, gf.len)),
-      (spec.setback || 7) + 2, asphalt);
+      (spec.setback || 7) + 2, asphalt, opts.groundAt);
   } else if (attrs.garage === 'detached' && detail) {
-    driveway(mb, fw, front, y0, 3.2, (spec.setback || 7) + 2, asphalt);
+    driveway(mb, fw, front, y0, 3.2, (spec.setback || 7) + 2, asphalt, opts.groundAt);
   }
 
   // A low side/back fence gives detached houses a readable residential lot.
@@ -1041,7 +1123,7 @@ export function glenwoodPlan(b, attrs, opts = {}) {
   if (opt === false || opt === null) return null;
   if (opt === undefined && !(b.addr && GLENWOOD_STREETS.test(b.addr))) return null;
   if (attrs.link === 'apartment') return null;
-  const ang = attrs.ridgeYaw;
+  const ang = squareRidge(attrs.ridgeYaw, b.a);
   const ca = Math.cos(ang), sa = Math.sin(ang);
   const L2M = (u, v) => [b.c[0] + u * ca - v * sa, b.c[1] + u * sa + v * ca];
   const main = decompose(b.p, b.c, ang).rects[0];
@@ -1186,7 +1268,7 @@ function residentialFence(mb, ext, L2M, front, y0, era, mats) {
 // relief, it comes back yes for every bungalow in Aylmer and ten thousand of
 // them grow an underside nobody can get beneath. Defaulted, so a caller that
 // still works in absolute heights gets the old answer.
-function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt, eaveH = baseY) {
+function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt, eaveH = baseY, fascia = null, awayFrom = null) {
   const w = r.u1 - r.u0, d = r.v1 - r.v0;
   const cm = L2M((r.u0 + r.u1) / 2, (r.v0 + r.v1) / 2);
   const ov = spec.overhang;
@@ -1197,7 +1279,13 @@ function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt, eaveH = b
   // wall top and the ridge. Two triangles of dark underside close it.
   // (only where you can actually get under it — below ~4.6 m the wall hides the
   // slope from anyone sitting in a car, and 10 000 bungalows do not need it.)
-  if (form !== 'flat' && eaveH > 4.6) {
+  if (fascia && form !== 'flat') {
+    // Fascia board and soffit: a 20 cm trim band under the whole eave line, so
+    // the roof reads as a real overhang with thickness instead of a paper sheet.
+    if (mt) mt.off();
+    fasciaBand(mb, cm[0], cm[1], w + ov * 2, d + ov * 2, yaw, baseY, fascia, awayFrom);
+    if (mt) mt.roof();
+  } else if (form !== 'flat' && eaveH > 4.6) {
     mb.capRect(cm[0], cm[1], w + ov * 2, d + ov * 2, baseY + 0.02, yaw, roofCol, true);
   }
   switch (form) {
@@ -1209,6 +1297,25 @@ function roofOn(mb, r, L2M, yaw, baseY, rise, form, spec, roofCol, mt, eaveH = b
       if (w >= d) mb.roof(cm[0], baseY, cm[1], w, d, h, roofCol, yaw, ov, mt ? mt.gable : null);
       else mb.roof(cm[0], baseY, cm[1], d, w, h, roofCol, yaw - Math.PI / 2, ov, mt ? mt.gable : null);
   }
+}
+
+// The eave trim band: four 20 cm fascia faces and the soffit under them. A face
+// that looks straight at `away` (the house a garage is attached to) is inside
+// that house's wall and is left out.
+function fasciaBand(mb, cx, cz, w, d, yaw, y1, col, away) {
+  const s = Math.sin(yaw), co = Math.cos(yaw), y0 = y1 - 0.2;
+  const P = (px, py, pz) => [cx + px * co + pz * s, py, cz - px * s + pz * co];
+  const hw = w / 2, hd = d / 2;
+  const b00 = P(-hw, y0, -hd), b01 = P(-hw, y0, hd), b11 = P(hw, y0, hd), b10 = P(hw, y0, -hd);
+  const t00 = P(-hw, y1, -hd), t01 = P(-hw, y1, hd), t11 = P(hw, y1, hd), t10 = P(hw, y1, -hd);
+  let ax = 0, az = 0;
+  if (away) { ax = away[0] - cx; az = away[1] - cz; const l = Math.hypot(ax, az) || 1; ax /= l; az /= l; }
+  const side = (nx, nz, a, b, c, e) => { if (!(away && nx * ax + nz * az > 0.7)) mb.quad(a, b, c, e, col); };
+  side(-co, s, b00, b01, t01, t00);
+  side(co, -s, b11, b10, t10, t11);
+  side(-s, -co, b10, b00, t00, t10);
+  side(s, co, b01, b11, t11, t01);
+  mb.quad(b00, b10, b11, b01, col, [0, -1, 0]);
 }
 
 // Of several rects, the street-facing face that actually presents to the road —
@@ -1240,27 +1347,37 @@ function faceOf(r, L2M, front) {
 // Window bands. One per storey on each face longer than 3 m, the front getting
 // one more than the sides. Fronts are laid out first so a tight budget spends
 // itself where the driver is looking.
-function windows(mb, r, footprint, L2M, y0, eave, storeys, spec, col, uv, front, door, maxWin) {
+function windows(mb, r, footprint, L2M, y0, eave, storeys, spec, col, uv, front, door, maxWin, style = null) {
   const faces = rectFaces(r, L2M);
   faces.sort((a, b2) => Math.cos(b2.yaw - front.yaw) - Math.cos(a.yaw - front.yaw));
-  const sh = eave / storeys;
-  // Leave a real sill/head gap even on 1.5-storey houses, where dividing the
-  // eave by the rounded storey count otherwise puts the decal into the roof.
-  const winH = Math.min(spec.winH, Math.max(0.72, sh - 0.72));
+  // Storeys start above the basement wall (FLOOR_LIFT), and a sill sits about
+  // 85 cm above its floor: ground-floor sills end up ~1.45 m above the lawn,
+  // as on a real raised bungalow, instead of at knee height.
+  const sh = (eave - FLOOR_LIFT) / storeys;
+  const winH = Math.min(spec.winH, Math.max(0.72, sh - 1.0));
   let placed = 0;
-  for (const f of faces) {
+  for (let f of faces) {
     if (f.len < 3) continue;                    // skip party walls and stub returns
     const isFront = Math.cos(f.yaw - front.yaw) > 0.7;
     // A decomposition rectangle can have a face inside an L-shaped footprint.
     // If stepping through the supposed outside still lands in the building,
     // that is an internal seam and must never receive windows.
-    if (pointInPoly(footprint, f.cx + f.nx * 0.18, f.cz + f.nz * 0.18)) continue;
+    // The decomposition rectangles can also sit wholly inside an irregular
+    // footprint, and then EVERY face tests as a seam and the house gets no
+    // windows at all (a blank 20 m brick box on Rue du Long-Sault). Before
+    // giving up on a face, look along its normal for the real wall it faces
+    // and glaze that instead, if it runs the same way.
+    if (pointInPoly(footprint, f.cx + f.nx * 0.18, f.cz + f.nz * 0.18)) {
+      const g = outerWall(footprint, f);
+      if (!g) continue;
+      f = g;
+    }
     const usable = Math.max(0, f.len - 1.35);    // keep glazing clear of corners
     const n = clamp(Math.floor(usable / (isFront ? 3.0 : 3.6)), 1, isFront ? 4 : 3);
     for (let s = 0; s < storeys && placed < maxWin; s++) {
-      const floor0 = y0 + s * sh;
-      const cy = floor0 + Math.min(sh - winH / 2 - 0.24, winH / 2 + 0.58);
-      if (cy - winH / 2 < floor0 + 0.22 || cy + winH / 2 > y0 + eave - 0.28) continue;
+      const floor0 = y0 + FLOOR_LIFT + s * sh;
+      const cy = floor0 + Math.min(0.85 + winH / 2, sh - winH / 2 - 0.3);
+      if (cy - winH / 2 < floor0 + 0.3 || cy + winH / 2 > y0 + eave - 0.24) continue;
       for (let i = 0; i < n && placed < maxWin; i++) {
         const t = ((i + 0.5) / n - 0.5) * usable;
         const wx = f.cx + f.tx * t, wz = f.cz + f.tz * t;
@@ -1271,12 +1388,64 @@ function windows(mb, r, footprint, L2M, y0, eave, storeys, spec, col, uv, front,
           const along = Math.abs((wx - door.x) * f.tx + (wz - door.z) * f.tz);
           if (along < (door.w + spec.winW) * 0.5 + 0.34) continue;
         }
-        mb.panel(wx, cy, wz, spec.winW, winH, f.nx, f.nz, col, uv, OUT + 0.012);
+        if (style === null) mb.panel(wx, cy, wz, spec.winW, winH, f.nx, f.nz, col, uv, OUT + 0.012);
+        else {
+          // Prototype: a sized panel the shader draws as frame, sill and recessed
+          // glass (src/prototype/facade.js); 12 cm taller for the sill, and
+          // wider when it carries shutters.
+          mb.curRect = [spec.winW, winH + 0.12, -0.5, style];
+          mb.panel(wx, cy - 0.06, wz, spec.winW * (style >= 1 ? 1.9 : 1), winH + 0.12,
+            f.nx, f.nz, col, uv, OUT + 0.012);
+          mb.curRect = null;
+        }
         placed++;
       }
     }
   }
   return placed;
+}
+
+// The LiDAR ridge angle, squared up to the footprint. One house in five has a
+// fitted ridge more than 12 degrees off its own walls (noise, trees, a hip
+// fitted diagonally). Building in that frame decomposes the footprint into
+// small rotated rectangles inside it: the roof sits diagonally across the walls
+// and every window face tests as internal, so the house comes out a blank box.
+// Keep the LiDAR's choice of axis (which of the footprint's two directions the
+// ridge runs along), but take the footprint's exact angle whenever they differ.
+export function squareRidge(ridgeYaw, footAng) {
+  if (!Number.isFinite(footAng) || !Number.isFinite(ridgeYaw)) return ridgeYaw;
+  const q = Math.PI / 2;
+  return footAng + Math.round((ridgeYaw - footAng) / q) * q;
+}
+
+// The footprint wall straight out along an internal face's normal, as a face of
+// its own: same normal and tangent, centred where the normal meets the wall,
+// as long as the wall is parallel to the face (within ~15 degrees), within 12 m,
+// and the stretch of it the face spans is actually wall. Null otherwise.
+function outerWall(p, f) {
+  let best = null, bt = 12;
+  for (let i = 0, n = p.length; i < n; i++) {
+    const a = p[i], b = p[(i + 1) % n];
+    const ex = b[0] - a[0], ez = b[1] - a[1], el = Math.hypot(ex, ez);
+    if (el < 3) continue;
+    const ux = ex / el, uz = ez / el;
+    if (Math.abs(ux * f.tx + uz * f.tz) < 0.965) continue;
+    const den = f.nx * -ez + f.nz * ex;              // ray (c, n) against edge a->b
+    if (Math.abs(den) < 1e-6) continue;
+    const wx = a[0] - f.cx, wz = a[1] - f.cz;
+    const t = (wx * -ez + wz * ex) / den;
+    const s = (wx * f.nz - wz * f.nx) / den;
+    if (t <= 0.05 || t >= bt || s < 0 || s > 1) continue;
+    // Usable length: the part of the edge within the face's own span.
+    const along = s * el, half = f.len / 2;
+    const len = Math.min(along, half) + Math.min(el - along, half);
+    if (len < 3) continue;
+    const off = (Math.min(el - along, half) - Math.min(along, half)) / 2;
+    const sgn = (ux * f.tx + uz * f.tz) > 0 ? 1 : -1;
+    bt = t;
+    best = { ...f, cx: f.cx + f.nx * t + ux * off * sgn * sgn, cz: f.cz + f.nz * t + uz * off * sgn * sgn, len };
+  }
+  return best;
 }
 
 // Base-course / siding band around a rect (front + the two returns).
@@ -1369,11 +1538,48 @@ function dormers(mb, r, L2M, yaw, eaveY, rise, count, front, wallCol, roofCol, w
   }
 }
 
-// Flat asphalt strip from the garage face out past the setback to the street.
-function driveway(mb, f, front, y0, width, len, col) {
+// Asphalt strip from the garage face out past the setback to the street.
+function driveway(mb, f, front, y0, width, len, col, groundAt = null) {
   const cx = f.cx + front.nx * (len / 2 + 0.4);
   const cz = f.cz + front.nz * (len / 2 + 0.4);
-  mb.flatRot(cx, cz, width, len, y0 + Y_DRIVE, -front.yaw + Math.PI / 2, col);
+  drapeRot(mb, cx, cz, width, len, y0 + Y_DRIVE, -front.yaw + Math.PI / 2, col,
+    groundAt, f.cx, f.cz);
+}
+
+// A flatRot slab that follows the ground (D3). Without `groundAt` it is exactly
+// mb.flatRot at height y. With it, every vertex sits Y_DRIVE above the lawn,
+// which is draped on the same height field, so a car on the slab no longer
+// sinks into it or rides a step. (hx, hz), the garage end, is kept for callers
+// but no longer pinned to the footing: pinning it left the garage half of
+// 900 slabs under the lawn on uphill lots. The strip is only split along its
+// length where the ground bends: a straight slope is one tilted quad, so flat
+// lots cost the same two triangles as before.
+export function drapeRot(mb, cx, cz, w, d, y, yaw, c, groundAt) {
+  if (!groundAt) { mb.flatRot(cx, cz, w, d, y, yaw, c); return; }
+  const s = Math.sin(yaw), co = Math.cos(yaw);
+  const hw = w / 2, hd = d / 2;
+  const X = (px, pz) => cx + px * co + pz * s, Z = (px, pz) => cz - px * s + pz * co;
+  const off = Y_DRIVE;
+  const H = (px, pz) => groundAt(X(px, pz), Z(px, pz)) + off;
+  // Pick 1, 2, 4 or 8 segments: the fewest whose straight pieces stay within
+  // 5 cm of the ground along the centre line.
+  let n = 1;
+  for (; n < 8; n *= 2) {
+    let err = 0;
+    for (let k = 0; k < 8; k++) {
+      const t = (k + 0.5) / 8, pz = -hd + t * d;
+      const seg = Math.min(n - 1, Math.floor(t * n)), t0 = seg / n, t1 = (seg + 1) / n;
+      const a = H(0, -hd + t0 * d), b = H(0, -hd + t1 * d);
+      const lin = a + (b - a) * ((t - t0) / (t1 - t0));
+      err = Math.max(err, Math.abs(lin - (groundAt(X(0, pz), Z(0, pz)) + off)));
+    }
+    if (err < 0.05) break;
+  }
+  for (let k = 0; k < n; k++) {
+    const z0 = -hd + d * k / n, z1 = -hd + d * (k + 1) / n;
+    mb.quad([X(-hw, z0), H(-hw, z0), Z(-hw, z0)], [X(-hw, z1), H(-hw, z1), Z(-hw, z1)],
+      [X(hw, z1), H(hw, z1), Z(hw, z1)], [X(hw, z0), H(hw, z0), Z(hw, z0)], c, [0, 1, 0]);
+  }
 }
 
 function frontWalk(mb, x, z, front, y0, setback, hasPorch, col) {

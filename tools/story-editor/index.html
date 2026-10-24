@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aylmer Madness - Story Editor (Summer 2004)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Global Application Header -->
+  <header class="app-header">
+    <div class="brand">
+      <h1>Aylmer Madness</h1>
+      <span class="subtitle">Story & Memory Editor - Summer 2004</span>
+    </div>
+
+    <nav class="main-nav" id="mainNav">
+      <button type="button" class="nav-btn active" data-view="board">Mission Board</button>
+      <button type="button" class="nav-btn" data-view="detail" id="navDetailBtn">Mission Detail</button>
+      <button type="button" class="nav-btn" data-view="people">Cast & Prompts</button>
+      <button type="button" class="nav-btn" data-view="places">Places</button>
+      <button type="button" class="nav-btn" data-view="ledger">Canon Ledger</button>
+      <button type="button" class="nav-btn" data-view="export">Export & Sync</button>
+    </nav>
+
+    <div class="header-actions">
+      <div class="save-indicator" id="saveIndicator">
+        <span class="save-dot" id="saveDot"></span>
+        <span id="saveText">Saved locally</span>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" id="resetSeedBtn" title="Reset all state to initial seed.json">Reset to Seed</button>
+    </div>
+  </header>
+
+  <!-- Main Views Container -->
+  <main class="main-content">
+    
+    <!-- VIEW 1: MISSION BOARD -->
+    <section class="view-section active" id="view-board">
+      <div class="board-controls">
+        <div class="filter-group">
+          <label for="statusFilter">Status:</label>
+          <select id="statusFilter">
+            <option value="all">All Statuses</option>
+            <option value="untouched">Untouched</option>
+            <option value="has-memory">Has Memory</option>
+            <option value="drafted">Drafted</option>
+            <option value="approved">Approved</option>
+            <option value="applied">Applied</option>
+          </select>
+
+          <label for="toneFilter">Tone:</label>
+          <select id="toneFilter">
+            <option value="all">All Tones</option>
+            <option value="cynical">Cynical</option>
+            <option value="warm">Warm</option>
+            <option value="absurd">Absurd</option>
+            <option value="flat">Flat</option>
+          </select>
+
+          <label>
+            <input type="checkbox" id="hasMemoryFilter"> Has my memory only
+          </label>
+        </div>
+
+        <div class="filter-group">
+          <input type="text" id="missionSearchInput" placeholder="Search title, giver or brief...">
+          <span id="boardStatsText" style="font-size:12px;color:var(--text-muted);">33 missions</span>
+        </div>
+      </div>
+
+      <div class="missions-grid" id="missionsGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- VIEW 2: MISSION DETAIL -->
+    <section class="view-section" id="view-detail">
+      <div class="detail-header">
+        <div class="detail-title-wrap">
+          <button type="button" class="btn btn-secondary btn-sm" id="backToBoardBtn">&larr; Board</button>
+          <h2 id="detailMissionHeading">L'alternateur (#1)</h2>
+          <span class="badge-status status-drafted" id="detailStatusBadge">DRAFTED</span>
+          <span class="badge-tone tone-cynical" id="detailToneBadge">CYNICAL</span>
+        </div>
+
+        <div class="detail-nav-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="prevMissionBtn" title="Previous Mission (K)">&uarr; Prev (K)</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="nextMissionBtn" title="Next Mission (J)">&darr; Next (J)</button>
+          <button type="button" class="btn" id="previewHudBtn">&#9658; Preview HUD</button>
+        </div>
+      </div>
+
+      <!-- 3 Columns Layout -->
+      <div class="detail-columns">
+        
+        <!-- Left: Fixed Gameplay (Cannot Change) -->
+        <div class="detail-col col-fixed">
+          <div class="col-header">
+            <h3>Fixed Gameplay</h3>
+            <span class="fixed-lock-tag">&#128274; Cannot Change</span>
+          </div>
+
+          <div class="fixed-info">
+            <div><strong>Giver:</strong> <span id="fixedGiver">-</span></div>
+            <div><strong>Time:</strong> <span id="fixedTimeOfDay">-</span></div>
+            <div><strong>Type:</strong> <span id="fixedKind">Campaign</span></div>
+          </div>
+
+          <div class="stage-list" id="fixedStagesList">
+            <!-- Stage cards rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Middle: Current Game Text & Verdicts -->
+        <div class="detail-col col-current">
+          <div class="col-header">
+            <h3>Current Game Text</h3>
+            <span class="chip chip-current">CURRENT GAME</span>
+          </div>
+
+          <!-- Current Brief -->
+          <div class="line-card" id="currentBriefCard">
+            <div class="line-speaker">
+              <span>Mission Brief (French)</span>
+            </div>
+            <div class="line-text" id="currentBriefText">Loading...</div>
+            <div class="verdict-bar" data-target="brief">
+              <button type="button" class="verdict-btn" data-verdict="keep">Keep</button>
+              <button type="button" class="verdict-btn" data-verdict="tweak">Tweak</button>
+              <button type="button" class="verdict-btn" data-verdict="wrong">Wrong</button>
+              <button type="button" class="verdict-btn" data-verdict="more">More Story</button>
+            </div>
+          </div>
+
+          <!-- Current Start Lines -->
+          <div id="currentStartLinesWrap" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+          <!-- Current Stage Toasts -->
+          <div id="currentToastsWrap" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+          <!-- Current End Lines -->
+          <div id="currentEndLinesWrap" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <!-- Right: Proposal (Editable) -->
+        <div class="detail-col col-proposed">
+          <div class="col-header">
+            <h3>Proposed Script</h3>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <select id="proposalStatusSelect" style="font-size:12px;padding:3px 6px;">
+                <option value="untouched">Untouched</option>
+                <option value="has-memory">Has Memory</option>
+                <option value="drafted">Drafted</option>
+                <option value="approved">Approved</option>
+                <option value="applied">Applied</option>
+              </select>
+              <select id="proposalToneSelect" style="font-size:12px;padding:3px 6px;">
+                <option value="cynical">Cynical</option>
+                <option value="warm">Warm</option>
+                <option value="absurd">Absurd</option>
+                <option value="flat">Flat</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Cumulative Mission Timing Banner -->
+          <div class="mission-val-banner" id="missionValBanner">
+            <div style="display:flex;justify-content:space-between;font-weight:700;">
+              <span>Cumulative Glance Budget:</span>
+              <span id="missionTotalTimeText">0.0s / 12.0s</span>
+            </div>
+            <div id="missionWarningsList" style="font-size:11px;"></div>
+          </div>
+
+          <!-- Proposed Brief -->
+          <div class="form-field">
+            <label for="proposedBriefInput">Proposed Brief (Job Card)</label>
+            <textarea id="proposedBriefInput" class="input-brief"></textarea>
+          </div>
+
+          <!-- Proposed Start Lines -->
+          <div class="repeatable-lines-section">
+            <div class="repeatable-lines-header">
+              <span>Start Lines (At Job Accept)</span>
+              <button type="button" class="btn btn-secondary btn-sm" id="addStartLineBtn">+ Line</button>
+            </div>
+            <div id="proposedStartLinesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- Proposed On The Road Lines -->
+          <div class="repeatable-lines-section">
+            <div class="repeatable-lines-header">
+              <span>On The Road Lines (Mid-Drive)</span>
+              <button type="button" class="btn btn-secondary btn-sm" id="addRoadLineBtn">+ Line</button>
+            </div>
+            <div id="proposedRoadLinesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- Proposed End Lines -->
+          <div class="repeatable-lines-section">
+            <div class="repeatable-lines-header">
+              <span>End Lines (At Completion)</span>
+              <button type="button" class="btn btn-secondary btn-sm" id="addEndLineBtn">+ Line</button>
+            </div>
+            <div id="proposedEndLinesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- Completion Toast -->
+          <div class="form-field" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
+            <label for="proposedToastInput">Completion Toast</label>
+            <input type="text" id="proposedToastInput" class="line-input" placeholder="e.g. 22 $ pour le trouble. Ça couvre le gaz.">
+          </div>
+        </div>
+      </div>
+
+      <!-- Memory Capture Box -->
+      <div class="memory-box" id="memoryBox">
+        <div class="memory-box-header">
+          <div class="memory-box-prompt">&ldquo;Just tell me what happened.&rdquo;</div>
+          <div class="audio-recorder">
+            <button type="button" class="rec-btn" id="recordAudioBtn" title="Record rambling audio memory">&#9679;</button>
+            <span class="rec-timer" id="recordTimer">00:00</span>
+            <audio id="memoryAudioPlayer" controls style="display:none;height:32px;"></audio>
+            <button type="button" class="btn btn-danger btn-sm" id="deleteAudioBtn" style="display:none;">Delete Audio</button>
+          </div>
+        </div>
+
+        <textarea class="memory-textarea" id="memoryRawInput" placeholder="Rambling memory in your own words... No form, no required fields. Select any sentence to mark it as an exact phrase."></textarea>
+
+        <div class="memory-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="markExactPhraseBtn">&#10004; Mark selected text as exact phrase</button>
+          <span style="font-size:12px;color:var(--text-muted);">Exact phrases are stored verbatim and quoted in AI briefs</span>
+        </div>
+
+        <div class="exact-phrases-list" id="exactPhrasesList">
+          <!-- Rendered exact phrases -->
+        </div>
+      </div>
+
+      <!-- Photos Attached to Mission -->
+      <div class="photo-strip-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h4 style="font-size:15px;color:var(--accent-gold);">Photos for this Mission</h4>
+          <button type="button" class="btn btn-secondary btn-sm" id="buildMissionCardPromptBtn">Build Mission Card Prompt</button>
+        </div>
+
+        <div class="drop-target-zone" id="missionPhotoDropZone">
+          Drag &amp; drop photos here or click to browse (auto-saved to IndexedDB)
+          <input type="file" id="missionPhotoFileInput" accept="image/*" multiple style="display:none;">
+        </div>
+
+        <div class="photo-thumbnails" id="missionPhotosStrip">
+          <!-- Photo thumbnails rendered here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: PEOPLE -->
+    <section class="view-section" id="view-people">
+      <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h2 style="color:var(--accent-gold);margin-bottom:4px;">Cast &amp; Character Prompts</h2>
+          <p style="font-size:13px;color:var(--text-muted);">The real people of Aylmer 2004. Build character reference sheet prompts before making mission cards.</p>
+        </div>
+      </div>
+
+      <div class="people-grid" id="peopleGrid">
+        <!-- Rendered cast cards -->
+      </div>
+    </section>
+
+    <!-- VIEW 4: PLACES -->
+    <section class="view-section" id="view-places">
+      <div style="margin-bottom:20px;">
+        <h2 style="color:var(--accent-gold);margin-bottom:4px;">Aylmer Places (src/game/places.js)</h2>
+        <p style="font-size:13px;color:var(--text-muted);">Drop photos onto corners or generate establishing shot prompts.</p>
+      </div>
+
+      <div class="places-grid" id="placesGrid">
+        <!-- Rendered place cards -->
+      </div>
+    </section>
+
+    <!-- VIEW 5: CANON LEDGER -->
+    <section class="view-section" id="view-ledger">
+      <div style="margin-bottom:20px;">
+        <h2 style="color:var(--accent-gold);margin-bottom:4px;">Canon Ledger</h2>
+        <p style="font-size:13px;color:var(--text-muted);">Thomas's confirmed memories, forbidden tropes, and open questions.</p>
+      </div>
+
+      <div class="ledger-tabs">
+        <button type="button" class="ledger-tab-btn active" data-tab="confirmed">Confirmed Canon</button>
+        <button type="button" class="ledger-tab-btn" data-tab="questions">Open Questions</button>
+        <button type="button" class="ledger-tab-btn" data-tab="rejected">Do Not Reintroduce</button>
+        <button type="button" class="ledger-tab-btn" data-tab="phrases">Exact Phrases</button>
+        <button type="button" class="ledger-tab-btn" data-tab="gasgag">Gas Gag Beats</button>
+      </div>
+
+      <!-- Tab 1: Confirmed -->
+      <div class="ledger-tab-panel" id="tab-confirmed">
+        <div class="ledger-list" id="canonConfirmedList"></div>
+      </div>
+
+      <!-- Tab 2: Questions -->
+      <div class="ledger-tab-panel" id="tab-questions" style="display:none;">
+        <div class="ledger-list" id="openQuestionsList"></div>
+      </div>
+
+      <!-- Tab 3: Rejected -->
+      <div class="ledger-tab-panel" id="tab-rejected" style="display:none;">
+        <div class="ledger-list" id="canonRejectedList"></div>
+      </div>
+
+      <!-- Tab 4: Phrases -->
+      <div class="ledger-tab-panel" id="tab-phrases" style="display:none;">
+        <div class="ledger-list" id="exactPhrasesAllList"></div>
+      </div>
+
+      <!-- Tab 5: Gas Gag -->
+      <div class="ledger-tab-panel" id="tab-gasgag" style="display:none;">
+        <div class="ledger-list" id="gasGagList"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: EXPORT & SYNC -->
+    <section class="view-section" id="view-export">
+      <div class="export-card">
+        <h2 style="color:var(--accent-gold);">Export Story Bundle</h2>
+        <p style="font-size:14px;color:var(--text-muted);">
+          Export structured JSON data, a clean Markdown brief for Claude Code, and personal photos to <code>references/story/</code> (gitignored).
+        </p>
+
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+          <label for="exportScopeSelect" style="font-size:12.5px;font-weight:700;color:var(--text-main);">Export Scope:</label>
+          <select id="exportScopeSelect" style="font-size:12px;padding:4px 8px;background:#0d161c;color:#f3f6f8;border:1px solid var(--border-subtle);border-radius:4px;">
+            <option value="modified" selected>Only missions changed in this session (Default)</option>
+            <option value="drafted">All drafted &amp; approved missions</option>
+            <option value="all">All 33 missions</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn" id="exportFsBtn">&#128190; Save Directly to Repo (File System Access)</button>
+          <button type="button" class="btn btn-secondary" id="downloadJsonBtn">Download story-submission.json</button>
+          <button type="button" class="btn btn-secondary" id="downloadMdBtn">Download STORY-SUBMISSION.md</button>
+          <button type="button" class="btn btn-secondary" id="copyClaudePromptBtn">&#128203; Copy Claude Code Prompt</button>
+        </div>
+
+        <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px;">RESUME ON ANOTHER MACHINE (IMPORT JSON):</label>
+          <input type="file" id="importJsonFileInput" accept=".json">
+        </div>
+      </div>
+
+      <div class="export-card">
+        <h3 style="color:var(--accent-gold);font-size:16px;">Generated Markdown Brief Preview</h3>
+        <p style="font-size:12px;color:var(--text-muted);">Contains only missions with drafted changes or verified memories.</p>
+        <pre class="export-preview-box" id="markdownPreviewBox">Loading...</pre>
+      </div>
+    </section>
+  </main>
+
+  <!-- Lightbox Modal -->
+  <dialog class="custom-dialog" id="lightboxModal" closedby="any">
+    <div class="modal-inner">
+      <div class="lightbox-img-wrap">
+        <img id="lightboxImg" src="" alt="Photo preview">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-field">
+          <label for="lightboxYearInput">Year:</label>
+          <input type="text" id="lightboxYearInput" placeholder="2004">
+        </div>
+        <div class="form-field">
+          <label for="lightboxKindSelect">Kind:</label>
+          <select id="lightboxKindSelect">
+            <option value="person">Person</option>
+            <option value="place">Place</option>
+            <option value="truck">Truck</option>
+            <option value="object">Object</option>
+            <option value="group">Group</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field" style="margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="lightboxRefSheetCheckbox">
+          <span>Tag as Character Reference Sheet Source</span>
+        </label>
+      </div>
+      <div class="form-field">
+        <label for="lightboxCaptionInput">Caption:</label>
+        <input type="text" id="lightboxCaptionInput" placeholder="Describe the photo...">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <button type="button" class="btn btn-danger btn-sm" id="deletePhotoBtn">Delete Photo</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="closeLightboxBtn">Close (Esc)</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Prompt Modal -->
+  <dialog class="custom-dialog" id="promptModal" closedby="any">
+    <div class="modal-inner" style="max-width:700px;">
+      <h3 style="color:var(--accent-gold);" id="promptModalTitle">Generated Image Prompt</h3>
+      <div id="promptModalWarnings" style="display:none;background:rgba(239,68,68,0.15);border:1px solid var(--accent-red);padding:8px 12px;border-radius:4px;color:#fca5a5;font-size:12px;"></div>
+      <textarea id="promptModalText" style="width:100%;height:220px;background:#0b1216;color:#f3f6f8;border:1px solid var(--border-subtle);border-radius:4px;padding:12px;font-family:var(--font-mono);font-size:12px;line-height:1.45;" readonly></textarea>
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn btn-secondary btn-sm" id="closePromptModalBtn">Close</button>
+        <button type="button" class="btn btn-sm" id="copyPromptBtn">&#128203; Copy to Clipboard</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Game HUD Preview Modal -->
+  <dialog class="custom-dialog" id="previewModal" closedby="any">
+    <div class="preview-modal-inner">
+      <div>
+        <div class="preview-jobcard">
+          <h2 id="hudPreviewTitle">Mission Title</h2>
+          <p class="p-brief" id="hudPreviewBrief">Mission brief text goes here...</p>
+          <div class="p-task" id="hudPreviewTask">Task line here</div>
+        </div>
+
+        <!-- Heckle Speech Bubbles Stage -->
+        <div class="preview-heckles-stage" id="hudHecklesStage">
+          <!-- Animated bubbles appear here in sequence -->
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;">
+        <div style="font-size:12px;color:#a8c5c8;" id="hudPreviewTimerStatus">Ready</div>
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="restartHudPreviewBtn">Replay Sequence</button>
+          <button type="button" class="btn btn-sm" id="closeHudPreviewBtn">Close Preview (Esc)</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Application Entry Script (Plain ES Module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -135,7 +135,9 @@ export function cloudOpts(env) {
   const lum = 0.30 * s[0] + 0.59 * s[1] + 0.11 * s[2];
   const k = Math.max(0, Math.min(1, lum * 1.7));
   return {
-    alpha: 0.42, unlit: true, fogMul: 0.02,
+    // `clouds` lets a renderer with its own sky (the lit prototype draws
+    // cumulus in its sky shader) skip this layer.
+    alpha: 0.42, unlit: true, fogMul: 0.02, clouds: true,
     colorMul: [k * (0.7 + 0.3 * sun[0]), k * (0.7 + 0.3 * sun[1]), k * (0.7 + 0.3 * sun[2])],
   };
 }

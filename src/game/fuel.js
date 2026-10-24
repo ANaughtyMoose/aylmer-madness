@@ -7,6 +7,12 @@
 // The tank belongs to the car, not the player: a friend's car comes with what
 // is in it, and nobody fills a car they are lending you. Bikes and the golf
 // cart have no tank and burn nothing.
+//
+// (29 Sept, progression review P6: measured, a whole clean pass of the 33 jobs
+// drives ~290 km and burns $31-45 at this price, not the ~$250 above. That
+// figure is left as the design intent; see docs/review/progression-economy.md
+// « Fixes applied » for the numbers and the recommendation.)
+import { maybeDadCall } from './dadcall.js';
 
 export const PRICE = 0.849;          // $/L, regular, July 2004
 export const RESERVE = 6;            // litres: the light comes on
@@ -16,7 +22,7 @@ export const LEND_FRACTION = 0.6;    // what is in a friend's tank when you take
 
 // Litres. Real tanks, rounded; anything not listed gets a guess from its mass.
 export const TANK = {
-  ranger: 62, saturn: 47, civic: 45, sunfire: 57, forester: 60, sienna: 79,
+  ranger: 62, saturn: 46, civic: 45, sunfire: 57, forester: 60, sienna: 79,
   cavalier: 57, cutlass: 60, caravan: 76, f250: 72, bus: 300, schoolbus: 230,
   benz: 65, cart: 0, cruiser: 0, dbike: 0,
 };
@@ -87,6 +93,9 @@ export function burn(spec, metres, throttle, dt) {
  */
 export function tickFuel(G, dt, v, throttle, atPump) {
   const spec = v.baseSpec || v.spec;
+  // Broke with a bill in front of you: Dad may call (dadcall.js). Here because
+  // this is the one money-side function main.js already runs every tick.
+  maybeDadCall(G, v, hasTank(spec) && G.fuel <= RESERVE);
   if (!hasTank(spec)) { G.fuel = 0; return null; }
   const tank = tankOf(spec);
   const metres = Math.abs(v.vLong || 0) * dt;
@@ -107,7 +116,7 @@ export function tickFuel(G, dt, v, throttle, atPump) {
 
   if (G.fuel <= 0) {
     if (G.hud && !G.dryToasted) { G.dryToasted = true; G.hud.toast('Panne sèche.\nT — un gars te vend un bidon (5 L, 10 $).', 3600); }
-    return { ...v.spec, accel: 0 };
+    return Object.assign(Object.create(v.spec), { accel: 0, dry: true });   // cars.js: the gearbox gets no pedal
   }
   G.dryToasted = false;
   return null;

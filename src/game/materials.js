@@ -77,14 +77,15 @@ function loadImage(url) {
  */
 export async function loadMaterials(renderer, opts = {}) {
   const base = opts.base || ATLAS_DIR;
+  const stem = opts.stem || renderer?.materialAtlas || 'atlas';
   const manifest = opts.manifest
-    || await fetch(base + 'atlas.json').then((r) => {
-      if (!r.ok) throw new Error('cannot load ' + base + 'atlas.json');
+    || await fetch(base + stem + '.json').then((r) => {
+      if (!r.ok) throw new Error('cannot load ' + base + stem + '.json');
       return r.json();
     });
   let tex = null;
   if (renderer && renderer.texture) {
-    const image = opts.image || await loadImage(base + 'atlas.png');
+    const image = opts.image || await loadImage(base + stem + '.png');
     tex = renderer.texture(image, {
       aniso: opts.aniso === undefined ? 16 : opts.aniso,
       // Cap the mip chain: the atlas cells only have 8 px of bleed, so from
@@ -94,9 +95,33 @@ export async function loadMaterials(renderer, opts = {}) {
       maxLevel: opts.maxLevel === undefined ? 4 : opts.maxLevel,
     });
   }
-  const mats = new Materials(manifest, tex);
+  const effective = renderer?.isPrototype ? prototypeManifest(manifest) : manifest;
+  const mats = new Materials(effective, tex);
+  mats.prototypeStyle=!!renderer?.isPrototype;
   if (opts.current !== false) current = mats;
+  markGlassAtlas(renderer, tex);   // s5-reflect
   return mats;
+}
+
+// ==== s5-reflect (V3-02): tell shaders/glass.js when the material atlas is bound ====
+// An atlas window decal is found by its UV inside a window cell, and signs
+// draw their own canvas atlases with absolute UVs over the same range, so the
+// shader must know which texture is bound. One float, written only when it
+// changes, around the renderer's single draw funnel. Wrapped once per
+// renderer; a later atlas load just swaps the texture it compares with.
+function markGlassAtlas(renderer, tex) {
+  if (!renderer || renderer.isPrototype || !tex || typeof renderer._draw !== 'function') return;
+  if (!renderer.uniforms || !renderer.uniforms.uGlassAtlas) return;
+  renderer._glassAtlasTex = tex;
+  if (renderer._glassWrapped) return;
+  renderer._glassWrapped = true;
+  const inner = renderer._draw;
+  let on = -1;
+  renderer._draw = function (mesh, model, opts) {
+    const v = opts && opts.tex && opts.tex === this._glassAtlasTex ? 1 : 0;
+    if (v !== on) { const loc = this.u && this.u.uGlassAtlas; if (loc) this.gl.uniform1f(loc, v); on = v; }
+    return inner.call(this, mesh, model, opts);
+  };
 }
 
 export class Materials {
@@ -356,3 +381,15 @@ export function decal(mb, name, centre, right, up, opts) {
   return materials().decal(mb, name, centre, right, up, opts);
 }
 export function endTex(mb) { return materials().end(mb); }
+
+// Photographic sheets contain many more courses than the original procedural
+// tiles. Keep physical siding/brick size instead of covering houses in tiny lines.
+export function prototypeManifest(manifest) {
+ const tiles=Object.fromEntries(Object.entries(manifest.tiles).map(([name,t])=>[name,{...t}]));
+ for(const [name,t] of Object.entries(tiles)) {
+  if(name.startsWith('vinyl_')||name.startsWith('clapboard_'))t.metres=2.4;
+  else if(name.startsWith('brick_'))t.metres=1.8;
+  else if(name==='cedar')t.metres=2.4;
+ }
+ return {...manifest,tiles};
+}

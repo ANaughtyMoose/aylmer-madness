@@ -118,9 +118,13 @@ export class Legend {
     this.open = legendOpenPref();
     if (this.head) {
       this.head.onclick = () => this.toggle();
-      this.head.addEventListener?.('keydown', e => {
-        if (['Enter', 'Space'].includes(e.code)) e.stopPropagation();
-      });
+      // A mouse click must not leave focus on the button (UX review P3). It
+      // did, and its keydown listener stopped Enter and Space from reaching
+      // the game, so after one click Space toggled the legend instead of
+      // pulling the handbrake and Enter never took a job. A keyboard user who
+      // Tabs here in a menu still gets Enter / Space from the browser.
+      this.head.addEventListener?.('pointerdown', (e) => e.preventDefault());
+      this.head.addEventListener?.('click', () => this.head.blur?.());
     }
     this.render();
   }
@@ -137,7 +141,7 @@ export class Legend {
     this.root.classList.toggle('collapsed', !this.open);
     if (this.head) {
       this.head.textContent = getLang() === 'en'
-        ? (this.open ? '? — Hide controls' : '? — Show controls')
+        ? (this.open ? '? Hide controls' : '? Show controls')
         : (this.open ? '? — Masquer les commandes' : '? — Afficher les commandes');
       this.head.setAttribute?.('aria-expanded', String(this.open));
     }
@@ -165,10 +169,17 @@ function legendOpenPref() {
 // Fires once ever (localStorage), and each step waits for the player to
 // actually do the thing before moving on.
 const STEPS = [
-  { cap: 'W', key: 'tut.go', done: (c) => c.speedKmh > 12 },
-  { cap: 'A / D', key: 'tut.steer', done: (c) => Math.abs(c.steer) > 0.35 },
+  { cap: 'S', key: 'tut.go', done: (c) => c.speedKmh > 8 },   // reverse out of the drive first,
+  // S3-RANGER (feel.md 10): the chip was still up at 90 km/h in the speed
+  // frames, because a light touch never crossed 0.35. It also retires once you
+  // have driven 50 m with any steering on: you have found the keys.
+  { cap: 'A / D', key: 'tut.steer', done: (c) => Math.abs(c.steer) > 0.35, steerM: 50 },
   { cap: 'S', key: 'tut.brake', done: (c) => c.brake > 0.5 && c.speedKmh > 6 },
-  { cap: 'Espace', key: 'tut.hand', done: (c) => c.handbrake && c.speedKmh > 12 },
+  // A-04: the handbrake tip was on screen in every shot from B/307 on (Max,
+  // Gemini), at 0 km/h on tour stops too, because it only cleared on a pull
+  // above 12 km/h. It hides while you are crawling, clears on any pull while
+  // rolling, and lets go by itself after 25 s of driving with it up.
+  { cap: 'Espace', key: 'tut.hand', done: (c) => c.handbrake && c.speedKmh > 5, minKmh: 5, timeout: 25 },
   { cap: 'Tab', key: 'tut.map', done: (c) => c.mapOpened },
   { cap: 'E', key: 'tut.job', done: (c) => c.jobTaken },
 ];
@@ -186,7 +197,7 @@ export class Tutorial {
   }
 
   reset() {
-    this.finished = false; this.i = 0; this.hold = 0; this.wait = 1.2;
+    this.finished = false; this.i = 0; this.hold = 0; this.wait = 1.2; this.shown = 0; this.low = false; this.steerM = 0;
     writeFlag(KEYS.tutorial, false);
     this.render();
   }
@@ -204,7 +215,18 @@ export class Tutorial {
       return;
     }
     const step = STEPS[this.i];
-    if (step && step.done(ctx)) { this.hold = 0.9; this.render(true); }
+    if (!step) return;
+    // A step with a floor hides below it and only counts time above it.
+    const kmh = (ctx && ctx.speedKmh) || 0;
+    const low = step.minKmh != null && kmh < step.minKmh;
+    if (low !== !!this.low) { this.low = low; this.render(); }
+    if (low) return;
+    this.shown = (this.shown || 0) + dt;
+    if (step.steerM && ctx && Math.abs(ctx.steer || 0) > 0.05) this.steerM = (this.steerM || 0) + kmh / 3.6 * dt;
+    if (step.done(ctx) || (step.timeout && this.shown >= step.timeout)
+      || (step.steerM && (this.steerM || 0) >= step.steerM)) {
+      this.hold = 0.9; this.shown = 0; this.steerM = 0; this.render(true);
+    }
   }
 
   finish() {
@@ -223,7 +245,7 @@ export class Tutorial {
     if (!this.root) return;
     if (this.finished || this.wait > 0) { this.root.classList.add('hidden'); return; }
     const step = STEPS[this.i];
-    if (!step) { this.root.classList.add('hidden'); return; }
+    if (!step || (this.low && !ok)) { this.root.classList.add('hidden'); return; }
     this.root.classList.remove('hidden');
     this.root.classList.toggle('ok', ok);
     if (this.elCap) this.elCap.textContent = ok ? '✓' : step.cap;
@@ -234,20 +256,24 @@ export class Tutorial {
 // ---------------------------------------------------------------- pause tabs
 
 // A drawn keyboard: every cap the game uses is lit, the rest are there so it
-// reads as a keyboard and not as a list.
+// reads as a keyboard and not as a list. Which caps are lit comes from KEYMAP
+// (the same table the legend draws), not from hand-placed stars: the stars had
+// T, Y, V and M dark although all four are bound (UX review P8).
 const ROWS = [
-  ['Esc*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0*', '−*', '+*', '⌫*'],
-  ['Tab*', 'Q*', 'W*', 'E*', 'R*', 'T', 'Y', 'U*', 'I', 'O', 'P'],
-  ['A*', 'S*', 'D*', 'F', 'G*', 'H*', 'J', 'K*', 'L', '?*'],
-  ['Shift*', 'Z', 'X', 'C*', 'V', 'B', 'N*', 'M'],
-  ['Espace*'],
+  ['Esc', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '−', '+', '⌫'],
+  ['Tab', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '?'],
+  ['Shift', 'Z', 'X', 'C', 'V', 'B', 'N', 'M'],
+  ['Espace'],
 ];
+export const KEYBOARD_CAPS = ROWS.flat();
+export const litCaps = () => new Set(KEYMAP.flatMap((k) => k.caps));
 
 export function keyboardHTML() {
   const rows = ROWS.map((row, ri) => {
-    const caps = row.map((c) => {
-      const used = c.endsWith('*');
-      const lab = used ? c.slice(0, -1) : c;
+    const lit = litCaps();
+    const caps = row.map((lab) => {
+      const used = lit.has(lab);
       const wide = lab === 'Espace' ? ' wide' : (lab === 'Shift' || lab === 'Tab' || lab === '⌫' ? ' wide1' : '');
       return `<kbd class="${used ? 'used' : ''}${wide}">${esc(lab)}</kbd>`;
     }).join('');
@@ -285,6 +311,17 @@ function slotCell(r, mode) {
         : '<div class="sbtns"></div>') +
       `</div>`;
   }
+  // Damaged bytes (save review SR-06): never an empty box to save over, never
+  // a Load that cannot work. Delete, and in the pause menu Save (save.js puts
+  // the old bytes aside under <key>.corrupt first).
+  if (r.corrupt) {
+    return `<div class="slot corrupt" data-slot="${esc(r.slot)}">` +
+      `<div class="sname">${esc(title)}</div>` +
+      `<div class="smeta">Sauvegarde illisible - une copie est gardée</div><div class="sbtns">` +
+      (mode === 'save' && !auto ? `<button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button>` : '') +
+      `<button class="delslot danger" data-slot="${esc(r.slot)}">${esc(t('save.delete'))}</button>` +
+      `</div></div>`;
+  }
   const meta = [
     r.name ? esc(r.name) + (r.near ? ', près de ' + esc(r.near) : '') : '',
     esc(fmtWhen(r.savedAt)),
@@ -297,7 +334,8 @@ function slotCell(r, mode) {
     r.doing ? 'en cours: ' + esc(r.doing) : (r.job ? 'job en cours' : (r.last ? 'après \u00ab ' + esc(r.last) + ' \u00bb' : '')),
   ].filter(Boolean).join(' · ');
   const btns = [
-    mode === 'save' && !auto
+    // A slot from a newer build is readable but never overwritten (SR-05).
+    mode === 'save' && !auto && !r.newer
       ? `<button class="saveslot" data-slot="${esc(r.slot)}">${esc(t('save.saveto'))}</button>` : '',
     `<button class="loadslot" data-slot="${esc(r.slot)}">${esc(t('save.load'))}</button>`,
     `<button class="delslot danger" data-slot="${esc(r.slot)}">${esc(t('save.delete'))}</button>`,

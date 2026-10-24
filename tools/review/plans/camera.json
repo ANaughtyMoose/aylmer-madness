@@ -1,0 +1,12 @@
+{
+  "name": "camera",
+  "about": "Real-time A-05 final-eye evidence: deliberate crash, free roaming and police pursuit. Camera counters include every rendered chase frame, including setup.",
+  "entry": "index.html",
+  "cameraGate": true,
+  "beats": [
+    { "do": "boot", "via": "free" },
+    { "do": "crash", "seconds": 12, "place": "principale" },
+    { "do": "freeRoam", "places": ["marina", "principale", "mall"], "maxKmh": 75 },
+    { "do": "cops", "heat": 3, "seconds": 40 }
+  ]
+}

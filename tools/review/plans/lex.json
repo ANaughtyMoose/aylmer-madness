@@ -1,0 +1,17 @@
+{
+  "name": "lex",
+  "about": "Lex (14, Hull, GameCube): the first minutes, chaos, jumps, fails and retries. Short and loud.",
+  "entry": "index.html",
+  "beats": [
+    { "do": "boot" },
+    { "do": "firstDrive", "seconds": 6 },
+    { "do": "mission", "id": "alternateur", "stageTimeout": 150 },
+    { "do": "crash", "seconds": 7 },
+    { "do": "crash", "seconds": 7, "side": -1, "place": "home" },
+    { "do": "mission", "id": "sayyad", "stageTimeout": 150 },
+    { "do": "mission", "id": "divan", "stageTimeout": 150 },
+    { "do": "speedRun", "seconds": 10, "frames": 10 },
+    { "do": "course", "id": "bz_vieux", "index": 0, "stageTimeout": 120 },
+    { "do": "tour", "places": ["home", "principale", "marina"], "envs": ["night"], "weather": ["clear", "rain"] }
+  ]
+}

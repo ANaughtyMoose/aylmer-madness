@@ -90,11 +90,26 @@ export function makeDef(G, a) {
       toast: `${a.name}: « …ok. OK. Correct. » +${AMBUSH.bet} $`,
       failWhy: `${a.name} était là avant toi. Tu lui dois ${AMBUSH.bet} $.`,
     })],
-    cleanup(G2) {
+    cleanup(G2, m) {
       // A challenge is a mode, not a job: it must not count toward « jobs faites ».
       if (G2.done) G2.done.delete('ambush');
+      // Lost (or backed out of): the fail line says « Tu lui dois 20 $ », so
+      // you do. Never below zero — the wallet will not go there anyway.
+      // (progression review P8: it used to say so and charge nothing.)
+      if (!ambushWon(m) && G2.wallet) {
+        const owe = Math.min(AMBUSH.bet, Math.max(0, G2.wallet.value));
+        if (owe > 0) {
+          G2.wallet.add(-owe);
+          if (G2.hud) G2.hud.toast(`− ${owe} $ à ${a.name}`, 2200, true);
+        }
+      }
     },
   };
+}
+
+/** main.js bumps `idx` past the last stage before cleanup on a win, never on a failure. */
+export function ambushWon(m) {
+  return !!(m && m.stages && m.idx >= m.stages.length);
 }
 
 /** Once a tick while an offer stands. */

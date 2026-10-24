@@ -12,7 +12,7 @@
 //
 //   1. It is a SOIR. At morning/day the driveway is empty and the prompt says so.
 //      Dusk and night only, off G.envKey (main.js's day/night cycle).
-//   2. The people are real people. Sayyad, Margaret, Adam, Mike and Zahra, never
+//   2. The people are real people. Sayyad, Abraham, Adam, Mike and Zahra, never
 //      the historical PLACES keys (`steph`/`marc`/`dave`) — those never reach a
 //      screen.
 //   3. Being recognised is the reward. Every catch-up line carries a `need`, and
@@ -53,28 +53,30 @@ export const SLALOM = {
 };
 
 // The five of them. `key` is internal; `name` is the only thing a player sees.
-export const FRIENDS = ['mike', 'sayyad', 'margaret', 'adam', 'zahra'];
+// Margaret is Tom's mother: she is at home at 299 Fraser, never on Mike's
+// porch (ledger s.0, 22 Sept). Abraham has her seat (Tom, 29 Sept).
+export const FRIENDS = ['mike', 'sayyad', 'abraham', 'adam', 'zahra'];
 
 // ---------------------------------------------------------------- content
 
 // Trimmed copy of assets/text/hangout.json — enough that the porch is never
 // silent if the fetch fails. The real file has five times as many lines.
 export const FALLBACK = {
-  names: { mike: 'Mike', sayyad: 'Sayyad', margaret: 'Margaret', adam: 'Adam', zahra: 'Zahra' },
+  names: { mike: 'Mike', sayyad: 'Sayyad', abraham: 'Abraham', adam: 'Adam', zahra: 'Zahra' },
   day: ["L'entrée est vide. Le monde arrive quand le soleil descend."],
   greet: [
     { who: 'mike', line: 'Heille! Coupe le moteur, ma mère dort à dix heures.' },
     { who: 'sayyad', line: 'ENFIN. Ça fait vingt minutes qu’on parle de rien.' },
-    { who: 'margaret', line: 'Assis-toi. Y a de la place sur les marches.' },
+    { who: 'abraham', line: 'Assis-toi. Y a de la place sur les marches.' },
     { who: 'adam', line: '...t’es en retard.' },
     { who: 'zahra', line: 'Je rentre à dix heures. Pas parce que je veux.' },
   ],
   catch: [
     { who: 'mike', need: '', line: '...faque le gars me dit que le moteur est correct. Écoute-moi deux secondes.' },
     { who: 'mike', need: 'couch', line: 'Regarde-le. REGARDE-LE. Y est encore là-haut. Ça, c’est de l’ingénierie.' },
-    { who: 'sayyad', need: '', line: 'Check la chemise. Palmiers jaunes. C’est pas tout le monde qui porte ça.' },
-    { who: 'sayyad', need: 'radio:off', line: 'Y a pas de musique. Pars le radio, mon chum.' },
-    { who: 'margaret', need: '', line: 'Assis-toi deux minutes. Ça changera rien.' },
+    { who: 'sayyad', need: '', line: 'Le nouveau PowerBook, le clavier s’allume. It LIGHTS UP.' },
+    { who: 'sayyad', need: 'radio:off', line: 'Y a pas de musique. Why is there no music? Pars le radio, man.' },
+    { who: 'abraham', need: '', line: 'Assis-toi deux minutes. Ça changera rien.' },
     { who: 'adam', need: '', line: '...ouais.' },
     { who: 'adam', need: 'couch', line: 'Y a un divan dans l’arbre.' },
     { who: 'zahra', need: '', line: 'Vous dites les mêmes affaires chaque soir. Je les ai comptées.' },
@@ -114,11 +116,12 @@ export async function loadHangoutContent(fetchImpl, base = 'assets/text/') {
       if (h[k]) out[k] = k === 'catch' ? h[k].slice() : h[k];
     }
   }
-  // The written dialogue: 96 lines for Sayyad / Margaret / Adam, 32 for Zahra.
+  // The written dialogue: Sayyad's and Adam's ride lines, and Zahra's.
+  // Margaret's pool in dialogue.json is her own driveway, not this porch.
   // They are ride-along lines, so they get used where a ride is starting or
   // ending — the friend's parting shot when you take a job off the porch, and
   // the whoop when you beat the bins. « Ton père » is not on this lawn.
-  const KEY = { Sayyad: 'sayyad', Margaret: 'margaret', Adam: 'adam', Zahra: 'zahra' };
+  const KEY = { Sayyad: 'sayyad', Adam: 'adam', Zahra: 'zahra' };
   for (const file of ['dialogue.json', 'zahra.json']) {
     const d = await get(file);
     for (const row of (d && Array.isArray(d.dialogue)) ? d.dialogue : []) {
@@ -259,13 +262,13 @@ export function nightIndex(G, cycle = 600) {
 /**
  * Who is on the lawn tonight. Mike always — it is his house. Sayyad most
  * nights. Two or three of the rest, and Zahra only when her brother is there,
- * because she is thirteen and she did not walk over alone.
+ * because she is his little sister and she did not walk over alone.
  */
 export function rosterFor(n) {
   const rnd = mulberry32((n | 0) * 2654435761 + 0x91f3);
   const out = ['mike'];
   if (rnd() < 0.78) out.push('sayyad');
-  const rest = ['margaret', 'adam'];
+  const rest = ['abraham', 'adam'];
   // Shuffle, then take one or both — an evening with two people on it reads
   // differently from an evening with four, and that is the point of coming back.
   for (let i = rest.length - 1; i > 0; i--) {
@@ -354,13 +357,16 @@ export function saveHangout(st) {
 // « Adam: La run de Chelsea » never comes out of Zahra's mouth.
 // The summer's beats (arc.js) come first in each list: if the next beat is open
 // and it is yours, that is what you lead with. Nobody offers the epilogue — that
-// one starts in your own driveway, with your father.
+// one starts in your own driveway, at your mother's.
 export const JOB_OWNER = {
-  sayyad: ['arcbache', 'racecivic', 'blitz', 'poutine', 'canot', 'dep'],
+  // Restructure (29 Sept 2026): the cut jobs (poutine, tour, cv, arcveillee)
+  // are out of every list; campaign.js RETIRED.
+  sayyad: ['arcbache', 'racecivic', 'blitz', 'canot', 'dep'],
   adam: ['racedave', 'circuit', 'chelsea'],
-  margaret: ['tour', 'gang', 'cv', 'curfew'],
-  mike: ['arcveillee', 'divan', 'highwayhull'],
-  zahra: ['arcsurchauffe', 'golfcart', 'school'],
+  // Breakfast nachos are Zahra's night now (28 Sept), so « curfew » is hers.
+  abraham: ['gang'],
+  mike: ['divan', 'highwayhull'],
+  zahra: ['golfcart', 'school', 'curfew'],
 };
 
 /**
@@ -396,7 +402,9 @@ export const LOOKS = {
   mike: { shirt: 0xd8d2c4, pants: 0x46586e, skin: 0xd0a37c, hair: 0x6a4a2c, scale: 1.02 },
   // The Hawaiian shirt is the whole point of Sayyad, so it gets its own palms.
   sayyad: { shirt: 0x1fa3a0, pants: 0x2b3550, skin: 0x8a5f3f, hair: 0x1c1815, palms: 0xe8c443 },
-  margaret: { shirt: 0x9c5a76, pants: 0x3a3f46, skin: 0xd8ae8a, hair: 0x9a9088 },
+  // Abraham: a black Led Zeppelin shirt, loose jean shorts, long dark
+  // dreadlocks (Tom, 29 Sept). Colours only; the mesh is everybody's mesh.
+  abraham: { shirt: 0x1b1b1d, pants: 0x4a6a96, skin: 0xd8ae8a, hair: 0x2a1f18, scale: 1.04 },
   adam: { shirt: 0x33383f, pants: 0x2f3a4a, skin: 0xc79a72, hair: 0x3a2f26 },
   zahra: { shirt: 0x7b4fa8, pants: 0x2b3550, skin: 0x8a5f3f, hair: 0x14100e, scale: 0.86, pack: 0x2b6b4a },
 };
@@ -456,6 +464,9 @@ export function buildBoombox() {
 const say = (G, text, ms) => G && G.hud && G.hud.toast(text, ms);
 const blip = (G, f, d, t, v) => G && G.audio && G.audio.blip(f, d, t, v);
 const fmt = (s) => s.toFixed(1).replace('.', ',') + ' s';
+
+// Ground height under (x, z); 0 where there is no physics world (tests).
+function gB(G, x, z) { return G && G.phys && G.phys.groundY ? G.phys.groundY(x, z) : 0; }
 
 export class Hangout {
   constructor() {
@@ -679,7 +690,9 @@ export class Hangout {
     this.ambientT = (this.ambientT || 0) - dt;
     if (this.ambientT > 0) return;
     this.ambientT = 26 + Math.random() * 14;
-    heckle.line('Le voisin', '« ' + pool[Math.floor(Math.random() * pool.length)] + ' »', 2600);
+    // Background, not plot: ambient() never talks over a story line and shares
+    // the heckles' limiter (heckle.line() would queue it as story).
+    heckle.ambient('Le voisin', '« ' + pool[Math.floor(Math.random() * pool.length)] + ' »', 2600);
   }
 
   takeJob(G, job) {
@@ -733,7 +746,7 @@ export class Hangout {
       r.penalty += SLALOM.penalty;
       r.hit++;
       const pr = G.props && G.props.get(b.id);
-      if (pr) { pr.roll = 1.5; pr.y = 0.28; pr.yaw += 0.6; }
+      if (pr) { pr.roll = 1.5; pr.y = gB(G, pr.x, pr.z) + 0.28; pr.yaw += 0.6; }
       G.audio && G.audio.crash(0.25);
       const pool = (this.content.slalom || FALLBACK.slalom).bin || FALLBACK.slalom.bin;
       const bl = pool[r.binSaid++ % pool.length];
@@ -831,20 +844,23 @@ export class Hangout {
     const sx = -dz, sz = dx;              // along the street
     const yaw = Math.atan2(-dx, -dz);     // built facing -Z, so turn them around
 
+    const gY = (x, z) => (G.phys && G.phys.groundY ? G.phys.groundY(x, z) : 0);
     G.props.add({
       id: P + 'lit', mesh: 'litwin', far: 260, opts: { unlit: true, colorMul: new Float32Array([1, 0.92, 0.66]) },
-      x: p.bx - dx * 3.2, z: p.bz - dz * 3.2, y: 0, yaw,
+      x: p.bx - dx * 3.2, z: p.bz - dz * 3.2, y: gY(p.bx - dx * 3.2, p.bz - dz * 3.2), yaw,
     });
     G.props.add({
       id: P + 'boombox', mesh: this.meshFor(G, 'boombox', buildBoombox), far: 160,
-      x: p.x + dx * 9.4 + sx * 1.6, z: p.z + dz * 9.4 + sz * 1.6, y: 0.5, yaw,
+      x: p.x + dx * 9.4 + sx * 1.6, z: p.z + dz * 9.4 + sz * 1.6,
+      y: gY(p.x + dx * 9.4 + sx * 1.6, p.z + dz * 9.4 + sz * 1.6) + 0.5, yaw,
     });
     // Two bins parked at the kerb until somebody drags them into the street.
     for (let i = 0; i < 2; i++) {
+      const bx = p.x + dx * 1.4 + sx * (2.6 + i * 0.9), bz = p.z + dz * 1.4 + sz * (2.6 + i * 0.9);
       G.props.add({
         id: P + 'kerbbin' + i, mesh: this.meshFor(G, 'bin', buildBin), far: 200,
-        x: p.x + dx * 1.4 + sx * (2.6 + i * 0.9), z: p.z + dz * 1.4 + sz * (2.6 + i * 0.9),
-        y: 0, yaw: yaw + 0.2 * i,
+        x: bx, z: bz,
+        y: gY(bx, bz), yaw: yaw + 0.2 * i,
       });
     }
     this.roster.forEach((who, i) => {
@@ -857,9 +873,10 @@ export class Hangout {
       const base = yaw + (i % 2 ? 0.25 : -0.2);
       const mesh = this.meshFor(G, who, () => buildPerson(look, who === 'mike'));
       const alt = who === 'mike' ? this.meshFor(G, 'mike2', () => buildPerson(look, false)) : null;
+      const fx = p.x + dx * inset + sx * along, fz = p.z + dz * inset + sz * along;
       const prop = G.props.add({
         id: P + 'p' + who, mesh, far: 210,
-        x: p.x + dx * inset + sx * along, z: p.z + dz * inset + sz * along, y: 0,
+        x: fx, z: fz, y: gY(fx, fz),
         yaw: base, sx: look.scale || 1, sy: look.scale || 1, sz: look.scale || 1,
         data: { t: i * 1.7, base },
       });
@@ -907,7 +924,7 @@ export class Hangout {
     gates.forEach((g, gi) => {
       g.bins.forEach((b, bi) => {
         const id = `${P}bin${gi}_${bi}`;
-        G.props.add({ id, mesh, x: b.x, z: b.z, y: 0, yaw: gi * 0.4 + bi, far: 240 });
+        G.props.add({ id, mesh, x: b.x, z: b.z, y: gB(G, b.x, b.z), yaw: gi * 0.4 + bi, far: 240 });
         this.bins.push({ id, x: b.x, z: b.z, down: false });
       });
     });

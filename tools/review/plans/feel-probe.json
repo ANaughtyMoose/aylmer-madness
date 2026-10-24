@@ -1,0 +1,9 @@
+{
+ "name": "feel-probe",
+ "about": "Red-team feel probe: boot via Balade libre, then one script beat measuring acceleration, steering, handbrake, traffic in frame, a 70 km/h crash, a 3-star chase and the chantier at 100 km/h.",
+ "entry": "index.html",
+ "beats": [
+  { "do": "boot", "via": "free" },
+  { "do": "script", "id": "feel-probe", "vehicle": false }
+ ]
+}

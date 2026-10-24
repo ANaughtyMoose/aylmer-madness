@@ -8,7 +8,7 @@
 // Everything below is data. `main.js` asks this module three questions — what
 // is unlocked, why is that one not, and can I buy it — and it answers them.
 import { CARS } from './cars.js';
-import { DEFAULT_CHARACTER } from './save.js';
+import { DEFAULT_CHARACTER, resumeSaving, characterById } from './save.js';
 import { readJSON, writeJSON, KEYS } from './store.js';
 import { normalizeMods, emptyMods, isStock } from './upgrades.js';
 
@@ -48,18 +48,24 @@ export const UNLOCKS = {
     need: 'Finis « Ramasser la gang »',
     needEn: 'Finish “Ramasser la gang”',
   },
+  // Restructure (29 Sept 2026): « Poutine express » is cut, so the Civic comes
+  // with « Réveiller Sayyad » (main mission 2). `legacy` keeps it for a save
+  // that already finished the poutine run (campaign.js RETIRED).
   civic: {
-    kind: 'mission', mission: 'poutine', who: 'Sayyad',
+    kind: 'mission', mission: 'sayyad', legacy: ['poutine'], who: 'Sayyad',
     toast: 'Sayyad te passe la Civic\n« touche pas au radio »',
-    need: 'Finis « Poutine express »',
-    needEn: 'Finish “Poutine express”',
+    need: 'Finis « Réveiller Sayyad »',
+    needEn: 'Finish “Réveiller Sayyad”',
     character: 'sayyad',
   },
   sunfire: {
     kind: 'mission', mission: 'curfew', who: 'Adam',
-    toast: 'Adam te passe la Sunfire\nson père est couché, fais pas de bruit',
-    need: 'Finis « Avant minuit »',
-    needEn: 'Finish “Avant minuit”',
+    // After the 5 a.m. breakfast nachos (main mission 10, « Nachos avant
+    // Little Big Man »). Adam's lost-Sunfire job (`sunfire`) is cut; it never
+    // granted the car, so nothing needs re-homing there.
+    toast: 'Adam te passe la Sunfire\nil dort encore; ramène-la avant qu’il se lève',
+    need: 'Finis « Nachos avant Little Big Man »',
+    needEn: 'Finish “Nachos avant Little Big Man”',
   },
   // Mike's and Abraham's. Nobody lends these out and nobody sells them: they
   // are what you drive when you are playing Mike or playing Abraham, and for
@@ -137,7 +143,12 @@ export class Garage {
   constructor(done, character = DEFAULT_CHARACTER) {
     this.done = asSet(done);
     this.character = character || DEFAULT_CHARACTER;
-    const raw = readJSON(KEYS.cars, {});
+    // `aylmer.cars` is a per-browser mirror, not the truth (the slot's
+    // `unlocks` is). It says whose summer it mirrors, and a garage for anybody
+    // else starts from the defaults instead of inheriting it (SR-04). A mirror
+    // from before it carried a name was Tom's: v1 had nobody else.
+    const mirror = readJSON(KEYS.cars, {});
+    const raw = (mirror.character || DEFAULT_CHARACTER) === this.character ? mirror : {};
     this.bought = new Set(Array.isArray(raw.bought) ? raw.bought.filter((id) => UNLOCKS[id]) : []);
     this.seen = new Set(Array.isArray(raw.seen) ? raw.seen.filter((id) => UNLOCKS[id]) : []);
     // What the mechanic has fitted, per car, and the things you have done that
@@ -225,7 +236,10 @@ export class Garage {
     // the Ranger — is still everybody's.
     if (u.kind === 'start') return !u.character;
     if (u.kind === 'free') return true;
-    if (u.kind === 'mission') return asSet(done).has(u.mission);
+    if (u.kind === 'mission') {
+      const d = asSet(done);
+      return d.has(u.mission) || (Array.isArray(u.legacy) && u.legacy.some((id) => d.has(id)));
+    }
     return this.bought.has(id);
   }
 
@@ -276,7 +290,7 @@ export class Garage {
     if (this.bought.has(id)) return { ok: true, why: null };
     if (u.jobs && asSet(done).size < u.jobs) {
       const left = u.jobs - asSet(done).size;
-      return { ok: false, why: `pas avant ${u.jobs} jobs — encore ${left}` };
+      return { ok: false, why: `pas avant ${u.jobs} job${u.jobs > 1 ? 's' : ''} — encore ${left}` };
     }
     const price = this.price(id, discount);
     if (!wallet || !wallet.can(price)) {
@@ -342,9 +356,12 @@ export class Garage {
     return this;
   }
 
-  save() { return writeJSON(KEYS.cars, this.serialize()); }
+  save() { return writeJSON(KEYS.cars, { ...this.serialize(), character: this.character }); }
 
+  // A brand-new summer. This is also the one signal that a new game has
+  // started, which is what lifts save.js's post-wipe write block (SR-08).
   reset() {
+    resumeSaving();
     this.bought = new Set();
     this.seen = new Set(alwaysSeen(this.character));
     this.mods = {};
@@ -352,6 +369,61 @@ export class Garage {
     this.save();
     return this;
   }
+}
+
+// ---------------------------------------------------------------- your own
+// Refine B-01b, never stranded. « Yours » is the vehicle this character's
+// summer starts with (save.js CHARACTERS[].car): the Ranger for Tom, the Civic
+// for Sayyad, the Diamondback for Zahra. A car a friend has lent you through
+// the garage counts as yours for a job; the club's cart, a bike that is not
+// yours and anything the garage does not hand you (a loaner) do not.
+
+/** The id of the vehicle this character owns. */
+export function ownCarId(character = DEFAULT_CHARACTER) {
+  const id = characterById(character || DEFAULT_CHARACTER).car;
+  return id || START_CAR;
+}
+
+/**
+ * What this vehicle is to you: 'own', 'lent' (a friend's, unlocked), 'cart',
+ * 'bike' (two wheels and not yours) or 'loaner' (not yours in any way the
+ * garage knows, or flagged `loaner` by whoever handed it over).
+ */
+export function vehicleRole(spec, { character = DEFAULT_CHARACTER, garage = null, veh = null } = {}) {
+  if (!spec || !spec.id) return 'loaner';
+  const own = ownCarId(character);
+  if (spec.id === own) return 'own';
+  if (spec.twoWheel || spec.style === 'bike') return 'bike';
+  if (spec.id === 'cart' || (UNLOCKS[spec.id] && UNLOCKS[spec.id].kind === 'free')) return 'cart';
+  if (spec.loaner || (veh && veh.loaner)) return 'loaner';
+  if (garage && typeof garage.has === 'function' && !garage.has(spec.id)) return 'loaner';
+  if (!UNLOCKS[spec.id]) return 'loaner';
+  return 'lent';
+}
+
+/**
+ * The hand-back: whatever you are in goes back where you leave it, and you get
+ * into your own vehicle. `spot` (optional) is where your own vehicle is brought
+ * when it is not already parked there; without one it has to be parked
+ * somewhere already (G.parked). Free. Uses the same G.swapCar the E prompt
+ * does, so the vehicle you hand back stays exactly where you got out.
+ *
+ * Returns { ok, swapped, from, to, why }.
+ */
+export function handBack(G, { spot = null } = {}) {
+  const character = (G && (G.character || (G.garage && G.garage.character))) || DEFAULT_CHARACTER;
+  const to = ownCarId(character);
+  const from = G && G.veh && G.veh.spec ? G.veh.spec.id : null;
+  if (!G || !G.veh || !from) return { ok: false, swapped: false, from, to, why: 'novehicle' };
+  if (from === to) return { ok: true, swapped: false, from, to, why: null };
+  if (typeof G.swapCar !== 'function' || !G.parked) return { ok: false, swapped: false, from, to, why: 'noswap' };
+  if (spot && Number.isFinite(spot.x) && Number.isFinite(spot.z)) {
+    G.parked[to] = { x: spot.x, z: spot.z, yaw: Number.isFinite(spot.yaw) ? spot.yaw : 0 };
+  }
+  if (!G.parked[to]) return { ok: false, swapped: false, from, to, why: 'nowhere' };
+  G.swapCar(to);
+  const now = G.veh && G.veh.spec ? G.veh.spec.id : null;
+  return { ok: now === to, swapped: now === to, from, to, why: now === to ? null : 'swapfailed' };
 }
 
 // Every car in CARS must say how you get it, or the menu would show a card with

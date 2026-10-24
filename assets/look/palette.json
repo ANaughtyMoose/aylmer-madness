@@ -1,0 +1,1771 @@
+{
+ "_comment": "Measured palette for the visual wave (task V0-05). Derived numbers only: no image from references/ is committed. Rects are pixel boxes in the named crop of the private reference set (aylmer-madness/references/places, gitignored, CMP_REF_ROOT).",
+ "version": 1,
+ "date": "2026-10-06",
+ "conditions": "noon, clear to hazy, on-screen sRGB after the game grade. Street View frames are May and June 2009 (a few are tiles refreshed 2021 to 2024, flagged).",
+ "method": {
+  "per_sample": "median RGB of the pixels inside the rect that pass the colour mask, restricted to the luminance percentile band (lit surfaces 60 to 90, mid 40 to 60, deep shade 15 to 45) so shadows from trees and eaves do not drag sunlit surfaces down.",
+  "per_material": "srgbTarget is the per-channel median of the per-reference medians; spread is the largest channel range between references; tolerance is max(8, largest channel std), capped at 40.",
+  "albedo": "linearAlbedo = linear luminance of srgbTarget divided by the assumed noon illuminance (1.05 on horizontal faces, 0.90 on vertical faces), clamped to 0.03 to 0.80 (white vinyl 0.75). It is a first-pass seed for V1-01, not physics: Street View is display-referred and its camera exposes high.",
+  "crosscheck": "Gemini gemini_analyze was attempted on three refs and failed headless (command permission auto-denied). The cross-check was done by eye against grid overlays of the same crops, and against the agreement between independent refs (spread field). Re-run the Gemini pass interactively if wanted.",
+  "roadmapRule": "Where a ref cannot give the value (clipped whites, thin poles, no night or golden refs, no Ranger), the roadmap hex is retained and flagged in targetSource."
+ },
+ "albedoLimits": {
+  "min": 0.03,
+  "max": 0.8,
+  "whiteVinylMax": 0.75
+ },
+ "entries": {
+  "lawn_healthy": {
+   "name": "Lawn, healthy",
+   "srgbTarget": "#788C3A",
+   "srgbMeasured": "#788C3A",
+   "roadmapHex": "#6B7440",
+   "linearAlbedo": 0.22,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 25,
+   "sampleCount": 4,
+   "spread": 56,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      100,
+      720,
+      700,
+      900
+     ],
+     "rgb": "#8D9551",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "1-rue-arial-house/streetview-capture/gi-streetview_front_elevation.jpg",
+     "ref": "gi-streetview_front_elevation.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      700,
+      625,
+      980,
+      670
+     ],
+     "rgb": "#5E7C1B",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "ref": "gi-streetview_three_quarter_right.jpg"
+    },
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      10,
+      640,
+      200,
+      740
+     ],
+     "rgb": "#849253",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "1-rue-arial-house/streetview-capture/60b6f207_1_arial_2009_angle_east.jpg",
+     "ref": "60b6f207_1_arial_2009_angle_east.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      470,
+      640,
+      700,
+      700
+     ],
+     "rgb": "#6B8524",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "green",
+    "luminancePercentileBand": [
+     60,
+     90
+    ]
+   },
+   "note": "",
+   "lightnessBand": {
+    "lowerLstar": 47.0,
+    "upperLstar": 55.1,
+    "from_": "#6B7440",
+    "to": "#788C3A"
+   },
+   "deltaLstarVsRoadmap": 8.1
+  },
+  "lawn_dry": {
+   "name": "Lawn, dry patch",
+   "srgbTarget": "#6B8037",
+   "srgbMeasured": "#6B8037",
+   "roadmapHex": "#9A8E58",
+   "linearAlbedo": 0.179,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 26,
+   "sampleCount": 3,
+   "spread": 64,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      420,
+      585,
+      660,
+      625
+     ],
+     "rgb": "#898F5C",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "1-rue-arial-house/streetview-capture/gi-streetview_front_elevation.jpg",
+     "ref": "gi-streetview_front_elevation.jpg"
+    },
+    {
+     "place": "les-galeries-aylmer",
+     "rect": [
+      20,
+      530,
+      160,
+      565
+     ],
+     "rgb": "#555A1C",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+     "ref": "60b6f207_galeries_2009_parking_east.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      10,
+      520,
+      120,
+      560
+     ],
+     "rgb": "#6B8037",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "olive",
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Only three small patches in the refs and one is shaded; low confidence. Keep the roadmap hex for the yellowing edges and use this as the olive-green mid wear tone.",
+   "lightnessBand": {
+    "lowerLstar": 50.5,
+    "upperLstar": 58.9,
+    "from_": "#9A8E58",
+    "to": "#6B8037"
+   },
+   "deltaLstarVsRoadmap": -8.4
+  },
+  "canopy_sun": {
+   "name": "Maple canopy, sunlit",
+   "srgbTarget": "#5D7445",
+   "srgbMeasured": "#5D7445",
+   "roadmapHex": "#5A6E34",
+   "linearAlbedo": 0.169,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 15,
+   "sampleCount": 3,
+   "spread": 36,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      770,
+      260,
+      880,
+      330
+     ],
+     "rgb": "#748058",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      950,
+      150,
+      1150,
+      260
+     ],
+     "rgb": "#505F42",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "ref": "gi-streetview_three_quarter_right.jpg"
+    },
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      780,
+      100,
+      980,
+      300
+     ],
+     "rgb": "#5D7445",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "1-rue-arial-house/streetview-capture/60b6f207_1_arial_2009_angle_east.jpg",
+     "ref": "60b6f207_1_arial_2009_angle_east.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "green",
+    "luminancePercentileBand": [
+     60,
+     90
+    ]
+   },
+   "note": "",
+   "lightnessBand": {
+    "lowerLstar": 43.6,
+    "upperLstar": 46.0,
+    "from_": "#5A6E34",
+    "to": "#5D7445"
+   },
+   "deltaLstarVsRoadmap": 2.4
+  },
+  "canopy_shade": {
+   "name": "Maple canopy, shade",
+   "srgbTarget": "#2B4023",
+   "srgbMeasured": "#2B4023",
+   "roadmapHex": "#34452A",
+   "linearAlbedo": 0.048,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 14,
+   "sampleCount": 3,
+   "spread": 31,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      460,
+      30,
+      560,
+      230
+     ],
+     "rgb": "#1C2618",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "1-rue-arial-house/streetview-capture/gi-streetview_front_elevation.jpg",
+     "ref": "gi-streetview_front_elevation.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      840,
+      120,
+      980,
+      260
+     ],
+     "rgb": "#2B4023",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      10,
+      250,
+      120,
+      380
+     ],
+     "rgb": "#304526",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "green",
+    "luminancePercentileBand": [
+     15,
+     45
+    ]
+   },
+   "note": "The a1 sample (deep inside a spruce-shadowed crown) reads near black, so the median is pulled down; the crown shade floor is about #1C2618.",
+   "lightnessBand": {
+    "lowerLstar": 24.6,
+    "upperLstar": 27.2,
+    "from_": "#34452A",
+    "to": "#2B4023"
+   },
+   "deltaLstarVsRoadmap": -2.6
+  },
+  "spruce_cedar": {
+   "name": "Spruce and cedar",
+   "srgbTarget": "#36421E",
+   "srgbMeasured": "#36421E",
+   "roadmapHex": "#2E4130",
+   "linearAlbedo": 0.053,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 14,
+   "sampleCount": 4,
+   "spread": 39,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      420,
+      380,
+      490,
+      560
+     ],
+     "rgb": "#1E2C15",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    },
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      10,
+      40,
+      200,
+      200
+     ],
+     "rgb": "#343D28",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "1-rue-arial-house/streetview-capture/60b6f207_1_arial_2009_angle_east.jpg",
+     "ref": "60b6f207_1_arial_2009_angle_east.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      330,
+      100,
+      520,
+      360
+     ],
+     "rgb": "#454E30",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      780,
+      410,
+      980,
+      580
+     ],
+     "rgb": "#394614",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "green",
+    "luminancePercentileBand": [
+     20,
+     55
+    ]
+   },
+   "note": "",
+   "lightnessBand": {
+    "lowerLstar": 25.5,
+    "upperLstar": 26.1,
+    "from_": "#2E4130",
+    "to": "#36421E"
+   },
+   "deltaLstarVsRoadmap": 0.6
+  },
+  "asphalt": {
+   "name": "Asphalt, worn",
+   "srgbTarget": "#9C9694",
+   "srgbMeasured": "#9C9694",
+   "roadmapHex": "#5E5E5F",
+   "linearAlbedo": 0.295,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 16,
+   "sampleCount": 4,
+   "spread": 39,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      450,
+      600,
+      750,
+      740
+     ],
+     "rgb": "#979695",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/strip/60b6f207_strip_02_east_street.jpg",
+     "ref": "60b6f207_strip_02_east_street.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      100,
+      800,
+      800,
+      990
+     ],
+     "rgb": "#A09793",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    },
+    {
+     "place": "les-galeries-aylmer",
+     "rect": [
+      100,
+      625,
+      700,
+      700
+     ],
+     "rgb": "#807D71",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+     "ref": "60b6f207_galeries_2009_parking_east.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      500,
+      900,
+      1100,
+      990
+     ],
+     "rgb": "#A19C98",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "ref": "gi-streetview_three_quarter_right.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Street View reads MUCH lighter than the roadmap: the camera exposes high. Treat hue as ground truth and lightness as a band between roadmapHex and srgbTarget (see lightnessBand).",
+   "lightnessBand": {
+    "lowerLstar": 39.9,
+    "upperLstar": 62.5,
+    "from_": "#5E5E5F",
+    "to": "#9C9694"
+   },
+   "deltaLstarVsRoadmap": 22.6
+  },
+  "concrete": {
+   "name": "Concrete walk and curb",
+   "srgbTarget": "#DAD2C9",
+   "srgbMeasured": "#DAD2C9",
+   "roadmapHex": "#B3AEA3",
+   "linearAlbedo": 0.621,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 28,
+   "sampleCount": 4,
+   "spread": 70,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      500,
+      690,
+      640,
+      720
+     ],
+     "rgb": "#E3DDD8",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      1000,
+      785,
+      1150,
+      810
+     ],
+     "rgb": "#D7CFC5",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      380,
+      715,
+      900,
+      760
+     ],
+     "rgb": "#9D9E9B",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/comm/60b6f207_comm_13_north.jpg",
+     "ref": "60b6f207_comm_13_north.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      1000,
+      665,
+      1100,
+      700
+     ],
+     "rgb": "#DCD5CD",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "ref": "gi-streetview_three_quarter_right.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     60,
+     90
+    ]
+   },
+   "note": "Sunlit walks clip towards #E0D8D0 in the refs; the p13 sample is a shaded cut. Band applies.",
+   "lightnessBand": {
+    "lowerLstar": 71.2,
+    "upperLstar": 84.6,
+    "from_": "#B3AEA3",
+    "to": "#DAD2C9"
+   },
+   "deltaLstarVsRoadmap": 13.4
+  },
+  "pavers": {
+   "name": "Principale pavers",
+   "srgbTarget": "#959086",
+   "srgbMeasured": "#959086",
+   "roadmapHex": "#9A5E4A",
+   "linearAlbedo": 0.267,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 21,
+   "sampleCount": 3,
+   "spread": 45,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      180,
+      500,
+      350,
+      520
+     ],
+     "rgb": "#928E85",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/strip/60b6f207_strip_02_east_street.jpg",
+     "ref": "60b6f207_strip_02_east_street.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      160,
+      660,
+      500,
+      700
+     ],
+     "rgb": "#BCB2B2",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/strip/60b6f207_strip_05_north.jpg",
+     "ref": "60b6f207_strip_05_north.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      700,
+      720,
+      900,
+      775
+     ],
+     "rgb": "#959086",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "principale-storefronts/streetview-capture/east/gi-streetview_street_corridor.jpg",
+     "ref": "gi-streetview_street_corridor.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Refs show grey-pink brick pavers, less red than the roadmap. s02 and sc are the 2022 and 2024 imagery tiles of the 2009 crops, kept for the pavers only (Tom: the pavers have not changed since the 90s).",
+   "lightnessBand": {
+    "lowerLstar": 46.1,
+    "upperLstar": 59.9,
+    "from_": "#9A5E4A",
+    "to": "#959086"
+   },
+   "deltaLstarVsRoadmap": 13.8
+  },
+  "vinyl_white": {
+   "name": "White vinyl siding",
+   "srgbTarget": "#E2DED2",
+   "srgbMeasured": "#F8F4FC",
+   "roadmapHex": "#E2DED2",
+   "linearAlbedo": 0.75,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 31,
+   "sampleCount": 4,
+   "spread": 75,
+   "targetSource": "roadmap retained, refs only a floor",
+   "samples": [
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      1090,
+      200,
+      1290,
+      300
+     ],
+     "rgb": "#FDFAFF",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "1-rue-arial-house/streetview-capture/gi-streetview_front_elevation.jpg",
+     "ref": "gi-streetview_front_elevation.jpg"
+    },
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      630,
+      260,
+      700,
+      430
+     ],
+     "rgb": "#F5F2FA",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "1-rue-arial-house/streetview-capture/gi-streetview_front_elevation.jpg",
+     "ref": "gi-streetview_front_elevation.jpg"
+    },
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      140,
+      345,
+      265,
+      440
+     ],
+     "rgb": "#FBF6FF",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "1-rue-arial-house/streetview-capture/60b6f207_1_arial_2009_angle_east.jpg",
+     "ref": "60b6f207_1_arial_2009_angle_east.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      780,
+      330,
+      1000,
+      390
+     ],
+     "rgb": "#B2B6B9",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "principale-storefronts/streetview-capture/east/gi-streetview_street_corridor.jpg",
+     "ref": "gi-streetview_street_corridor.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "white",
+    "luminancePercentileBand": [
+     60,
+     90
+    ]
+   },
+   "note": "Street View clips white siding at 245 to 255, so it gives only a floor. Roadmap hex retained. Never pure white; albedo capped at 0.75."
+  },
+  "vinyl_cream": {
+   "name": "Cream siding",
+   "srgbTarget": "#D9CDAE",
+   "srgbMeasured": null,
+   "roadmapHex": "#D9CDAE",
+   "linearAlbedo": 0.683,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 8,
+   "sampleCount": 0,
+   "spread": null,
+   "targetSource": "roadmap value kept: no verified reference shows sunlit cream siding",
+   "sampling": {
+    "mask": "cream",
+    "luminancePercentileBand": [
+     60,
+     90
+    ]
+   },
+   "sampleShortfall": "no verified ref in core-refs.json shows sunlit cream siding (299 is red brick, 75 Denise is green clapboard, 1 Arial is white siding; only the 129 Frank mod_south ref mentions a cream neighbour, undated and small). Roadmap hex D9CDAE retained until a ref is added.",
+   "note": "The earlier three samples (#565A57, #575A58, #6B7165) read grey because the colour mask failed on shade-side 299 pixels; they are discarded, not measurements. Roadmap hex retained.",
+   "discardedSamples": [
+    {
+     "ref": "gi-streetview_three_quarter_left.jpg",
+     "place": "299-chemin-fraser",
+     "rect": [
+      1250,
+      485,
+      1390,
+      590
+     ],
+     "rgb": "#565A57"
+    },
+    {
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg",
+     "place": "299-chemin-fraser",
+     "rect": [
+      300,
+      540,
+      390,
+      605
+     ],
+     "rgb": "#575A58"
+    },
+    {
+     "ref": "gi-streetview_three_quarter_right.jpg",
+     "place": "299-chemin-fraser",
+     "rect": [
+      890,
+      410,
+      1040,
+      470
+     ],
+     "rgb": "#6B7165"
+    }
+   ]
+  },
+  "brick_299": {
+   "name": "Aylmer brick, 299 Fraser",
+   "srgbTarget": "#432E28",
+   "srgbMeasured": "#432E28",
+   "roadmapHex": "#8A4F3C",
+   "linearAlbedo": 0.037,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 8,
+   "sampleCount": 3,
+   "spread": 7,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      480,
+      250,
+      600,
+      340
+     ],
+     "rgb": "#432E29",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "ref": "gi-streetview_three_quarter_right.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      715,
+      405,
+      850,
+      455
+     ],
+     "rgb": "#432E28",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      1205,
+      420,
+      1235,
+      590
+     ],
+     "rgb": "#432E22",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "red",
+    "luminancePercentileBand": [
+     60,
+     90
+    ]
+   },
+   "note": "East-facing, side-lit, readings are low (dark plum-brown, low chroma). Matches what the player sees at 299 from the street. Do not use for Principale.",
+   "lightnessBand": {
+    "lowerLstar": 21.2,
+    "upperLstar": 40.1,
+    "from_": "#8A4F3C",
+    "to": "#432E28"
+   },
+   "deltaLstarVsRoadmap": -18.9
+  },
+  "brick_principale": {
+   "name": "Principale brick",
+   "srgbTarget": "#98665C",
+   "srgbMeasured": "#98665C",
+   "roadmapHex": "#8A4F3C",
+   "linearAlbedo": 0.188,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 17,
+   "sampleCount": 3,
+   "spread": 42,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      380,
+      130,
+      550,
+      240
+     ],
+     "rgb": "#98665C",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/comm/60b6f207_comm_24_north.jpg",
+     "ref": "60b6f207_comm_24_north.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      170,
+      410,
+      270,
+      630
+     ],
+     "rgb": "#A9705D",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/strip/60b6f207_strip_05_north.jpg",
+     "ref": "60b6f207_strip_05_north.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      30,
+      110,
+      150,
+      260
+     ],
+     "rgb": "#7F4D39",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/strip/60b6f207_strip_02_east_street.jpg",
+     "ref": "60b6f207_strip_02_east_street.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "red",
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Sunlit red brick. This is the default Aylmer brick for storefronts.",
+   "lightnessBand": {
+    "lowerLstar": 40.1,
+    "upperLstar": 48.2,
+    "from_": "#8A4F3C",
+    "to": "#98665C"
+   },
+   "deltaLstarVsRoadmap": 8.1
+  },
+  "limestone": {
+   "name": "Limestone",
+   "srgbTarget": "#92908B",
+   "srgbMeasured": "#92908B",
+   "roadmapHex": "#8F8A7E",
+   "linearAlbedo": 0.31,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 8,
+   "sampleCount": 3,
+   "spread": 11,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      550,
+      225,
+      760,
+      300
+     ],
+     "rgb": "#918880",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/comm/60b6f207_comm_13_north.jpg",
+     "ref": "60b6f207_comm_13_north.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      380,
+      330,
+      600,
+      500
+     ],
+     "rgb": "#98938B",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/comm/60b6f207_comm_12_north.jpg",
+     "ref": "60b6f207_comm_12_north.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      615,
+      590,
+      1000,
+      650
+     ],
+     "rgb": "#92908B",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/comm/60b6f207_comm_13_north.jpg",
+     "ref": "60b6f207_comm_13_north.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "",
+   "lightnessBand": {
+    "lowerLstar": 57.6,
+    "upperLstar": 59.8,
+    "from_": "#8F8A7E",
+    "to": "#92908B"
+   },
+   "deltaLstarVsRoadmap": 2.2
+  },
+  "shingle": {
+   "name": "Asphalt shingle",
+   "srgbTarget": "#817C86",
+   "srgbMeasured": "#817C86",
+   "roadmapHex": "#4A4744",
+   "linearAlbedo": 0.198,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 15,
+   "sampleCount": 4,
+   "spread": 41,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      440,
+      365,
+      800,
+      388
+     ],
+     "rgb": "#827D86",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    },
+    {
+     "place": "75-rue-denise-friend",
+     "rect": [
+      500,
+      215,
+      920,
+      240
+     ],
+     "rgb": "#868092",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "75-rue-denise-friend/streetview-capture/60b6f207_75_denise_2009_front.jpg",
+     "ref": "60b6f207_75_denise_2009_front.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      150,
+      215,
+      500,
+      255
+     ],
+     "rgb": "#807C86",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "ref": "gi-streetview_three_quarter_right.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      1190,
+      365,
+      1420,
+      420
+     ],
+     "rgb": "#666769",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_left.jpg",
+     "ref": "gi-streetview_three_quarter_left.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Roofs mirror the sky (blue-grey cast) in SV; keep the neutral grey and let the sky do the cast. The band applies strongly.",
+   "lightnessBand": {
+    "lowerLstar": 30.4,
+    "upperLstar": 52.7,
+    "from_": "#4A4744",
+    "to": "#817C86"
+   },
+   "deltaLstarVsRoadmap": 22.3
+  },
+  "pole": {
+   "name": "Hydro pole",
+   "srgbTarget": "#5A4A3A",
+   "srgbMeasured": "#433F55",
+   "roadmapHex": "#5A4A3A",
+   "linearAlbedo": 0.082,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 22,
+   "sampleCount": 3,
+   "spread": 53,
+   "targetSource": "roadmap retained, refs only a floor",
+   "samples": [
+    {
+     "place": "les-galeries-aylmer",
+     "rect": [
+      428,
+      150,
+      438,
+      290
+     ],
+     "rgb": "#433F55",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+     "ref": "60b6f207_galeries_2009_parking_east.jpg"
+    },
+    {
+     "place": "principale-storefronts",
+     "rect": [
+      478,
+      238,
+      487,
+      290
+     ],
+     "rgb": "#565D6E",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "principale-storefronts/streetview-capture/strip/60b6f207_strip_02_east_street.jpg",
+     "ref": "60b6f207_strip_02_east_street.jpg"
+    },
+    {
+     "place": "les-galeries-aylmer",
+     "rect": [
+      421,
+      330,
+      437,
+      540
+     ],
+     "rgb": "#383839",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+     "ref": "60b6f207_galeries_2009_parking_east.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     0,
+     30
+    ]
+   },
+   "note": "Poles are 6 to 10 px wide in the refs and bleed the sky. Roadmap hex retained; measured luminance is consistent (dark)."
+  },
+  "lake": {
+   "name": "Lac Deschenes",
+   "srgbTarget": "#7896AA",
+   "srgbMeasured": "#7896AA",
+   "roadmapHex": "#5A7178",
+   "linearAlbedo": 0.273,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 8,
+   "sampleCount": 2,
+   "spread": 3,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "marina-parc-des-cedres",
+     "rect": [
+      10,
+      430,
+      200,
+      490
+     ],
+     "rgb": "#7797AB",
+     "imageSize": [
+      1024,
+      686
+     ],
+     "file": "marina-parc-des-cedres/tom-upload/d24c29c6_media_1788892315222.jpg",
+     "ref": "d24c29c6_media_1788892315222.jpg"
+    },
+    {
+     "place": "marina-parc-des-cedres",
+     "rect": [
+      100,
+      500,
+      300,
+      560
+     ],
+     "rgb": "#7A96A8",
+     "imageSize": [
+      1024,
+      686
+     ],
+     "file": "marina-parc-des-cedres/tom-upload/d24c29c6_media_1788892315222.jpg",
+     "ref": "d24c29c6_media_1788892315222.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Only one clear-day ref (Tom marina beach photo, midday July). It takes the sky: keep it tied to the horizon colour by view angle.",
+   "lightnessBand": {
+    "lowerLstar": 46.1,
+    "upperLstar": 60.5,
+    "from_": "#5A7178",
+    "to": "#7896AA"
+   },
+   "deltaLstarVsRoadmap": 14.4,
+   "sampleShortfall": "fewer than 3 usable refs: the reference set has no more clear-day views of this material"
+  },
+  "lake_tea": {
+   "name": "Lac Deschenes, tea-brown (close)",
+   "srgbTarget": "#4F4537",
+   "srgbMeasured": "#4F4537",
+   "roadmapHex": "#4A4636",
+   "linearAlbedo": 0.059,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 8,
+   "sampleCount": 1,
+   "spread": 0,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "marina-parc-des-cedres",
+     "rect": [
+      10,
+      300,
+      90,
+      420
+     ],
+     "rgb": "#4F4537",
+     "imageSize": [
+      1023,
+      768
+     ],
+     "file": "marina-parc-des-cedres/tom-upload/d24c29c6_media_1788892252048.jpg",
+     "ref": "d24c29c6_media_1788892252048.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "One spring shot of the river against the breakwater.",
+   "lightnessBand": {
+    "lowerLstar": 29.7,
+    "upperLstar": 29.9,
+    "from_": "#4A4636",
+    "to": "#4F4537"
+   },
+   "deltaLstarVsRoadmap": 0.2,
+   "sampleShortfall": "fewer than 3 usable refs: the reference set has no more clear-day views of this material"
+  },
+  "sand": {
+   "name": "Beach sand",
+   "srgbTarget": "#ACA28D",
+   "srgbMeasured": "#ACA28D",
+   "roadmapHex": null,
+   "linearAlbedo": 0.348,
+   "albedoLight": "horizontal x1.05",
+   "tolerance": 8,
+   "sampleCount": 2,
+   "spread": 12,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "marina-parc-des-cedres",
+     "rect": [
+      100,
+      560,
+      500,
+      640
+     ],
+     "rgb": "#A69C88",
+     "imageSize": [
+      1024,
+      686
+     ],
+     "file": "marina-parc-des-cedres/tom-upload/d24c29c6_media_1788892315222.jpg",
+     "ref": "d24c29c6_media_1788892315222.jpg"
+    },
+    {
+     "place": "marina-parc-des-cedres",
+     "rect": [
+      700,
+      520,
+      900,
+      600
+     ],
+     "rgb": "#B2A792",
+     "imageSize": [
+      1024,
+      686
+     ],
+     "file": "marina-parc-des-cedres/tom-upload/d24c29c6_media_1788892315222.jpg",
+     "ref": "d24c29c6_media_1788892315222.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Not in roadmap 2.5, added for the marina and Parc des Cedres.",
+   "sampleShortfall": "fewer than 3 usable refs: the reference set has no more clear-day views of this material"
+  },
+  "sky_zenith": {
+   "name": "Noon zenith",
+   "srgbTarget": "#A6BBD6",
+   "srgbMeasured": "#A6BBD6",
+   "roadmapHex": "#5F8FC8",
+   "linearAlbedo": null,
+   "albedoLight": "emissive (sky, not lit)",
+   "tolerance": 31,
+   "sampleCount": 4,
+   "spread": 80,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      200,
+      5,
+      800,
+      60
+     ],
+     "rgb": "#B3BDD9",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    },
+    {
+     "place": "1-rue-arial-house",
+     "rect": [
+      330,
+      5,
+      500,
+      60
+     ],
+     "rgb": "#E0E3EF",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "1-rue-arial-house/streetview-capture/60b6f207_1_arial_2009_angle_east.jpg",
+     "ref": "60b6f207_1_arial_2009_angle_east.jpg"
+    },
+    {
+     "place": "les-galeries-aylmer",
+     "rect": [
+      500,
+      5,
+      1000,
+      40
+     ],
+     "rgb": "#9099B1",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+     "ref": "60b6f207_galeries_2009_parking_east.jpg"
+    },
+    {
+     "place": "marina-parc-des-cedres",
+     "rect": [
+      200,
+      10,
+      700,
+      80
+     ],
+     "rgb": "#9AB9D3",
+     "imageSize": [
+      1024,
+      686
+     ],
+     "file": "marina-parc-des-cedres/tom-upload/d24c29c6_media_1788892315222.jpg",
+     "ref": "d24c29c6_media_1788892315222.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "Street View frames top out at about 40 degrees elevation and are hazy, so this is NOT the true zenith. The true zenith is deeper: keep the roadmap hex at the very top of the dome and use the measured value at 35 to 40 degrees elevation.",
+   "lightnessBand": {
+    "lowerLstar": 58.3,
+    "upperLstar": 75.1,
+    "from_": "#5F8FC8",
+    "to": "#A6BBD6"
+   },
+   "deltaLstarVsRoadmap": 16.8
+  },
+  "sky_horizon": {
+   "name": "Noon horizon haze",
+   "srgbTarget": "#B3BDCC",
+   "srgbMeasured": "#B3BDCC",
+   "roadmapHex": "#D6DEE2",
+   "linearAlbedo": null,
+   "albedoLight": "emissive (sky, not lit)",
+   "tolerance": 31,
+   "sampleCount": 3,
+   "spread": 76,
+   "targetSource": "median of per-ref medians",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      480,
+      200,
+      700,
+      300
+     ],
+     "rgb": "#D7D9EE",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    },
+    {
+     "place": "les-galeries-aylmer",
+     "rect": [
+      200,
+      350,
+      400,
+      395
+     ],
+     "rgb": "#B3BDC6",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+     "ref": "60b6f207_galeries_2009_parking_east.jpg"
+    },
+    {
+     "place": "marina-parc-des-cedres",
+     "rect": [
+      30,
+      250,
+      280,
+      330
+     ],
+     "rgb": "#8BB2CC",
+     "imageSize": [
+      1024,
+      686
+     ],
+     "file": "marina-parc-des-cedres/tom-upload/d24c29c6_media_1788892315222.jpg",
+     "ref": "d24c29c6_media_1788892315222.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": null,
+    "luminancePercentileBand": [
+     40,
+     60
+    ]
+   },
+   "note": "f1 matches the roadmap; the others are greyer or bluer. Use the measured median for fog and the horizon band.",
+   "lightnessBand": {
+    "lowerLstar": 76.3,
+    "upperLstar": 88.0,
+    "from_": "#D6DEE2",
+    "to": "#B3BDCC"
+   },
+   "deltaLstarVsRoadmap": -11.7
+  },
+  "car_navy": {
+   "name": "SC2 navy (1997 Saturn SC2, Margaret)",
+   "srgbTarget": "#1E2A47",
+   "roadmapHex": "#1E2A47",
+   "linearAlbedo": 0.165,
+   "albedoLight": "vertical x0.90",
+   "tolerance": 8,
+   "sampleCount": 2,
+   "spread": 10,
+   "targetSource": "roadmap retained (base paint); litReading is what gloss and sky reflection add",
+   "samples": [
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      250,
+      650,
+      800,
+      780
+     ],
+     "rgb": "#60677C",
+     "imageSize": [
+      1600,
+      1000
+     ],
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "ref": "gi-streetview_three_quarter_right.jpg"
+    },
+    {
+     "place": "299-chemin-fraser",
+     "rect": [
+      580,
+      690,
+      960,
+      768
+     ],
+     "rgb": "#676F86",
+     "imageSize": [
+      1024,
+      768
+     ],
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg"
+    }
+   ],
+   "sampling": {
+    "mask": "blue",
+    "luminancePercentileBand": [
+     60,
+     90
+    ]
+   },
+   "note": "Base paint stays #1E2A47. In the refs the lit side of a navy car (Saturn SC2 in 299 three-quarter-right, navy sedan in 299 front) reads about #646B81 because of sky reflection. Only 2 refs; the other navy cars are not in the set.",
+   "litReading": "#646B81",
+   "srgbMeasured": null,
+   "sampleShortfall": "fewer than 3 usable refs: the reference set has no more clear-day views of this material"
+  },
+  "car_traffic_maroon": {
+   "name": "Traffic paint, maroon",
+   "srgbTarget": "#834C58",
+   "srgbMeasured": "#834C58",
+   "roadmapHex": null,
+   "linearAlbedo": null,
+   "tolerance": 14,
+   "sampleCount": 1,
+   "samples": [
+    {
+     "ref": "60b6f207_galeries_2009_parking_east.jpg",
+     "file": "les-galeries-aylmer/streetview-capture/60b6f207_galeries_2009_parking_east.jpg",
+     "rect": [
+      780,
+      580,
+      1010,
+      650
+     ],
+     "rgb": "#834C58"
+    }
+   ],
+   "note": "Lit-side reading of traffic paint in the 2009 refs; includes sky reflection. Use as the on-screen appearance of dull traffic, not as base albedo.",
+   "sampleShortfall": "fewer than 3 usable refs: the reference set has no more clear-day views of this material"
+  },
+  "car_traffic_grey": {
+   "name": "Traffic paint, grey truck",
+   "srgbTarget": "#444C57",
+   "srgbMeasured": "#444C57",
+   "roadmapHex": null,
+   "linearAlbedo": null,
+   "tolerance": 14,
+   "sampleCount": 2,
+   "samples": [
+    {
+     "ref": "gi-streetview_three_quarter_right.jpg",
+     "file": "299-chemin-fraser/streetview-capture/gi-streetview_three_quarter_right.jpg",
+     "rect": [
+      750,
+      495,
+      990,
+      560
+     ],
+     "rgb": "#464C54"
+    },
+    {
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg",
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "rect": [
+      920,
+      560,
+      1024,
+      600
+     ],
+     "rgb": "#434B5A"
+    }
+   ],
+   "note": "Lit-side reading of traffic paint in the 2009 refs; includes sky reflection. Use as the on-screen appearance of dull traffic, not as base albedo.",
+   "sampleShortfall": "fewer than 3 usable refs: the reference set has no more clear-day views of this material"
+  },
+  "car_traffic_silver": {
+   "name": "Traffic paint, silver compact",
+   "srgbTarget": "#8E8E91",
+   "srgbMeasured": "#8E8E91",
+   "roadmapHex": null,
+   "linearAlbedo": null,
+   "tolerance": 14,
+   "sampleCount": 1,
+   "samples": [
+    {
+     "ref": "60b6f207_299_fraser_2009_east_front.jpg",
+     "file": "299-chemin-fraser/streetview-capture/60b6f207_299_fraser_2009_east_front.jpg",
+     "rect": [
+      100,
+      585,
+      230,
+      650
+     ],
+     "rgb": "#8E8E91"
+    }
+   ],
+   "note": "Lit-side reading of traffic paint in the 2009 refs; includes sky reflection. Use as the on-screen appearance of dull traffic, not as base albedo.",
+   "sampleShortfall": "fewer than 3 usable refs: the reference set has no more clear-day views of this material"
+  },
+  "golden_sun": {
+   "name": "Golden sun",
+   "srgbTarget": "#F7B26A",
+   "srgbMeasured": null,
+   "roadmapHex": "#F7B26A",
+   "linearAlbedo": null,
+   "tolerance": 8,
+   "sampleCount": 0,
+   "samples": [],
+   "targetSource": "roadmap retained, not sampled",
+   "note": "No golden-hour ref in the set (all refs are noon, May to June). Roadmap value retained, to be judged by eye against Tom."
+  },
+  "sodium_lamp": {
+   "name": "Sodium lamp",
+   "srgbTarget": "#FF9A2E",
+   "srgbMeasured": null,
+   "roadmapHex": "#FF9A2E",
+   "linearAlbedo": null,
+   "tolerance": 8,
+   "sampleCount": 0,
+   "samples": [],
+   "targetSource": "roadmap retained, not sampled",
+   "note": "No night refs. Roadmap value retained. High-pressure sodium is about 2000 K, close to this."
+  },
+  "night_fill": {
+   "name": "Night fill",
+   "srgbTarget": "#1B2236",
+   "srgbMeasured": null,
+   "roadmapHex": "#1B2236",
+   "linearAlbedo": null,
+   "tolerance": 8,
+   "sampleCount": 0,
+   "samples": [],
+   "targetSource": "roadmap retained, not sampled",
+   "note": "No night refs. Roadmap value retained."
+  },
+  "ranger_white": {
+   "name": "Ranger white",
+   "srgbTarget": "#ECEAE3",
+   "srgbMeasured": null,
+   "roadmapHex": "#ECEAE3",
+   "linearAlbedo": 0.75,
+   "tolerance": 8,
+   "sampleCount": 0,
+   "samples": [],
+   "targetSource": "roadmap retained, not sampled",
+   "note": "No ref of the Ranger. Roadmap value retained; Oxford White, a little yellowed. Albedo below 0.75."
+  }
+ },
+ "hudAndMenu": {
+  "source": "wt-qr-look/opening.css (docs/design/OPENING.md does not exist yet; matched to the shipped opening CSS and screenshots instead)",
+  "ink": "#07080C",
+  "paper": "#FFF7E6",
+  "amber": "#FFC94D",
+  "amberHot": "#FFD23F",
+  "sodiumGlow": "#FF9A4A",
+  "cold": "#5FD3F0",
+  "panel": "#0C1013",
+  "panelEdge": "#605C3F",
+  "fontLogo": "Impact, Haettenschweiler, Arial Narrow Bold, Arial Black, sans-serif",
+  "fontCard": "Futura, Avenir Next Condensed, Arial Black, sans-serif",
+  "fontType": "American Typewriter, Courier New, monospace",
+  "fontBody": "Helvetica Neue, Helvetica, Arial, sans-serif"
+ }
+}

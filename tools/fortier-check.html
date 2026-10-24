@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8"><title>SVX encounter playtest</title><style>body{background:#15272b;color:white;font:16px system-ui}button{padding:12px}iframe{width:1200px;height:760px;border:0}pre{white-space:pre-wrap}</style>
-<button id="run">Start SVX check</button><button id="take">Press E near SVX</button><button id="status">Check chase movement</button><button id="strip">View Loblaws</button><button id="food">View restaurants</button><pre>Test origin only. Your main save is untouched.</pre><iframe src="../index.html?fortier-check=19"></iframe>
+<button id="run">Start SVX check</button><button id="take">Press E near SVX</button><button id="status">Check chase movement</button><button id="strip">View Loblaws</button><button id="food">View restaurants</button><pre>Test origin only. Your main save is untouched.</pre><iframe src="../index.html?fortier-check=19&review=fortier-check"></iframe>
 <script type="module">
 const f=document.querySelector('iframe'),out=document.querySelector('pre');let a,initial;
 const wait=async fn=>{for(let i=0;!fn();i++){if(i>900)throw Error('Timed out');await new Promise(r=>setTimeout(r,100));}};

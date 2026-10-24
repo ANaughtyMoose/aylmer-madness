@@ -334,5 +334,39 @@ const mats = await loadMaterials(null, { manifest, current: false });
   ok(`${withHs} of ${MAP.buildings.length} buildings carry Phase 1 attributes`);
 }
 
+// --------------------------- windows on irregular / LiDAR-skewed footprints
+{
+  const { squareRidge, buildHouse: bh } = await import('../src/game/houses.js');
+  const r = squareRidge(-0.599, -0.078);
+  if (Math.abs(r - -0.078) > 1e-9) fail(`squareRidge should snap -0.599 to the footprint's -0.078 (got ${r})`);
+  else ok('a LiDAR ridge 30 degrees off its walls is squared to the footprint');
+  // 4 Rue du Long-Sault: its ridge fit is 30 degrees off, and it used to come
+  // out a blank 20 m brick box with a door and nothing else.
+  const b = MAP.buildings.find((x) => x.addr === '4 Rue du Long-Sault');
+  if (b) {
+    const mb = new MeshBuilder(); let panels = 0;
+    const op = mb.panel.bind(mb); mb.panel = (...a) => { panels++; return op(...a); };
+    bh(mb, b, b.hs, STUB, mulberry32(7), { lod: 0, index: 0 });
+    if (panels < 6) fail(`4 Rue du Long-Sault has only ${panels} façade panels`);
+    else ok(`4 Rue du Long-Sault gets ${panels} façade panels (was 2)`);
+  }
+}
+
+// ------------------------------------------- D3: driveways follow the lawn
+{
+  const { drapeRot } = await import('../src/game/houses.js');
+  const g = (x, z) => 0.08 * x + 0.03 * z + 0.4 * Math.sin(z * 0.5);   // a bumpy slope
+  const mb = new MeshBuilder();
+  drapeRot(mb, 10, 5, 3.4, 11, 0, 0.7, [0.2, 0.2, 0.2], g);
+  let worst = 0;
+  for (let i = 0; i < mb.v.length; i += 9) worst = Math.max(worst, Math.abs(mb.v[i + 1] - 0.042 - g(mb.v[i], mb.v[i + 2])));
+  if (worst > 1e-9) fail(`draped driveway vertex ${worst.toFixed(3)} m off the ground`);
+  else ok(`draped driveway: ${mb.i.length / 3} tris, every vertex on the lawn + 4.2 cm`);
+  const flat = new MeshBuilder();
+  drapeRot(flat, 0, 0, 3, 9, 0, 0.3, [0, 0, 0], (x) => 0.05 * x);
+  if (flat.i.length !== 6) fail(`a straight slope should stay one quad (got ${flat.i.length / 3} tris)`);
+  else ok('a straight slope stays one tilted quad');
+}
+
 console.log(failures ? `\n${failures} FAILURE(S)` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

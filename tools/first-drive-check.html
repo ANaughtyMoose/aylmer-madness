@@ -4,7 +4,7 @@
 <p>Development fixture. Exercises real mission code using simulated arrivals; this does not assess driving feel.</p>
 <button id="run">Run first-job checks</button><button id="opening">Opening</button><button id="house">House exterior</button><button id="brief">Briefing</button><button id="mall">Mall exterior</button>
 <button data-width="1024" data-height="768">1024 × 768</button><button data-width="1280" data-height="800">1280 × 800</button><button data-width="1920" data-height="1080">1920 × 1080</button>
-<pre id="results">Ready. Uses the preview origin only.</pre><iframe id="game" src="../index.html" title="Game under test"></iframe>
+<pre id="results">Ready. Uses the preview origin only.</pre><iframe id="game" src="../index.html?review=first-drive" title="Game under test"></iframe>
 <script type="module">
 import { missionById } from '../src/game/missions.js';
 const frame=document.querySelector('iframe'), out=document.querySelector('pre');

@@ -19,6 +19,7 @@ import * as save from '../src/game/save.js';
 import { Nav } from '../src/game/nav.js';
 import { stageTarget, resolveAt } from '../src/game/missionkit.js';
 import { LIFE_MISSIONS } from '../src/game/lifejobs.js';
+import { mainIds, OPTIONAL, FINALE, isMain, isRetired, storyBlocker } from '../src/game/campaign.js';
 
 let pass = 0, fail = 0;
 const ok = (cond, name, extra) => {
@@ -172,26 +173,39 @@ group('built for turf');
 
 // ---------------------------------------------------------------- 3. the job
 
-group('« Le cart du Club »');
+group('« N’importe quelle petite clé » (mission 6, was « Le cart du Club »)');
 {
   const def = MISSIONS.find((m) => m.id === 'golfcart');
   ok(!!def, 'the job is registered in MISSIONS');
   ok(def.giver === 'golf' && !!PLACES.golf, 'its giver is PLACES.golf');
   ok(/Club de Golf/.test(PLACES.golf.label), `which is « ${PLACES.golf.label} »`);
-  // Eighteen ordinary jobs. The summer's five beats (arc.js) are gated on
-  // progress and get pushed onto this same array as they are earned, so the
-  // pause menu grows over a save; ALL_MISSIONS is the whole set, gates ignored.
-  // Was 23 / 28 until « L'alternateur » was added as the first job of the summer.
-  ok(MISSIONS.length === 24 + LIFE_MISSIONS.length, `${MISSIONS.length} jobs in the pause menu on a brand-new save`);
-  ok(ALL_MISSIONS.length === 29 + LIFE_MISSIONS.length, `${ALL_MISSIONS.length} jobs once the whole summer is open`);
-  ok(MISSIONS.filter((m) => ARC.includes(m)).length === 0,
-    'none of the summer\'s five beats are open before you have driven anything');
+  // RESTRUCTURE (29 Sept 2026, Tom's approved ten-mission plan): the old
+  // structure is gone on purpose. There is no longer a pause list that grows as
+  // the five arc beats are earned: MISSIONS and ALL_MISSIONS are the same set,
+  // the ten main missions (campaign.js MAIN, by id), the finale and the
+  // optional jobs, and campaign.storyBlocker decides what is open. The counts
+  // are derived from campaign.js so the set-pieces ids (nuittim) land without
+  // a magic number changing.
+  const expected = mainIds().length + 1 + Object.keys(OPTIONAL).length;
+  ok(MISSIONS.length === expected, `${MISSIONS.length} jobs in the pause menu (${expected}: main + finale + optional)`);
+  ok(ALL_MISSIONS.length === MISSIONS.length, `${ALL_MISSIONS.length} jobs in the whole summer, the same set`);
+  ok(MISSIONS.every((m) => !isRetired(m.id)), 'no retired job is in the list');
+  ok(MISSIONS.filter((m) => ARC.includes(m)).every((m) => isMain(m.id) || m.id === FINALE),
+    'the arc beats left in the list are main missions or the finale');
+  const open = MISSIONS.filter((m) => isMain(m.id) && !storyBlocker(m.id, [])).map((m) => m.id);
+  ok(open.length === 1 && open[0] === 'alternateur', `only « L'alternateur » is open on a brand-new save (${open.join(', ')})`);
+  ok(storyBlocker('golfcart', []) === 'alternateur', 'the golf night waits for the main missions before it');
+  // Eleven since D31 (Tom, 13 Oct 2026) cut arcsurchauffe from step 7.
+  ok(mainIds().length === 11 && mainIds().includes('nuittim') && !mainIds().includes('arcsurchauffe'), `all eleven main ids are built, « La nuit du Tim » included (${mainIds().length})`);
 
+  // Updated 6 Oct 2026 for Tom's account: the bikes, Sayyad starts it and
+  // drives first, Tom's joyride, the owners' chase, back to the bikes, the fence.
   const inCar = def.build({ carId: 'ranger', carName: 'Ranger', seats: 2, money: 80 });
-  const inCart = def.build({ carId: 'cart', carName: cart.name, seats: 2, money: 80 });
-  ok(inCar.length === 3, `three stages when you drive up in a car (${inCar.length})`);
-  ok(inCart.length === 2, 'two when you are already in the cart — no need to fetch one');
-  ok(inCar[0].hold === true && /E/.test(inCar[0].holdText), 'the first stage is a held E on a cart');
+  const onBike = def.build({ carId: 'dbike', carName: 'Diamondback', seats: 1, money: 80 });
+  ok(inCar.length === 12, `twelve stages when you drive up in a car (${inCar.length})`);
+  ok(onBike.length === 11, 'eleven when you come on your bike: nothing to take out of the truck');
+  ok(inCar[0].kind === 'velo' && inCar[1].kind === 'keys' && typeof inCar[1].onTick === 'function', 'the bikes, then the key-try beat');
+  ok(def.timeOfDay === 'night', 'at night');
 
   for (const st of inCar) {
     ok(typeof st.text === 'string' && st.text.length > 0, `stage "${st.kind}" has objective text`);
@@ -201,18 +215,16 @@ group('« Le cart du Club »');
     const tgt = stageTarget({ parked: {} }, {}, st);
     ok(tgt && tgt.r > 0, `stage "${st.kind}" has a marker of radius ${tgt && tgt.r}`);
   }
-  const beach = inCar.find((s) => s.at === 'aigle');
-  ok(!!beach && beach.radius === 20, 'the school checkpoint is 20 m across');
-  const back = inCar[inCar.length - 1];
-  ok(back.at === 'golf', 'and the last stage brings it home to the Club');
-  ok(back.time === 360, 'with the designed six-minute marshal timer');
-  ok(beach.at === 'aigle', 'the short errand goes to École de l’Aigle, not the distant beach');
-  ok(/marshal/i.test(back.failWhy), `failing says « ${back.failWhy} »`);
-  ok(back.money === 25, 'it pays $25');
+  const chase = inCar.filter((s) => /^chase/.test(s.kind));
+  ok(chase.length === 4 && chase.every((s) => s.time > 0), 'four timed chase flags');
+  ok(chase.every((s) => /proprios/i.test(s.failWhy)), `failing says « ${chase[0].failWhy} »`);
+  const bikes = inCar.find((s) => s.kind === 'bikes');
+  ok(!!bikes && bikes.time > 0 && bikes.hold === true, 'back to the bikes on the same clock, ends on a held E');
+  ok(inCar[inCar.length - 1].kind === 'fence', 'and you leave over the fence, on the bike');
   ok(inCar.every((s) => !s.cost), 'and costs nothing, so there is no way to be too broke for it');
 
-  // Cart-only: the two driving stages refuse anything else.
-  for (const st of [beach, back]) {
+  // Cart-only: the flags and the run back refuse anything else.
+  for (const st of inCar.filter((s) => /^cp|^chase|^bikes/.test(s.kind))) {
     ok(typeof st.condition === 'function', `stage "${st.kind}" has a condition`);
     ok(st.condition({ carId: 'cart', veh: { spec: cart } }) === true,
       `stage "${st.kind}" completes in the cart`);
@@ -222,8 +234,6 @@ group('« Le cart du Club »');
       `stage "${st.kind}" says why when you turn up in the wrong thing`);
   }
   ok(typeof def.cleanup === 'function', 'the job cleans up after itself');
-  // cleanup must survive being called on a half-built mission (Backspace on
-  // stage one, before anything was swapped).
   let threw = null;
   try { def.cleanup({}, {}); def.cleanup({ carId: 'cart' }, { cameIn: 'ranger' }); } catch (e) { threw = e; }
   ok(!threw, 'and cleanup on a half-finished job does not throw', threw && threw.message);
@@ -256,7 +266,10 @@ group('parked at the clubhouse');
   // are two different things (the runner offers a job inside 12 m).
   ok(d > 12, `it sits ${d.toFixed(1)} m off the job marker, so both prompts fit`);
   const dB = Math.hypot(home.cart.x - (p.bx ?? p.x), home.cart.z - (p.bz ?? p.z));
-  ok(dB < 20, `and ${dB.toFixed(1)} m from the clubhouse itself`);
+  // Was « < 20 m from the clubhouse » when the default 12 m apron put it
+  // inside the building (set-pieces note, 29 Sept). Straight out, the walls
+  // reach about 21 m (measured with world.buildingAt in the browser).
+  ok(dB > 22 && dB < 30, `and ${dB.toFixed(1)} m from the clubhouse centre: outside its walls, still at the club`);
 
   const fresh = save.newSave();
   ok(!!fresh.parked.cart, 'and a brand-new save has it parked there');
@@ -282,6 +295,164 @@ group('two seats');
   ok(seats.length === 1, 'one passenger seat (driver + one on the bench)');
   ok(Math.abs(seats[0][2] - cart.seatZ) < 0.6, 'beside the driver on the bench, not behind');
   ok(seats.every((s) => s[1] > 0.5 && s[1] < cart.h), 'under the canopy');
+}
+
+// ---------------------------------------------------------------- 6. never stranded
+
+// Plan v2 B-01a (13 Oct panel, fix 1 for all five reviewers): golf night's
+// tearDown swapped you back only within 25 m of your bike, so a fail out on
+// the course left you in the 24 km/h cart for the rest of the summer. Every
+// end kind, at 30 m, 300 m and 1,500 m from the Ranger, must leave you in the
+// Ranger within 3 s of the end card.
+group('never stranded: every golf-night end puts you back in the Ranger (B-01a)');
+{
+  const { golfnuit, TEE, JOYRIDE, BACK_LINE, GOLFNUIT } = await import('../src/game/setpieces/golfnuit.js');
+  const { stageEnter, stageExit, missionCleanup } = await import('../src/game/missionkit.js');
+  const { offerRetry, tickRetry, takeRetry, RETRY_WINDOW } = await import('../src/game/retry.js');
+  const SPECS = {
+    ranger: carById('ranger'), cart: carById('cart'), civic: carById('civic'),
+    dbike: { id: 'dbike', name: 'Diamondback Sorrento', who: 'Yours', style: 'bike', twoWheel: true, seats: 1 },
+  };
+  const mkVeh = (id, p) => ({
+    spec: SPECS[id], x: p.x, z: p.z, yaw: p.yaw || 0, speedKmh: 0, vLong: 0, damage: 0, passengers: 0,
+    repair() { this.damage = 0; }, reset(x, z, yaw) { this.x = x; this.z = z; this.yaw = yaw; },
+  });
+  const homeBike = { x: PLACES.home.x + 4, z: PLACES.home.z + 2, yaw: 0 };
+  const lot = { x: PLACES.golf.x, z: PLACES.golf.z, yaw: PLACES.golf.a || 0 };
+  const mkG = () => {
+    const G = { parked: {}, carId: 'ranger', time: 0, character: 'tom', health: {}, toasts: [], day: 5 };
+    G.hud = { toast: (t) => G.toasts.push(String(t)), prompt() {} };
+    G.parked.cart = { ...save.homeParked().cart };
+    G.parked.dbike = { ...homeBike };
+    G.veh = mkVeh('ranger', lot);
+    G.swapCar = (id) => {
+      const v = G.veh, spot = G.parked[id];
+      if (!spot) return;
+      G.parked[v.spec.id] = { x: v.x, z: v.z, yaw: v.yaw };
+      delete G.parked[id];
+      G.carId = id; G.veh = mkVeh(id, spot);
+    };
+    return G;
+  };
+  const startNight = (G) => {
+    const stages = golfnuit.build({ carId: 'ranger', carName: 'Ranger', seats: 2 });
+    const m = { def: golfnuit, stages, idx: 0, elapsed: 0 };
+    G.mission = m;
+    return m;
+  };
+  const goto = (G, m, kind) => {
+    // Walk the real stages up to `kind`: their onEnter / onTick / onExit do the swaps.
+    while (m.stages[m.idx].kind !== kind) {
+      const st = m.stages[m.idx];
+      if (st.kind === 'keys') {
+        G.veh.x = TEE.x + 2; G.veh.z = TEE.z; G.veh.speedKmh = 0;
+        for (let k = 0; k < 3 && !inCartNow(G); k++) { G.wantStart = true; st.onTick(G, m, st, 1 / 60); }
+      }
+      stageExit(G, m, st);
+      m.idx++;
+      stageEnter(G, m, m.stages[m.idx]);
+    }
+  };
+  const inCartNow = (G) => G.veh && G.veh.spec && G.veh.spec.id === 'cart';
+  const away = (G, d) => {
+    const r = G.parked.ranger;
+    G.veh.x = r.x + d * Math.SQRT1_2; G.veh.z = r.z - d * Math.SQRT1_2;
+  };
+  // The five ways a night ends, each from the vehicle that end really happens in.
+  const ENDS = {
+    success: { at: 'fence', rig: 'dbike', end: (G, m) => { m.fenceS = { over: true }; missionCleanup(G, m, false); } },
+    fail: { at: 'chase2', rig: 'cart', end: (G, m) => { m.failed = true; missionCleanup(G, m, true); } },
+    abandon: { at: 'cp2', rig: 'cart', end: (G, m) => missionCleanup(G, m, true) },
+    quit: { at: 'keys', rig: 'dbike', end: (G, m) => missionCleanup(G, m, true) },
+    retryLapsed: {
+      at: 'bikes', rig: 'cart',
+      end: (G, m) => {
+        m.failed = true;
+        const offer = offerRetry({ G, mission: m, why: 'Les proprios t’ont pogné.' });
+        missionCleanup(G, m, true); G.mission = null;
+        return offer;
+      },
+    },
+  };
+  let held = 0, total = 0;
+  for (const [kind, e] of Object.entries(ENDS)) {
+    for (const d of [30, 300, 1500]) {
+      total++;
+      const G = mkG();
+      const m = startNight(G);
+      stageEnter(G, m, m.stages[0]);
+      goto(G, m, e.at);
+      const rigOk = G.veh.spec.id === e.rig;
+      away(G, d);
+      const before = G.veh.spec.id;
+      const dist = Math.hypot(G.veh.x - G.parked.ranger.x, G.veh.z - G.parked.ranger.z);
+      const tEnd = G.time;
+      const offer = e.end(G, m);
+      // The end card is up now; the clock runs on (the retry window too).
+      let tIn = G.veh.spec.id === 'ranger' ? 0 : null, stayed = true;
+      for (let i = 0; i < (RETRY_WINDOW + 2) * 10; i++) {
+        G.time += 0.1;
+        if (offer) tickRetry(G, 0.1, null, false);
+        if (G.veh.spec.id === 'ranger') { if (tIn == null) tIn = G.time - tEnd; } else if (tIn != null) stayed = false;
+      }
+      const good = rigOk && tIn != null && tIn <= 3 && stayed;
+      if (good) held++;
+      ok(good, `${kind} in the ${before} ${dist.toFixed(0)} m from the Ranger: in the Ranger ${tIn == null ? 'never' : tIn.toFixed(1) + ' s'} after the end card`,
+        `rig ${G.veh.spec.id}, rigOk ${rigOk}, stayed ${stayed}`);
+      if (d === 300) {
+        ok(G.toasts.some((t) => t === BACK_LINE.ranger || t === BACK_LINE.morning), `${kind}: the narrator says where the Ranger is`, G.toasts.slice(-2).join(' | '));
+        const apron = save.apronSpot(PLACES.golf, GOLFNUIT.apronBack);
+        ok(G.parked.cart && Math.hypot(G.parked.cart.x - apron.x, G.parked.cart.z - apron.z) < 1, `${kind}: the cart is back on its apron`);
+        ok(G.parked.dbike && Math.hypot(G.parked.dbike.x - homeBike.x, G.parked.dbike.z - homeBike.z) < 1, `${kind}: the bike is back where it was before the night`);
+        if (kind === 'retryLapsed') ok(!G.retry, 'the retry window ran out and nothing moved you');
+      }
+    }
+  }
+  ok(held === 15, `${held} of ${total} ends leave you in the Ranger within 3 s of the end card`);
+  console.log(`  B01A_ENDS ${held}/${total}`);
+  ok(TEE && JOYRIDE.length === 3, 'course data intact');
+
+  // The success line is the morning after; every other end is the plain line.
+  {
+    const G = mkG(); const m = startNight(G); stageEnter(G, m, m.stages[0]); goto(G, m, 'fence');
+    m.fenceS = { over: true }; missionCleanup(G, m, false);
+    ok(G.toasts.includes(BACK_LINE.morning), `success: « ${BACK_LINE.morning} »`);
+  }
+
+  // A free retry resumes the job at the stage that failed. tearDown has put you
+  // in the Ranger at the lot, so the stage puts the bike and the cart back under
+  // you, and the next end still brings you home.
+  {
+    const G = mkG(); const m = startNight(G); stageEnter(G, m, m.stages[0]); goto(G, m, 'chase2');
+    m.failed = true;
+    offerRetry({ G, mission: m, why: 'x' });
+    missionCleanup(G, m, true); G.mission = null;
+    ok(G.veh.spec.id === 'ranger', 'after the fail: in the Ranger');
+    const take = takeRetry(G);
+    const stages = golfnuit.build({ carId: 'ranger', carName: 'Ranger', seats: 2 });
+    const m2 = { def: golfnuit, stages, idx: take.saved.stage, elapsed: take.saved.elapsed };
+    G.mission = m2;
+    stageEnter(G, m2, stages[m2.idx]);
+    ok(G.veh.spec.id === 'cart', `retry at « ${stages[m2.idx].kind} »: back in the cart`);
+    ok(m2.cameIn === 'dbike' && !!G.parked.dbike && Math.hypot(G.parked.dbike.x - TEE.x, G.parked.dbike.z - TEE.z) < 5, 'and the bikes wait at the first tee');
+    ok(!!G.parked.ranger, 'the Ranger stays in the lot');
+    missionCleanup(G, m2, true);
+    ok(G.veh.spec.id === 'ranger', 'quit the retry: in the Ranger again');
+    ok(Math.hypot(G.parked.dbike.x - homeBike.x, G.parked.dbike.z - homeBike.z) < 1, 'and the bike went home with it');
+  }
+  // Came on the bike: the bike is what you came in, and that is what you get back.
+  {
+    const G = mkG();
+    G.veh = mkVeh('dbike', lot); delete G.parked.dbike; G.parked.ranger = { ...homeBike, x: homeBike.x - 8 };
+    const stages = golfnuit.build({ carId: 'dbike', carName: 'Diamondback', seats: 1 });
+    const m = { def: golfnuit, stages, idx: 0, elapsed: 0 }; G.mission = m;
+    stageEnter(G, m, stages[0]); goto(G, m, 'cp2');
+    ok(inCartNow(G), 'came on the bike: in the cart at the second flag');
+    away(G, 300);
+    missionCleanup(G, m, true);
+    ok(G.veh.spec.id === 'dbike', 'abandon: back on your bike, not in the cart');
+    ok(G.toasts.includes(BACK_LINE.bike), `« ${BACK_LINE.bike} »`);
+  }
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
