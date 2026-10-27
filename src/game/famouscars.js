@@ -117,15 +117,15 @@ export const TEMPO = finish(derive(SL_SEDAN, {
 
 // « La Si à Sayyad ». The one under the tarp at 75 Denise-Friend — the same car
 // he lends you after la poutine, in the state the whole town remembers it: Rio
-// Red gone matte on the roof, an open B16 out of Montréal, and no back seat. It
-// out-ran an RCMP cruiser across the Portage in 2001 and went down a gravel
-// driveway in Deschênes before anybody read the plate.
+// Red gone matte on the roof, an open B16 out of Montréal, and no back seat.
+// (The old comment gave it a police chase in 2001: cut, D32 and ledger s.3,
+// no crime stated as fact about a real person. 27 Oct, w6-canon.)
 //   The shell is the 1987 third-generation Si, same as `civic`. The B16 is a
 // swap — that is the whole point of the car and the reason this one revs to
 // 7600 when the stock 1.5 twelve-valve stops at 6500. Do not "correct" the
 // VTEC out of the flavour; the factory Si never had it, this car does.
 export const SICIVIC = finish(derive('civic', {
-  id: 'sicivic', name: '1987 Honda Civic Si — « la Si »', who: 'Sayyad',
+  id: 'sicivic', name: '1987 Honda Civic Si, « la Si »', who: 'Sayyad',
   body: 0xc0141e, seats: 2,
   flavour: 'Rouge Rio délavé su’ l’toit, un B16 ouvert venu de Montréal, pas de banquette en arrière. Tout le monde en ville connaît le sifflet quand le VTEC embarque proche des Galeries.',
   len: 3.99, wid: 1.67, h: 1.30, wheelbase: 2.50, overhangF: 0.83, wheelR: 0.29,
@@ -166,12 +166,12 @@ export const CROWNVIC = finish(derive('cutlass', {
   shiftUp: 4200, shiftUpLight: 2200, shiftDown: 1200, launch: 1700, shiftTime: 0.34 },
 { hbGrip: 0.40, hbYaw: 1.58, revTop: 6.94, revEngage: 0.26 });
 
-// Steve « Mullet » Boucher's GTA. Gunmetal grey on gold snowflake wheels,
-// T-tops, and a cassette deck jammed shut on Moving Pictures since about 1994.
-// He went to Calgary for the oil patch and left it with his little brother, who
-// is too scared of it to turn the key — which is where you come in.
+// The GTA off the Principale. Gunmetal grey on gold snowflake wheels, T-tops,
+// and a cassette deck jammed shut on Moving Pictures since about 1994. Its
+// owner was Steve « Mullet » Boucher and his little brother until 27 Oct: both
+// invented, so both cut (D32). Now it is nobody's in particular.
 export const FIREBIRD = finish(derive('cavalier', {
-  id: 'firebird', name: '1988 Pontiac Firebird Trans Am GTA', who: 'Le p’tit frère à Boucher',
+  id: 'firebird', name: '1988 Pontiac Firebird Trans Am GTA', who: 'La Principale',
   body: 0x5a6068, seats: 3,
   flavour: 'Gris gunmetal, mags flocon dorés, T-tops dans valise, pis une cassette de Rush jammée dans deck depuis 1994. Ça tourne mal, ça arrête mal, pis tout le monde se retourne pareil.',
   len: 4.90, wid: 1.85, h: 1.27, wheelbase: 2.57, overhangF: 1.08, wheelR: 0.34,
@@ -192,13 +192,14 @@ export const FIREBIRD = finish(derive('cavalier', {
   shiftUp: 4600, shiftUpLight: 2400, shiftDown: 1400, launch: 2000, shiftTime: 0.22 },
 { hbGrip: 0.26, hbYaw: 1.95, revTop: 6.94, revEngage: 0.22 });
 
-// Monsieur Henderson's Leone. In the ice storm of 1998 he ran bread and
-// generator gas across the whole Outaouais in it while the cruisers could not
-// get out of the station lot. Twenty years of cottage road in the paint, and it
+// The ice-storm Leone. In 1998 somebody ran bread and generator gas across
+// the whole Outaouais in it while the cruisers could not get out of the
+// station lot. (It was « M. Henderson's », an invented person: cut, D32.)
+// Twenty years of cottage road in the paint, and it
 // is still the only thing in town that would rather be in the field than on
 // chemin d'Aylmer — `turf` is the golf cart's trick, used honestly for once.
 export const LEONE = finish(derive(SL_SEDAN, {
-  id: 'leone', name: '1987 Subaru Leone RX Turbo 4WD', who: 'M. Henderson',
+  id: 'leone', name: '1987 Subaru Leone RX Turbo 4WD', who: 'Le dépanneur',
   body: 0xe8e6e0, seats: 4, turf: 1.5,
   flavour: 'Blanc, carré, garde-boue d’usine, quatre roues motrices à deux gammes. A livré le pain pendant la crise du verglas quand les autos de police sortaient même pas du stationnement.',
   len: 4.35, wid: 1.66, h: 1.38, wheelbase: 2.47, overhangF: 0.86, wheelR: 0.32,
@@ -308,51 +309,52 @@ export const FAMOUS = [
       + '« On peut pas te battre. Autant que tu l’aies. »',
   },
   {
-    id: 'firebird', who: 'Le p’tit frère à Boucher', at: 'principale',
+    id: 'firebird', who: 'La Principale', at: 'principale',
     need: 'Trouve les huit sauts de la ville',
     needEn: 'Find all eight jumps in town',
     hint: JUMP_IDS.map((id) => JUMP_LABEL[id]).join(' · '),
     earned: (done, feats) => JUMPS.every((j) => feats.has(j.feat)),
-    title: 'LE GTA À MULLET BOUCHER',
+    title: 'LE GTA DE LA PRINCIPALE',
     card: 'Huit sauts. Le dernier devant la Principale au complet.\n'
-      + 'Boucher est parti dans l’Ouest pis son p’tit frère a jamais osé tourner la clé.\n'
-      + 'Il te l’a lancée à place. La cassette de Rush est encore jammée dedans.\n\n'
+      + 'Le GTA dormait dans un garage de la Principale depuis 1994. Personne osait tourner la clé.\n'
+      + 'On te l’a lancée. La cassette de Rush est encore jammée dedans.\n\n'
       + '« Fais pas ça avec, par exemple. »',
   },
   {
-    id: 'leone', who: 'M. Henderson', at: 'dep',
+    id: 'leone', who: 'Le dépanneur', at: 'dep',
     need: 'Finis toutes les jobs',
     needEn: 'Finish every job',
     hint: 'Les ' + MISSIONS.length + ' jobs, au complet',
     earned: (done) => done.size >= MISSIONS.length,
-    title: 'LA LEONE À HENDERSON',
+    title: 'LA LEONE DU VERGLAS',
     card: 'Toutes les jobs. Toute la ville te doit quelque chose.\n'
-      + 'En 1998 le vieux Henderson a livré le pain pis le gaz à génératrice dans tout l’Outaouais\n'
+      + 'En 1998 quelqu’un a livré le pain pis le gaz à génératrice dans tout l’Outaouais\n'
       + 'avec ce char-là, pendant que les autos de police sortaient même pas du stationnement.\n\n'
       + '« Elle a jamais manqué un hiver. Elle te manquera pas non plus. »',
   },
 ];
 
-// The legends the writers gave us that this build has no model for, and the
-// rivals who drive them in assets/text/rivals.json. Pato Gagnon, Le Rat
-// Lévesque, Big Dan Beaulieu and Sophie Tremblay are all written as people you
-// race; racejobs.js has four races and the only rivals in them are Adam,
+// The legends the writers gave us that this build has no model for. They had
+// owners (Pato Gagnon, Le Rat Lévesque, Big Dan Beaulieu, a teacher, an uncle),
+// all invented, so the rumours lost the names on 27 Oct (D32), and the permit
+// lost to a crime with them. The rivals in assets/text/rivals.json were
+// written as people you race; racejobs.js has four races and the only rivals in them are Adam,
 // Margaret and Sayyad. Rather than ship four cars nobody can earn, these stay
-// as what Norm talks about while your car is on the hoist — which is the right
+// as what the garagiste talks about while your car is on the hoist — which is the right
 // place for a car that so far only exists as a story. When the modes agent adds
 // a race against one of them, its legend and its `howToEarn` are already
 // written and the pairing is one FAMOUS entry away.
 export const RUMOURS = [
-  'Le Monte Carlo SS à Big Dan Beaulieu — noir, filets rouges, deux Flowmaster. '
-    + 'Y’a passé quatre ans dans grange de son grand-père à gosser le 350. Il court encore.',
-  'Le GTI du prof Roy — rouge Tornado su’ des BBS. Il l’a barré dans un entrepôt '
-    + 'chauffé en arrière d’la Principale avant de partir en France, immatriculation pas signée.',
-  'Le Mustang 5.0 notchback à Pato Gagnon — blanc, pas de décalque, straight pipes. '
-    + 'Il courait le quart de mille su’ les Allumettières avant même que ça ouvre.',
-  'Le 4Runner de l’oncle Marcel — douze chars sortis d’la bouette du bord de l’Outaouais, '
-    + 'trois tonneaux dans gravière, pis le frame est encore droit.',
-  'L’Omni GLH à Éric « Le Rat » Lévesque — une boîte à pain noire avec un turbo pis '
-    + 'un contrôleur de boost fait avec une valve de quincaillerie. Il a perdu son permis en 2002.',
+  'Un Monte Carlo SS noir, filets rouges, deux Flowmaster. '
+    + 'Y’a passé quatre ans dans une grange à se faire gosser le 350. Y roule encore.',
+  'Un GTI rouge Tornado su’ des BBS, barré dans un entrepôt '
+    + 'chauffé en arrière d’la Principale. Personne sait à qui.',
+  'Un Mustang 5.0 notchback blanc, pas de décalque, straight pipes. '
+    + 'Tu l’entends avant de le voir.',
+  'Un 4Runner qui a sorti douze chars d’la bouette du bord de l’Outaouais. '
+    + 'Trois tonneaux dans une gravière, pis le frame est encore droit.',
+  'Une Omni GLH noire, une boîte à pain avec un turbo pis '
+    + 'un contrôleur de boost fait avec une valve de quincaillerie.',
 ];
 
 export const FAMOUS_IDS = FAMOUS.map((f) => f.id);

@@ -20,7 +20,7 @@ const suis = {
       hint: 'Il coupe par les petites rues. Colle-le, pis regarde la ligne bleue si tu le perds.',
       start: 'Suis-moé. Pis essaie de pas avoir l’air d’un touriste.',
       money: 35,
-      toast: 'Sayyad: « Bon. Astheure tu le sais. » +35 $ — il t’avait gagé que tu le perdrais.',
+      toast: 'Sayyad: « Bon. Astheure tu le sais. » +35 $. Il t’avait gagé que tu le perdrais.',
       failWhy: 'Sayyad t’a perdu. Il va te le rappeler jusqu’en septembre.',
     })];
   },
@@ -30,25 +30,25 @@ const suis = {
 // Tom, 6 Oct 2026. Its id stays in campaign.js RETIRED so an old save that
 // finished it still counts it for nothing.
 
-// 3 — Fragile. A pane of glass from the Canadian Tire to Norm's, for the truck
+// 3 — Fragile. A pane of glass from the Canadian Tire to the garage, for the truck
 // window Sayyad's bat went through. The driving is the job.
 const vitres = {
   id: 'vitres',
-  title: 'La vitre de Norm',
-  brief: 'Norm a commandé une vitre au Canadian Tire. Elle rentre pas dans son char. Elle rentre dans ton truck, à plat, si tu la casses pas.',
+  title: 'La vitre du garagiste',
+  brief: 'Le garagiste a commandé une vitre au Canadian Tire. Elle rentre pas dans son char. Elle rentre dans ton truck, à plat, si tu la casses pas.',
   giver: 'norm',
   timeOfDay: 'morning',
   build() {
     return fragile({
       from: 'ctire', to: 'norm', tolerance: 6,
-      loadText: 'Canadian Tire — la commande de Norm', loadSub: 'Arrête-toi (S) devant le magasin pis E', loadHint: 'Chemin d’Aylmer. Le gars du comptoir sait c’est quoi.',
-      holdText: 'E — charger la vitre', loadToast: 'Deux gars la déposent dans la boîte sur une couverte. « Roule pas comme un fou. »',
-      text: 'Garage Norm Lafleur & Fils', sub: 'Doux sur le W pis le S. Pas de coups, pas de trottoirs, pas de sauts. Regarde le compteur.',
+      loadText: 'Canadian Tire : la commande du garagiste', loadSub: 'Arrête-toi (S) devant le magasin pis E', loadHint: 'Chemin d’Aylmer. Le gars du comptoir sait c’est quoi.',
+      holdText: 'E : charger la vitre', loadToast: 'Deux gars la déposent dans la boîte sur une couverte. « Roule pas comme un fou. »',
+      text: 'Le garage', sub: 'Doux sur le W pis le S. Pas de coups, pas de trottoirs, pas de sauts. Regarde le compteur.',
       hint: 'Rue Principale, l’enseigne rouge. Reste sur l’asphalte.',
       money: 40,
-      toast: 'Norm la regarde de bord en bord. « …Correct. » +40 $ — pis un café.',
+      toast: 'Le garagiste la regarde de bord en bord. « …Correct. » +40 $... pis un café.',
       failWhy: 'Ça a fait un bruit que tu vas entendre longtemps.',
-      airWhy: 'La vitre a décollé de la couverte. Norm t’a entendu d’ici.',
+      airWhy: 'La vitre a décollé de la couverte. Le garagiste t’a entendu d’ici.',
     });
   },
 };
@@ -68,7 +68,7 @@ const seme = {
       text: 'Sème la police', sub: 'W à fond. Les petites rues, les ruelles, le parc. Pas le chemin d’Aylmer.',
       hint: 'Coupe par Frank-Robinson pis les rues derrière. Hors de vue douze secondes pis y lâchent.',
       lostToast: 'Y t’ont perdu. Sayyad va dire que c’est sa théorie qui marche.',
-      thenText: 'Plage des Cèdres — Sayyad t’attend', thenSub: 'Tranquille sur le W, astheure. T’as rien fait.',
+      thenText: 'Plage des Cèdres : Sayyad t’attend', thenSub: 'Tranquille sur le W, astheure. T’as rien fait.',
       thenHint: 'La plage, au bout de la rue du Golf.',
       money: 45,
       toast: 'Sayyad: « Two streets. Je te l’avais dit. » Il parle déjà de la suivante. +45 $',
@@ -90,7 +90,7 @@ const sunfire = {
       target: 'lookout', radius: 20, time: 420,
       text: 'Trouve le Sunfire', sub: 'Pas de marqueur. Roule (W), arrête-toi (S) quand c’est brûlant. « Au bord de l’eau, proche du belvédère. »',
       hint: 'Le belvédère, c’est au bout du chemin, vers l’ouest. L’an passé, c’était le feu sur la grève.',
-      clue: '— au bord de l’eau, proche du belvédère.',
+      clue: '... au bord de l’eau, proche du belvédère.',
       money: 35,
       toast: 'Le Sunfire. Une contravention sous l’essuie-glace. Adam va la payer en septembre, il dit. +35 $',
       failWhy: 'Le soleil est couché. Adam va venir le chercher lui-même.',

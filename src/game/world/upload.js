@@ -134,7 +134,7 @@ export function uploadWorld(ctx) {
     + `${cnt.groundQuads} ground quads, ${cnt.skirtCount} skirts, `
     + `${cnt.shoreCount} shore, ${cnt.rockCount} rocks, ${cnt.dockCount} docks, ${cnt.marinaBoats} boats, ${cnt.poolCount} lamp pools, `
     + `${segs.length >> 2} collider segments, ${cnt.signCount} boards, `
-    + `${signage ? signage.names.length : 0} storefronts, ${cnt.winQuads} windows — ${dt} ms`);
+    + `${signage ? signage.names.length : 0} storefronts, ${cnt.winQuads} windows, ${dt} ms`);
 
   Object.assign(ctx, { tris, nearTris, farTris, chunks, waterChunks, nightChunks, distantMesh, signage,
     furniture });

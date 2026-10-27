@@ -142,7 +142,7 @@ export class Legend {
     if (this.head) {
       this.head.textContent = getLang() === 'en'
         ? (this.open ? '? Hide controls' : '? Show controls')
-        : (this.open ? '? — Masquer les commandes' : '? — Afficher les commandes');
+        : (this.open ? '? Masquer les commandes' : '? Afficher les commandes');
       this.head.setAttribute?.('aria-expanded', String(this.open));
     }
     if (!this.rows) return;
@@ -168,8 +168,14 @@ function legendOpenPref() {
 
 // Fires once ever (localStorage), and each step waits for the player to
 // actually do the thing before moving on.
+// W8-BUGS: « S pour reculer. Sors de l'entrée. » only makes sense in the
+// driveway at 299 Fraser. main.js passes drivewayM (metres from the nose-in
+// spot the game started in, Infinity when it did not start there); farther
+// than DRIVEWAY_R (a start elsewhere, a mode that moved the truck, or driving
+// off) the step is dropped without its green flash. No drivewayM: as before.
+export const DRIVEWAY_R = 30;
 const STEPS = [
-  { cap: 'S', key: 'tut.go', done: (c) => c.speedKmh > 8 },   // reverse out of the drive first,
+  { cap: 'S', key: 'tut.go', done: (c) => c.speedKmh > 8, driveway: true },   // reverse out of the drive first,
   // S3-RANGER (feel.md 10): the chip was still up at 90 km/h in the speed
   // frames, because a light touch never crossed 0.35. It also retires once you
   // have driven 50 m with any steering on: you have found the keys.
@@ -204,6 +210,9 @@ export class Tutorial {
 
   update(dt, ctx) {
     if (this.finished) return;
+    // W8-BUGS: a tip yielded to a story line or a toast (hud.js layoutCentre)
+    // waits with it: no timeout, no flash, nothing ticked unseen.
+    if (this.root && this.root.classList && this.root.classList.contains('hud-yield')) return;
     if (this.wait > 0) { this.wait -= dt; if (this.wait > 0) return; this.render(); }
     if (this.hold > 0) {
       this.hold -= dt;
@@ -214,8 +223,14 @@ export class Tutorial {
       }
       return;
     }
-    const step = STEPS[this.i];
+    let step = STEPS[this.i];
     if (!step) return;
+    if (step.driveway && ctx && ctx.drivewayM != null && !(ctx.drivewayM < DRIVEWAY_R)) {
+      this.i++; this.shown = 0; this.steerM = 0;
+      if (this.i >= STEPS.length) { this.finish(); return; }
+      this.render();
+      step = STEPS[this.i];
+    }
     // A step with a floor hides below it and only counts time above it.
     const kmh = (ctx && ctx.speedKmh) || 0;
     const low = step.minKmh != null && kmh < step.minKmh;

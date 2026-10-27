@@ -212,31 +212,31 @@ export function allLines() {
 // panel, because a bubble is two lines wide.
 export const GLOSS = {
   // dive
-  'Heille, le cave!': ['Hey, you moron!', '“Cave” is the everyday Québec insult — a sucker, a fool.'],
+  'Heille, le cave!': ['Hey, you moron!', '“Cave” is the everyday Québec insult: a sucker, a fool.'],
   'Tabarnak, r’garde où tu vas!': ['Christ, watch where you’re going!', '“Tabarnak” is the tabernacle off the altar. Québec swears with church furniture.'],
   'T’as-tu eu ton permis dans une boîte de Cracker Jack?': ['Did you get your licence out of a Cracker Jack box?', 'Cracker Jack came with a cheap plastic prize buried in the caramel corn.'],
-  'Câlisse de malade!': ['You goddamn lunatic!', '“Câlisse” is the chalice; “malade” — sick — means dangerous here, not ill.'],
+  'Câlisse de malade!': ['You goddamn lunatic!', '“Câlisse” is the chalice; “malade” (sick) means dangerous here, not ill.'],
   'Mon doux que t’es dangereux!': ['Good grief, you are dangerous!', '“Mon doux” is short for « mon doux Seigneur »: the gasp of somebody who does not swear.'],
   'Va donc chier!': ['Go to hell!', 'Literally “go take a crap”. Not affectionate.'],
   'Es-tu soûl, toé?': ['Are you drunk or what?', '“Toé” is “toi”, tacked on the end for emphasis. Everybody does it.'],
   'C’est un trottoir, ça, pas une piste!': ['That’s a sidewalk, not a racetrack!'],
-  'Y’a des enfants qui jouent icitte!': ['There are kids playing here!', '“Icitte” is “ici” — here — with the Québec ending on it.'],
+  'Y’a des enfants qui jouent icitte!': ['There are kids playing here!', '“Icitte” is “ici” (here) with the Québec ending on it.'],
   'Ralentis, coudonc!': ['Slow down, would you!', '“Coudonc” is « écoute donc », worn down to one word.'],
   'J’appelle la police, moé, là!': ['I am calling the cops, right now!'],
-  'T’sais qu’y a des freins dans c’te char-là?': ['You do know that car has brakes?', '“Char” — chariot — is the Québec word for a car.'],
+  'T’sais qu’y a des freins dans c’te char-là?': ['You do know that car has brakes?', '“Char” (chariot) is the Québec word for a car.'],
   'Mon Dieu Seigneur!': ['Good Lord above!'],
-  'T’es-tu correct, toé?': ['You okay there?', 'The all-purpose Québec check-in. “Correct” means fine, working, good enough — a car, a plan or a person can be correct.'],
-  'Va donc chez l’diable!': ['Oh, get lost!', 'Literally “go to the devil’s place”. Softer than it looks — this is the polite one.'],
+  'T’es-tu correct, toé?': ['You okay there?', 'The all-purpose Québec check-in. “Correct” means fine, working, good enough. A car, a plan or a person can be correct.'],
+  'Va donc chez l’diable!': ['Oh, get lost!', 'Literally “go to the devil’s place”. Softer than it looks: this is the polite one.'],
   // honk
   'Envoye, avance!': ['Come on, move!'],
   'C’est vert, tabarnak!': ['It’s green, for Christ’s sake!'],
-  'Chauffe, chauffe!': ['Drive, drive!', '“Chauffer” is to heat. In Québec it also means to drive — you heat the car.'],
+  'Chauffe, chauffe!': ['Drive, drive!', '“Chauffer” is to heat. In Québec it also means to drive. You heat the car.'],
   'Y’a du monde qui travaille demain!': ['Some of us work tomorrow!'],
   'Décide-toé!': ['Make up your mind!'],
   'Le clignotant, ça existe!': ['Turn signals exist, you know!'],
-  'Coudonc, t’as-tu perdu ta rue?': ['Say, did you lose your street?', '“Coudonc” is “écoute donc” — hey, listen — worn down to one word.'],
+  'Coudonc, t’as-tu perdu ta rue?': ['Say, did you lose your street?', '“Coudonc” is “écoute donc” (hey, listen) worn down to one word.'],
   'Ça fait deux fois que j’te vois, toé.': ['That’s twice I’ve seen you now.'],
-  'Ramasse ton bazou!': ['Get that heap out of here!', 'A “bazou” is a beater — a rusted-out car worth less than its plates.'],
+  'Ramasse ton bazou!': ['Get that heap out of here!', 'A “bazou” is a beater, a rusted-out car worth less than its plates.'],
   'Enweye donc, grand-maman!': ['Get going, grandma!', '“Enweye donc” is the shove you give somebody who is dawdling.'],
   // shove
   'HEILLE! Mon pare-choc!': ['HEY! My bumper!'],
@@ -244,7 +244,7 @@ export const GLOSS = {
   'On échange nos assurances, mon homme?': ['Shall we swap insurance, buddy?', '“Mon homme” is friendly in most mouths and a threat in this one.'],
   'C’est neuf, ça, ostie!': ['That is brand new, dammit!'],
   'Attends que mon père voie ça.': ['Wait until my father sees this.'],
-  'Ça, c’est du 400 piasses.': ['That right there is four hundred bucks.', 'A “piasse” is a dollar — from the old Spanish piastre.'],
+  'Ça, c’est du 400 piasses.': ['That right there is four hundred bucks.', 'A “piasse” is a dollar, from the old Spanish piastre.'],
   'Franchement, là!': ['Honestly!'],
   'Ma mère m’avait dit de pas sortir aujourd’hui.': ['My mother told me not to go out today.'],
   // parked
@@ -256,7 +256,7 @@ export const GLOSS = {
   'MADAME! Y a un gars qui frappe les chars!': ['MA’AM! There’s a guy hitting the cars!'],
   // red
   'Heille, c’tait rouge!': ['Hey, that was red!'],
-  'Rouge, ça veut dire ARRÊTE!': ['Red means STOP!', 'Québec stop signs say ARRÊT, not STOP — the only place in North America that bothers.'],
+  'Rouge, ça veut dire ARRÊTE!': ['Red means STOP!', 'Québec stop signs say ARRÊT, not STOP, the only place in North America that bothers.'],
   'Y a-tu une urgence, coudonc?': ['Is there an emergency or something?'],
   'Tu vas tuer quelqu’un!': ['You are going to kill somebody!'],
   'Belle passe de feu rouge, champion.': ['Nice red-light run, champ.'],
@@ -267,13 +267,13 @@ export const GLOSS = {
   'Y est-tu en marche arrière, lui?': ['Is that guy in reverse?'],
   'Tu veux-tu que je ralentisse?': ['Want me to slow down for you?'],
   'C’est pas un char, ça, c’est un meuble.': ['That’s not a car, that’s furniture.'],
-  'Attache ta tuque!': ['Hang on tight!', 'Short for “attache ta tuque avec d’la broche” — wire your winter hat on, this is about to get rough.'],
+  'Attache ta tuque!': ['Hang on tight!', 'Short for “attache ta tuque avec d’la broche”: wire your winter hat on, this is about to get rough.'],
   // cop
   'Rangez-vous sur le côté!': ['Pull over to the side!'],
   'On vous voit, là!': ['We can see you!'],
   'Immobilisez votre véhicule!': ['Stop your vehicle!'],
   'Ça sert à rien de courir, on connaît la ville.': ['No use running, we know this town.'],
-  'Le p’tit char, là, tassez-vous!': ['The little car there — move over!', '“Tasse-toi” is the Québec get-out-of-the-way, heard on every rink in the province.'],
+  'Le p’tit char, là, tassez-vous!': ['The little car there, move over!', '“Tasse-toi” is the Québec get-out-of-the-way, heard on every rink in the province.'],
   'On a votre plaque, monsieur.': ['We have your plate, sir.'],
   // clean
   'Beau, propre.': ['Nice. Clean.', 'The whole compliment. Québec praise is short.'],
@@ -371,9 +371,9 @@ export class Heckle {
       this.pools = pools;
       // Say out loud what did not line up rather than dropping it in silence.
       const unused = Object.keys(pools).filter((k) => !JSON_TRIGGERS.includes(k));
-      if (unused.length) console.warn('heckles: triggers nobody fires —', unused.join(', '));
+      if (unused.length) console.warn('heckles: triggers nobody fires:', unused.join(', '));
       const short = JSON_TRIGGERS.filter((k) => !pools[k]);
-      if (short.length) console.warn('heckles: triggers with no lines —', short.join(', '));
+      if (short.length) console.warn('heckles: triggers with no lines:', short.join(', '));
       console.log(`heckles: ${Object.values(pools).reduce((n, p) => n + p.length, 0)} written lines,`
         + ` ${Object.keys(pools).length} triggers`);
       return Object.keys(pools);
@@ -788,7 +788,7 @@ export class Heckle {
       const row = document.createElement('div');
       row.style.cssText = 'margin:5px 0';
       const fr = document.createElement('div');
-      fr.textContent = (r.who ? r.who + ' — ' : '') + r.text;
+      fr.textContent = (r.who ? r.who + ' : ' : '') + r.text;
       fr.style.cssText = 'color:#ffc94d';
       const en = document.createElement('div');
       en.textContent = r.gloss || '(pas de traduction)';

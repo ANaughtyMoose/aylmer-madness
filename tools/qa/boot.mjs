@@ -3,7 +3,7 @@
 // start a drive, and run with 0 console errors, and holding W for 10 s of game
 // time must move the truck 10 m or more.
 //
-//   node tools/qa/boot.mjs [--entries=index,prototype] [--look=<flags>] [--seconds=10]
+//   node tools/qa/boot.mjs [--entries=index,prototype] [--look=<flags>] [--light=on|off] [--seconds=10]
 //
 // Own server (CMP_SRV_PORT, default 8193), own headless Chrome on SwiftShader
 // (CMP_CDP_PORT, default 9493), throwaway profile; both are closed on exit.
@@ -15,6 +15,7 @@ import { startServer, startChrome, Page, boot, CLEAR_SCRIPT, ports, arg, done, R
 
 const entries = String(arg('entries', 'index,prototype')).split(',').map((s) => s.trim()).filter(Boolean);
 const look = arg('look', '');
+const light = arg('light', '');   // W8-LIGHT: --light=on|off, Advanced lighting for this boot (?light=)
 const seconds = Number(arg('seconds', 10));
 const { srv, cdp } = ports();
 // The spawn point is a driveway with a street and a hedge 9 m ahead: the truck stops there whatever W does. Drive from the long straight
@@ -29,7 +30,7 @@ for (const entry of entries) {
   const row = { entry, menu: false, drive: false, errors: [], moved: 0, ok: false };
   const page = await Page.open(cdp);
   try {
-    const q = new URLSearchParams({ review: 'boot' }); if (look) q.set('look', look);
+    const q = new URLSearchParams({ review: 'boot' }); if (look) q.set('look', look); if (light) q.set('light', light);
     const b = await boot(page, `http://127.0.0.1:${srv}/${entry}.html?${q}`);
     row.menu = b.menu; row.drive = b.mode === 'drive'; row.bootSeconds = b.seconds;
     await page.eval(CLEAR_SCRIPT);

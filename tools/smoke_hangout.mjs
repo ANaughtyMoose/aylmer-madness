@@ -278,8 +278,10 @@ group('the meshes build');
   }
   ok(buildBin().v.length > 100, 'a recycling bin');
   ok(buildBoombox().v.length > 100, 'and a ghetto blaster for the steps');
-  ok(LOOKS.sayyad.palms, 'Sayyad gets his palm trees');
-  ok(LOOKS.zahra.scale < 1, 'Zahra is thirteen');
+  ok(!LOOKS.sayyad.palms, 'Sayyad wears a plain dark tee, no Hawaiian palms (Tom 12 Oct)');
+  ok(Object.keys(LOOKS).every((k) => k === 'zahra' || (LOOKS[k].scale || 1) > LOOKS.zahra.scale),
+    'Zahra is the shortest of the five');
+  ok(LOOKS.zahra.scale >= 0.92, 'and sixteen, not thirteen (ledger L:66): scale ' + LOOKS.zahra.scale);
 }
 
 // ---------------------------------------------------------------- 5. an evening
@@ -359,7 +361,7 @@ group('an evening at Mike\'s');
   ok(h.roster.includes('mike'), `tonight it is ${h.roster.join(', ')}`);
   ok(G.props.size() >= h.roster.length + 3, `${G.props.size()} props: the people, the light, the boombox, the bins`);
   ok(/perron/.test(G.hud.obj || ''), 'the objective line names the place', G.hud.obj);
-  ok(/^E {2}—/.test(G.hud.prompt_ || ''), 'and E is the key', G.hud.prompt_);
+  ok(/^E {2}:/.test(G.hud.prompt_ || ''), 'and E is the key', G.hud.prompt_);
 
   // ...but not at speed.
   G.veh.speedKmh = 40;
@@ -454,7 +456,7 @@ group('...and they notice what you did');
     '...and not when you came in the Ranger');
   ok(everything(hangoutFacts(fakeG({
     veh: { spec: { id: 'sunfire' }, damage: 0, x: 0, z: 0, speedKmh: 0 },
-  }), {}, ['adam']), 'adam').some((l) => l === "C'est mon char, ça."),
+  }), {}, ['adam']), 'adam').some((l) => l === "That's my car."),
     'Adam notices you are driving his Sunfire');
 
   // The ten dollars: Abraham has the porch seat now (Margaret is at home).

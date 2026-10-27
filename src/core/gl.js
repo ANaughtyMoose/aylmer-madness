@@ -5,7 +5,7 @@
 import { m4, extractFrustum, aabbInFrustum } from './math.js';
 import { STRIDE } from './mesh.js';
 import { assemble, MATERIALS, MATERIAL_ALIASES } from './shaders/index.js';
-import { gradeLight } from './shaders/light.js';
+import { gradeLight, srgbToLinear3 } from './shaders/light.js';
 
 export { gradeLight, MATERIALS };
 
@@ -339,6 +339,8 @@ export class Renderer {
       sky: new Float32Array(3), ground: new Float32Array(3), sun: new Float32Array(3) }));
     gl.uniform3fv(this.u.uSun, g.sun);
     gl.uniform3fv(this.u.uSunSky, e.sun);
+    // W8-LIGHT: only the advanced program declares it (Advanced lighting off: no decode, no call).
+    if (this.u.uSunSkyLin) gl.uniform3fv(this.u.uSunSkyLin, srgbToLinear3(e.sun, this._sunLin || (this._sunLin = new Float32Array(3))));
     gl.uniform3fv(this.u.uSky, g.sky);
     gl.uniform3fv(this.u.uGround, g.ground);
     gl.uniform3fv(this.u.uFogColor, e.fog);

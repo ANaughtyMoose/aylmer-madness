@@ -12,19 +12,19 @@ Ceilings km/h: trunk 100 · primary 90 · secondary 88 · tertiary 75 · residen
 
 | job | stage | what | route m | clock s | asks km/h | pace s | (pace+3) x1.35 | ceil s | floor s |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|
-| sayyad | 3/3 | Sacre ton camp! 300 m en 30 s | 382 | 30 | 45.8 | 18.3 | 30 | 19 | 37 |
-| arcbache | 2/5 | Plage des Cèdres, sans rien casser | 2,131 | 115 | 66.7 | 80.8 | 115 | 105 | 215 |
+| sayyad | 3/3 | Sacre ton camp! 300 m en 30 s | 382 | 30 | 45.8 | 18.4 | 30 | 19 | 37 |
+| arcbache | 2/5 | Plage des Cèdres, sans rien casser | 2,131 | 120 | 63.9 | 84.8 | 120 | 105 | 215 |
 | golfcart | 7/12-11/12 | Les proprios! Sauve-toi : drapeau 1/4 | 649 | 120 | 19.5 | 84.5 | 120 | 94 | 160 |
-| school | 1/1 | Royal Ottawa Golf Club - le shift de 5 h 45 | 5,748 | 260 | 79.6 | 189.8 | 260 | 253 | 523 |
+| school | 1/1 | Royal Ottawa Golf Club - le shift de 5 h 45 | 5,748 | 260 | 79.6 | 190.9 | 260 | 253 | 523 |
 | russellroyal | 2/13-7/13 | Sauve-toi du marshal - drapeau 1/6 | 1,178 | 200 | 21.2 | 146.2 | 200 | 163 | 283 |
-| curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant cinq heures | 3,189 | 160 | 71.7 | 116.8 | 160 | 151 | 307 |
-| dep | 2/2 | Parc des Cèdres — avant que ça tourne | 1,103 | 60 | 66.2 | 42.0 | 60 | 57 | 117 |
-| margaretdental | 2/2 | Cabinet du Dr Morin - Principale | 2,392 | 115 | 74.9 | 83.3 | 115 | 104 | 213 |
-| highwayhull | 1/3 | Prends la sortie vers Hull | 12,136 | 525 | 83.2 | 386.7 | 525 | 479 | 987 |
-| highwayhull | 2/3 | Fais un arrêt au musée | 8,091 | 355 | 82.1 | 259.8 | 355 | 305 | 616 |
-| highwayhull | 3/3 | Vertical Reality — la vieille usine, proche du pont | 840 | 65 | 46.5 | 46.0 | 65 | 39 | 78 |
-| chelsea | 1/1 | Monte jusqu’au village de Chelsea | 9,817 | 465 | 76.0 | 340.9 | 465 | 428 | 854 |
-| blitz | 2/2 | Blitz — six checkpoints | 2,420 | 205 (130+15x5) | 42.5 | 149.9 | 205 | 135 | 274 |
+| curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant cinq heures | 3,189 | 165 | 69.6 | 119.4 | 165 | 151 | 307 |
+| dep | 2/2 | Parc des Cèdres — avant que ça tourne | 1,103 | 60 | 66.2 | 43.1 | 60 | 57 | 117 |
+| margaretdental | 2/2 | Cabinet du Dr Morin - Principale | 2,392 | 120 | 71.7 | 85.0 | 120 | 104 | 213 |
+| highwayhull | 1/3 | Prends la sortie vers Hull | 12,136 | 525 | 83.2 | 387.0 | 525 | 479 | 987 |
+| highwayhull | 2/3 | Fais un arrêt au musée | 8,091 | 360 | 80.9 | 263.3 | 360 | 305 | 616 |
+| highwayhull | 3/3 | Vertical Reality — la vieille usine, proche du pont | 840 | 65 | 46.5 | 47.0 | 65 | 39 | 78 |
+| chelsea | 1/1 | Monte jusqu’au village de Chelsea | 9,817 | 465 | 76.0 | 342.2 | 465 | 428 | 854 |
+| blitz | 2/2 | Blitz — six checkpoints | 2,420 | 210 (135+15x5) | 41.5 | 154.2 | 210 | 135 | 274 |
 
 ## Every stage
 
@@ -38,7 +38,7 @@ Ceilings km/h: trunk 100 · primary 90 · secondary 88 · tertiary 75 · residen
 | sayyad | 3/3 | Sacre ton camp! 300 m en 30 s | 382 | 30 | 45.8 |
 | **sayyad** | **total** | 3 stages | **1,068** | - | - |
 | arcbache | 1/5 | Galeries d’Aylmer : les haut-parleurs | 9 | - | - |
-| arcbache | 2/5 | Plage des Cèdres, sans rien casser | 2,131 | 115 | 66.7 |
+| arcbache | 2/5 | Plage des Cèdres, sans rien casser | 2,131 | 120 | 63.9 |
 | arcbache | 3/5 | Sayyad pis Zahra : 75 Denise-Friend | 1,250 | - | - |
 | arcbache | 4/5 | Le feu, à la plage | 1,250 | - | - |
 | arcbache | 5/5 | Le feu : la gang parle français | 50 | - | - |
@@ -64,11 +64,13 @@ Ceilings km/h: trunk 100 · primary 90 · secondary 88 · tertiary 75 · residen
 | golfcart | 11/12 | Lâche le cart, saute sur ton vélo | 172 | 120 | 5.2 |
 | golfcart | 12/12 | Saute la clôture : rue du Golf | 468 | - | - |
 | **golfcart** | **total** | 12 stages | **2,573** | - | - |
-| stvincent | 1/4 | 75 Denise-Friend - la clôture de Sayyad | 2,315 | - | - |
-| stvincent | 2/4 | Hôpital St. Vincent, sur Cambridge | 13,001 | - | - |
-| stvincent | 3/4 | Hôpital St. Vincent - entre travailler | 3 | - | - |
-| stvincent | 4/4 | Le service du repas | - | - | - |
-| **stvincent** | **total** | 4 stages | **15,320** | - | - |
+| stvincent | 1/6 | Chez Sayyad - la clôture de cèdre | 63 | - | - |
+| stvincent | 2/6 | Direction Ottawa, par le chemin d’Aylmer | 13,001 | - | - |
+| stvincent | 3/6 | Hôpital St. Vincent, sur Cambridge | 3 | - | - |
+| stvincent | 4/6 | Hôpital St. Vincent - entre travailler | 3 | - | - |
+| stvincent | 5/6 | Le service du repas | - | - | - |
+| stvincent | 6/6 | Le stationnement - Sayyad est revenu | 3 | - | - |
+| **stvincent** | **total** | 6 stages | **13,074** | - | - |
 | nuittim | 1/9 | Chez Mike, 129 Frank-Robinson | 30 | - | - |
 | nuittim | 2/9 | Au téléphone avec le Centre antipoison | - | - | - |
 | nuittim | 3/9 | Surveille Sam | - | - | - |
@@ -95,7 +97,7 @@ Ceilings km/h: trunk 100 · primary 90 · secondary 88 · tertiary 75 · residen
 | russellroyal | 12/13 | Retourne à ton char avant le pro | - | - | - |
 | russellroyal | 13/13 | Ramène Russell au 299 Fraser | 5,785 | - | - |
 | **russellroyal** | **total** | 13 stages | **14,135** | - | - |
-| curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant cinq heures | 3,189 | 160 | 71.7 |
+| curfew | 1/1 | Chez vous — 299 Chemin Fraser, avant cinq heures | 3,189 | 165 | 69.6 |
 | **curfew** | **total** | 1 stages | **3,189** | - | - |
 | arcdernier | 1/3 | Le dernier soir : roule où tu veux | 30 | - | - |
 | arcdernier | 2/3 | Le téléphone sonne dans la maison | 30 | - | - |
@@ -105,7 +107,7 @@ Ceilings km/h: trunk 100 · primary 90 · secondary 88 · tertiary 75 · residen
 | dep | 2/2 | Parc des Cèdres — avant que ça tourne | 1,103 | 60 | 66.2 |
 | **dep** | **total** | 2 stages | **5,080** | - | - |
 | margaretdental | 1/2 | Ta mère pis la boîte - 299 Fraser | 30 | - | - |
-| margaretdental | 2/2 | Cabinet du Dr Morin - Principale | 2,392 | 115 | 74.9 |
+| margaretdental | 2/2 | Cabinet du Dr Morin - Principale | 2,392 | 120 | 71.7 |
 | **margaretdental** | **total** | 2 stages | **2,422** | - | - |
 | gang | 1/5 | Ramasse Abraham — ton entrée, 299 Chemin Fraser | 2,161 | - | - |
 | gang | 2/5 | Ramasse Sayyad — 75 Denise-Friend | 2,315 | - | - |
@@ -126,13 +128,13 @@ Ceilings km/h: trunk 100 · primary 90 · secondary 88 · tertiary 75 · residen
 | circuit | 2/2 | Circuit du Vieux-Aylmer — 3 tours | 376 | - | - |
 | **circuit** | **total** | 2 stages | **782** | - | - |
 | highwayhull | 1/3 | Prends la sortie vers Hull | 12,136 | 525 | 83.2 |
-| highwayhull | 2/3 | Fais un arrêt au musée | 8,091 | 355 | 82.1 |
+| highwayhull | 2/3 | Fais un arrêt au musée | 8,091 | 360 | 80.9 |
 | highwayhull | 3/3 | Vertical Reality — la vieille usine, proche du pont | 840 | 65 | 46.5 |
 | **highwayhull** | **total** | 3 stages | **21,067** | - | - |
 | chelsea | 1/1 | Monte jusqu’au village de Chelsea | 9,817 | 465 | 76.0 |
 | **chelsea** | **total** | 1 stages | **9,817** | - | - |
 | blitz | 1/2 | Rue Principale — le départ du blitz | 7 | - | - |
-| blitz | 2/2 | Blitz — six checkpoints | 524 | 130 | 14.5 |
+| blitz | 2/2 | Blitz — six checkpoints | 524 | 135 | 14.0 |
 | **blitz** | **total** | 2 stages | **531** | - | - |
 
 ## Notes

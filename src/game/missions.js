@@ -136,11 +136,11 @@ const CORE_MISSIONS = [
     build(ctx) {
       return [
         {
-          text: 'Canadian Tire — le comptoir des commandes',
+          text: 'Canadian Tire, le comptoir des commandes',
           sub: 'Recule (S) pour sortir de l’entrée, suis la ligne bleue du GPS, arrête-toi (S) dans le pilier jaune pis E pour ramasser ta commande. ? affiche les commandes',
           hint: 'Vers les Galeries d’Aylmer : Canadian Tire est au bout ouest du centre, près de Wilfrid-Lavigne. Tab ouvre la carte.',
           at: 'ctire', radius: 18, time: null,
-          hold: true, holdText: 'E — ramasser l’alternateur',
+          hold: true, holdText: 'E : ramasser l’alternateur',
           toast: 'Ta commande est prête. La boîte, le reçu, pis ton argent Canadian Tire.',
           onTick(G, m) { rampCall(G, m, JUMPS.find((j) => j.id === FIRST_RAMP)); return null; },
         },
@@ -187,11 +187,11 @@ const CORE_MISSIONS = [
           text: 'Fais un arrêt au musée',
           sub: 'Suis le GPS par Alexandre-Taché, puis ralentis à 45 km/h dans le pilier',
           hint: 'Prends la bretelle, puis continue vers le parc Jacques-Cartier.',
-          at: 'hullmuseum', radius: 24, time: 355, maxSpeed: 45,   // s1-timers: 8.1 km, pace 260 s (was 300)
-          toast: 'Hull débloqué — les grosses bâtisses commencent ici.',
+          at: 'hullmuseum', radius: 24, time: 360, maxSpeed: 45,   // W6-CURFEW: 8.1 km, pace 263 s braking to 45 (s1-timers 355, was 300)
+          toast: 'Hull débloqué. Les grosses bâtisses commencent ici.',
         },
         {
-          text: 'Vertical Reality — la vieille usine, proche du pont',
+          text: 'Vertical Reality, la vieille usine proche du pont',
           sub: 'GPS jusqu’au dernier pilier, au bord de la rivière',
           hint: 'Continue vers l’est par Montcalm, Eddy ou Maisonneuve.',
           at: 'hulldowntown', radius: 22, time: 65,   // s1-timers: 840 m, pace 46 s (was 110)
@@ -231,14 +231,14 @@ const CORE_MISSIONS = [
     timeOfDay: 'day',
     build(ctx) {
       const marc = {
-        text: 'Ramasse Abraham — ton entrée, 299 Chemin Fraser',
-        sub: 'Suis le GPS pis arrête-toi dans le pilier jaune — son bicycle est couché au milieu de l’entrée',
+        text: 'Ramasse Abraham : ton entrée, 299 Chemin Fraser',
+        sub: 'Suis le GPS pis arrête-toi dans le pilier jaune. Son bicycle est couché au milieu de l’entrée',
         hint: 'Il est chez vous, dans ta propre entrée. Les grandes boucles pis le chandail de Led Zeppelin : tu peux pas le manquer.',
         at: 'home', radius: 13, toast: 'Abraham embarque. Le bicycle reste couché dans l’entrée. Ta mère le regarde.', passengers: +1,
       };
       const steph = {
-        text: 'Ramasse Sayyad — 75 Denise-Friend',
-        sub: 'GPS jusqu’au pilier jaune — il amène le radio pis les cassettes',
+        text: 'Ramasse Sayyad, 75 Denise-Friend',
+        sub: 'GPS jusqu’au pilier jaune. Il amène le radio pis les cassettes',
         hint: 'Denise-Friend, dans le Vieux-Aylmer. La ligne bleue t’y amène.',
         at: 'steph', radius: 13, toast: 'Sayyad embarque', passengers: +1,
         // ...and the first thing he does is turn the radio on.
@@ -247,8 +247,8 @@ const CORE_MISSIONS = [
       // Adam vient de Mayo, quarante minutes à l'est: il ne se ramasse pas chez
       // eux, il arrive. Le Sunfire est stationné à la marina depuis à matin.
       const dave = {
-        text: 'Ramasse Adam — le stationnement de la marina',
-        sub: 'GPS jusqu’au pilier jaune — il a fait la route de Mayo à matin, il attend à côté du Sunfire',
+        text: 'Ramasse Adam : le stationnement de la marina',
+        sub: 'GPS jusqu’au pilier jaune. Il a fait la route de Mayo à matin, il attend à côté du Sunfire',
         hint: 'La marina, à l’ouest du Vieux-Aylmer, au bord de la rivière.',
         at: 'marina', radius: 16, toast: 'Adam embarque', passengers: +1,
       };
@@ -275,9 +275,9 @@ const CORE_MISSIONS = [
       if (ctx.seats < 3) {
         return [
           marc,
-          { ...steph, sub: "GPS jusqu'au pilier — trois sur le banc, c'est pas légal, il s'assoit au milieu pareil" },
+          { ...steph, sub: "GPS jusqu'au pilier. Trois sur le banc, c'est pas légal, il s'assoit au milieu pareil" },
           beach('S pour freiner: 45 km/h max dans le pilier, y a des kids', -2),
-          { ...dave, sub: 'GPS — deuxième voyage, il a même pas remarqué' },
+          { ...dave, sub: 'GPS. Deuxième voyage, il a même pas remarqué' },
           beach('S pour freiner: 45 km/h max dans le pilier, pour de vrai cette fois', -1, 30),
         ];
       }
@@ -298,15 +298,15 @@ const CORE_MISSIONS = [
     build(ctx) {
       return [
         {
-          text: 'Galeries Aylmer — la commande de Sayyad',
-          sub: 'GPS jusqu’au pilier jaune — l’entrée sud, sous l’auvent orange. C’est payé, c’est à son nom.',
+          text: 'Galeries Aylmer : la commande de Sayyad',
+          sub: 'GPS jusqu’au pilier jaune : l’entrée sud, sous l’auvent orange. C’est payé, c’est à son nom.',
           hint: 'Les Galeries sont sur le chemin d’Aylmer. La porte sud donne sur le stationnement. Tab pour la carte.',
           at: 'foodcourt', radius: 14,
           toast: 'Deux poutines. Sauce à part, comme il a dit trois fois.',
         },
         {
-          text: 'Livre chez Sayyad — 75 Denise-Friend',
-          sub: `GPS, pis 40 km/h max en arrivant (S pour freiner) — le fromage fait scouic dans le ${ctx.carName}`,
+          text: 'Livre chez Sayyad, 75 Denise-Friend',
+          sub: `GPS, pis 40 km/h max en arrivant (S pour freiner). Le fromage fait scouic dans le ${ctx.carName}`,
           hint: 'Denise-Friend, dans le Vieux. Le chrono roule: coupe par la Principale.',
           at: 'steph', radius: 13, time: 95, maxSpeed: 40,
           toast: 'Livrées encore chaudes. Légende.',
@@ -329,15 +329,15 @@ const CORE_MISSIONS = [
     build() {
       return [
         {
-          text: 'Dépanneur Palmyra — le yogourt Liberty',
-          sub: 'GPS jusqu’au pilier jaune, arrête-toi dedans — quatre pots de 750 g',
+          text: 'Dépanneur Palmyra : le yogourt Liberty',
+          sub: 'GPS jusqu’au pilier jaune, arrête-toi dedans : quatre pots de 750 g',
           hint: 'Le dep est sur Principale, dans le Vieux-Aylmer.',
           at: 'dep', radius: 14,
           toast: 'Quatre pots de Liberty. Au dep, c’est pas 1,99 $ comme au Super C. Pis pas de cuillères.',
         },
         {
-          text: 'Parc des Cèdres — avant que ça tourne',
-          sub: 'W à fond, suis le GPS jusqu’au pilier jaune — du yogourt au soleil dans un truck, ça tourne vite',
+          text: 'Parc des Cèdres, avant que ça tourne',
+          sub: 'W à fond, suis le GPS jusqu’au pilier jaune. Du yogourt au soleil dans un truck, ça tourne vite',
           hint: 'Plein ouest par la Principale, le long de la rivière.',
           at: 'beach', radius: 20, time: 60,   // s1-timers: 1.1 km, pace 42 s (was 95)
           toast: 'Encore froid. De justesse. 15 $. Le gaz, à peu près pareil.',
@@ -358,22 +358,22 @@ const CORE_MISSIONS = [
     build() {
       return [
         {
-          text: 'Annonce #1 — Tim Hortons, rue Principale',
-          sub: 'GPS jusqu’au pilier jaune, arrête-toi — le babillard est à côté des toilettes',
+          text: 'Annonce #1 : Tim Hortons, rue Principale',
+          sub: 'GPS jusqu’au pilier jaune, arrête-toi. Le babillard est à côté des toilettes',
           hint: 'Le Tim est sur la Principale, dans le Vieux-Aylmer.',
           at: 'tims', radius: 14,
           toast: 'Punaisée entre un chat perdu pis un cours de yoga. Personne va la voir.',
         },
         {
-          text: 'Annonce #2 — Galeries Aylmer',
-          sub: 'GPS jusqu’au pilier jaune — le babillard de l’entrée sud',
+          text: 'Annonce #2 : Galeries Aylmer',
+          sub: 'GPS jusqu’au pilier jaune : le babillard de l’entrée sud',
           hint: 'Les Galeries, chemin d’Aylmer. Suis la ligne bleue.',
           at: 'mall', radius: 22,
           toast: 'Une mère lit l’annonce. Son kid regarde ailleurs. C’est un client.',
         },
         {
-          text: 'Annonce #3 — Marina d’Aylmer',
-          sub: 'GPS jusqu’au pilier jaune sur le quai — le babillard du casse-croûte',
+          text: 'Annonce #3 : Marina d’Aylmer',
+          sub: 'GPS jusqu’au pilier jaune sur le quai : le babillard du casse-croûte',
           hint: 'La marina est à l’ouest du Vieux, au bord de l’eau.',
           at: 'marina', radius: 16,
           toast: 'Premier appel : un cours samedi matin. Six heures. Six heures du matin.',
@@ -396,10 +396,10 @@ const CORE_MISSIONS = [
     timeOfDay: 'night',
     build(ctx) {
       return [{
-        text: 'Chez vous — 299 Chemin Fraser, avant cinq heures',
-        sub: `Traverse la ville par le GPS, pis 35 km/h max dans le pilier (S pour freiner) — ta mère dort, pis le ${ctx.carName} fait trop de bruit dans l'entrée`,
+        text: 'Chez vous, 299 Chemin Fraser, avant cinq heures',
+        sub: `Traverse la ville par le GPS, pis 35 km/h max dans le pilier (S pour freiner). Ta mère dort, pis le ${ctx.carName} fait trop de bruit dans l'entrée`,
         hint: "Chez vous, c'est à l'est de la ville. Tab pour voir le chemin au complet.",
-        at: 'home', radius: 14, time: 160, maxSpeed: 35,   // s1-timers: 3.2 km, pace 117 s (was 210)
+        at: 'home', radius: 14, time: 165, maxSpeed: 35,   // W6-CURFEW: 3.2 km, pace 119 s braking to 35 in the pillar (s1-timers 160, was 210)
         toast: 'Zahra, Tyler, Sayyad, Alex, Robin, Adam, Mike, Abraham pis Russell dans la cuisine.\nLes nachos sortent du four. Le film est pas fini.\nÀ cinq heures, ta mère descend, se tire une chaise, pis mange avec vous autres.',
         money: 22,
       }];
@@ -415,33 +415,33 @@ const CORE_MISSIONS = [
     build() {
       return [
         {
-          text: 'Spot 1/5 — le phare de la marina',
-          sub: 'GPS jusqu’au pilier jaune — le meilleur point de vue sur l’Outaouais',
+          text: 'Spot 1/5 : le phare de la marina',
+          sub: 'GPS jusqu’au pilier jaune : le meilleur point de vue sur l’Outaouais',
           hint: 'La marina, à l’ouest du Vieux-Aylmer. Le chrono roule.',
           at: 'lookout', radius: 16, time: 100,
         },
         {
-          text: 'Spot 2/5 — Aréna Frank-Robinson',
-          sub: 'GPS jusqu’au pilier jaune — fermé pour l’été, le stationnement est à nous',
+          text: 'Spot 2/5 : Aréna Frank-Robinson',
+          sub: 'GPS jusqu’au pilier jaune. Fermé pour l’été, le stationnement est à nous',
           hint: 'Frank-Robinson, au nord de la Principale.',
           at: 'arena', radius: 18, time: 95,
         },
         {
           // Chemin d'Aylmer runs at z = -40; this sits in front of the Galeries.
-          text: "Spot 3/5 — chemin d'Aylmer, devant les Galeries",
+          text: "Spot 3/5 : chemin d'Aylmer, devant les Galeries",
           sub: 'GPS jusqu’au pilier jaune, fenêtres baissées',
           hint: 'Plein est sur le chemin d’Aylmer, en face du centre d’achat.',
           at: { x: 236, z: -40 }, radius: 16, time: 95,
         },
         {
-          text: 'Spot 4/5 — rue Principale',
-          sub: 'GPS jusqu’au pilier jaune — le Vieux-Aylmer au complet en une passe',
+          text: 'Spot 4/5 : rue Principale',
+          sub: 'GPS jusqu’au pilier jaune : le Vieux-Aylmer au complet en une passe',
           hint: 'Reviens vers l’ouest par la Principale.',
           at: 'principale', radius: 15, time: 125,
         },
         {
-          text: 'Spot 5/5 — Parc des Cèdres',
-          sub: 'GPS jusqu’au dernier pilier — le soleil tombe dans la rivière',
+          text: 'Spot 5/5 : Parc des Cèdres',
+          sub: 'GPS jusqu’au dernier pilier. Le soleil tombe dans la rivière',
           hint: 'Tout au bout à l’ouest, au bord de l’eau.',
           at: 'beach', radius: 20, time: 100,
           toast: 'Tu connais ta ville, là.',

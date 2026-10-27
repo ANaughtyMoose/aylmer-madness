@@ -17,7 +17,8 @@ export const AMBUSH = {
   minDist: 650,        // a race shorter than this is a drag strip
   spawnBack: 110,
   bet: 20,
-  roster: ['sayyad', 'boucherk', 'beaulieu'],
+  // [w6-canon] D32: invented rivals off the ambush roster; only the cast challenges.
+  roster: ['sayyad'],
   fallbacks: ['tims', 'mall', 'beach', 'arena', 'marina', 'principale', 'ctire'],
 };
 
@@ -68,9 +69,32 @@ export function afterJob(G, def, hud = G.hud) {
   const label = to.p.label || to.key;
   G.ambush = { ...who, toKey: to.key, label, t: AMBUSH.offerSeconds, spawn: behindPlayer(G, AMBUSH.spawnBack) };
   G.stats.ambushAt = (G.done && G.done.size) || 0;
-  heckle.line(who.name, `Heille! Jusqu’${leadIn(label)} — ${AMBUSH.bet} piasses. T’as quinze secondes.`, 4200);
+  heckle.line(who.name, `Heille! Jusqu’${leadIn(label)}, ${AMBUSH.bet} piasses. T’as quinze secondes.`, 4200);
   if (G.audio && G.audio.honk) G.audio.honk(330, 0.4, 0.12);
   return G.ambush;
+}
+
+// [w7-polish] W7-BUGS « Noticed »: offered the instant the end card closed,
+// the challenge put a prompt plus the rival's line on screen while the
+// friends' end lines were still queued, and that yielded every toast for up to
+// 15 s. main.js now holds the offer here; tick() makes it once the dialogue
+// queue is empty (heckle.storyBusy() false). A job started meanwhile, or a
+// queue still busy after HOLD_MAX_S, drops it: no challenge that time.
+export const HOLD_MAX_S = 60;
+export function holdAfterJob(G, def) {
+  G.ambushHeld = { def, waited: 0 };
+  return G.ambushHeld;
+}
+function releaseHeld(G, dt, hud) {
+  const h = G.ambushHeld;
+  if (G.mission || G.summerOver) { G.ambushHeld = null; return; }
+  if (heckle.storyBusy()) {
+    h.waited += Math.max(0, dt || 0);
+    if (h.waited > HOLD_MAX_S) G.ambushHeld = null;
+    return;
+  }
+  G.ambushHeld = null;
+  if (!heckle.hushed) afterJob(G, h.def, hud);
 }
 
 export function makeDef(G, a) {
@@ -84,7 +108,7 @@ export function makeDef(G, a) {
     mode: 'ambush',
     build: () => [raceTo({
       carId: a.carId, roster: a.roster, name: a.name, to: key, spawn: a.spawn,
-      text: `Course — ${a.name} jusqu’${leadIn(a.label)}`,
+      text: `Course : ${a.name} jusqu’${leadIn(a.label)}`,
       sub: `Premier rendu gagne ${AMBUSH.bet} $. Pas de règles.`,
       money: AMBUSH.bet,
       toast: `${a.name}: « …ok. OK. Correct. » +${AMBUSH.bet} $`,
@@ -114,6 +138,7 @@ export function ambushWon(m) {
 
 /** Once a tick while an offer stands. */
 export function tick(G, dt, hud = G.hud) {
+  if (G.ambushHeld) releaseHeld(G, dt, hud);   // [w7-polish]
   const a = G.ambush;
   if (!a) return;
   if (G.mission) { G.ambush = null; if (hud) hud.prompt(null); return; }
@@ -131,7 +156,7 @@ export function tick(G, dt, hud = G.hud) {
     heckle.line(a.name, 'Correct. Une autre fois.', 2600);
     return;
   }
-  if (hud) hud.prompt(`E — la course jusqu’${leadIn(a.label)} (${Math.ceil(a.t)} s)`);
+  if (hud) hud.prompt(`E : la course jusqu’${leadIn(a.label)} (${Math.ceil(a.t)} s)`);
 }
 
 // « jusqu’au Tim », « jusqu’à l’aréna », « jusqu’aux Galeries » — the label

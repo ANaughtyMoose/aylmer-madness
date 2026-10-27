@@ -27,7 +27,7 @@ export function openMealShift() {
   if(typeof document==='undefined')return {state,draw(){},hide(){},close(){}};
   const el=document.createElement('section');el.id='mealshift';
   el.style.cssText='position:fixed;inset:0;z-index:90;background:#11252c;color:#f5efd9;display:grid;place-content:center;padding:20px;font:18px system-ui';
-  el.innerHTML='<h1 style="margin:0">Hôpital St. Vincent — le service du repas</h1><p>WASD / flèches : marcher · Espace : une bouchée au signal vert · Échap : pause · Retour arrière : quitter</p><canvas width="900" height="500" style="max-width:92vw;max-height:65vh;background:#9faea5"></canvas><p role="status"></p>';
+  el.innerHTML='<h1 style="margin:0">Hôpital St. Vincent : le service du repas</h1><p>WASD / flèches : marcher · Espace : une bouchée au signal vert · Échap : pause · Retour arrière : quitter</p><canvas width="900" height="500" style="max-width:92vw;max-height:65vh;background:#9faea5"></canvas><p role="status"></p>';
   document.body.append(el);const g=el.querySelector('canvas').getContext('2d');
   return {state,hide(){el.style.visibility='hidden';},close(){el.remove();},draw(){
     el.style.visibility='visible';

@@ -134,8 +134,8 @@ export function updateRepairs(state, dt, veh, opts = {}) {
     }
     return res;
   }
-  if(!afford()){res.prompt='Facture '+bill.total+' $ — fonds insuffisants. Ton entrée reste gratuite.';return res;}
-  res.prompt=spot.free ? 'E — réparer dans ton entrée (gratuit, '+spot.seconds+' s)' : 'E — devis '+bill.quote+' $ (+ '+bill.extra+' $ fournitures; total '+bill.total+' $)';
+  if(!afford()){res.prompt='Facture '+bill.total+' $ : fonds insuffisants. Ton entrée reste gratuite.';return res;}
+  res.prompt=spot.free ? 'E : réparer dans ton entrée (gratuit, '+spot.seconds+' s)' : 'E : devis '+bill.quote+' $ (+ '+bill.extra+' $ fournitures; total '+bill.total+' $)';
   if(opts.press){state.key=spot.key;state.t=0;state.invoice=bill;state.vehicle=veh;res.working=true;res.left=spot.seconds;res.toast=spot.free?null:'« Ça va être '+bill.quote+' piasses… à peu près. »';}
   return res;
 }
@@ -159,11 +159,11 @@ export function repairHint(state, damage, opts = null) {
   }
   if (damage >= DAMAGE.COSMETIC && !state.h25) {
     state.h25 = true;
-    out.toast = 'Ton char est magané — Garage Caumartin, 143 Principale, ou ton entrée (E)';
+    out.toast = 'Ton char est magané. Garage Caumartin, 143 Principale, ou ton entrée (E)';
   }
   if (damage >= DAMAGE.PERF && !state.h60) {
     state.h60 = true;
-    out.toast = 'Ça tire à gauche pis ça pétarade — va le faire réparer';
+    out.toast = 'Ça tire à gauche pis ça pétarade, va le faire réparer';
   }
   if (damage >= DAMAGE.COSMETIC) out.hint = 'réparer : 143 Principale · chez vous';
   return out;

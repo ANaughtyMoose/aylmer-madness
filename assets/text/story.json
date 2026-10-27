@@ -70,7 +70,7 @@
         "kind": "character",
         "what": "Sayyad devient disponible comme passager permanent avec ses anecdotes et sa cassette de Blink-182."
       },
-      "spineProgress": "0 $ / 1 200 $ — Le compteur est lancé, le camion est entier.",
+      "spineProgress": "0 $ / 1 200 $. Le compteur est lancé, le camion est entier.",
       "connects": "Sayyad saute sur le siège passager et déclare qu'on ne peut pas commencer l'été sans café glacé."
     },
     {
@@ -130,7 +130,7 @@
       "setup": "Aller porter des câbles à booster et une batterie de secours à Adam au stationnement de la marina.",
       "giver": "Mike McDonald",
       "from": "Aréna Frank-Robinson",
-      "to": "Marina d'Aylmer — le Sunfire d'Adam",
+      "to": "Marina d'Aylmer, le Sunfire d'Adam",
       "vehicle": "Ford Ranger XL 1993",
       "what": "Traversée du Vieux-Aylmer jusqu'au bout du quai, avec la boîte pleine de câbles.",
       "complication": "Le gravier du stationnement de la marina fait patiner le train arrière vide du pickup.",
@@ -146,7 +146,7 @@
       "title": "L'urgence de Canadian Tire",
       "setup": "Acheter quatre bougies Champion et de l'huile 5W30 avant la fermeture du comptoir aux Galeries.",
       "giver": "Adam Actell",
-      "from": "Marina d'Aylmer — le Sunfire d'Adam",
+      "from": "Marina d'Aylmer, le Sunfire d'Adam",
       "to": "Canadian Tire",
       "vehicle": "Ford Ranger XL 1993",
       "what": "Course contre la montre à travers les boulevards commerciaux d'Aylmer sous la chaleur de 16h.",
@@ -274,14 +274,14 @@
         "kind": "cash",
         "what": "150 $ en billets neufs pour une livraison express sans retard."
       },
-      "spineProgress": "Total : 688 $ / 1 200 $ — La moitié de la somme est dépassée!",
-      "connects": "Aux Galeries, Norm Lafleur te repère et t'offre une course payante vers l'Ontario."
+      "spineProgress": "Total : 688 $ / 1 200 $. La moitié de la somme est dépassée!",
+      "connects": "Aux Galeries, le garagiste te repère et t'offre une course payante vers l'Ontario."
     },
     {
       "n": 14,
       "title": "La livraison du pont Champlain",
       "setup": "Transporter un carburateur usiné rare pour un client du marché ByWard à Ottawa via le pont Champlain.",
-      "giver": "Norm Lafleur",
+      "giver": "Le garagiste",
       "from": "Galeries de Hull",
       "to": "Marché By",
       "vehicle": "Ford Ranger XL 1993",

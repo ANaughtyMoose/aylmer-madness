@@ -6,7 +6,7 @@
       "sound": "Crissement doux de la gravelle concassée sous les pneus et grésillement des cigales dans la haie de cèdres.",
       "smell": "Herbe coupée séchée au soleil de juillet, pinède environnante et odeur métallique du bloc moteur chaud.",
       "onlyHere": "Ton père qui sort sur le perron en bas de laine, regarde sa montre Casio, vérifie d'un coup d'œil si la tailgate est bien barrée, et hoche la tête sans dire un mot.",
-      "confidence": "Haute — le point d'ancrage émotionnel et domestique du protagoniste."
+      "confidence": "Haute : le point d'ancrage émotionnel et domestique du protagoniste."
     },
     {
       "name": "75 Denise-Friend (Sayyad)",
@@ -14,7 +14,7 @@
       "sound": "Basse rythmée qui fait vibrer les fenêtres du split-level et claquement sec de la porte moustiquaire.",
       "smell": "Cire à carrosserie parfumée, viande grillée au charbon de bois et brise tiède de banlieue.",
       "onlyHere": "Sayyad qui surgit en chemise hawaïenne ouverte avec une clé de 10 mm dans une main et une cannette de Crush aux fraises dans l'autre pour juger ton stationnement.",
-      "confidence": "Haute — le quartier général des ados et du bricolage audio."
+      "confidence": "Haute : le quartier général des ados et du bricolage audio."
     },
     {
       "name": "129 av. Frank-Robinson (Mike)",
@@ -22,15 +22,15 @@
       "sound": "Bruit aigu d'une meuleuse d'angle qui s'éteint et voix criarde de Mike qui parle sans arrêt avec les mains.",
       "smell": "Bois résineux fraîchement scié, métal meulé et huile à engrenages lourde.",
       "onlyHere": "Mike qui t'accueille en t'expliquant en détail le système de refroidissement d'un moteur de souffleuse sans que tu n'aies posé la moindre question.",
-      "confidence": "Haute — repaire du patenteux hyperactif du quartier."
+      "confidence": "Haute : repaire du patenteux hyperactif du quartier."
     },
     {
-      "name": "Marina d'Aylmer \u2014 le Sunfire d'Adam",
+      "name": "Marina d'Aylmer, le Sunfire d'Adam",
       "arriving": "Le Sunfire turquoise est stationn\u00e9 croche au bout du stationnement de gravier, le capot entrouvert sur un chargeur de batterie, le nez vers la rivi\u00e8re. Adam a fait quarante minutes depuis Mayo pour venir s'asseoir sur le capot et regarder l'eau. Une odeur de gazoline de bateau et de vinaigre blanc flotte au-dessus de l'asphalte chaud.",
       "sound": "Bourdonnement \u00e9lectrique sourd du chargeur de batterie Motomaster, drisses qui claquent sur les m\u00e2ts et une porti\u00e8re qui ferme mal.",
       "smell": "Gazoline de hors-bord, poussi\u00e8re de garnotte chauff\u00e9e au soleil et vinaigre blanc.",
       "onlyHere": "Adam qui descend du capot sans se presser, mange une poign\u00e9e de chips en silence, et d\u00e9clare que la vie est trop courte pour changer un alternateur.",
-      "confidence": "Haute \u2014 Adam vient de Mayo, hors carte: il arrive, il ne se fait jamais ramasser chez eux."
+      "confidence": "Haute : Adam vient de Mayo, hors carte: il arrive, il ne se fait jamais ramasser chez eux."
     },
     {
       "name": "1 rue Arial (Russell)",
@@ -38,7 +38,7 @@
       "sound": "Claquement d'un skateboard atterrissant sur une dalle de béton et son sec d'une clé à chocs pneumatique.",
       "smell": "Boucane de poêle à bois en plein été, dégraissant pour freins et terreau humide de fond de cour.",
       "onlyHere": "Russell qui fait un kickflip par-dessus une pile de pneus usagés avant de venir ajuster ta courroie avec un tournevis plat pendant que son père le surveille d'un œil sévère.",
-      "confidence": "Haute — le sanctuaire de la débrouillardise mécanique clandestine."
+      "confidence": "Haute : le sanctuaire de la débrouillardise mécanique clandestine."
     },
     {
       "name": "Les Galeries d'Aylmer",
@@ -46,7 +46,7 @@
       "sound": "Chuintement pneumatique des portes automatiques, bruits de chariots d'épicerie poussés sur le bitume et basses étouffées d'un Cavalier qui passe.",
       "smell": "Goudron surchauffé, friture de cantine et air conditionné chimique de centre d'achats.",
       "onlyHere": "Des ados assis sur le capot d'une Neon néon-bleue qui comparent leurs téléphones à clapet Motorola et leurs sonneries polyphoniques.",
-      "confidence": "Haute — le pôle commercial et social des jeunes en 2004."
+      "confidence": "Haute : le pôle commercial et social des jeunes en 2004."
     },
     {
       "name": "Plage des Cèdres",
@@ -54,7 +54,7 @@
       "sound": "Clapotis régulier des vagues sur la grève, rires d'enfants éclaboussant l'eau et musique pop québécoise sortant d'un boombox sur le sable.",
       "smell": "Crème solaire à la noix de coco, algues d'eau douce séchées au soleil et fumée de briquettes de charbon.",
       "onlyHere": "Un groupe de gars de shop qui jouent au fer à cheval en maillot de bain avec des bouteilles de Labatt 50 dissimulées dans des koozies en mousse.",
-      "confidence": "Haute — le cœur récréatif de l'été aylmerois."
+      "confidence": "Haute : le cœur récréatif de l'été aylmerois."
     },
     {
       "name": "Marina d'Aylmer",
@@ -62,7 +62,7 @@
       "sound": "Tintement métallique continu des drisses de voiliers contre les mâts d'aluminium et grondement grave des moteurs in-board au ralenti.",
       "smell": "Gaz d'échappement marin, eau de rivière riche en sédiments et bois de quai chauffé par le soleil.",
       "onlyHere": "Un vieux pêcheur en casquette de la Société de la faune qui décroche un doré jaune frétillant sous le regard émerveillé de deux enfants accoudés à la rampe.",
-      "confidence": "Haute — haut-lieu nautique historique sur le lac Deschênes."
+      "confidence": "Haute : haut-lieu nautique historique sur le lac Deschênes."
     },
     {
       "name": "le phare de la marina",
@@ -70,7 +70,7 @@
       "sound": "Cri rauque des goélands et fracas sourd des vagues de fond frappant les gros blocs de moellons protecteurs.",
       "smell": "Embruns d'eau douce fraîche, pierre calcaire mouillée et brise fluviale ouverte.",
       "onlyHere": "Des adolescents assis au bord du vide les jambes pendantes au-dessus de l'eau, gravant leurs initiales au canif dans le bois peint du phare.",
-      "confidence": "Haute — point de repère visuel et symbole maritime local."
+      "confidence": "Haute : point de repère visuel et symbole maritime local."
     },
     {
       "name": "rue Principale (Vieux-Aylmer)",
@@ -78,7 +78,7 @@
       "sound": "Brouhaha animé des conversations sur les terrasses, tintement des couverts sur les assiettes et passage régulier des camionnettes locales.",
       "smell": "Café fraîchement moulu, vinaigre de cantine sur frites chaudes et odeur de vieux bois ciré.",
       "onlyHere": "Le facteur en bermuda bleu de Postes Canada qui s'arrête jaser sur un banc avec la propriétaire de la boutique d'antiquités en buvant un Orangina.",
-      "confidence": "Haute — l'artère patrimoniale et culturelle par excellence."
+      "confidence": "Haute : l'artère patrimoniale et culturelle par excellence."
     },
     {
       "name": "l'Auberge Symmes",
@@ -86,7 +86,7 @@
       "sound": "Murmure apaisant du vent dans les grands saules et pas feutrés des visiteurs sur le plancher de bois franc historique.",
       "smell": "Pierre calcaire fraîche séculaire, encaustique à la cire d'abeille et terre de jardin humide.",
       "onlyHere": "Une guide bénévole en robe d'époque 1850 qui salue poliment les conducteurs qui se stationnent le long du parc riverain.",
-      "confidence": "Haute — joyau du patrimoine national au confluent de l'histoire locale."
+      "confidence": "Haute : joyau du patrimoine national au confluent de l'histoire locale."
     },
     {
       "name": "l'Hôtel British",
@@ -94,7 +94,7 @@
       "sound": "Éclats de rire gras des ouvriers en fin de quart, claquement des chopes en verre épais et son lointain d'une guitare acoustique qu'on accorde au sous-sol.",
       "smell": "Ale rousse maltée, tabac de pipe aromatique et pierre calcaire gorgée de bière séchée.",
       "onlyHere": "Un musicien de blues anglophone d'Ottawa qui négocie en franglais avec le barman québécois pour brancher son ampli dans la prise du vestibule.",
-      "confidence": "Haute — carrefour historique de rencontre entre anglophones et francophones."
+      "confidence": "Haute : carrefour historique de rencontre entre anglophones et francophones."
     },
     {
       "name": "Aréna Frank-Robinson",
@@ -102,7 +102,7 @@
       "sound": "Bruit sourd des compresseurs de glace qui tournent en continu et claquement répétitif des planches de skateboards sautant sur la bordure de béton.",
       "smell": "Vapeur d'ammoniac glacée, caoutchouc vulcanisé et moutarde jaune de casse-croûte d'aréna.",
       "onlyHere": "Des jeunes en équipement de hockey d'été sur patins à roues alignées qui slaloment entre les remorques de camion stationnées à l'ombre.",
-      "confidence": "Haute — temple des sports de glace et point de ralliement des ados du quartier."
+      "confidence": "Haute : temple des sports de glace et point de ralliement des ados du quartier."
     },
     {
       "name": "Tim Hortons Principale",
@@ -110,7 +110,7 @@
       "sound": "Voix métallique grésillante de l'interphone du service au volant criant 'Prochaine commande!' et bips constants des caisses enregistreuses.",
       "smell": "Café filtre chaud, beignes à la crème Boston fraîchement préparés et gaz d'échappement matinal.",
       "onlyHere": "Un contremaître de pavage qui commande seize cafés deux-deux et trois boîtes de cinquante Timbits en payant avec un billet de cent dollars froissé.",
-      "confidence": "Haute — le centre névralgique social et carburant de l'Outaouais le matin."
+      "confidence": "Haute : le centre névralgique social et carburant de l'Outaouais le matin."
     },
     {
       "name": "la station Petro-Canada",
@@ -118,7 +118,7 @@
       "sound": "Bips électroniques stridents des pompes à essence, claquement métallique des pistolets de ravitaillement et ronronnement du compresseur d'air.",
       "smell": "Vapeurs d'essence super sans plomb, méthanol de lave-glace et caoutchouc de boyaux d'arrosage chauds.",
       "onlyHere": "Un travailleur forestier du Pontiac qui gratte son billet de loterie Banco sur le capot de son pick-up en discutant du prix du bois franc avec le caissier.",
-      "confidence": "Haute — point de passage obligé pour la survie mécanique et le plein de points."
+      "confidence": "Haute : point de passage obligé pour la survie mécanique et le plein de points."
     },
     {
       "name": "Canadian Tire",
@@ -126,7 +126,7 @@
       "sound": "Chuintement puissant des clés à chocs pneumatiques dans les baies de service et haut-parleurs diffusant les annonces de rabais dans les allées.",
       "smell": "Pneus en caoutchouc neuf, huile pour moteur à tondeuse et terreau d'empotage horticole.",
       "onlyHere": "Un père de famille qui fouille fièrement dans son portefeuille pour payer une batterie Motomaster en déployant une liasse épaisse de billets de monnaie Canadian Tire.",
-      "confidence": "Haute — l'institution commerciale canadienne par excellence de la banlieue québécoise."
+      "confidence": "Haute : l'institution commerciale canadienne par excellence de la banlieue québécoise."
     },
     {
       "name": "le lot d'autos usagées",
@@ -134,7 +134,7 @@
       "sound": "Claquement frénétique des fanions au vent chaud et grincement métallique de la barrière à chaîne qu'on repousse.",
       "smell": "Produit brillant pour vinyle Armor All, poussière de garnotte et parfum artificiel de cerise noire.",
       "onlyHere": "Le vendeur en chemise à manches courtes qui démarre une Cavalier 1996 en donnant trois grands coups d'accélérateur pour prouver que le silencieux 'a juste besoin de rouler'.",
-      "confidence": "Haute — théâtre des négociations automobiles adolescentes et des espoirs à petit budget."
+      "confidence": "Haute : théâtre des négociations automobiles adolescentes et des espoirs à petit budget."
     },
     {
       "name": "Club de Golf Gatineau",
@@ -142,7 +142,7 @@
       "sound": "Claquement sec et cristallin d'un driver en titane frappant une balle de golf suivi du murmure feutré des voiturettes électriques.",
       "smell": "Gazon luxuriant fraîchement tondu et arrosé, bière blonde en cannette et crème solaire haut de gamme.",
       "onlyHere": "Deux fonctionnaires fédéraux en polos pastel qui débattent des négociations syndicales tout en cherchant une balle perdue dans les quenouilles du fossé.",
-      "confidence": "Haute — contraste de banlieue huppée au cœur du corridor d'Aylmer."
+      "confidence": "Haute : contraste de banlieue huppée au cœur du corridor d'Aylmer."
     },
     {
       "name": "École de l'Aigle",
@@ -150,7 +150,7 @@
       "sound": "Chant solitaire des tourterelles tristes perchées sur les poteaux de clôture et bruissement des feuilles de tremble.",
       "smell": "Bitume chauffé par le soleil, poussière de craie imaginaire et mauvaises herbes coupées.",
       "onlyHere": "Un groupe de préadolescents du quartier qui ont installé une rampe de lancement artisanale en contreplaqué pour sauter par-dessus quatre cannettes de boisson gazeuse en BMX.",
-      "confidence": "Haute — nostalgie estivale des cours d'écoles québécoises désertes."
+      "confidence": "Haute : nostalgie estivale des cours d'écoles québécoises désertes."
     },
     {
       "name": "Philemon Wright",
@@ -158,7 +158,7 @@
       "sound": "Grincement métallique des chaînes de balançoires du parc adjacent et bourdonnement sourd de la circulation sur la promenade voisine.",
       "smell": "Terre battue sèche, herbe brûlée par le soleil et caoutchouc de semelles de chaussures de course.",
       "onlyHere": "Des ados anglophones et francophones assis en cercle sur les gradins d'aluminium partageant un sac de Doritos en écoutant Simple Plan sur un Discman avec deux paires d'écouteurs.",
-      "confidence": "Haute — point de rencontre bilingue emblématique de la jeunesse étudiante."
+      "confidence": "Haute : point de rencontre bilingue emblématique de la jeunesse étudiante."
     },
     {
       "name": "Heritage College",
@@ -166,7 +166,7 @@
       "sound": "Souffle constant du vent s'engouffrant dans les cimes des pins et crissement lointain des freins d'un autobus de la STO au terminus.",
       "smell": "Aiguilles de pin chauffées au soleil, résine balsamique et béton propre d'institution moderne.",
       "onlyHere": "Un étudiant en arts visuels assis à l'ombre d'un auvent en béton esquissant au fusain les collines boisées en écoutant une cassette sur son Walkman jaune.",
-      "confidence": "Haute — porte d'entrée de l'éducation supérieure dans le secteur Hull-Aylmer."
+      "confidence": "Haute : porte d'entrée de l'éducation supérieure dans le secteur Hull-Aylmer."
     },
     {
       "name": "Symmes",
@@ -174,7 +174,7 @@
       "sound": "Sifflement du vent dans les câbles des mats de drapeaux et claquement occasionnel d'une porte de service métallique.",
       "smell": "Craie de traçage de terrain de sport, terreau d'herbe fraîche et ombre fraîche sous les grands érables.",
       "onlyHere": "Deux moniteurs de camp de jour en chandails tie-dye jaunes qui chargent des ballons de volley-ball et des nouilles de piscine en mousse dans la boîte d'un pick-up.",
-      "confidence": "Haute — cœur scolaire francophone de la jeunesse aylmeroise."
+      "confidence": "Haute : cœur scolaire francophone de la jeunesse aylmeroise."
     },
     {
       "name": "Lord Aylmer",
@@ -182,7 +182,7 @@
       "sound": "Bruit feutré des pas sur les copeaux de bois du terrain de jeu et rires étouffés d'enfants jouant à la tague dans la ruelle arrière.",
       "smell": "Paillis de cèdre rouge frais, briques d'argile anciennes et lilas séchés de fin de floraison.",
       "onlyHere": "Une mère de famille du quartier marchant avec sa poussette double qui salue les voisins en passant de l'anglais au français avec une aisance parfaite.",
-      "confidence": "Haute — symbole de la communauté anglophone historique d'Aylmer."
+      "confidence": "Haute : symbole de la communauté anglophone historique d'Aylmer."
     },
     {
       "name": "centre-ville de Hull",
@@ -190,7 +190,7 @@
       "sound": "Grondement sourd et métallique des autobus de transport en commun, sifflets des agents de circulation et écho des pas de milliers de fonctionnaires sur les trottoirs de granite.",
       "smell": "Sauce à l'ail de shawarma libanais, gaz d'échappement diesel et humidité minérale des grands complexes de béton.",
       "onlyHere": "Des fonctionnaires cravatés marchant d'un pas pressé avec leur badge du gouvernement fédéral autour du cou, mangeant un sandwich sur le pouce entre deux feux rouges.",
-      "confidence": "Haute — le cœur administratif et urbain bouillonnant de l'Outaouais."
+      "confidence": "Haute : le cœur administratif et urbain bouillonnant de l'Outaouais."
     },
     {
       "name": "Galeries de Hull",
@@ -198,7 +198,7 @@
       "sound": "Écho assourdissant des moteurs résonnant dans la structure de béton du stationnement étagé et musique pop d'ascenseur diffusée aux entrées.",
       "smell": "Béton chaud de stationnement couvert, parfum commercial de grande surface et friture de casse-croûte.",
       "onlyHere": "Des ados de Hull en jeans amples et casquettes des Sénateurs qui comparent leurs achats de cassettes de rap chez HMV appuyés contre le muret de béton.",
-      "confidence": "Haute — le carrefour du magasinage de la rive québécoise."
+      "confidence": "Haute : le carrefour du magasinage de la rive québécoise."
     },
     {
       "name": "Musée canadien de l'histoire",
@@ -206,7 +206,7 @@
       "sound": "Rumeur apaisante des cascades d'eau artificielle couvrant le bruit de la ville et exclamations de touristes en plusieurs langues devant la vue panoramique.",
       "smell": "Eau de bassin traitée et fraîche, bois de cèdre des totems de la côte Ouest et pierre calcaire polie.",
       "onlyHere": "Des touristes japonais photographiant la Colline du Parlement en arrière-plan pendant qu'un musicien de rue joue des airs folkloriques au violon québécois.",
-      "confidence": "Haute — monument architectural et culturel de renommée mondiale."
+      "confidence": "Haute : monument architectural et culturel de renommée mondiale."
     },
     {
       "name": "Casino du Lac-Leamy",
@@ -214,7 +214,7 @@
       "sound": "Tintement musical des machines à sous qui s'échappe des portes tournantes et ronronnement soyeux des moteurs V8 des grosses berlines allemandes.",
       "smell": "Parfum d'ambiance raffiné, eau traitée des fontaines illuminées et cuir de sellerie automobile.",
       "onlyHere": "Un couple de retraités bien habillés célébrant un gain aux machines à sous en partageant une coupe de champagne sur la terrasse avec vue sur le spectacle pyrotechnique.",
-      "confidence": "Haute — le pôle de divertissement nocturne et de glamour de la région."
+      "confidence": "Haute : le pôle de divertissement nocturne et de glamour de la région."
     },
     {
       "name": "Chelsea",
@@ -222,7 +222,7 @@
       "sound": "Chant mélodieux des grives des bois, crissement des pneus de vélos de route sur l'accotement et murmure de la rivière Gatineau toute proche.",
       "smell": "Humus forestier riche, pain chaud de boulangerie artisanale et café équitable fraîchement torréfié.",
       "onlyHere": "Des cyclistes d'élite en cuissards lycra qui s'arrêtent au café de village pour déguster un scone aux bleuets sauvages aux côtés de bûcherons locaux en chemises de flanelle.",
-      "confidence": "Haute — le havre bohème et bucolique aux portes du parc de la Gatineau."
+      "confidence": "Haute : le havre bohème et bucolique aux portes du parc de la Gatineau."
     },
     {
       "name": "pont Champlain",
@@ -230,7 +230,7 @@
       "sound": "Rugissement sourd du vent latéral contre la carrosserie, cliquetis régulier des joints de dilatation en acier sous les pneus et grondement lointain des rapides.",
       "smell": "Air pur du fleuve battu par le vent, eau de rapides rocheux et friction d'asphalte autoroutier.",
       "onlyHere": "Le basculement instantané des stations de radio sur le tableau de bord: le signal français de CJRC qui commence à faiblir pendant que The Buzz d'Ottawa prend le relais dans un grésillement statique.",
-      "confidence": "Haute — le lien physique et culturel fondamental entre le Québec et l'Ontario."
+      "confidence": "Haute : le lien physique et culturel fondamental entre le Québec et l'Ontario."
     },
     {
       "name": "Colline du Parlement",
@@ -238,7 +238,7 @@
       "sound": "Carillon majestueux de la tour de la Paix sonnant l'heure avec ses 53 cloches en bronze et roulement des sabots de la garde cérémonielle à cheval.",
       "smell": "Gaz naturel de la Flamme éternelle, pierre de grès ensoleillée et gazon institutionnel arrosé.",
       "onlyHere": "Des gardes en tuniques rouges écarlates et hauts bonnets en poil d'ours marchant au pas cadencé sous le regard médusé de touristes dégustant des Queues de Castor à la cannelle.",
-      "confidence": "Haute — le cœur symbolique de la démocratie canadienne."
+      "confidence": "Haute : le cœur symbolique de la démocratie canadienne."
     },
     {
       "name": "Marché By",
@@ -246,7 +246,7 @@
       "sound": "Cris sonores des maraîchers vantant leurs paniers de tomates, accordéon d'un troubadour de rue et cliquetis de la vaisselle sur les terrasses pleines à craquer.",
       "smell": "Pâtisseries chaudes à la cannelle et au citron, basilic frais des maraîchers et café espresso italien.",
       "onlyHere": "Un livreur de caisses de bière en débardeur qui décharge son camion à bras au milieu d'une foule bigarrée d'étudiants, de diplomates étrangers et d'artistes de rue.",
-      "confidence": "Haute — l'épicentre festif, gourmand et touristique du centre d'Ottawa."
+      "confidence": "Haute : l'épicentre festif, gourmand et touristique du centre d'Ottawa."
     },
     {
       "name": "Centre Rideau",
@@ -254,7 +254,7 @@
       "sound": "Sifflement strident des freins à air comprimé des autobus rouges et blancs d'OC Transpo et rumeur dense de la foule piétonne traversant la rue Rideau.",
       "smell": "Bretzels chauds cuits au four, gaufres vanillées et vapeurs d'air conditionné commercial.",
       "onlyHere": "Des skaters d'Ottawa et de Gatineau réunis sur les marches extérieures en granit près de la statue en bronze, échangeant des cassettes VHS de skate sous l'œil vigilant des gardes de sécurité.",
-      "confidence": "Haute — le point de convergence urbain et commercial incontournable du centre de la capitale."
+      "confidence": "Haute : le point de convergence urbain et commercial incontournable du centre de la capitale."
     }
   ]
 }

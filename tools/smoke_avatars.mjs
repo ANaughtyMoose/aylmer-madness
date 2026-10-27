@@ -122,7 +122,7 @@ for (const who of ['Sayyad', 'Margaret', 'Mike']) {
   ok(b.min[2] <= -0.15 && b.max[2] >= 0.15, who + ' covers it front to back');
 }
 
-group('the shirt is open and the fronds are on it');
+group('Sayyad is dressed by Tom’s looks card (dark tee, black jeans, no glasses, no grey)');
 {
   // Every colour that reaches the buffer, as hex, so "is the palm print there"
   // is a question this file can actually answer.
@@ -133,10 +133,12 @@ group('the shirt is open and the fronds are on it');
       .map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('');
     cols.add(hex);
   }
-  ok(cols.has('c4285f') || cols.has('e2568d'), 'magenta palm fronds are in the mesh');
-  ok(cols.has('d8d4cb'), 'wire glasses are in the mesh');
-  ok(cols.has('a9a49c'), 'grey temples are in the mesh');
-  ok(cols.has('8d1c22'), 'the red terry shorts are in the mesh');
+  ok(!cols.has('c4285f') && !cols.has('e2568d'), 'no Hawaiian palm fronds (Tom 12 Oct)');
+  ok(!cols.has('d8d4cb'), 'no glasses (Tom 14 Oct)');
+  ok(!cols.has('a9a49c') && !cols.has('796251'), 'no grey temples, no stubble');
+  ok(!cols.has('8d1c22') && cols.has('1c1d22'), 'black jeans, never shorts');
+  ok(cols.has('232327'), 'the dark tee is in the mesh');
+  ok(!cols.has('16171a'), 'no smartwatch in 2004');
 
   const cm = new Set();
   const g = builds['Margaret standing'];

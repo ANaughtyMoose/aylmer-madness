@@ -1020,6 +1020,9 @@ export class CastCards {
 
   onIdle(fn) { if (!this.active) fn(); else this.idle.push(fn); }
 
+  /** A job closed: lines still waiting on a card for it are moot (main.js closeMission). */
+  dropIdle() { this.idle.length = 0; }
+
   /** A pause, the menu or a fail: hide at once; under 1.5 s up, it goes back in the queue. */
   interrupt() {
     if (!this.cur) return;

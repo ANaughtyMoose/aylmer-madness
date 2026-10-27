@@ -79,6 +79,7 @@ export const SECTIONS = [
       { k: 'showHud', type: 'check' },
       { k: 'showLegend', type: 'check' },
       { k: 'showFps', type: 'check' },
+      { k: 'advLight', type: 'check' },   // W8-LIGHT: read once at start-up (look/advlight.js)
       { act: 'fullscreen', type: 'action', label: 'opt.fullscreen' },
     ],
   },
@@ -214,6 +215,9 @@ export function mountOptions(root, ctx = {}) {
     const cur = get();
     const emit = (changed) => {
       let next = readOptions(root, get());
+      // W8-LIGHTAUTO: touching « Éclairage avancé » is a choice; it outlives a
+      // change of default (store.js advLightChosen).
+      if (changed === 'advLight') next = { ...next, advLightChosen: true };
       // Picking a preset re-seeds the numbers it owns, so the panel is redrawn.
       if (changed === 'quality' && next.quality !== cur.quality) {
         next = presetSettings(next, next.quality);

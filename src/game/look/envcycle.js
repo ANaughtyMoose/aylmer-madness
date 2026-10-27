@@ -20,6 +20,10 @@ import { nightAmount } from '../world.js';
 import * as calendar from '../calendar.js';
 import { environmentAt } from '../../prototype/daylight.js';
 import { advanceSummerClock, applyRecordedWeather } from '../../prototype/calendar-clock.js';
+// S5-LIGHT (V1-02): the timecycle table, flag `timecycle`, classic entry only.
+import { isOn } from './flags.js';
+import * as tc from './timecycle.js';
+import { advLight } from './advlight.js';   // W8-LIGHT: the table is part of Advanced lighting
 
 let G = null, weather = null, PROTO = false;
 let CYCLE = 600, KEYS = ['morning', 'day', 'dusk', 'night'], WEIGHT = [0.16, 0.40, 0.13, 0.31], HOLD = 0.45;
@@ -36,14 +40,29 @@ export function install(o) {
   if (o.hold != null) HOLD = o.hold;
   if (o.onMidnight) onMidnight = o.onMidnight;
   if (o.onEnd) onEnd = o.onEnd;
+  // S5-LIGHT: load the timecycle table (classic only). Until it arrives the
+  // legacy cycle draws; when it does, the next step snaps to it.
+  if (!PROTO && !tc.TABLE && advLight() && typeof fetch === 'function') {
+    fetch(new URL('../../../assets/look/timecycle.json', import.meta.url)).then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j) { tc.load(j); if (G && G.env) { if (G.envPinned && G.mission) setEnv(G.envPinned, true); else setCycleEnv(true); } } })
+      .catch(() => {});
+  }
 }
+// The table path is live: flag on, table loaded, classic entry.
+const useTable = () => !PROTO && tc.TABLE && isOn('timecycle') && advLight();
 
 export function cloneEnv(e) {
-  return {
+  const o = {
     sky: e.sky.slice(), ground: e.ground.slice(), sun: e.sun.slice(),
     lightDir: e.lightDir.slice(), fog: e.fog.slice(), fogDensity: e.fogDensity,
   };
+  // S5-LIGHT: the timecycle's published fields ride along (absent on the legacy path).
+  for (const k of EXTRA_V) if (e[k]) o[k] = e[k].slice();
+  for (const k of EXTRA_S) if (e[k] !== undefined) o[k] = e[k];
+  return o;
 }
+const EXTRA_V = ['ambSky', 'ambGround', 'townGlow'];
+const EXTRA_S = ['cloud', 'cirrus', 'hour'];
 
 export function setEnv(key, instant) {
   if (PROTO) {
@@ -53,7 +72,8 @@ export function setEnv(key, instant) {
   const t = TIME_OF_DAY[key] || TIME_OF_DAY.day;
   G.envKey = TIME_OF_DAY[key] ? key : 'day';
   G.envPinned = G.envKey;      // what updateDayNight re-applies under a mission
-  G.envTarget = weather.tintEnv(cloneEnv(t));
+  if (useTable()) G.envTarget = tc.sample(tc.pinHourFor(G.envKey, G.mission && G.mission.def), G.day, weather, tableTarget());
+  else G.envTarget = weather.tintEnv(cloneEnv(t));
   // C4: headlights on. A mission that says 'dusk' or 'night' always wants them,
   // and so does a sky the storm has taken down to that brightness on its own.
   G.night = G.envKey === 'night' || G.envKey === 'dusk' || nightAmount(G.envTarget) > 0.15;
@@ -62,6 +82,15 @@ export function setEnv(key, instant) {
     G.env.fogDensity *= G.q.fogMul;
   }
 }
+
+// The legacy phase name of the clock (save.js, hangouts and peds read G.envKey).
+function phaseKey() {
+  const p = ((G.dayClock / CYCLE) % 1 + 1) % 1;
+  let i = 0, acc = 0;
+  while (i < KEYS.length - 1 && p >= acc + WEIGHT[i]) { acc += WEIGHT[i]; i++; }
+  return KEYS[i];
+}
+export function clockForHour(h) { return clockAt(h); }
 
 export function cycleEnv() {
   if (PROTO) {
@@ -88,7 +117,24 @@ export function cycleEnv() {
   return { env: out, key: KEYS[i] };
 }
 
+// S5-LIGHT: one persistent target the sampler writes into (never the live env).
+let TT = null;
+function tableTarget() {
+  if (!TT || TT === G.env) TT = tc.makeEnv();
+  return TT;
+}
 export function setCycleEnv(instant = false) {
+  if (useTable()) {
+    G.envKey = phaseKey();
+    G.envPinned = null;
+    G.envTarget = tc.sample(hourNow(), G.day, weather, tableTarget());
+    G.night = nightAmount(G.envTarget) > 0.15;
+    if (instant || !G.env) {
+      G.env = cloneEnv(G.envTarget);
+      G.env.fogDensity *= G.q.fogMul;
+    }
+    return;
+  }
   const c = cycleEnv();
   G.envKey = c.key;
   G.envPinned = null;               // the clock has the sky back
@@ -125,7 +171,13 @@ export function advance(dt) {
     return;
   }
   if (pinned != null) { G.dayClock = clockAt(pinned); setCycleEnv(); return; }
+  // S5-LIGHT: a clock that jumped (a pin, A.env, a capture's clock write) snaps
+  // the whole env on the table path, so every published field follows at once.
+  const jumped = useTable() && lastClock != null
+    && Math.min(Math.abs(G.dayClock - lastClock), CYCLE - Math.abs(G.dayClock - lastClock)) > 3 * Math.max(dt, 1 / 60);
   G.dayClock = (G.dayClock + dt) % CYCLE;
+  lastClock = G.dayClock;
+  if (jumped && !G.mission) { setCycleEnv(true); return; }
   // Under a mission the clock keeps running but the SKY is whatever the job
   // asked for, except that the weather still has to reach it, so the pinned
   // time of day is re-applied rather than left frozen at the value it had when
@@ -134,6 +186,7 @@ export function advance(dt) {
   else if (G.envPinned) setEnv(G.envPinned);
 }
 const NO_MIDNIGHT = { midnights: 0, end: false };
+let lastClock = null;
 
 export function stepEnv(dt) {
   const a = G.env, b = G.envTarget, k = Math.min(1, dt * 0.9);
@@ -141,6 +194,20 @@ export function stepEnv(dt) {
     for (let i = 0; i < a[f].length; i++) a[f][i] = lerp(a[f][i], b[f][i], k);
   }
   a.fogDensity = lerp(a.fogDensity, b.fogDensity * G.q.fogMul, k);
+  // S5-LIGHT: the timecycle's extra fields ease with the same k (W8-LIGHT: only
+  // the table path publishes them, so Advanced lighting off skips the loops).
+  if (!advLight()) return;
+  for (let n = 0; n < EXTRA_V.length; n++) {
+    const f = EXTRA_V[n], bv = b[f];
+    if (!bv) { if (a[f]) delete a[f]; continue; }
+    const av = a[f] || (a[f] = bv.slice());
+    for (let i = 0; i < av.length; i++) av[i] = lerp(av[i], bv[i], k);
+  }
+  for (let n = 0; n < EXTRA_S.length; n++) {
+    const f = EXTRA_S[n];
+    if (b[f] === undefined) { if (a[f] !== undefined) delete a[f]; continue; }
+    a[f] = a[f] === undefined || f === 'hour' ? b[f] : lerp(a[f], b[f], k);
+  }
 }
 
 // ---------------------------------------------------------------- AYLMER.time

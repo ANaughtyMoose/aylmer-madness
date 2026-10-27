@@ -65,31 +65,31 @@ export const FALLBACK = {
   names: { mike: 'Mike', sayyad: 'Sayyad', abraham: 'Abraham', adam: 'Adam', zahra: 'Zahra' },
   day: ["L'entrée est vide. Le monde arrive quand le soleil descend."],
   greet: [
-    { who: 'mike', line: 'Heille! Coupe le moteur, ma mère dort à dix heures.' },
-    { who: 'sayyad', line: 'ENFIN. Ça fait vingt minutes qu’on parle de rien.' },
-    { who: 'abraham', line: 'Assis-toi. Y a de la place sur les marches.' },
-    { who: 'adam', line: '...t’es en retard.' },
-    { who: 'zahra', line: 'Je rentre à dix heures. Pas parce que je veux.' },
+    { who: 'mike', line: 'Kill the engine. My mom’s asleep at ten.' },
+    { who: 'sayyad', line: 'FINALLY. Twenty minutes of talking about nothing.' },
+    { who: 'abraham', line: 'Sit. There’s room on the steps.' },
+    { who: 'adam', line: '...you’re late.' },
+    { who: 'zahra', line: 'I’m in by ten. Not by choice.' },
   ],
   catch: [
-    { who: 'mike', need: '', line: '...faque le gars me dit que le moteur est correct. Écoute-moi deux secondes.' },
-    { who: 'mike', need: 'couch', line: 'Regarde-le. REGARDE-LE. Y est encore là-haut. Ça, c’est de l’ingénierie.' },
-    { who: 'sayyad', need: '', line: 'Le nouveau PowerBook, le clavier s’allume. It LIGHTS UP.' },
-    { who: 'sayyad', need: 'radio:off', line: 'Y a pas de musique. Why is there no music? Pars le radio, man.' },
-    { who: 'abraham', need: '', line: 'Assis-toi deux minutes. Ça changera rien.' },
-    { who: 'adam', need: '', line: '...ouais.' },
-    { who: 'adam', need: 'couch', line: 'Y a un divan dans l’arbre.' },
-    { who: 'zahra', need: '', line: 'Vous dites les mêmes affaires chaque soir. Je les ai comptées.' },
+    { who: 'mike', need: '', line: '...so the guy tells me the engine’s fine. Listen to me for two seconds.' },
+    { who: 'mike', need: 'couch', line: 'Look at it. LOOK AT IT. Still up there. That’s engineering.' },
+    { who: 'sayyad', need: '', line: 'New PowerBook. The keyboard lights up. It LIGHTS UP, Tom.' },
+    { who: 'sayyad', need: 'radio:off', line: 'There’s no music. Why is there no music? Turn on the radio, man.' },
+    { who: 'abraham', need: '', line: 'Sit for two minutes. It changes nothing.' },
+    { who: 'adam', need: '', line: '...yeah.' },
+    { who: 'adam', need: 'couch', line: 'There’s a couch in the tree.' },
+    { who: 'zahra', need: '', line: 'You all say the same things every night. I counted.' },
   ],
   slalom: {
     pitch: [{ who: 'sayyad', line: 'J’ai sorti les bacs. Jusqu’à Smiley pis tu reviens. Dix piasses.' }],
     win: [{ who: 'sayyad', line: 'OUAIS! T’AS VU ÇA?' }],
-    lose: [{ who: 'adam', line: 'Non.' }],
-    bin: [{ who: 'mike', line: 'LE BAC!' }],
+    lose: [{ who: 'adam', line: 'No.' }],
+    bin: [{ who: 'mike', line: 'THE BIN!' }],
   },
-  job: [{ who: 'sayyad', line: 'J’ai de quoi pour toi. Embarque, je t’explique en chemin.' }],
+  job: [{ who: 'sayyad', line: 'I’ve got something for you. Get in, I’ll explain on the way.' }],
   leave: [
-    { who: 'mike', line: 'Reviens demain! J’aurai fini mon explication.' },
+    { who: 'mike', line: 'Come back tomorrow! I’ll have finished explaining.' },
     { who: 'adam', line: 'Bye.' },
   ],
 };
@@ -400,13 +400,15 @@ const HIP = 0.86, HEAD_Y = 1.58, TOP = 1.76;
 
 export const LOOKS = {
   mike: { shirt: 0xd8d2c4, pants: 0x46586e, skin: 0xd0a37c, hair: 0x6a4a2c, scale: 1.02 },
-  // The Hawaiian shirt is the whole point of Sayyad, so it gets its own palms.
-  sayyad: { shirt: 0x1fa3a0, pants: 0x2b3550, skin: 0x8a5f3f, hair: 0x1c1815, palms: 0xe8c443 },
+  // Sayyad: a dark tee and black jeans (Tom 12 and 14 Oct: no Hawaiian shirt,
+  // never shorts). Colours only; the mesh is everybody's mesh.
+  sayyad: { shirt: 0x232327, pants: 0x1c1d22, skin: 0x8a5f3f, hair: 0x1c1815 },
   // Abraham: a black Led Zeppelin shirt, loose jean shorts, long dark
-  // dreadlocks (Tom, 29 Sept). Colours only; the mesh is everybody's mesh.
+  // curls (Tom, 14 Oct: summer 2004 = long curls, not dreads). Colours only; the mesh is everybody's mesh.
   abraham: { shirt: 0x1b1b1d, pants: 0x4a6a96, skin: 0xd8ae8a, hair: 0x2a1f18, scale: 1.04 },
   adam: { shirt: 0x33383f, pants: 0x2f3a4a, skin: 0xc79a72, hair: 0x3a2f26 },
-  zahra: { shirt: 0x7b4fa8, pants: 0x2b3550, skin: 0x8a5f3f, hair: 0x14100e, scale: 0.86, pack: 0x2b6b4a },
+  // Zahra is 16 (ledger L:66), the shortest of these five but not a child.
+  zahra: { shirt: 0x7b4fa8, pants: 0x2b3550, skin: 0x8a5f3f, hair: 0x14100e, scale: 0.94, pack: 0x2b6b4a },
 };
 
 /** One of them, standing. `armsUp` is Mike explaining something. */
@@ -545,12 +547,12 @@ export class Hangout {
     // Idle: within the circle, stopped, E opens the evening.
     if (d < PORCH_R) {
       const who = this.roster.map((k) => this.name(k)).join(', ');
-      G.hud && G.hud.setObjective(`Chez Mike — ${who} ${this.roster.length > 1 ? 'sont' : 'est'} sur le perron`,
+      G.hud && G.hud.setObjective(`Chez Mike : ${who} ${this.roster.length > 1 ? 'sont' : 'est'} sur le perron`,
         'Arrête-toi dans l’entrée pis appuie sur E pour jaser');
       if (v.speedKmh > PORCH_KMH) {
         G.hud && G.hud.prompt('Arrête-toi dans l’entrée');
       } else {
-        G.hud && G.hud.prompt('E  —  descendre chez Mike');
+        G.hud && G.hud.prompt('E  :  descendre chez Mike');
         if (this.hit(G, 'KeyE', 'Enter')) this.enter(G);
       }
     }
@@ -630,7 +632,7 @@ export class Hangout {
     const who = this.roster.map((k) => this.name(k)).join(', ');
     G.hud && G.hud.setObjective(`Sur le perron: ${who}`,
       'E choisit   ·   Q change   ·   W pour repartir');
-    G.hud && G.hud.prompt(`E  —  ${it.label}   ·   Q  —  autre chose  (${this.pick + 1}/${this.menu.length})`);
+    G.hud && G.hud.prompt(`E  :  ${it.label}   ·   Q  :  autre chose  (${this.pick + 1}/${this.menu.length})`);
   }
 
   readKeys(G) {
@@ -759,13 +761,13 @@ export class Hangout {
         r.gate++;
         blip(G, 520 + r.gate * 90, 0.10, 'triangle', 0.22);
       }
-      G.hud && G.hud.setObjective(`Slalom — barrière ${r.gate + 1}/${r.gates.length}`,
-        'W pis A/D entre les bacs — monte vers Smiley, la ligne bleue sert à rien icitte');
+      G.hud && G.hud.setObjective(`Slalom : barrière ${r.gate + 1}/${r.gates.length}`,
+        'W pis A/D entre les bacs, monte vers Smiley, la ligne bleue sert à rien icitte');
       G.hud && G.hud.prompt(`${fmt(total)}   ·   à battre ${fmt(r.target)}`
         + (r.hit ? `   ·   ${r.hit} bac${r.hit > 1 ? 's' : ''} (+${r.penalty} s)` : ''));
     } else {
       const d = Math.hypot(v.x - p.x, v.z - p.z);
-      G.hud && G.hud.setObjective('Slalom — reviens dans l’entrée',
+      G.hud && G.hud.setObjective('Slalom : reviens dans l’entrée',
         'Fais demi-tour pis arrête-toi devant chez Mike (S pour freiner)');
       G.hud && G.hud.prompt(`${fmt(total)}   ·   entrée: ${Math.round(d)} m`
         + (r.hit ? `   ·   +${r.penalty} s` : ''));
@@ -802,7 +804,7 @@ export class Hangout {
     if (won && extra && extra.length) {
       heckle.line(this.name(line.who), '« ' + extra[Math.floor(Math.random() * extra.length)] + ' »', 3000);
     }
-    say(G, (won ? 'GAGNÉ' : 'RATÉ') + ` — ${fmt(total)}`
+    say(G, (won ? 'GAGNÉ' : 'RATÉ') + ` : ${fmt(total)}`
       + (r.hit ? `  (dont +${r.penalty} s de bacs)` : '')
       + `\nÀ battre: ${fmt(r.target)}`
       + (record ? '\nNOUVEAU RECORD' : '')

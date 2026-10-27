@@ -6,7 +6,7 @@ import { fraserParking } from './game/homeparking.js';
 import { remainingRoute } from './game/routeprogress.js';
 import { Cinematic, missionClock } from './game/cinematic.js';
 // [opening] The new-game opening: titles, crawl, the dawn flight and the name cards.
-import { Opening } from './game/intro/opening.js';
+import { Opening, gateText, filmFor } from './game/intro/opening.js';
 import { fraserPoint, FRASER } from './game/fraser.js';
 // Aylmer Madness — boot, game loop, camera, mission runner.
 import { Renderer } from './core/gl.js';
@@ -18,6 +18,8 @@ import * as envc from './game/look/envcycle.js';
 import { setEnv, setCycleEnv, stepEnv } from './game/look/envcycle.js';
 import * as look from './game/look/frame.js';
 import { lookApi } from './game/look/flags.js';
+import { advLight } from './game/look/advlight.js';
+import { createFpsWatch, lightPromptSuppressed, lightWatchArmed, lightOffSettings, lightKeepSettings, LightPrompt } from './game/look/lightwatch.js';   // W8-LIGHTAUTO
 const VISUAL_PROTOTYPE = typeof document !== 'undefined' && document.documentElement.dataset.prototype === '2004';
 import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
@@ -121,6 +123,8 @@ import { Weather } from './game/weather.js';
 // line, and the achievements. All of it out of assets/text/ui.json, all of it
 // optional — see game/flavour.js.
 import { flavour } from './game/flavour.js';
+// [w6-shortcuts] C-06: the import alone registers the gate pairs when modes.js has registerMode.
+import * as shortcuts from './game/shortcuts.js';
 
 // hangout agent: 129 Frank-Robinson after dark (see the hook block in tick()).
 import { hangout } from './game/hangout.js';
@@ -129,8 +133,16 @@ import * as calendar from './game/calendar.js';
 import * as fuel from './game/fuel.js';
 import * as tow from './game/tow.js';
 import { prepareForJob, ensureOwnVehicle } from './game/jobready.js';
-import { refundJob, restartCostsDay, payText, failCostsDay } from './game/missionkit.js';
+import { refundJob, restartCostsDay, payText, failCostsDay, courseTime } from './game/missionkit.js';
 // A-03: a failed job is a gag and a free retry (game/retry.js, wired by A-06).
+// [w7-replay] medals, records, une autre run (specs C-02a, C-02b).
+import * as replay from './game/replay.js';
+// [w7-crashnight] crash replay (C-12 small) and Crash Night (C-04).
+import { crashReplay } from './game/crashreplay.js';
+import { installCrashNight } from './game/crashnight.js';
+import * as modesNs from './game/modes.js';
+import * as ghost from './game/ghost.js';
+import { jobMedalNote, resultLine as medalLine, eyebrow as medalEyebrow, thresholdsFor as medalThresholds } from './game/medals.js';
 import { offerRetry, tickRetry, applyRetry, cancelRetry, loadFails, storyFail, failSpendsDay, setFailToast, failToast, clearFailToast } from './game/retry.js';
 // B-09: trauma shake and a capped hitstop on an event ladder (wired by B-12a).
 import { createFeel, kindForImpact } from './game/feel.js';
@@ -259,6 +271,8 @@ const G = {
 const legend = new Legend();
 const tutorial = new Tutorial();
 const loading = new Loading();
+// [w6-opening] W2: the first-launch gate is up (see armGate).
+let gateArmed = false;
 const clearCinemaInput = () => {
   input.keys.clear(); input.pressed.clear();
   input.steer = input.throttle = input.brake = 0;
@@ -337,6 +351,14 @@ const opening = new Opening({
   doorstep: () => { const [x, z] = fraserPoint(-2, 6.6); return { x, z, yaw: FRASER.yaw }; },
   anchor: (id) => openingAnchor(id),
   onDone: (kind, o) => openingDone(kind, o),
+  // [opening-v2] W1: the cast cards keep their own key (store.js 'aylmer.castseen');
+  // this only mirrors the ids for the console and the QA beats (a castSeen
+  // setting would be stripped by normalizeSettings).
+  markCastSeen: (id) => { (G.castSeen || (G.castSeen = new Set())).add(id); },
+  // [opening-v2] W1: the radio comes up at the starter, on the score's audio
+  // clock (`at`), not 4 s after control. openingDone keeps a ramp only for a
+  // film that never reached the crank (skipped).
+  radioUp: (at, secs = 3) => openingRadioUp(at, secs),
 });
 // If the car you were last in is not yours any more (progress was wiped), the
 // Ranger always is.
@@ -616,7 +638,7 @@ function ensureCharRow() {
   if (!layout || !layout.parentNode) return null;
   const wrap = document.createElement('div');
   wrap.id = 'startwho';
-  wrap.innerHTML = '<p class="tag">Qui joue? Chaque personnage a son propre été — sa cenne, ses jobs, son 6 septembre.</p>'
+  wrap.innerHTML = '<p class="tag">Qui joue? Chaque personnage a son propre été : sa cenne, ses jobs, son 6 septembre.</p>'
     + '<div id="startchars"></div>';
   layout.parentNode.insertBefore(wrap, layout);
   return $('startchars');
@@ -667,7 +689,7 @@ function openStartPicker(open) {
   // The rule, said once, where the list is. « tu peux toujours y rouler » is
   // the important half: this locks where you BEGIN, not where you may drive.
   $('startpickhint').textContent = t('menu.pickstart.hint')
-    + '\nLes autres points s\u2019ouvrent quand tu finis des jobs \u2014 tu peux toujours y rouler.';
+    + '\nLes autres points s\u2019ouvrent quand tu finis des jobs. Tu peux toujours y rouler.';
   $('startback').textContent = '\u2190 ' + t('menu.pickstart.back');
   const done = paintStartPoints();
   const chars = ensureCharRow();
@@ -731,7 +753,7 @@ function installSkin() {
 #startwho .tag{margin:0 0 6px}
 #startpickhint{white-space:pre-line}
 /* A locked start point: a padlock, the job that opens it in grey, and nothing
-   that reads as clickable. pointer-events:none is belt and braces — the
+   that reads as clickable. pointer-events:none is belt and braces; the
    button is disabled and selectStart() refuses the key as well. */
 .startpoint.locked{opacity:.45;cursor:default;pointer-events:none}
 .startpoint.locked .lockwhy{display:block;font-style:normal;font-size:11px;
@@ -811,6 +833,8 @@ function applyMenuText() {
   set('menutag', t('menu.tag'));
   set('carspick', t('menu.pick'));
   set('start', t('menu.new'));
+  // [w6-opening] W2: on the first-launch gate the button is the one line.
+  if (gateArmed) set('start', gateText(G.settings.lang));
   set('btnContinue', t('menu.continue'));
   set('btnLoad', t('menu.load'));
   set('btnOptions', t('menu.options'));
@@ -826,6 +850,8 @@ function applyMenuText() {
   const cont = $('btnContinue'), meta = $('contmeta');
   const recent = continueSlot();
   if (cont) cont.disabled = !recent;
+  // [w6-opening] W10: with a save, Enter on the menu continues it.
+  if (cont && recent && G.mode === 'menu') try { $('btnContinue').focus(); } catch { /* not focusable yet */ }
   if (meta) {
     const row = recent ? listSlots(slotCharacter(recent)).find((r) => r.slot === recent) : null;
     // Three lines, each answering one question: who and when (in the summer,
@@ -860,18 +886,66 @@ function applyMenuText() {
 let tipTimer = 0;
 // `save` is a slot's contents, or null for a new game. It is held across the
 // world build so the loading screen does not have to know about it.
+// Where the world has to exist first. Raw PLACES coordinates are fine for
+// picking a sector; the snapping happens after the bake.
+function startXZ(save, startKey) {
+  const p = (save && save.parked && save.carId && save.parked[save.carId])
+    || (!save && startKey && PLACES[startKey]) || PLACES.home;
+  return { x: p.x, z: p.z };
+}
+// The renderer, made once. Returns the error if WebGL is not there.
+function ensureRenderer() {
+  if (!G.renderer) {
+    try { G.renderer = new Renderer(canvas); } catch (e) { return e; }
+  }
+  G.renderer.scale = G.q.scale;
+  G.renderer.maxDpr = G.q.dpr;
+  return null;
+}
+
+// ---- [w6-opening] W3: the world bakes from page load ------------------------
+// The bake is 7 to 24 s on an Air, and it used to start at the click, so the
+// opening vamped over 2D stars waiting for it and Continue sat on the loading
+// bar. It now starts as soon as the menu has painted, at the likeliest start
+// (the Continue slot's car, else Tom's driveway), with the loading screen
+// hidden: the stages are the same worldStages() the click used to run. A start
+// that comes before it is done waits on the same promise (startGame, W4).
+let prebake = null, worldBaked = false;
+function runStages(stages) {
+  // As Loading.run: the label first, two frames to paint it, then the work.
+  let p = Promise.resolve();
+  for (const [label, fn] of stages) {
+    p = p.then(() => { loading.stage(label); return new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res))); })
+      .then(() => fn());
+  }
+  return p;
+}
+function prebakeWorld() {
+  if (prebake || G.world) return prebake;
+  if (ensureRenderer()) return null;     // no WebGL: startGame says so at the click
+  const slot = gateArmed ? null : continueSlot();
+  const save = slot ? readSlot(slot) : null;
+  G.homeXZ = startXZ(save, null);
+  prebake = runStages(worldStages()).then(() => { worldBaked = true; });
+  prebake.catch((e) => console.warn('prebake:', e && e.message));
+  return prebake;
+}
+// A start somewhere the bake did not cover (a picked start point across the
+// seam, a save in Ottawa): bring that sector in before the car is put there.
+function startSector() {
+  const S = G.world?.sectors, p = G.homeXZ;
+  if (!S || !p || S.has(S.at(p.x, p.z))) return null;
+  return prepareLocation(p.x, p.z);
+}
+// ---- end [w6-opening] W3 ----------------------------------------------------
+
 function startGame(save = null, startKey = null, character = null) {
   // Whose summer this is, before anything reads it. A slot knows; a new game is
   // told by the picker.
   G.character = save && save.character ? save.character
     : (CHARACTER_IDS.includes(character) ? character : (G.character || DEFAULT_CHARACTER));
-  // Where the world has to exist first. Raw PLACES coordinates are fine for
-  // picking a sector; the snapping happens after the bake.
-  {
-    const p = (save && save.parked && save.carId && save.parked[save.carId])
-      || (!save && startKey && PLACES[startKey]) || PLACES.home;
-    G.homeXZ = { x: p.x, z: p.z };
-  }
+  G.homeXZ = startXZ(save, startKey);
+  if (gateArmed) disarmGate();
   if (save && save.carId) G.carId = save.carId;
   garage.setCharacter(G.character);
   if (!garage.has(G.carId, G.done) && !(save && save.unlocks)) G.carId = characterById(G.character).car;
@@ -879,23 +953,18 @@ function startGame(save = null, startKey = null, character = null) {
   setModal('options', false);
   setModal('load', false);
 
-  if (!G.renderer) {
-    try {
-      G.renderer = new Renderer(canvas);
-    } catch (e) {
-      $('menuinner').innerHTML = `<h1>Ouch</h1><p class="tag">${e.message}</p>`;
-      $('menu').classList.remove('hidden');
-      return;
-    }
+  const glErr = ensureRenderer();
+  if (glErr) {
+    $('menuinner').innerHTML = `<h1>Ouch</h1><p class="tag">${glErr.message}</p>`;
+    $('menu').classList.remove('hidden');
+    return;
   }
-  G.renderer.scale = G.q.scale;
-  G.renderer.maxDpr = G.q.dpr;
 
-  if (!G.world) {
+  if (!worldBaked) {
     $('start').textContent = t('menu.building');
     turntable.stop();
     // A tip under the progress bar while the world bakes. It rotates on its own
-    // timer, because loading.run() blocks the main thread in long stretches and
+    // timer, because the bake blocks the main thread in long stretches and
     // there is nowhere else to hang it.
     flavour.showTip(heckle.showGloss);
     if (tipTimer) clearInterval(tipTimer);
@@ -903,16 +972,29 @@ function startGame(save = null, startKey = null, character = null) {
     // Each stage paints its own label before it runs, so the screen is telling
     // the truth about what is taking the time. The bar animates on the
     // compositor, so it keeps moving even while buildWorld blocks.
-    loading.run(worldStages()).then(() => {
+    // [w6-opening] W4: the bake page load started is the one we wait on; only
+    // without one (no WebGL at load) does the click start it.
+    if (!prebake) {
+      prebake = runStages(worldStages()).then(() => { worldBaked = true; });
+    }
+    loading.show();
+    prebake.then(() => startSector()).then(() => {
       if (tipTimer) { clearInterval(tipTimer); tipTimer = 0; }
+      loading.hide();
       enterDrive(save, startKey);
     }).catch((e) => {
+      if (tipTimer) { clearInterval(tipTimer); tipTimer = 0; }
+      loading.hide();
       $('menuinner').innerHTML = `<h1>Ouch</h1><p class="tag">${e.message}</p>`;
       $('menu').classList.remove('hidden');
     });
     return;
   }
   turntable.stop();
+  // [w6-opening] W4: baked before the click (the usual case now); a start in
+  // a sector the bake did not cover brings it in first.
+  const far = startSector();
+  if (far) { far.then(() => enterDrive(save, startKey)).catch((e) => console.error('start sector', e)); return; }
   enterDrive(save, startKey);
 }
 
@@ -962,7 +1044,7 @@ function worldStages() {
     // Loading.run waits for it. If it does not turn up the houses fall back to
     // flat vertex colours and the game still runs.
     [t('load.mats'), () => loadMaterials(r).then((m) => { G.mats = m; }).catch((e) => {
-      console.warn('materials: atlas failed to load, falling back to vertex colours —', e.message);
+      console.warn('materials: atlas failed to load, falling back to vertex colours:', e.message);
       G.mats = MATS_STUB;
     })],
     [t('load.world'), async () => {
@@ -1038,6 +1120,7 @@ function worldStages() {
       G.propMeshes = buildPropMeshes(r);
       G.props = new Props(r, G.propMeshes);
       G.reactive = new Reactive(r, G.world);
+      crashReplay.init({ groundY: (x, z) => G.phys.groundY(x, z) });   // [w7-crashnight]
     }],
     [t('load.ready'), () => {}],
   ];
@@ -1107,6 +1190,8 @@ function enterDrive(save = null, startKey = null) {
   const start = chosen || (save && save.parked && save.parked[spec.id]) || doorstep
     || home[spec.id] || homeSpot(spec.id);
   G.veh.reset(start.x, start.z, start.yaw, spawnY(start.x, start.z));
+  // W8-BUGS: the first-drive « S pour reculer » is for the 299 Fraser driveway only (ui.js DRIVEWAY_R).
+  { const d = home.ranger; G.tutoDrive = d && Math.hypot(start.x - d.x, start.z - d.z) < 6 ? { x: start.x, z: start.z } : null; }
   G.health = save ? { ...save.health } : {};
   restoreDamage(G.veh, G.health[spec.id] || 0);
   G.repair.t = 0; G.towed = false;
@@ -1119,6 +1204,7 @@ function enterDrive(save = null, startKey = null) {
   G.streets = new Set(save && save.streets ? save.streets : []);
   G.lastNight = false;
   G.best = save ? { ...save.best } : {};
+  G.bestLegacy = save ? { ...(save.bestLegacy || {}) } : {};   // [w7-polish] old grid-inclusive course bests
   G.playtime = save ? save.playtime : 0;
   // Every counter the systems keep (distance, near misses, streaks, airtime...),
   // zeroed for a new game and overlaid with whatever the save recorded.
@@ -1151,7 +1237,7 @@ function enterDrive(save = null, startKey = null) {
   setCycleEnv(true);
   G.boat = null; G.focus = null;
   G.rivals = []; G.raceParked = {}; G.ranRed = false;
-  G.ambush = null; skills.reset();
+  G.ambush = null; G.ambushHeld = null; skills.reset();   // [w7-polish] ambushHeld
   if (!G.cops) G.cops = new Cops(); else G.cops.reset();
   hud.setStars(0);
   if (!G.wallet) G.wallet = new Wallet($('money'));
@@ -1292,12 +1378,34 @@ function openingUnstage() {
   }
   G.focus = s.focus || null;
 }
+// [opening-v2] W1: the radio at the starter. `at` is on audio.ctx's clock (the
+// score schedules there); 0 when there is no audio, and then there is nothing to ramp.
+function openingRadioUp(at, secs) {
+  if (opening.replay) return;
+  if (G.settings.radioAuto !== false && !radio.wantOn) radio.power(true);
+  radio.resume();
+  if (audio.ok && audio.radioBus && audio.running) {
+    const t0 = audio.ctx.currentTime, t = Math.max(t0, at || 0), g = audio.radioBus.gain;
+    g.cancelScheduledValues(t0); g.setValueAtTime(0.0001, t0); g.setValueAtTime(0.0001, t);
+    g.linearRampToValueAtTime(audio.vol.radio, t + Math.max(0.5, secs || 3));
+  }
+  paintRadio();
+}
+// [opening-v2] W5: which film New Game plays. opening.js's filmFor reads
+// storySeen and the ?intro= switches; a machine with a save is a returning
+// player too (the same test as the gate and buildMenu), so it gets the quick
+// driveway settle, unless ?intro=1 asks for the first film.
+function newGameFilm() {
+  const v = filmFor(G);
+  return v === 'first' && hasAnySave() && !/[?&]intro=1\b/.test(location.search) ? 'quick' : v;
+}
 // What New Game does now: Tom's summer, from his own driveway, through the opening.
 // The start picker is « Balade libre » on the menu (offered once it has been seen).
 function newGame() {
   if (opening.active) return;
+  if (gateArmed) disarmGate();
   pickedCharacter = DEFAULT_CHARACTER;
-  opening.begin();
+  opening.begin({ variant: newGameFilm() });
   startGame(null, DEFAULT_START, DEFAULT_CHARACTER);
 }
 // « Revoir l'intro »: the same film, then back to the menu, no save touched.
@@ -1324,15 +1432,22 @@ function openingDone(kind, o = {}) {
   if (G.settings.radioAuto !== false && !radio.wantOn) radio.power(true);
   radio.resume();
   // B-13a: no automation while the clock is stopped; _applyMix on resume
-  // replaces the fade.
-  if (audio.ok && audio.radioBus && audio.running) {
+  // replaces the fade. [opening-v2] W1: the film's crank already brought it up
+  // (openingRadioUp); this ramp is only for a film skipped before the crank.
+  if (opening.stats?.radioUpAt == null && audio.ok && audio.radioBus && audio.running) {
     const t = audio.ctx.currentTime, g = audio.radioBus.gain;
     g.cancelScheduledValues(t); g.setValueAtTime(0.0001, t); g.linearRampToValueAtTime(audio.vol.radio, t + 4);
   }
   paintRadio();
   if (!G.settings.storySeen) onSettings(saveSettings({ ...G.settings, storySeen: true }));
-  if (!G.mission && !G.done.has('alternateur')) startMission(ALL_MISSIONS.find((d) => d.id === 'alternateur'), { card: !!o.skipped });
+  // [w6-opening] W6: no brief card after the opening, skipped or not.
+  // W8-BUGS: marked autoStarted, so a mode picked from M before the player has
+  // done anything in it closes it quietly instead of being refused.
+  if (!G.mission && !G.done.has('alternateur')) { startMission(ALL_MISSIONS.find((d) => d.id === 'alternateur'), { card: false }); if (G.mission && G.mission.def && G.mission.def.id === 'alternateur') G.mission.autoStarted = true; }
   else refreshFreeRoam();
+  // [w6-opening] W6: the cast cards at control (opening.js also calls it; a second call is a no-op).
+  { const ids = opening.cast.afterOpening({ skipped: !!o.skipped });
+    if (opening.stats && opening.v2 && opening.stats.cards) for (const id of ids) if (!opening.stats.cards.includes(id)) opening.stats.cards.push(id); }
 }
 
 function playStory() {
@@ -1343,7 +1458,8 @@ function playStory() {
     onDone: () => {
     if (!G.settings.storySeen) onSettings(saveSettings({ ...G.settings, storySeen: true }));
     if (!G.mission && !G.done.has('alternateur')) {
-      startMission(ALL_MISSIONS.find(d => d.id === 'alternateur'));
+      startMission(ALL_MISSIONS.find(d => d.id === 'alternateur'), { card: false });   // the Été 2004 card already names the job: no second card in a row (bar 1)
+      if (G.mission && G.mission.def && G.mission.def.id === 'alternateur') G.mission.autoStarted = true;   // W8-BUGS: see yieldsToMode
       return;
     }
     const j = nearestJob(G);
@@ -1352,7 +1468,7 @@ function playStory() {
     if (j && j.dist > 40) {
       G.waypoint = { x: j.place.x, z: j.place.z };
       G.routeKey = '';
-      hud.toast('Waypoint \u2014 ' + j.def.title + '\n' + j.place.label, 2600);
+      hud.toast('Waypoint : ' + j.def.title + '\n' + j.place.label, 2600);
       audio.blip(660, 0.1, 'triangle', 0.14);
     }
     refreshFreeRoam();
@@ -1390,17 +1506,22 @@ function finalePins() {
 // day something opens (summer.js). The day toast and the autosave are a
 // midnight's; Labour Day arriving opens the finale like any last day.
 function trySleep() {
-  const why = summer.sleepBlock(G);
-  if (why) { if (why !== 'proto') hud.toast(why, 1800); return false; }
+  // W7-BUGS: nothing else may own the screen (no sleep card over a job's end
+  // card, the ending, a menu or the meal), and a day a failed job owes is in
+  // the plan, paid by the nights, not wiped by them.
+  const card = cinema.active || story.active || !!(endingCard && endingCard.active)
+    || !!modalOpen() || !!G.seamHold || !!G.mealShift || G.mode !== 'drive';
+  const why = summer.sleepBlock(G, { card });
+  if (why) { if (!summer.SLEEP_SILENT.has(why)) hud.toast(why, 1800); return false; }
   const plan = summer.planSleep(G);
   const en = G.settings.lang === 'en';
-  cancelRetry(G);
   cinema.show({
     eyebrow: '299 CHEMIN FRASER',
     title: plan.title, body: plan.body, task: plan.task,
     art: 'home@night', button: en ? 'Get up →' : 'Debout →',
     onDone: () => {
-      summer.applySleep(G, plan);
+      if (!summer.applySleep(G, plan)) return;
+      cancelRetry(G);   // the R offer goes; its owed day was paid in plan.to
       G.dayClock = phaseClock('morning');
       setCycleEnv(true);
       hud.toast(calendar.dayToast(G.day), 2800);
@@ -1623,8 +1744,8 @@ function cardNote(def, clocks, en) {
 // and the footprint under it is from the assessment roll). Move it out, free.
 function settleAfterPlacing(allowOffRoad = false) {
   const s = tow.settleSpawn(G, {allowOffRoad});
-  if (s.moved) hud.toast(s.reason === 'water' ? 'Le char était dans l’eau — remis sur la route, gratis.'
-    : 'Le char était pogné — remis sur la route, gratis.', 3000);
+  if (s.moved) hud.toast(s.reason === 'water' ? 'Le char était dans l’eau. Remis sur la route, gratis.'
+    : 'Le char était pogné. Remis sur la route, gratis.', 3000);
 }
 
 function swapCar(id) {
@@ -1701,7 +1822,7 @@ function startMission(def, opts = {}) {
     styleStart: { stats: { ...G.stats }, damage: G.veh.damage || 0 },
   };
   // A-01: past cosmetic damage, the giver patches the car before the job.
-  const ready = prepareForJob(G.veh, G.mission, G);
+  const ready = def.keepDamage ? { patched: false } : prepareForJob(G.veh, G.mission, G);   // [w7-crashnight] keepDamage
   if (ready.patched) hud.toast(ready.line, 3000);
   G.waypoint = null;
   G.veh.passengers = 0;
@@ -1714,24 +1835,32 @@ function startMission(def, opts = {}) {
   if (route) { G.route = route; G.routeKey = `${Math.round(first.x)},${Math.round(first.z)}`; }
   const clocks = missionClock(stages, G.timerScale || 1);
   const en = G.settings.lang === 'en';
+  // [opening-v2] W7: a person's live name card comes after the brief card
+  // (or at once with no card), and their start lines wait for it.
+  const castThenLines = () => {
+    if (!G.mission || G.mission.def !== def) return;
+    opening.cast.queueForJob(def.id);
+    opening.cast.active ? opening.cast.onIdle(() => sayFriend(def, 'start')) : sayFriend(def, 'start');
+  };
   if (opts.card !== false) cinema.show({ title: def.title, body: def.brief,
     // B-10: the card is graded to the job's hour and weather (cinematic.js
     // cardArt); alternateur keeps its own painting.
     job: def,
     task: stages[0].text,
-    note: cardNote(def, clocks, en),
+    note: [cardNote(def, clocks, en), jobMedalNote(def, stages, en)].filter(Boolean).join('\n'),   // [w7-replay]
     button: en ? 'Start the job →' : 'Commencer la job →',
+    onDone: castThenLines,
   });
+  else castThenLines();
   G.tutoJobTaken = true;
   G.stuck = null;
   // A-01: the giver does not send you out in a wreck.
-  if (jobHooks.prepareForJob) {
+  if (jobHooks.prepareForJob && !def.keepDamage) {   // [w7-crashnight] keepDamage
     try {
       const ready = jobHooks.prepareForJob(G.veh, G.mission, G);
       if (ready && ready.patched && ready.line) hud.toast(ready.line, 3000);
     } catch (e) { console.warn('prepareForJob', e); }
   }
-  sayFriend(def, 'start');
 }
 
 // Playtest #11: put a saved job back on its feet.
@@ -1746,6 +1875,7 @@ function resumeMission(saved) {
   if (!saved || !saved.id) return false;
   const def = ALL_MISSIONS.find((d) => d.id === saved.id);
   if (!def) {
+    if (resumeModeSave(G, saved.id)) return false;   // [w7-polish] a course or Crash Night: free roam, no false loss
     hud.toast('Job perdue\nElle existe plus dans c\u2019te version-l\u00e0. T\u2019es en balade.', 3200);
     return false;
   }
@@ -1788,13 +1918,21 @@ function applyStage() {
   m.target = stageTarget(G, m, st);
   G.routeKey = '';
   stageEnter(G, m, st);
+  replay.stageStart(G, m);   // [w7-replay]
 }
 
 // Every job and every race costs a day (calendar.js). When the day that
 // arrives is Labour Day, the summer is over and the father counts the envelope.
-function endOfJob() {
+// A course (def.mode) costs its day once: running it again on the day that
+// first run brought you to is free, so « une autre run » stays a retry, not a
+// week of the summer. Any other job spending a day ends the free reruns.
+function endOfJob(def = null) {
   if (VISUAL_PROTOTYPE) return;
+  const course = def && def.mode ? def.id : null;
+  if (course && G.courseDay && G.courseDay[course] === Math.floor(G.day)) return;
   calendar.spendDay(G, hud);
+  if (course) G.courseDay = { [course]: Math.floor(G.day) };
+  else G.courseDay = null;
   if (calendar.isOver(G.day) && !G.summerOver) runEnding();
 }
 // « 4/10 » : the main story, not a count of every errand.
@@ -1847,11 +1985,13 @@ function failMission(why) {
   // B-07: retry.js owns the fail card (offerRetry has already set it); the HUD
   // only shows what failToast() says, and a new card clears it.
   const offer = m ? offerRetry({ G, mission: m, why, refunded: back }) : null;
-  if (!offer) setFailToast('RATÉ\n' + why + (back > 0 ? `\n(− ${Math.round(back)} $ — la paye s’en va avec)` : ''), 3000, m && m.def ? m.def.id : null);
+  // [w7-replay] a real fail (not an abandon) says how far was left, as an estimate.
+  if (offer) { const fl = replay.failLine(G, m, G.settings.lang === 'en'); const ft = failToast(); if (fl && ft) ft.text += '\n' + fl; }
+  if (!offer) setFailToast('RATÉ\n' + why + (back > 0 ? `\n(− ${Math.round(back)} $ : la paye s’en va avec)` : ''), 3000, m && m.def ? m.def.id : null);
   hud.failCard(failToast());
   audio.chime(false);
   // B-07: a main story fail never spends the day; paid jobs and races do.
-  if (failSpendsDay(m) && !(offer && offer.deferred)) endOfJob();
+  if (failSpendsDay(m) && !(offer && offer.deferred)) endOfJob(m && m.def);
   closeMission('fail');
 }
 
@@ -1870,6 +2010,8 @@ function closeMission(outcome) {
   // that failed or was dropped takes every story line with it; a finished one
   // only the start lines (its last stage may still have something to say).
   heckle.cancel?.(outcome === 'done' ? 'friend' : null);
+  // [opening-v2] start lines still waiting on a name card go with the job.
+  opening.cast.dropIdle();
   if (m) {
     if (outcome !== 'done') refundJob(G, m);
     missionCleanup(G, m, outcome !== 'done');
@@ -1898,7 +2040,7 @@ G.failMission = failMission;
 
 function updateMission(dt) {
   if (!G.mission && !G.ambush && fortier.interact(G, garage)) {
-    if (G.carId !== 'svx') hud.setObjective('La SVX de Sara Fortier', 'E — prendre le char');
+    if (G.carId !== 'svx') hud.setObjective('La SVX de Sara Fortier', 'E : prendre le char');
     return;
   }
   const m = G.mission;
@@ -1932,14 +2074,14 @@ function updateMission(dt) {
           // thing you are buying drives away.
           const cost = garage.cost(carId);
           const can = garage.canBuy(carId, G.wallet, G.done);
-          hud.prompt(`E  \u2014  acheter ${carArticle(carId)} ${shortCarName(carId, c)}   \u00b7   ${cost} $`
+          hud.prompt(`E  :  acheter ${carArticle(carId)} ${shortCarName(carId, c)}   \u00b7   ${cost} $`
             + (can.ok ? '' : `   (${can.why})`));
           if (G.wantStart) {
             G.wantStart = false;
             const r = garage.buy(carId, G.wallet, G.done);
             if (r.ok) {
               hud.prompt(null);
-              hud.toast(`Vendu.\n${c.name} \u2014 ${cost} $`, 2600);
+              hud.toast(`Vendu.\n${c.name} : ${cost} $`, 2600);
               audio.chime(true);
               swapCar(carId);
             } else hud.toast(r.why, 2400, true);
@@ -1951,7 +2093,7 @@ function updateMission(dt) {
           const de = c.who === 'Yours' ? ''
             : c.whoDe !== undefined ? (c.whoDe ? ' ' + c.whoDe : '')
             : (c.who === 'Le lot' ? '' : ' de ' + c.who.replace("'s", ''));
-          hud.prompt(`E  —  prendre ${art} ${shortCarName(carId, c)}${de}`);
+          hud.prompt(`E  :  prendre ${art} ${shortCarName(carId, c)}${de}`);
           if (G.wantStart) { G.wantStart = false; hud.prompt(null); swapCar(carId); }
         }
       } else hud.prompt(null);
@@ -1985,7 +2127,8 @@ function updateMission(dt) {
   m.elapsed += dt;
   const st = m.stages[m.idx];
   if (m.timeLeft != null) {
-    m.timeLeft -= dt;
+    // [opening-v2] W8: the job clock holds while a live name card is up.
+    if (!opening.cast.active) m.timeLeft -= dt;
     hud.setTimer(Math.max(0, m.timeLeft));
     if (m.timeLeft <= 0) { failMission(st.failWhy || 'Trop tard, mon chum.'); return; }
   } else hud.setTimer(null);
@@ -2003,15 +2146,28 @@ function updateMission(dt) {
   const paidBefore = m.paid || 0;
   stageSettle(G, m, st);
   const stageToast = payText(st.toast, st.money, (m.paid || 0) - paidBefore);
-  if (stageToast) hud.toast(stageToast, 2400);
+  // W8-BUGS: the last stage's toast is the end card's body. Toasted as well, it
+  // waited under the card and came up again once it closed (St. Vincent, cloud
+  // run 27 Oct: the end text twice). If the card does not show after all (the
+  // summer ended on this job), the toast goes out at the end instead.
+  const toastOnCard = !!stageToast && m.idx >= m.stages.length - 1 && !m.def.result && !m.def.mode && !G.summerOver;
+  if (stageToast && !toastOnCard) hud.toast(stageToast, 2400);
   // B-08: a stage toast pushed while a scene holds the street quiet (nuittim,
   // the finale) keeps it quiet until that toast is off the screen.
-  if (stageToast && heckle.hushed) heckle.hushWhile('stage:' + stageToast, () => toastLive(hud, stageToast));
+  if (stageToast && !toastOnCard && heckle.hushed) heckle.hushWhile('stage:' + stageToast, () => toastLive(hud, stageToast));
   audio.blip(880, 0.14, 'triangle', 0.2);
+  // [w7-replay] a timed run just closed: medal or the gap to the next one.
+  const medal = replay.stageDone(G, m);
+  const medalEn = G.settings.lang === 'en';
+  if (medal && m.def.mode) medal.rerun = offerRerun(G, m.def.id);
+  const ghostLine = m.idx >= m.stages.length - 1 ? ghost.finishLine(G, m, medalEn) : '';
+  if (medal && m.idx < m.stages.length - 1) hud.toast(medalEyebrow(medal, medalEn) + '\n' + medalLine(medal, medalEn), 3600);
   stageExit(G, m, st);
   m.idx++;
   if (m.idx >= m.stages.length) {
     const def = m.def;
+    // [w7-crashnight] a score mode ends on its own result toast: no day, no card, no G.done.
+    if (def.result) { closeMission('done'); const res = def.result(G, m); if (res && res.toast) hud.toast(res.toast, 5200); audio.chime(true); return; }
     G.done.add(def.id);
     audio.chime(true);
     // Somebody may just have decided to lend you their car.
@@ -2023,34 +2179,38 @@ function updateMission(dt) {
         G.parked[u.id] = curbSpot(homeOf(u.id), nextFreeSlot(G.parked, G.carId, u.id));
       }
     }
+    const runT = def.course ? courseTime(m) : m.elapsed;   // [w7-polish] a course is timed from GO, like its medals
     const prev = G.best[def.id];
-    const record = prev == null || m.elapsed < prev;
-    if (record) G.best[def.id] = m.elapsed;
+    const record = prev == null || runT < prev;
+    if (record) G.best[def.id] = runT;
     const style = missionStyleBonus(m.styleStart, G.stats, v.damage);
     if (style.money) style.money = Math.min(15, style.money);   // the budget table caps it
     if (style.money && G.wallet) G.wallet.add(style.money);
-    hud.toast('FINI — ' + def.title + '\n' + fmtTime(m.elapsed) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')')
+    hud.toast('FINI : ' + def.title + '\n' + (medal ? medalEyebrow(medal, medalEn) + '  ' + medalLine(medal, medalEn) + (ghostLine ? '\n' + ghostLine : '')   // [w7-replay]
+      : fmtTime(runT) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')'))
       + (style.money ? `\nSTYLE +${style.money} $  ·  ${style.text}` : '')
       + '\n' + storyLine(), 4600);
     // Cleanup runs before endOfJob(), as it always has.
     closeMission('done');
-    sayFriend(def, 'end');
-    endOfJob();        // the day is spent; Labour Day may have arrived
+    // [opening-v2] W7b: a card due at the end (Sayyad's) comes before the end lines.
+    { const n = opening.cast.queueForJob(def.id, 'end'); n ? opening.cast.onIdle(() => sayFriend(def, 'end')) : sayFriend(def, 'end'); }
+    endOfJob(def);     // the day is spent (a course rerun is free); Labour Day may have arrived
     // « Le dernier soir » is the ending, in both builds (the prototype spends
     // no day on a job, so endOfJob() alone would never get there).
     if (def.id === FINALE && !G.summerOver) runEnding();
     G.lastDone = def.title;
     autosave('job');   // one of exactly two events that write without being asked
     // B-08: no rival's challenge line over a scene that holds the street.
-    const followUp = () => { if (!heckle.hushed) ambush.afterJob(G, def, hud); };
-    if (!G.summerOver) cinema.show({
-      eyebrow: G.settings.lang === 'en' ? 'JOB COMPLETE' : 'JOB TERMINÉE',
+    const followUp = () => { if (!heckle.hushed) ambush.holdAfterJob(G, def); };   // [w7-polish] offered once the friends' end lines are done (ambush.tick)
+    // [w7-replay] a course ends on its 4.6 s toast, not the card, so R works at once.
+    if (!G.summerOver && !def.mode) cinema.show({
+      eyebrow: medal ? medalEyebrow(medal, medalEn) : (G.settings.lang === 'en' ? 'JOB COMPLETE' : 'JOB TERMINÉE'),
       title: def.title,
       // The story's own last line (for the alternateur, the solenoid twist:
       // missions.js), never a hard-coded one that hides it.
       body: (stageToast || 'Une autre job de faite.')
         + (def.id === 'alternateur' ? '\n\nLe reste de l’été commence ici.' : ''),
-      task: `${fmtTime(m.elapsed)}  ·  ${storyLine()}`
+      task: (medal ? medalLine(medal, medalEn) + (ghostLine ? '  ·  ' + ghostLine : '') + '\n' : '') + `${fmtTime(m.elapsed)}  ·  ${storyLine()}`
         + (m.paid ? `\nPaye : ${Math.round(m.paid)} $` : '')
         + (style.money ? `\nStyle +${style.money} $` : '')
         // ---- S4-SUMMER (begin): when the story comes back ----
@@ -2058,7 +2218,7 @@ function updateMission(dt) {
         // ---- S4-SUMMER (end) ----
       art: 'home', onDone: followUp,
     });
-    else followUp();
+    else { if (toastOnCard) hud.toast(stageToast, 2400); followUp(); }
     return;
   }
   // The job moved on: the start lines about the stage just done are stale.
@@ -2139,6 +2299,7 @@ function mapState() {
     // feel agent: once it needs fixing, the nearest garage gets a wrench.
     repairs: G.veh && G.veh.damage >= DAMAGE.COSMETIC
       ? [nearestRepair(G.veh, PLACES)].filter(Boolean) : [],
+    shortcuts: shortcuts.mapLines(G),   // [w6-shortcuts] the cuts you have found
   };
 }
 
@@ -2155,10 +2316,42 @@ function runEconomyPulse() {
   if (economyPulse) try { economyPulse(); } catch (e) { console.warn('economy', e); }
 }
 
+// W8-LIGHTAUTO (Tom, 27 Oct): Advanced lighting is on by default; under 50 fps
+// for ~8 s of real driving, a small card offers to turn it off (once a session,
+// never under QA, perf or a harness). game/look/lightwatch.js has the rules.
+const lightWatch = createFpsWatch();
+const lightQuiet = lightPromptSuppressed();
+const lightPrompt = new LightPrompt({
+  t,
+  disable: () => { G.settings = saveSettings(lightOffSettings(G.settings)); },
+  keep: () => { G.settings = saveSettings(lightKeepSettings(G.settings)); },
+  // Autosave through the one autosave path, then start the page over. A save
+  // that did not happen (autosave off, storage refused) never reloads.
+  relaunch: () => { if (!autosave('light')) return false; location.reload(); return true; },
+  toast: (text, ms) => hud.toast(text, ms),
+});
+let lightLast = 0;
+function lightWatchFrame(now) {
+  if (lightWatch.fired && !lightPrompt.open) return;
+  const dt = lightLast ? (now - lightLast) / 1000 : 0;
+  lightLast = now;
+  // Driving: in the drive, nothing over it (film, cards, menus, pause, map,
+  // replay, sector card, meal shift), the tab visible. Anything else resets the
+  // window and restarts the ~10 s grace.
+  const driving = G.mode === 'drive' && !opening.active && !cinema.active && !story.active && !G.seamHold
+    && !crashReplay.playing && !(endingCard && endingCard.active) && !G.mealShift && !modalOpen()
+    && document.visibilityState !== 'hidden';
+  if (lightPrompt.open) { lightPrompt.frame(dt, driving); return; }
+  if (lightQuiet || !lightWatchArmed(G.settings)) return;
+  const fps = lightWatch.frame(dt, driving);
+  if (fps) lightPrompt.show(fps);
+}
+
 // The main animation loop. frame() is the game; the economy pulse follows it.
 function frameLoop(now) {
   requestAnimationFrame(frameLoop);
   try { frame(now); } finally { runEconomyPulse(); }
+  lightWatchFrame(now);   // W8-LIGHTAUTO: after the game frame and its pulse
 }
 
 function frame(now) {
@@ -2206,6 +2399,7 @@ function frame(now) {
   if (G.seamHold || cinema.active) { input.endFrame(); return; }
 
   input.update(dt);
+  if (crashReplayFrame(dt)) { input.endFrame(); return; }   // [w7-crashnight]
   if (G.mealShift) {
     if(input.hit('Escape')){G.mealShift.hide();pause(true);}
     else if(input.hit('Backspace'))failMission('Service quitté.');
@@ -2220,8 +2414,9 @@ function frame(now) {
     }
     input.endFrame();return;
   }
+  lightPrompt.keys(input);   // W8-LIGHTAUTO: 1 / 2, LB / RB, before the game reads them; never a driving key
   handleKeys();
-  if (G.mode !== 'drive' || cinema.active) { input.endFrame(); return; }
+  if (G.mode !== 'drive' || cinema.active || crashReplay.playing) { input.endFrame(); return; }   // [w7-crashnight] V starts the replay: no tick under it
 
   // Simulated time equals displayed time, always. This used to be a fixed
   // 1/60 accumulator: whatever was left over waited for the next frame, so on a
@@ -2261,6 +2456,8 @@ function padOutsideDrive() {
   }
   if (G.mode === 'paused' && input.hit('PadStart', 'PadB')) { pause(false); return true; }
   if (G.mode !== 'paused' && G.mode !== 'menu') return false;
+  // [w6-opening] W2: on the first-launch gate, A or Start is New Game.
+  if (gateLive() && input.hit('PadA', 'PadStart')) { newGame(); return true; }
   const root = PAD_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden'));
   if (!root) return false;
   if (input.hit('PadUp', 'PadDown', 'PadLeft', 'PadRight')) {
@@ -2316,9 +2513,12 @@ function handleKeys() {
   // A-03: R takes a retry while one is on offer (tickRetry consumes KeyR), so
   // it reaches the radio only when there is nothing to retry.
   {
-    const rr = tickRetry(G, G.retryDt || 0, input);
+    const rdt = G.retryDt || 0;
+    const rr = tickRetry(G, rdt, input);
     G.retryDt = 0;
-    if (rr && rr.take) { resumeMission(rr.take.saved); applyRetry(G, rr.take); }
+    // [w7-replay] a course goes back on its line (resumeMission does not know courses).
+    if (rr && rr.take) { if (!restartRun(G, rr.take.saved.id)) resumeMission(rr.take.saved); applyRetry(G, rr.take); }
+    tickRerun(G, rdt, input);   // [w7-replay] R after a course finish: une autre run
     if (rr && rr.expired && calendar.isOver(G.day) && !G.summerOver) runEnding();
   }
   if (input.hit('KeyR', 'PadLB') && !input.hit('RadioNext')) toggleRadio();
@@ -2338,7 +2538,8 @@ function handleKeys() {
   // see the other, so one press did both. No suite catches it: nothing imports
   // main.js, and the two live in different modules. Kijiji keeps K, which it
   // documented claiming along with U for the garage.
-  if (input.hit('KeyV')) {
+  if (input.hit('KeyV') && crashReplay.offered(G)) { crashReplay.play(G, { blocked: crashReplayBlocked() }); }   // [w7-crashnight] V : revoir, only while offered
+  else if (input.hit('KeyV')) {
     if (!VISUAL_PROTOTYPE) weather.advance();
     hud.toast('MÉTÉO\n' + weather.label + (weather.wet > 0.1 ? '  ·  chaussée mouillée' : ''), 1800);
   }
@@ -2390,7 +2591,7 @@ function driveHooks(dt, v) {
   // QA F6: not on the tick the car dies. The flatbed below tows and repairs it
   // in this same tick, so « va le faire réparer » would land right after
   // « Remorquage… pis réparé » with the damage already back at 0.
-  const dying = v.damage >= DAMAGE.DEAD && !G.towed;
+  const dying = v.damage >= DAMAGE.DEAD && !G.towed && !G.mission?.def?.ownsWreck;   // [w7-crashnight] ownsWreck
   // S3-CRASH: quiet during the crash show. [s3-cops] the repair banner keeps quiet while a chase is on (held, not spent).
   const hint = landingRepairHintMuted(G, v) || crashShowQuiet(G) ? { toast: null, hint: null } : repairHint(G.repairHints, v.damage, { quiet: !!(G.cops && G.cops.chasing) });
   // [/s3-cops]
@@ -2398,7 +2599,7 @@ function driveHooks(dt, v) {
   hud.setRepairHint(hint.hint);
 
   // Dead: the job is gone and so is the car, until the flatbed drops it home.
-  if (v.damage >= DAMAGE.DEAD && !G.towed) {
+  if (v.damage >= DAMAGE.DEAD && !G.towed && !G.mission?.def?.ownsWreck) {   // [w7-crashnight] the mode owns its wreck
     G.towed = true;
     // The flatbed is not a charity. If the wallet can stand it, it costs.
     // tow.towHome charges, places the car on a checked road spot at its
@@ -2445,7 +2646,7 @@ function cycleMapSize() {
   saveMapPrefs(G.mapPrefs);
   // The N key and the minimap-size option are one setting.
   G.settings = saveSettings({ ...G.settings, mapSize: G.mapPrefs.size });
-  hud.toast(t('toast.mapsize') + ' \u2014 ' + t(G.mapPrefs.size === 0 ? 'map.small' : 'map.large'), 900);
+  hud.toast(t('toast.mapsize') + ' : ' + t(G.mapPrefs.size === 0 ? 'map.small' : 'map.large'), 900);
 }
 
 // Held +/- ramps the range; the write to localStorage is debounced so holding
@@ -2756,6 +2957,7 @@ function tick(dt) {
   }
   ambush.tick(G, dt, hud);
   updateMission(dt);
+  ghost.update(G);   // [w7-replay] records the run, plays back the best
   heckleTriggers(dt, v);
   // ---- hangout agent hook (the only lines this file owns for the porch) ----
   // Mike's place is not a job, so it runs after the mission runner and takes
@@ -2775,11 +2977,14 @@ function tick(dt) {
   // bag; everything else the rules need is already on G.
   flavour.update(dt, G, landEvent);
   landEvent = null;
+  // [w6-shortcuts] « Raccourci trouvé! n/4 »: once per cut per summer, saved with the summer.
+  { const sc = shortcuts.tick(G, dt, v); if (sc && sc.text) hud.toast(sc.text, 2600); }
 
   updateRepairSpot(dt, v);                 // feel agent: after the mission runner
   if (G.props) G.props.update(dt, G);
   if (G.reactive) G.reactive.update(dt, G);
   G.time += dt;
+  crashReplay.record(G, dt);   // [w7-crashnight]
   G.playtime += dt;                       // saved, unlike G.time
   G.stats.dist += Math.abs(v.vLong) * dt;
 
@@ -2834,6 +3039,7 @@ function tick(dt) {
   tutorial.update(dt, {
     speedKmh: v.speedKmh, steer: input.steer, brake: ctl.brake,
     handbrake: ctl.handbrake, mapOpened: G.tutoMapOpened, jobTaken: G.tutoJobTaken,
+    drivewayM: G.tutoDrive ? Math.hypot(v.x - G.tutoDrive.x, v.z - G.tutoDrive.z) : Infinity,   // W8-BUGS
   });
 }
 
@@ -3201,6 +3407,7 @@ function render(dt) {
     if (Math.hypot(c.x - v.x, c.z - v.z) > 400) continue;
     drawCar(rv.spec, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y, c.gh);
   }
+  ghost.draw(r, G, carById);   // [w7-replay] the ghost of your best run
   G.cops.draw(G, drawCar);
   fortier.draw(G, drawCar);                          // ...and the police
   if (G.props) G.props.draw(r, f);
@@ -3234,6 +3441,8 @@ function render(dt) {
     traffic: G.traffic.cars,
     rivals: G.rivals,
     cops: G.cops.units,
+    search: G.cops.searchCircle(),   // [w6-escape] C-16 red circle
+    hides: G.cops.hideSpotsNear(f.x, f.z, hud.range),   // [w6-escape] C-16 hide spots, while wanted
     pois: QUEBEC_POIS,
     route: G.route,
   });
@@ -3358,7 +3567,8 @@ function fillJobs() {
   }
   $('jobshint').textContent=(G.mission ? (en?'Your mission resumes where you paused.':'Ta job reprend où tu l’as laissée.')
     : (en?'Complete the next mission to continue the story.':'Termine la prochaine job pour continuer l’histoire.'))
-    + '  ·  ' + storyLine() + '  ·  ' + streetsLine(G);
+    + '  ·  ' + storyLine() + '  ·  ' + streetsLine(G)
+    + (shortcuts.countLine(G, en) ? '  ·  ' + shortcuts.countLine(G, en) : '');   // [w6-shortcuts]
 }
 
 // ---- pause tabs --------------------------------------------------------
@@ -3448,7 +3658,36 @@ function saveInto(slot) {
 }
 
 // F5: into the slot you used last (never the autosave), '1' the first time.
+// ---- [w7-crashnight] crash replay frame (begin) ----
+// While the replay plays the world holds (no tick, no stepEnv): the radio plays
+// on, the car sounds are cut, and render() draws the recorded poses, swapped
+// in and straight back out. Outside playback this only feeds the « V : revoir »
+// prompt, which crashreplay.js keeps quiet during the crash show.
+function crashReplayBlocked() {
+  return !!(story.active || (endingCard && endingCard.active) || cinema.active || G.mealShift);
+}
+function crashReplayFrame(dt, draw = true) {
+  if (!crashReplay.playing) {
+    hud.setPrompt('replay', crashReplay.offerText(G, dt, crashReplayBlocked()));
+    return false;
+  }
+  hud.setPrompt('replay', null);
+  hud.setVisible(false);
+  if (input.hit('KeyV', 'KeyE', 'Enter', 'Space', 'PadA', 'Escape', 'Backspace', 'PadB', 'PadStart')) {
+    input.consume('Escape', 'Backspace');
+    crashReplay.stop(G);
+  }
+  audio.engine(0, 0); audio.wind(0); audio.skid(0); audio.horn(false);
+  const s = crashReplay.playing ? crashReplay.step(G, dt) : null;
+  if (s && s.cut) audio.blip(1760, 0.05, 'square', 0.05);
+  if (s && s.crash) audio.crash(s.crash);
+  if (!s || !s.playing) { crashReplay.stop(G); hud.setVisible(true); return true; }
+  if (draw) { crashReplay.applyPoses(G); try { render(dt); } finally { crashReplay.restorePoses(G); } }
+  return true;
+}
+// ---- [w7-crashnight] crash replay frame (end) ----
 function quickSave() {
+  if (crashReplay.playing) return null;   // [w7-crashnight]
   const mine = G.slot && slotCharacter(G.slot) === G.character && slotNumber(G.slot) !== 'auto' ? G.slot : null;
   const slot = mine || lastSlot(G.character) || `${G.character}.1`;
   const snap = saveInto(slot);
@@ -3491,7 +3730,8 @@ function loadIntoGame(slot) {
   save.slot = save.slot || slot;
   setModal('load', false);
   cancelRetry(G);   // A-03: a load drops any retry on offer
-  if (!G.world) { startGame(save); return save; }
+  // [w6-opening] W3: a world still baking from page load is not a world yet.
+  if (!worldBaked) { startGame(save); return save; }
   pause(false);
   enterDrive(save);
   return save;
@@ -3612,6 +3852,7 @@ function applyPauseText() {
 
 function pause(on) {
   if (on) {
+    opening.cast.interrupt();   // [opening-v2] W9: a live name card leaves with the pause
     fortier.cancelVoice();
     if (fortier.subtitle) fortier.subtitle.hidden=true;
     G.mode = 'paused';
@@ -3644,6 +3885,7 @@ function toMenu() {
   // Before anything else: the job's own cleanup may still need the car and the
   // HUD (golfjob hands you back your own car; the meal shift has an overlay).
   closeMission('quit');
+  opening.cast.interrupt();   // [opening-v2] W9: and with the menu
   cancelRetry(G);   // A-03: the menu drops any retry on offer
   hud.clearToasts(); G.feelFx.clear();
   audio.siren(false);
@@ -3664,6 +3906,43 @@ function toMenu() {
   // its second WebGL context stays off: a MacBook Air has better things to do.
   if (MENU_CARS) turntable.start();
 }
+
+// [opening-v2] B-11's W-list is wired: W1 to W10 (smoke_opening check 9 is hard).
+// ---- [w6-opening] W2: the first-launch gate --------------------------------
+// The very first time (nothing seen, no save, no ?menu in the address), the
+// title screen is the 299 Fraser painting, the logo and « Appuie sur une
+// touche »: any key, click or pad A is New Game, and the world has been baking
+// since the page loaded (W3). The other doors open after the first film. The
+// English toggle stays a toggle. The look is in opening.css (body.first-launch).
+const GATE_IGNORE = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape', 'Fn', 'F5', 'F12']);
+function gateLive() {
+  return gateArmed && G.mode === 'menu' && !opening.active
+    && ['startpicker', 'options', 'loadscr'].every((id) => !$(id) || $(id).classList.contains('hidden'));
+}
+function onGate(e) {
+  if (!gateLive()) return;
+  if (e.type === 'keydown' && (e.repeat || e.metaKey || e.ctrlKey || e.altKey || GATE_IGNORE.has(e.key))) return;
+  if (e.target && e.target.closest && e.target.closest('#btnEnglish')) return;
+  if (e.type === 'keydown' && document.activeElement && document.activeElement.id === 'btnEnglish'
+    && (e.key === 'Enter' || e.key === ' ')) return;
+  if (e.type === 'keydown') e.preventDefault();
+  newGame();
+}
+function armGate() {
+  gateArmed = true;
+  document.body.classList.add('first-launch');
+  window.addEventListener('keydown', onGate);
+  window.addEventListener('pointerdown', onGate);
+  applyMenuText();
+}
+function disarmGate() {
+  gateArmed = false;
+  document.body.classList.remove('first-launch');
+  window.removeEventListener('keydown', onGate);
+  window.removeEventListener('pointerdown', onGate);
+  applyMenuText();
+}
+// ---- end [w6-opening] W2 ----------------------------------------------------
 
 // ---- wiring ------------------------------------------------------------
 
@@ -3714,7 +3993,7 @@ $('restartmission').onclick = () => {
   const costsDay = restartCostsDay(G.mission) && !storyFail(G.mission);
   closeMission('restart');
   G.wantStart = false; G.offer = null;
-  if (costsDay) endOfJob();
+  if (costsDay) endOfJob(def);
   pause(false); if (!G.summerOver) startMission(def);
 };
 // QA F4: drop a job you do not want. Same close path as a failure: no reward,
@@ -3724,9 +4003,10 @@ $('restartmission').onclick = () => {
 function abandonMission() {
   if (!G.mission) return false;
   const costsDay = restartCostsDay(G.mission) && !storyFail(G.mission);   // B-07, as Restart
+  const def = G.mission.def;
   closeMission('quit');
   G.wantStart = false; G.offer = null;
-  if (costsDay) endOfJob();
+  if (costsDay) endOfJob(def);
   return true;
 }
 $('abandonmission').onclick = () => { abandonMission(); pause(false); };
@@ -3747,7 +4027,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'F5' && (G.mode === 'drive' || G.mode === 'paused')) { e.preventDefault(); if (!e.repeat) quickSave(); }
   // The legend and the language toggle work outside the drive loop too.
   if (!e.repeat && (e.key === '?' || e.key === '/') && (G.mode === 'menu' || G.mode === 'paused')) legend.toggle();
-  // The economy screens (Norm, Volkov, Kijiji, the « CHAR DÉBLOQUÉ » card)
+  // The economy screens (the garage, Volkov, Kijiji, the « CHAR DÉBLOQUÉ » card)
   // close on their own keys and consume them in game/economy.js (releaseSim and
   // the moment handler), so the Escape that closed Kijiji does not also open
   // pause, and E / Space do not leak into take-job or the handbrake (UX P1, P2).
@@ -3766,9 +4046,17 @@ window.addEventListener('pointerdown', () => audio.resume(), { once: true });
 }
 buildMenu();
 applyMenuText();
+// [w6-opening] W2 and W3: the first launch is one key, and the world bakes
+// from here, behind the menu, whichever launch this is.
+{
+  let menuAsked = false;
+  try { menuAsked = new URLSearchParams(location.search).has('menu'); } catch { /* no URL */ }
+  if (!G.settings.storySeen && !hasAnySave() && !menuAsked) armGate();
+}
 installSkin();
-if (MENU_CARS) turntable.start();
+if (MENU_CARS && !gateArmed) turntable.start();
 hud.setVisible(false);
+prebakeWorld();
 // The written content, pulled in once at boot: 300 heckles with their English
 // glosses (assets/text/heckles.json) and six stations' worth of idents, DJ
 // patter, local ads, news stingers and contests (assets/text/radio.json). Both
@@ -3810,7 +4098,7 @@ window.AYLMER = {
     if (Number.isFinite(hour)) { G.dayClock = ((hour % 24 + 24) % 24) / 24 * DAY_NIGHT_CYCLE; setCycleEnv(true); }
     return G.dayClock / DAY_NIGHT_CYCLE * 24;
   },
-  step(dt = STEP) { if (G.mode === 'drive' && !cinema.active) { G.feelFx.update(dt); if (!G.feelFx.holdsSlowmo()) slowmoScale(dt); input.update(dt); handleKeys(); tick(dt); stepEnv(dt); input.endFrame(); } runEconomyPulse(); },
+  step(dt = STEP) { if (G.mode === 'drive' && !cinema.active) { G.feelFx.update(dt); if (!G.feelFx.holdsSlowmo()) slowmoScale(dt); input.update(dt); if (!crashReplayFrame(dt, false)) { handleKeys(); if (!crashReplay.playing) { tick(dt); stepEnv(dt); } } input.endFrame(); } runEconomyPulse(); },   // [w7-crashnight] no tick under a replay
   // A-06: the feel tallies (slow-mo count by kind, the last speed FOV delta)
   // and the wind meters, for tools/qa/feel_a06.mjs.
   feel: () => ({ ...G.feel, slowmo: { ...G.slowmo }, camPunch: G.camPunch, wind: { ...(audio.meters || {}) }, stuck: canReset() }),
@@ -3883,6 +4171,8 @@ window.AYLMER = {
     return envc.hourNow();
   },
   look: lookApi,
+  lightAuto: { watch: lightWatch, prompt: lightPrompt, quiet: lightQuiet },   // W8-LIGHTAUTO: the slow-frame card (cloud checks)
+  advLight,   // W8-LIGHT: AYLMER.advLight() reads the session's « Éclairage avancé » (read only)
   stats() {
     const w = G.world && G.world.stats;
     return w ? { ...w, drawCalls: G.renderer.stats.draws, rendererTris: G.renderer.stats.tris } : null;
@@ -3898,10 +4188,20 @@ window.AYLMER = {
 // installJumps() must run BEFORE buildWorld(), which it does — this is module
 // scope and the world is not built until somebody presses EMBARQUE.
 import { installJumps, JUMPS, resetJumps, AIR } from './game/jumps.js';
-import { installModes, openModes, startCourse, COURSES, MODES } from './game/modes.js';
+import { installModes, openModes, startCourse, COURSES, MODES, restartRun, offerRerun, tickRerun, resumeModeSave } from './game/modes.js';
 import { loadRacingText, TEXT } from './game/racingtext.js';
 installJumps();
 installModes(G, { startMission });
+// ---- [w7-crashnight] (begin) ----
+const crashNight = installCrashNight(G, { startMission }, modesNs);
+Object.assign(window.AYLMER, {
+  crashNight,
+  crashReplay: {
+    stats: () => crashReplay.stats(), offered: () => crashReplay.offered(G),
+    press: () => crashReplay.play(G, { blocked: crashReplayBlocked() }), stop: () => crashReplay.stop(G),
+  },
+});
+// ---- [w7-crashnight] (end) ----
 // The written copy for the races, the jumps and the police radio. Nothing waits
 // on it: every pool has a fallback, so a slow or missing fetch costs flavour and
 // never a frame.
@@ -3911,7 +4211,9 @@ Object.assign(window.AYLMER, {
   openModes: (on = true) => openModes(G, on),
   course: (id) => { const c = COURSES.find((x) => x.id === id); return c ? startCourse(G, c) : false; },
   air: () => G.air,
+  medal: () => replay.lastResult(), ghost: () => ghost.ghostState(), thresholds: (id) => medalThresholds(id),   // [w7-replay]
   resetJumps,
+  shortcuts: () => shortcuts.debug(G),   // [w6-shortcuts] metric bag for the C-06 beat
 });
 // ================================================================ end modes agent
 

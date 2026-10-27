@@ -93,7 +93,7 @@ export function follow(o) {
     const s = Math.max(0, Math.ceil(m.followWait));
     if (G.hud && G.hud.setObjective) {
       G.hud.setObjective(`${o.name} embarque dans ${car}`,
-        `Il part dans ${s} s — place-toi derrière, pis reste collé`);
+        `Il part dans ${s} s. Place-toi derrière, pis reste collé`);
     }
   };
   return {
@@ -143,7 +143,7 @@ export function follow(o) {
         m.target = { x: to.x, z: to.z, r: o.radius || 40 };
         G.routeKey = '';
         if (G.hud && G.hud.setObjective) G.hud.setObjective(st.text, st.sub || '');
-        if (G.hud && G.hud.toast) G.hud.toast(`${o.name.toUpperCase()} PART — colle ${car}!`, 2600, true);
+        if (G.hud && G.hud.toast) G.hud.toast(`${o.name.toUpperCase()} PART! Colle ${car}!`, 2600, true);
         heckle.line(o.name, o.go || 'Envoye!', 2000);
         return null;
       }
@@ -159,9 +159,9 @@ export function follow(o) {
     condition(G, m) { const rv = m._leader; return !!rv && remaining(rv) < 25 && dist(G.veh, rv) < (o.radius || 40); },
     prompt(G, m) {
       const rv = m._leader; if (!rv) return '';
-      if (m.followWait > 0) return `${o.name} embarque dans ${car} — il part dans ${Math.max(0, Math.ceil(m.followWait))} s`;
+      if (m.followWait > 0) return `${o.name} embarque dans ${car}, il part dans ${Math.max(0, Math.ceil(m.followWait))} s`;
       const d = Math.round(dist(G.veh, rv));
-      return remaining(rv) < 25 ? `${o.name} est rendu — rejoins-le` : `${o.name}: ${d} m devant${d > 90 ? ' — pèse!' : ''}`;
+      return remaining(rv) < 25 ? `${o.name} est rendu, rejoins-le` : `${o.name}: ${d} m devant${d > 90 ? '... pèse!' : ''}`;
     },
     onExit(G, m) { removeRival(G, m._leader); m._leader = null; },
   };
@@ -184,7 +184,7 @@ export function loseThem(o) {
       condition(G) { return !G.cops || (G.cops.heat < 0.05 && !G.cops.chasing); },
       prompt(G) {
         const c = G.cops; if (!c) return '';
-        return c.chasing ? `${'★'.repeat(Math.max(1, c.stars))} — y sont dessus` : 'Y te cherchent encore. Reste caché.';
+        return c.chasing ? `${'★'.repeat(Math.max(1, c.stars))} : y sont dessus` : 'Y te cherchent encore. Reste caché.';
       },
       toast: o.lostToast || 'Y t’ont perdu.',
     },
@@ -231,7 +231,7 @@ export function fragile(o) {
     {
       kind: 'load',
       text: o.loadText, sub: o.loadSub || 'Arrête-toi (S) pis E pour charger', hint: o.loadHint || 'Suis la ligne bleue jusqu’au pilier.',
-      at: at(o.from), radius: o.radius || 14, hold: true, holdText: o.holdText || 'E — charger',
+      at: at(o.from), radius: o.radius || 14, hold: true, holdText: o.holdText || 'E : charger',
       toast: o.loadToast,
     },
     {
@@ -265,7 +265,7 @@ export function lift(o) {
     {
       kind: 'pickup',
       text: o.pickText, sub: o.pickSub || 'Arrête-toi (S) pis E', hint: o.pickHint || 'Suis la ligne bleue jusqu’au pilier.',
-      at: at(o.from), radius: o.radius || 14, hold: true, holdText: o.holdText || `E — ${o.who} embarque`,
+      at: at(o.from), radius: o.radius || 14, hold: true, holdText: o.holdText || `E : ${o.who} embarque`,
       passengers: +1, toast: o.pickToast || `${o.who} embarque.`,
     },
     {
@@ -355,7 +355,7 @@ export function raceTo(o) {
     prompt(G, m) {
       const rv = m._rival; if (!rv) return '';
       const you = dist(G.veh, to), him = remaining(rv);
-      return you < him ? `T’es devant — ${Math.round(you)} m` : `${o.name} est devant de ${Math.round(you - him)} m`;
+      return you < him ? `T’es devant de ${Math.round(you)} m` : `${o.name} est devant de ${Math.round(you - him)} m`;
     },
     onExit(G, m) { removeRival(G, m._rival); m._rival = null; },
     money: o.money, toast: o.toast,

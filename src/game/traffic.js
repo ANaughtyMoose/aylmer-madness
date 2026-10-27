@@ -97,6 +97,8 @@ export class Traffic {
     this.nearLog = [];
     this.nearCount = 0;
     this.onNearMiss = null;
+    // [w7-crashnight] C-04: called on every contact as onHit(car, body, closing m/s).
+    this.onHit = null;
 
     // ------------------------------------------------------------ road graph
     // Nodes are OSM node ids, so ways that share an id are joined there.
@@ -650,6 +652,7 @@ export class Traffic {
       c.speed *= 0.5;
       c.horn = 1;
     }
+    if (this.onHit) this.onHit(c, player, closing);   // [w7-crashnight] after the stun block
   }
 
   // Race agent, additive: run one non-player body — an AI rival, a cruiser —

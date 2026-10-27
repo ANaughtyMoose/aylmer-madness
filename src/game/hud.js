@@ -11,6 +11,7 @@ import { jobKind } from './jobready.js';
 import { nearestJob } from './story.js';
 
 const TAU = Math.PI * 2;
+const SEARCH_DASH = [6, 4];   // [w6-escape] the search circle dash, reused
 const DEFAULT_SIZE = MAP_SIZES[0];   // #minimap starts at 200x200 CSS px
 const STATIC_PX = 1400;              // target width of the pre-rendered layer
 // ~0.275 px/m over the ~5.1 km wide clip rectangle.
@@ -328,6 +329,7 @@ export class Hud {
     // A-04: one at a time, 2.5 s at least each. Two slots meant two lines of
     // big white text in the middle of the road on top of a bubble and a prompt.
     this.toasts = new ToastQueue(1, { minMs: TOAST_MIN_MS });
+    this._watchCentre($);
     this.slots = [];
     if (this.elToast && typeof document !== 'undefined' && document.createElement) {
       for (let i = 0; i < 1; i++) {
@@ -347,6 +349,7 @@ export class Hud {
     this._gaugeKmh = -1;
     this._gMax = GAUGE_MAX; this._gRed = 140; this._gTop = 0;
     this._lastMapDraw = 0;
+    this.mapStats = { search: 0 };   // [w6-escape] minimap draws of the search circle
     this.range = DEFAULT_RANGE;
     this.staticMap = this._buildStatic();
     this._gaugeFace = null;
@@ -484,6 +487,23 @@ export class Hud {
     return keep;
   }
 
+  /**
+   * W8-BUGS: the toast and the prompt re-rank the centre the moment they
+   * change; a story bubble (heckle.js) and the tutorial chip (ui.js) did not,
+   * so for up to a frame (100 ms or more on a slow frame) three layers drew at
+   * once (cloud run 27 Oct, curfew start: tuto + story + toast). These two
+   * owners are watched instead: any change re-ranks before the next paint.
+   * Mutations only happen when they change, never per frame.
+   */
+  _watchCentre($) {
+    if (typeof MutationObserver !== 'function') return;
+    const heckles = $('heckles'), tuto = $('tuto');
+    if (!heckles && !tuto) return;
+    this._centreObs = new MutationObserver(() => this.layoutCentre(true));
+    if (heckles) this._centreObs.observe(heckles, { childList: true });
+    if (tuto) this._centreObs.observe(tuto, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });
+  }
+
   setSpeed(kmh) {
     this.layoutCentre();
     this.tickSlots();
@@ -516,7 +536,7 @@ export class Hud {
   }
 
   setCar(name) {
-    if (this.elCar) this.elCar.textContent = name || '—';
+    if (this.elCar) this.elCar.textContent = name || '-';
   }
 
   /**
@@ -530,7 +550,7 @@ export class Hud {
    * game. One slot, one owner at a time, highest rank wins.
    */
   setPrompt(source, text) {
-    if (!this._prompts) this._prompts = { mission: null, repair: null, shop: null };
+    if (!this._prompts) this._prompts = { replay: null, mission: null, repair: null, shop: null };   // [w7-crashnight] replay ranks first
     if (!(source in this._prompts)) return;
     const v = text || null;
     if (this._prompts[source] === v) return;
@@ -542,7 +562,7 @@ export class Hud {
     const el = this.elPrompt;
     if (!el) return;
     const p = this._prompts || {};
-    const best = p.mission || p.repair || p.shop || null;
+    const best = p.replay || p.mission || p.repair || p.shop || null;   // [w7-crashnight]
     if (best === this._promptShown) return;
     this._promptShown = best;
     if (!best) { el.textContent = ''; el.classList.add('hidden'); this.layoutCentre(true); return; }
@@ -866,6 +886,33 @@ export class Hud {
       }
       g.fill();
     };
+    // [w6-escape] C-16: the red search circle, where the cruisers lost sight
+    // of you. Red and dashed, so it never reads as the cyan route; the dash
+    // crawls slowly. Drawn even when the centre is off the edge (the clip).
+    const sc = state.search;
+    if (sc && sc.r > 0) {
+      const dx = sc.x - px, dz = sc.z - pz;
+      g.save();
+      g.beginPath();
+      g.arc(toX(dx, dz), toY(dx, dz), sc.r * s, 0, TAU);
+      g.fillStyle = 'rgba(255,95,77,0.13)';
+      g.fill();
+      g.setLineDash(SEARCH_DASH);
+      g.lineDashOffset = -t * 12;
+      g.strokeStyle = '#ff5f4d'; g.lineWidth = 1.5;
+      g.stroke();
+      g.restore();
+      this.mapStats.search++;
+    }
+    // [w6-escape] hide spots while you are wanted: small hollow squares.
+    const hides = state.hides;
+    if (hides && hides.length) {
+      g.strokeStyle = '#9fd3ff'; g.lineWidth = 1.5;
+      for (let i = 0; i < hides.length; i++) {
+        const dx = hides[i].x - px, dz = hides[i].z - pz;
+        g.strokeRect(toX(dx, dz) - 3, toY(dx, dz) - 3, 6, 6);
+      }
+    }
     blob(state.rivals, C.rival, 2.8);
     blob(state.cops, (t * 5) % 1 < 0.5 ? C.cop : '#ff5f4d', 3.0);
 
@@ -1116,7 +1163,7 @@ export class Hud {
   // under #prompt; it shares the one slot now — see setPrompt().
   setRepairPrompt(text) { this.setPrompt('repair', text); }
 
-  // economy agent: « U — Garage Norm » / « K — Kijiji ». Was #econprompt,
+  // economy agent: « U — garage » / « K — Kijiji ». Was #econprompt,
   // 66 px under #prompt, which is exactly where the tutorial card sits.
   setShopPrompt(text) { this.setPrompt('shop', text); }
 

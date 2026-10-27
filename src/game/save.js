@@ -48,6 +48,7 @@ import { curbSpot, lotSpot } from './parkspots.js';
 import { CARS } from './cars.js';
 import { loadGarage, PROGRESS_KEYS, KEYS } from './store.js';
 import { storageInfo } from './storage-ns.js';
+import { isRetired } from './campaign.js';
 
 export const SAVE_VERSION = 2;
 
@@ -356,12 +357,41 @@ function normalizeMission(raw) {
 const KNOWN_FIELDS = new Set(['version', 'name', 'near', 'doing', 'last', 'savedAt', 'playtime',
   'character', 'carId', 'parked', 'health', 'money', 'progress', 'best', 'unlocks', 'stats',
   'timeOfDay', 'visualHour', 'day', 'fuel', 'target', 'summerOver', 'reached', 'mission', 'slot',
-  'newer', 'corrupt', 'replayPaid', 'dadCalls']);
+  'newer', 'corrupt', 'replayPaid', 'dadCalls', 'bestLegacy']);
+
+// W7-BUGS: a save taken in the middle of a job that has since been cut.
+// « arcsurchauffe » (D31, Tom 13 Oct 2026) blew the Ranger's radiator hose on
+// the Champlain at its stage 1 (restoreDamage to at least HOSE_DAMAGE) and only
+// repaired it when you paid Norm at its last stage (index 7). With no code left,
+// such a save loaded with the job dropped (« Job perdue ») but the hose damage
+// kept: a wrench on the map and a repair bill for a beat that never happened,
+// while the S4-SUMMER calendar already holds the sauna to its own date. The
+// promise in campaign.js is « goes straight on to the sauna », so: the cut job
+// is not carried, and the hose damage it put on the truck comes off. Damage
+// above the hose's own (a crash on top of it) stays. The day is not moved:
+// the wait line and Z (sleep) take the player to the sauna's date.
+export const COURSE_ID_RE = /^(bz|cp)_/;   // [w7-polish] modes.js course ids
+export const RETIRED_HOSE = { id: 'arcsurchauffe', damage: 55, blownAt: 2, paidAt: 7 };
+export function migrateRetiredJob(raw) {
+  if (!raw || typeof raw !== 'object' || !raw.mission || typeof raw.mission !== 'object') return raw;
+  const id = raw.mission.id;
+  if (typeof id !== 'string' || !isRetired(id)) return raw;
+  const out = { ...raw, mission: null, doing: '' };
+  const stage = Math.round(num(raw.mission.stage, 0));
+  if (id === RETIRED_HOSE.id && stage >= RETIRED_HOSE.blownAt && stage <= RETIRED_HOSE.paidAt
+    && raw.health && typeof raw.health === 'object') {
+    const car = typeof raw.carId === 'string' ? raw.carId : 'ranger';
+    const h = raw.health[car];
+    if (typeof h === 'number' && isFinite(h) && h <= RETIRED_HOSE.damage) out.health = { ...raw.health, [car]: 0 };
+  }
+  return out;
+}
 
 // Anything that comes out of localStorage (or out of another agent's hands) is
 // run through this before the game sees it.
 export function normalizeSave(raw, slot = '') {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  raw = migrateRetiredJob(raw);
   const carIds = CARS.map((c) => c.id);
   const parked = {};
   if (raw.parked && typeof raw.parked === 'object') {
@@ -387,6 +417,19 @@ export function normalizeSave(raw, slot = '') {
       const v = raw.best[id];
       if (typeof v === 'number' && isFinite(v) && v >= 0) best[id] = v;
     }
+  }
+  // [w7-polish] Course bests are race time from GO now (missionkit.js
+  // courseTime). A save written before has no `bestLegacy`: its course bests
+  // (bz_*, cp_*) were grid-inclusive, so they move there. They still mean
+  // « won once » (no second purse) and are never compared with a race time.
+  const bestLegacy = {};
+  if (raw.bestLegacy && typeof raw.bestLegacy === 'object') {
+    for (const id of Object.keys(raw.bestLegacy)) {
+      const v = raw.bestLegacy[id];
+      if (typeof v === 'number' && isFinite(v) && v >= 0) bestLegacy[id] = v;
+    }
+  } else {
+    for (const id of Object.keys(best)) if (COURSE_ID_RE.test(id)) { bestLegacy[id] = best[id]; delete best[id]; }
   }
   // The slot says whose summer this is; the blob only gets a say when the slot
   // does not (a hand-built save handed over by another module).
@@ -418,6 +461,7 @@ export function normalizeSave(raw, slot = '') {
     money: num(raw.money, START_MONEY) >= 0 ? num(raw.money, START_MONEY) : START_MONEY,
     progress: Array.isArray(raw.progress) ? raw.progress.filter((v) => typeof v === 'string') : [],
     best,
+    bestLegacy,
     unlocks: raw.unlocks && typeof raw.unlocks === 'object' ? raw.unlocks : null,
     stats: raw.stats && typeof raw.stats === 'object' ? raw.stats : {},
     timeOfDay: typeof raw.timeOfDay === 'string' ? raw.timeOfDay : 'day',
@@ -605,7 +649,10 @@ export function writeSlot(slot, save, opts = {}) {
   }
   // Whatever it said before, what THIS build writes is this build's version.
   clean.version = SAVE_VERSION;
-  const err = putVerified(key, JSON.stringify(clean));
+  const body = JSON.stringify(clean);
+  let err = putVerified(key, body);
+  // [w7-replay] a summer is never lost to a ghost: on quota, ghosts go first.
+  if (err === 'quota' && evictGhostFor(() => !(err = putVerified(key, body)))) err = null;
   if (err) { reportFailure(id, err); return false; }
   if (slotNumber(id) !== 'auto') writeRaw(LAST_KEY, id);
   requestPersistence();
@@ -635,6 +682,8 @@ export function wipeKeys() {
   for (const s of SLOTS) keys.push(slotKey(s), slotKey(s) + CORRUPT_SUFFIX, slotKey(s) + V1_BACKUP_SUFFIX);
   for (const n of SLOT_NUMBERS) keys.push(KEY_PREFIX + n);
   keys.push(...PROGRESS_KEYS);
+  // [w7-replay] records and ghosts go with everything else.
+  keys.push(RECORDS_KEY, RECORDS_KEY + '.corrupt', GHOSTS_INDEX_KEY, ...ghostKeysInStore());
   return keys;
 }
 export function deleteAllSaves() {
@@ -657,6 +706,255 @@ export function undoWipe() {
   wipeBackup = null;
   savingBlocked = false;
   return ok;
+}
+
+// ---- records and ghosts ([w7-replay], spec C-02b)
+//
+//   aylmer.records          { v: 1, rows: { [id]: Row } }
+//   aylmer.records.corrupt  the bytes of a records blob that would not parse
+//   aylmer.ghosts           { v: 1, rows: { [id]: { chars, t, at, used } } }
+//   aylmer.ghost.<id>       one ghost: JSON header plus base64 Float32 frames
+//
+// Browser-wide, beside the slots, not inside them: the next person on the
+// couch races your time. Each row says which playable character and which car
+// set it; no free text is ever stored. Ids: a course id as is (bz_vieux), a
+// story stage as stage:<job>:<n>-<of>, sub-records with a colon.
+// Row: { t, better, by, car, at, top: [{ t, by, car, at }] }, top best first.
+export const RECORDS_KEY = 'aylmer.records';
+export const RECORD_TOP = 5;
+export const RECORD_ROWS_MAX = 200;
+export const RECORD_ID_RE = /^[a-z0-9][a-z0-9_.:-]{0,63}$/i;
+const LEGACY_MODES_KEY = 'aylmer.modes';
+const CAR_IDS = new Set(CARS.map((c) => c.id));
+const betterThan = (a, b, better) => (better === 'higher' ? a > b : a < b);
+const warnedFlip = new Set();
+
+function readRecords() {
+  const raw = readRaw(RECORDS_KEY);
+  if (raw === null) return { all: { v: 1, rows: {} }, raw, bad: false };
+  try {
+    const all = JSON.parse(raw);
+    if (all && typeof all === 'object' && all.rows && typeof all.rows === 'object') return { all, raw, bad: false };
+  } catch { /* fall through */ }
+  return { all: { v: 1, rows: {} }, raw, bad: true };
+}
+function legacyRow(id) {
+  try {
+    const old = JSON.parse(readRaw(LEGACY_MODES_KEY) || '{}');
+    const t = old && old[id];
+    if (typeof t === 'number' && isFinite(t) && t >= 0) {
+      return { t, better: 'lower', by: '', car: '', at: 0, legacy: true, top: [{ t, by: '', car: '', at: 0 }] };
+    }
+  } catch { /* no legacy table */ }
+  return null;
+}
+const copyRow = (r) => (r ? { ...r, top: (r.top || []).map((x) => ({ ...x })) } : null);
+
+/** The record for an id (a copy), or null. Folds in the old aylmer.modes best. */
+export function loadRecord(id) {
+  if (!RECORD_ID_RE.test(String(id || ''))) return null;
+  const { all } = readRecords();
+  return copyRow(all.rows[id] || legacyRow(id));
+}
+/** Every record whose id starts with prefix, sorted by id. */
+export function listRecords(prefix = '') {
+  const { all } = readRecords();
+  return Object.keys(all.rows).filter((k) => k.startsWith(prefix)).sort()
+    .map((k) => ({ id: k, ...copyRow(all.rows[k]) }));
+}
+/**
+ * Put one run on the table. -> { ok, isNew, record, prev, rank, reason }
+ * isNew: strictly better than the stored best (a tie is not a record).
+ */
+export function saveRecord(id, value, info = {}) {
+  if (!RECORD_ID_RE.test(String(id || ''))) return { ok: false, reason: 'id' };
+  if (typeof value !== 'number' || !isFinite(value) || value < 0) return { ok: false, reason: 'value' };
+  if (savingBlocked) return { ok: false, reason: 'wiped' };
+  const t = Math.round(value * 1000) / 1000;
+  const { all, raw, bad } = readRecords();
+  let row = all.rows[id] || legacyRow(id);
+  const better0 = info.better === 'higher' ? 'higher' : 'lower';
+  if (row && row.better !== better0 && !warnedFlip.has(id)) {
+    warnedFlip.add(id);
+    console.warn(`records: ${id} keeps '${row.better}'`);
+  }
+  const better = row ? row.better : better0;
+  const by = CHARACTER_IDS.includes(info.by) ? info.by : '';
+  const car = CAR_IDS.has(info.car) ? info.car : '';
+  const at = Date.now();
+  const prev = row ? row.t : null;
+  const isNew = prev == null || betterThan(t, prev, better);
+  const top = row ? row.top.slice() : [];
+  let rank = top.findIndex((x) => betterThan(t, x.t, better));
+  if (rank < 0) rank = top.length;
+  top.splice(rank, 0, { t, by, car, at });
+  top.length = Math.min(top.length, RECORD_TOP);
+  if (rank >= RECORD_TOP) rank = -1;
+  row = { t: top[0].t, better, by: top[0].by, car: top[0].car, at, top };
+  if (!all.rows[id]) {
+    const ids = Object.keys(all.rows);
+    if (ids.length >= RECORD_ROWS_MAX) {
+      const oldest = ids.reduce((a, b) => ((all.rows[a].at || 0) <= (all.rows[b].at || 0) ? a : b));
+      delete all.rows[oldest];
+    }
+  }
+  all.rows[id] = row;
+  if (bad && raw !== null && putVerified(RECORDS_KEY + '.corrupt', raw)) {
+    reportFailure('records', 'corrupt');
+    return { ok: false, reason: 'corrupt' };
+  }
+  const err = putVerified(RECORDS_KEY, JSON.stringify(all));
+  if (err) { reportFailure('records', err); return { ok: false, reason: err }; }
+  return { ok: true, isNew, record: copyRow(row), prev, rank, reason: null };
+}
+
+export const GHOST_KEY_PREFIX = 'aylmer.ghost.';
+export const GHOSTS_INDEX_KEY = 'aylmer.ghosts';
+export const GHOST_MAX_BYTES = 262144;
+export const GHOST_BUDGET_CHARS = 1200000;
+export const GHOST_MAX_COUNT = 12;
+const BIG_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 0;
+
+function swap4(u8) {
+  for (let i = 0; i + 3 < u8.length; i += 4) {
+    let a = u8[i]; u8[i] = u8[i + 3]; u8[i + 3] = a;
+    a = u8[i + 1]; u8[i + 1] = u8[i + 2]; u8[i + 2] = a;
+  }
+}
+function encodeF32(frames) {
+  const f = frames instanceof Float32Array ? frames : Float32Array.from(frames);
+  const u8 = new Uint8Array(f.buffer.slice(f.byteOffset, f.byteOffset + f.byteLength));
+  if (BIG_ENDIAN) swap4(u8);
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function decodeF32(b64) {
+  const bin = atob(b64);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  if (BIG_ENDIAN) swap4(u8);
+  return new Float32Array(u8.buffer, 0, u8.length >> 2);
+}
+function ghostKeysInStore() {
+  const s = store();
+  const out = [];
+  if (!s) return out;
+  try { for (let i = 0; i < s.length; i++) { const k = s.key(i); if (k && k.startsWith(GHOST_KEY_PREFIX)) out.push(k); } } catch { /* no key() */ }
+  return out;
+}
+let ghostUsed = 0;
+function readGhostIndex() {
+  let idx = null;
+  try { idx = JSON.parse(readRaw(GHOSTS_INDEX_KEY) || 'null'); } catch { idx = null; }
+  if (!idx || typeof idx !== 'object' || !idx.rows) idx = { v: 1, rows: {} };
+  // Repair: an index row with no ghost goes; a ghost with no row comes back.
+  for (const id of Object.keys(idx.rows)) if (readRaw(GHOST_KEY_PREFIX + id) === null) delete idx.rows[id];
+  for (const k of ghostKeysInStore()) {
+    const id = k.slice(GHOST_KEY_PREFIX.length);
+    if (!idx.rows[id]) {
+      const raw = readRaw(k) || '';
+      let t = 0; try { t = JSON.parse(raw).t || 0; } catch { /* kept, evicted first */ }
+      idx.rows[id] = { chars: raw.length, t, at: 0, used: 0 };
+    }
+  }
+  for (const r of Object.values(idx.rows)) if (r.used > ghostUsed) ghostUsed = r.used;
+  return idx;
+}
+const nextUsed = () => (ghostUsed = Math.max(Date.now(), ghostUsed + 1));
+const writeGhostIndex = (idx) => putVerified(GHOSTS_INDEX_KEY, JSON.stringify(idx));
+function evictOldestGhost(idx, keep) {
+  let victim = null;
+  for (const [id, r] of Object.entries(idx.rows)) {
+    if (id === keep) continue;
+    if (!victim || r.used < idx.rows[victim].used) victim = id;
+  }
+  if (!victim) return false;
+  removeRaw(GHOST_KEY_PREFIX + victim);
+  delete idx.rows[victim];
+  return true;
+}
+/** A slot write hit the quota: free room by dropping the least used ghosts. */
+function evictGhostFor(retry) {
+  const idx = readGhostIndex();
+  while (Object.keys(idx.rows).length) {
+    evictOldestGhost(idx, null);
+    writeGhostIndex(idx);
+    if (retry()) return true;
+  }
+  return false;
+}
+
+/** Store a ghost run. -> { ok, reason, chars } */
+export function saveGhost(id, ghost, opts = {}) {
+  if (!RECORD_ID_RE.test(String(id || ''))) return { ok: false, reason: 'id' };
+  const g = ghost || {};
+  const fr = g.frames;
+  const hz = g.hz, stride = g.stride;
+  if (!(hz >= 1 && hz <= 120) || !Number.isInteger(stride) || stride < 1 || stride > 16
+    || !fr || !(fr.length > 0) || fr.length % stride !== 0
+    || typeof g.t !== 'number' || !isFinite(g.t) || g.t < 0) return { ok: false, reason: 'shape' };
+  for (let i = 0; i < fr.length; i++) if (!isFinite(fr[i])) return { ok: false, reason: 'shape' };
+  if (fr.length * 4 > GHOST_MAX_BYTES) return { ok: false, reason: 'size' };
+  if (savingBlocked) return { ok: false, reason: 'wiped' };
+  const better = opts.better === 'higher' ? 'higher' : 'lower';
+  const idx = readGhostIndex();
+  const old = idx.rows[id];
+  if (old && !opts.force && !betterThan(g.t, old.t, better)) return { ok: false, reason: 'slower' };
+  let meta = {};
+  try {
+    const mj = JSON.stringify(g.meta || {});
+    const scalars = g.meta && Object.values(g.meta).every((v) => v === null || ['number', 'string', 'boolean'].includes(typeof v));
+    if (mj.length <= 1024 && scalars) meta = g.meta;
+  } catch { meta = {}; }
+  const at = Date.now();
+  const blob = JSON.stringify({ v: 1, le: 1, hz, stride, n: fr.length / stride, t: g.t,
+    car: CAR_IDS.has(g.car) ? g.car : '', by: CHARACTER_IDS.includes(g.by) ? g.by : '', at, meta, b64: encodeF32(fr) });
+  const chars = blob.length;
+  delete idx.rows[id];
+  const total = () => Object.values(idx.rows).reduce((a, r) => a + (r.chars || 0), 0);
+  while ((Object.keys(idx.rows).length >= GHOST_MAX_COUNT || total() + chars > GHOST_BUDGET_CHARS)
+    && evictOldestGhost(idx, id)) { /* evicted one */ }
+  let err = putVerified(GHOST_KEY_PREFIX + id, blob);
+  while (err === 'quota' && evictOldestGhost(idx, id)) { writeGhostIndex(idx); err = putVerified(GHOST_KEY_PREFIX + id, blob); }
+  if (err) {
+    // A throwing setItem left the old ghost in place: keep its row.
+    if (old && err === 'quota') idx.rows[id] = old; else removeRaw(GHOST_KEY_PREFIX + id);
+    writeGhostIndex(idx);
+    return { ok: false, reason: err, chars };
+  }
+  idx.rows[id] = { chars, t: g.t, at, used: nextUsed() };
+  writeGhostIndex(idx);
+  return { ok: true, reason: null, chars };
+}
+/** -> { id, hz, stride, frames: Float32Array, t, car, by, at, meta } | null */
+export function loadGhost(id) {
+  if (!RECORD_ID_RE.test(String(id || ''))) return null;
+  const raw = readRaw(GHOST_KEY_PREFIX + id);
+  if (raw === null) return null;
+  let h;
+  try { h = JSON.parse(raw); } catch { return null; }
+  if (!h || typeof h.b64 !== 'string') return null;
+  let frames;
+  try { frames = decodeF32(h.b64); } catch { return null; }
+  if (!savingBlocked) {
+    const idx = readGhostIndex();
+    if (idx.rows[id]) { idx.rows[id].used = nextUsed(); writeGhostIndex(idx); }
+  }
+  return { id, hz: h.hz, stride: h.stride, frames, t: h.t, car: h.car || '', by: h.by || '', at: h.at || 0, meta: h.meta || {} };
+}
+export function deleteGhost(id) {
+  if (readRaw(GHOST_KEY_PREFIX + id) === null) return false;
+  removeRaw(GHOST_KEY_PREFIX + id);
+  const idx = readGhostIndex();
+  delete idx.rows[id];
+  writeGhostIndex(idx);
+  return true;
+}
+export function ghostStats() {
+  const idx = readGhostIndex();
+  const rows = Object.values(idx.rows);
+  return { count: rows.length, chars: rows.reduce((a, r) => a + (r.chars || 0), 0), budget: GHOST_BUDGET_CHARS };
 }
 
 export function hasAnySave() { return SLOTS.some((s) => readRaw(slotKey(s)) !== null); }
@@ -774,6 +1072,11 @@ export function snapshot(G, opts = {}) {
   if (v) parked[G.carId] = { x: v.x, z: v.z, yaw: v.yaw };
   const health = { ...(G.health || {}) };
   if (v && typeof v.damage === 'number') health[G.carId] = clamp01(v.damage);
+  // [w7-polish] Crash Night's wrecks are the mode's, not the car's: its cleanup
+  // puts the pre-night damage back, so a save taken mid-night keeps that one
+  // (the load lands free roaming, modes.js resumeModeSave).
+  const night = G.crashNight;
+  if (v && night && typeof night.savedDamage === 'number' && isFinite(night.savedDamage)) health[G.carId] = clamp01(night.savedDamage);
   let unlocks = null;
   try { unlocks = G.garage?.serialize?.() ?? null; } catch { unlocks = null; }
   return normalizeSave({
@@ -798,6 +1101,7 @@ export function snapshot(G, opts = {}) {
     money: G.wallet ? G.wallet.value : START_MONEY,
     progress: [...(G.done || [])],
     best: { ...(G.best || {}) },
+    bestLegacy: { ...(G.bestLegacy || {}) },   // [w7-polish] always written: marks the save as race-clock
     unlocks,
     stats: { ...(G.stats || {}) },
     timeOfDay: G.envKey || 'day',
@@ -968,7 +1272,7 @@ export function fmtPlaytime(seconds) {
 
 export function fmtWhen(iso, lang = 'fr') {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) return '-';
   const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
     + (lang === 'en' ? '' : '');
@@ -976,5 +1280,5 @@ export function fmtWhen(iso, lang = 'fr') {
 
 export function carName(id) {
   const c = CARS.find((x) => x.id === id);
-  return c ? c.name : id || '—';
+  return c ? c.name : id || '-';
 }

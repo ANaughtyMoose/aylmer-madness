@@ -10,7 +10,7 @@
 // Not built from the V3-06 spec (left for later): the vertex-placed mast and
 // tree streaks (D3) and the shore band with tea-brown shallows (D4).
 import { isOn, onChange } from '../../game/look/flags.js';
-import { REFLECT_GLSL } from './reflect.js';
+import { REFLECT_GLSL, REFLECT_GLSL_CLASSIC } from './reflect.js';
 
 // All tuning, interpolated into the GLSL below.
 export const WATER = {
@@ -56,7 +56,10 @@ vec3 waterVertex(vec3 p) {
 }
 `;
 
-export const GLSL = REFLECT_GLSL + `
+// W8-LIGHT: « Éclairage avancé » off (the default) assembles fix/look-on-qr's
+// water, verbatim; on, the linear-light return below (lightMode).
+const W8_LIN = `  if (linearDraw()) { gReflRad += refl * F + uSunSkyLin * g; return body * (1.0 - F); }   // wave 7: after the light (reflect.js)\n`;
+const waterGlsl = (ADV) => (ADV ? REFLECT_GLSL : REFLECT_GLSL_CLASSIC) + `
 // Two crossed ripple trains at different speeds: enough to break the flat slab
 // of river without a normal map or a second pass. (The look before water2.)
 vec3 waterAlbedoV0(vec3 base) {
@@ -96,6 +99,9 @@ vec3 waterAlbedo(vec3 base) {
   vec3 ng = normalize(vNor);
   vec3 la = max(ambientLight(ng) + uSun * sunLambert(ng), vec3(0.02));
   vec3 body = mix(base, ${v3(WATER.BODY)}, ${f(WATER.BODY_MIX)}) * (1.0 + 0.03 * sl.x);
-  return body * (1.0 - F) + (refl * F + uSunSky * g) / la;
+${ADV ? W8_LIN : ''}  return body * (1.0 - F) + (refl * F + uSunSky * g) / la;
 }
 `;
+export let GLSL = waterGlsl(false);
+const ADV_GLSL = waterGlsl(true), CLASSIC_GLSL = GLSL;
+export function lightMode(adv) { GLSL = adv ? ADV_GLSL : CLASSIC_GLSL; }

@@ -115,7 +115,7 @@ export function tickFuel(G, dt, v, throttle, atPump) {
   else if (G.fuelT < 0) G.fuelT = Math.min(0, G.fuelT + dt);
 
   if (G.fuel <= 0) {
-    if (G.hud && !G.dryToasted) { G.dryToasted = true; G.hud.toast('Panne sèche.\nT — un gars te vend un bidon (5 L, 10 $).', 3600); }
+    if (G.hud && !G.dryToasted) { G.dryToasted = true; G.hud.toast('Panne sèche.\nT : un gars te vend un bidon (5 L, 10 $).', 3600); }
     return Object.assign(Object.create(v.spec), { accel: 0, dry: true });   // cars.js: the gearbox gets no pedal
   }
   G.dryToasted = false;

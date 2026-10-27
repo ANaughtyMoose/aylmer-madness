@@ -1,7 +1,7 @@
 {
   "mechanic": {
-    "name": "Normand 'Norm' Lafleur",
-    "persona": "A 52-year-old chain-smoking Aylmer mechanic who runs Garage Lafleur on Chemin d'Aylmer. Wears grease-stained blue overalls, keeps an unlit Export 'A' behind his ear, and talks with dry, gravelly sarcasm. He thinks your Ranger is a rolling death trap, but he secretly likes you because you don't complain when he uses secondhand parts from the scrapyard.",
+    "name": "Le garagiste",
+    "persona": "The town mechanic, never named (D32: no invented people). He talks with dry, gravelly sarcasm. He thinks your Ranger is a rolling death trap, but he secretly likes you because you don't complain when he uses secondhand parts from the scrapyard.",
     "greetings": [
       "Qu'est-ce que t'as encore pété su' ton tas de ferraille?",
       "Éteins ton moteur avant qui saute dans ma cour.",
@@ -105,7 +105,7 @@
     {
       "car": "Toyota 4Runner SR5", "year": 1985, "owner": "Oncle Marcel",
       "legend": "A first-generation rust-speckled red 4Runner with the removable fiberglass rear canopy and bulletproof 22RE engine. It has successfully pulled twelve stranded cars out of the Ottawa River spring mud and survived three roll-overs in the gravel pit without bending the frame. Locals swear it can run on old heating oil and has never once been stuck in an Aylmer snowbank or swamp.",
-      "howToEarn": "Complete twenty heavy utility hauling missions and pull three broken down rivals back to Norm's garage."
+      "howToEarn": "Complete twenty heavy utility hauling missions and pull three broken down rivals back to the garage."
     },
     {
       "car": "Dodge Omni GLH Turbo", "year": 1986, "owner": "Éric 'Le Rat' Lévesque",

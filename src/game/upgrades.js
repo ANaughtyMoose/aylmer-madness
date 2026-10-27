@@ -97,7 +97,7 @@ export const PARTS = [
   },
 ];
 
-// Work Norm will do that the driving model has nothing to say about. Printed on
+// Work the garagiste will do that the driving model has nothing to say about. Printed on
 // the wall of the shop rather than sold, because selling a customer a trailer
 // hitch that changes no number in the game would be a lie with a price on it.
 export const BOARD = [
@@ -155,7 +155,7 @@ export const PAINT = [
   { hex: 0x1b1c1f, name: 'Noir mat' },
   { hex: 0xc8a03c, name: 'Or 1979' },
   { hex: 0x7a4a1e, name: 'Brun catalogue' },
-  { hex: 0x9d3f8f, name: 'Mauve — c’est ton char' },
+  { hex: 0x9d3f8f, name: 'Mauve : c’est ton char' },
 ];
 
 // ---------------------------------------------------------------- the layer
@@ -432,20 +432,19 @@ export function fit(spec, mods, partId, wallet) {
   return { ...r, level: r.level + 1 };
 }
 
-// ---------------------------------------------------------------- Norm
+// ---------------------------------------------------------------- the garagiste
 
-// Normand « Norm » Lafleur, 52 ans, Garage Norm Lafleur & Fils on chemin
-// d'Aylmer — the sons have not spoken to him since 1996 but the plywood sign is
-// still up. Grease-stained blue overalls, an unlit Export « A » behind the ear.
-// He thinks the Ranger is a rolling death trap and he likes you anyway, because
-// you have never once complained about a part that came out of the scrapyard.
+// « Le garagiste »: the town mechanic, never named. He was Norm Lafleur until
+// 27 Oct 2026; D32 (Tom, 13 Oct) cuts every invented person, so he keeps the
+// job and loses the name, the age and the family. The export is still NORM so
+// nothing that imports it has to change, and no save ever stored his name.
 //
 // The lines live in assets/text/mechanic.json. What is below is the fallback —
 // enough of him to run the shop with the file missing, not a second copy of it.
 export const MECHANIC_URL = 'assets/text/mechanic.json';
 export const NORM = {
-  name: 'Normand « Norm » Lafleur',
-  shop: 'Garage Norm Lafleur & Fils',
+  name: 'Le garagiste',
+  shop: 'Le garage',
   greetings: [
     'Qu’est-ce que t’as encore pété su’ ton tas de ferraille?',
     'Éteins ton moteur avant qui saute dans ma cour.',
@@ -481,7 +480,7 @@ const WORK_TAG = {
 let mechLoaded = null;
 /**
  * Merge assets/text/mechanic.json over the fallback. Idempotent, and it never
- * rejects: with no file, no fetch and no network, Norm still talks.
+ * rejects: with no file, no fetch and no network, the garagiste still talks.
  */
 export function loadMechanic(fetchFn) {
   if (mechLoaded) return mechLoaded;
@@ -519,7 +518,7 @@ function pick(list, seed) {
 }
 
 /**
- * Something for Norm to say. `kind` is 'greetings' | 'broke' | 'wrecked', or
+ * Something for the garagiste to say. `kind` is 'greetings' | 'broke' | 'wrecked', or
  * 'work' with a PARTS id in `partId` — in which case only the lines the writers
  * tagged for that part are in the running.
  */
@@ -564,7 +563,7 @@ export const GRISHA = {
   // word he means, which is exactly the register this character is written in.
   done: [
     'Ёшкин кот! Trente-deux boulons cassés dans l’aile. TRENTE-DEUX. Prends tes clés.',
-    'Fini. J’ai tout sorti, tout décapé, tout remonté. Elle fume encore un peu — c’est un diesel, pas une théière.',
+    'Fini. J’ai tout sorti, tout décapé, tout remonté. Elle fume encore un peu... c’est un diesel, pas une théière.',
     'Ёлки-палки, quel char. Ils faisaient ça pour durer cent ans pis le monde les laisse dehors.',
   ],
   broke: [
@@ -573,7 +572,7 @@ export const GRISHA = {
   ],
   // Anything that is not worth taking apart, which is everything else in town.
   refuse: [
-    'Зараза… Non. Ça, c’est de la tôle de canne de soupe. Va voir Norm.',
+    'Зараза… Non. Ça, c’est de la tôle de canne de soupe. Va voir le garagiste.',
     'Je touche pas à ça. Ramène-moi quelque chose qu’un homme a dessiné.',
   ],
 };

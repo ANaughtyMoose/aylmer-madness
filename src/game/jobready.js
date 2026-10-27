@@ -35,7 +35,7 @@ export const PATCH_ABOVE = 25;
 // arena, the marina) gets the impersonal line.
 const WHO = {
   sayyad: 'Sayyad', mike: 'Mike', margaret: 'Margaret', adam: 'Adam',
-  zahra: 'Zahra', russell: 'Russell', abraham: 'Abraham', robin: 'Robin', norm: 'Norm',
+  zahra: 'Zahra', russell: 'Russell', abraham: 'Abraham', robin: 'Robin', norm: 'Le garagiste',
 };
 
 /** The one line: HUD French, the giver named only when it is a friend. */

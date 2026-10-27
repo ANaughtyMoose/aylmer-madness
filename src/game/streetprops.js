@@ -338,7 +338,7 @@ export function buildStreetProps(renderer, world) {
   }
 
   const ms = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) | 0;
-  console.log(`streetprops: ${items.length} props in ${chunks.length} chunks, ${tris | 0} tris — ${ms} ms`);
+  console.log(`streetprops: ${items.length} props in ${chunks.length} chunks, ${tris | 0} tris, ${ms} ms`);
 
   return {
     items, chunks, meshes: kindMesh, query, knock, draw, stats,

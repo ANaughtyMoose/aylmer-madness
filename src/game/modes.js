@@ -22,8 +22,11 @@ import { placementReason, roadSpot } from './tow.js';
 // main.js is one hook block: installModes(G, { startMission }).
 import { PLACES } from './places.js';
 import { setModal } from './ui.js';
+// [w7-replay] medals and records (both outside the race.js cycle).
+import { thresholdsFor, clockText, runText, TARGET_NAMES, medalFor } from './medals.js';
+import * as save from './save.js';
 import { raceMission, raceStages, endRace } from './racejobs.js';
-import { scaledPay, runPay } from './missionkit.js';
+import { scaledPay, runPay, courseTime, yieldsToMode } from './missionkit.js';
 // The written copy: course names by index into assets/text/racing.json, plus the
 // rivals' taunts. See racingtext.js — a name is a fallback, never a blank.
 import { writtenName, taunt, line as textLine } from './racingtext.js';
@@ -196,7 +199,7 @@ export const BLITZ = [
       'dep',
       // The finish ring is where it always was (r = 18), moved 9.5 m onto
       // Bancroft so its pillar stands on the road and not in the house.
-      { x: -867.6, z: -103, label: 'rue Principale — l’arrivée' },
+      { x: -867.6, z: -103, label: 'rue Principale : l’arrivée' },
     ],
     // Pace car: 1:59. Budget 2:40.
     clock: 40, bonus: 20, money: 30, timeOfDay: 'morning',
@@ -221,7 +224,7 @@ export const BLITZ = [
     // On Principale just east of Bancroft, facing west.
     start: { x: -845, z: -91.1, a: -1.483 },
     cps: ['symmes', 'marina', 'beach', { x: -1719, z: -1012, label: 'chemin Eardley' },
-      'church', { x: -845, z: -91.1, label: 'rue Principale — l’arrivée' }],
+      'church', { x: -845, z: -91.1, label: 'rue Principale : l’arrivée' }],
     // Pace car: 3:48. Budget 5:03.
     clock: 45, bonus: 43, money: 40, timeOfDay: 'dusk',
   },
@@ -250,7 +253,7 @@ export const BLITZ = [
 export const CHECKPOINT = [
   {
     id: 'cp_ruelles', name: 'Les ruelles du Vieux',
-    blurb: 'Cinq points dans le vieux village. Prends le chemin que tu veux — eux autres suivent les rues.',
+    blurb: 'Cinq points dans le vieux village. Prends le chemin que tu veux, eux autres suivent les rues.',
     where: 'Paroisse Saint-Paul',
     // Short and dense: the rivals will take the road graph between the gates,
     // and the road graph is not the shortest way across the 1830s grid.
@@ -263,8 +266,9 @@ export const CHECKPOINT = [
     // s.0): Sayyad takes her slot in his Civic. The « margaret » entry in
     // race.js SKILL is only a pace profile, kept so the grid is as hard as it
     // was (the same trick racejobs.js uses).
+    // [w6-canon] D32: Kevin Boucher (invented) is off this grid; Adam takes it.
     rivals: [
-      ...grid('boucherk'),
+      { carId: 'sunfire', name: 'Adam', skill: 'dave' },
       { carId: 'civic', name: 'Sayyad', skill: 'margaret' },
     ],
   },
@@ -296,7 +300,8 @@ export const CHECKPOINT = [
     // Eight kilometres of open tertiary road is where Big Dan's V8 momentum
     // finally has somewhere to go.
     rivals: [
-      ...grid('beaulieu'),
+      // [w6-canon] D32: Big Dan Beaulieu (invented) is off this grid.
+      ...grid('sayyad'),
       { carId: 'sunfire', name: 'Adam', skill: 'dave' },
     ],
   },
@@ -335,7 +340,7 @@ export function saveModeBest(id, secs) {
   return secs;
 }
 export const fmtTime = (s) =>
-  s == null ? '—' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  s == null ? '-' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 // ---------------------------------------------------------------- the purse
 
@@ -385,11 +390,11 @@ export function courseMission(course, kind = course.kind) {
     clock: blitz ? course.clock : undefined,
     bonus: blitz ? course.bonus : undefined,
 
-    gridText: `${name} — sur la ligne`,
+    gridText: `${name} : sur la ligne`,
     gridSub: blitz
-      ? `E pour partir le chrono — ${course.clock} secondes au départ, pis +${course.bonus} à chaque checkpoint`
-      : 'E quand t’es prêt — pas de ligne bleue dans cette course-là, le chemin c’est ton affaire',
-    gridHold: blitz ? 'E — partir le chrono' : 'E — on part',
+      ? `E pour partir le chrono : ${course.clock} secondes au départ, pis +${course.bonus} à chaque checkpoint`
+      : 'E quand t’es prêt. Pas de ligne bleue dans cette course-là, le chemin c’est ton affaire',
+    gridHold: blitz ? 'E : partir le chrono' : 'E : on part',
     // The grid is where somebody says something. A blitz has nobody in it, so
     // it gets the mode's own line; a checkpoint race gets whoever showed up.
     gridToast: blitz
@@ -398,18 +403,18 @@ export function courseMission(course, kind = course.kind) {
     intro: 'Trois. Deux. Un.',
     text: name,
     sub: blitz
-      ? 'W à fond, le GPS trace la ligne bleue jusqu’au prochain pilier — chaque checkpoint te redonne du temps'
-      : 'W à fond — le pilier jaune te dit OÙ, pas COMMENT. Les ruelles, les stationnements pis les rampes comptent',
+      ? 'W à fond, le GPS trace la ligne bleue jusqu’au prochain pilier. Chaque checkpoint te redonne du temps'
+      : 'W à fond. Le pilier jaune te dit OÙ, pas COMMENT. Les ruelles, les stationnements pis les rampes comptent',
     hint: blitz
       ? 'Suis la ligne bleue. Espace dans les courbes serrées, pis lâche pas le pied entre les checkpoints.'
-      : 'Tab ouvre la grande carte: le prochain checkpoint est dessus. Coupe par où tu veux — eux autres suivent les rues.',
+      : 'Tab ouvre la grande carte: le prochain checkpoint est dessus. Coupe par où tu veux, eux autres suivent les rues.',
     clockFail: 'Le chrono est à zéro. Le blitz est fini.',
     // A function: racejobs.js calls it at the finish line, when the purse is
     // known. The full purse is a first win; after that only a new best pays.
     win: (G, m) => { const purse = purseLine(G, m, course); return blitz
-      ? `${name.toUpperCase()} — FINI.\nT’as battu le chrono.\n${purse}`
+      ? `${name.toUpperCase()} : FINI.\nT’as battu le chrono.\n${purse}`
       // Beaten rivals make excuses, and the written ones are very good excuses.
-      : [`${name.toUpperCase()} — PREMIER.`, purse,
+      : [`${name.toUpperCase()} : PREMIER.`, purse,
         // The roster says what each of them does when they lose. It is the best
         // half of the writing and it belongs on the screen you see least often.
         lead && lead.rival ? rivalWhenLosing(rival(lead.rival)) : '',
@@ -433,9 +438,11 @@ export function courseMission(course, kind = course.kind) {
     // "x/y jobs faites" count keeps telling the truth, and keep the time here.
     if (G.done && G.done.has(course.id)) {
       G.done.delete(course.id);
-      if (m && m.elapsed > 0) {
-        const best = saveModeBest(course.id, m.elapsed);
-        if (G.hud && best === m.elapsed) G.hud.toast(`MEILLEUR TEMPS — ${fmtTime(m.elapsed)}`, 2400);
+      const t = courseTime(m);   // [w7-polish] race time from GO, the medals' clock
+      if (t > 0) {
+        const best = saveModeBest(course.id, t);
+        // [w7-replay] the medal line already says « Nouveau record ».
+        if (G.hud && best === t && !m.medal) G.hud.toast(`MEILLEUR TEMPS : ${fmtTime(t)}`, 2400);
       }
     }
   };
@@ -458,7 +465,7 @@ export function missionFor(course) {
 export const MODES = [
   {
     id: 'cruise', name: 'Cruise', fr: 'Balade',
-    blurb: 'Pas de chrono, pas de barrières. Les jobs de la gang sont là-dedans — roule jusqu’à un pilier jaune pis appuie sur ⏎.',
+    blurb: 'Pas de chrono, pas de barrières. Les jobs de la gang sont là-dedans : roule jusqu’à un pilier jaune pis appuie sur ⏎.',
   },
   {
     id: 'blitz', name: 'Blitz', fr: 'Blitz',
@@ -469,6 +476,19 @@ export const MODES = [
     blurb: 'Des checkpoints éparpillés pis des chums qui courent contre toi. Pas de ligne bleue: le chemin, c’est à toi de le trouver.',
   },
 ];
+
+// [w7-crashnight] a mode from outside this file (Crash Night): a tab in the
+// picker with one row, started by its own desc.start(G). Registered once.
+const EXTRA = new Map();
+export function registerMode(desc) {
+  // A built-in tab (checkpoint, blitz...) is never added twice: shortcuts.js
+  // calls this for C-02a's gate registry, which is not this one.
+  if (!desc || !desc.id || EXTRA.has(desc.id) || MODES.some((m) => m.id === desc.id)) return false;
+  EXTRA.set(desc.id, desc);
+  MODES.push({ id: desc.id, name: desc.name, fr: desc.fr, blurb: desc.blurb });
+  return true;
+}
+export const extraMode = (id) => EXTRA.get(id) || null;
 
 // ---------------------------------------------------------------- the picker
 
@@ -498,6 +518,10 @@ const CSS = `
 #modepick .foot{margin-top:14px;color:#7f8f9c;font-size:11.5px;display:flex;gap:16px}
 #modepick .foot b{color:#c9d6e0}
 #modepick .c.off{opacity:.42;cursor:default}
+#modepick .tg{display:inline-block;margin:3px 4px 0 0;padding:0 6px;border-radius:9px;font-size:11.5px;color:#141b20}
+#modepick .tg[data-tier=or]{background:#f2c14e}#modepick .tg[data-tier=argent]{background:#c8d0d8}#modepick .tg[data-tier=bronze]{background:#c98a4b}
+#modepick .disc{display:inline-block;width:14px;height:14px;border-radius:50%;border:1.5px solid #5d6b75;vertical-align:-2px;margin-right:4px}
+#modepick .disc[data-tier=or]{background:#f2c14e;border-color:#f2c14e}#modepick .disc[data-tier=argent]{background:#c8d0d8;border-color:#c8d0d8}#modepick .disc[data-tier=bronze]{background:#c98a4b;border-color:#c98a4b}
 #modepick .busy{margin-top:12px;padding:9px 12px;border-radius:7px;white-space:pre-line;
   background:#2a2118;border:1px solid #6a5326;color:#ffd48a;font-size:12px}
 `;
@@ -517,23 +541,41 @@ function css() {
   document.head.appendChild(st);
 }
 
+// [w7-replay] The three target times as pills, gold named Sayyad and silver
+// Adam (D41), bronze unnamed, then the player's own medal best (m.race.t).
+export function targetPills(id) {
+  const t = thresholdsFor(id);
+  if (!t) return '';
+  const word = { or: 'Or', argent: 'Argent', bronze: 'Bronze' };
+  return ['or', 'argent', 'bronze'].map((k) =>
+    `<span class="tg" data-tier="${k}">${word[k]} ${clockText(t[k])}${TARGET_NAMES[k] ? ' ' + TARGET_NAMES[k] : ''}</span>`).join('');
+}
+function medalBest(id) {
+  let r = null;
+  try { r = save.loadRecord ? save.loadRecord(id) : null; } catch { r = null; }
+  return r && !r.legacy ? r.t : null;
+}
 function courseRow(G, c, i) {
-  const best = loadModeBests()[c.id];
+  const best = medalBest(c.id);
+  const won = best != null ? medalFor(c.id, best) : null;
   const field = (c.rivals || []).map((r) => r.name).join(', ');
   const budget = c.kind === 'blitz'
     ? `${c.clock} s + ${c.bonus}/checkpoint`
     : `contre ${field || 'personne'}`;
   return `<button class="c" data-id="${c.id}">` +
     `<i>${i + 1}</i>` +
-    `<span><span class="t">${courseName(c)}</span><br><span class="w">${c.blurb}</span></span>` +
+    `<span><span class="t"><span class="disc"${won && won.medal ? ` data-tier="${won.medal}"` : ''}></span>${courseName(c)}</span><br><span class="w">${c.blurb}</span>` +
+    `<br>${targetPills(c.id)}</span>` +
     `<span class="b">${c.cps.length} checkpoints · ${budget}<br>` +
-    `<span class="w">départ: ${c.where} · record ${fmtTime(best)}</span></span></button>`;
+    `<span class="w">départ: ${c.where} · ton record ${best != null ? runText(best) : 'aucun'}</span></span></button>`;
 }
 
 // A story job is running and it is not one of ours. Starting a course would
 // throw it away, and losing an hour of Sayyad's evening to a mis-click is not
 // a trade anybody agreed to — so the rows go grey and the footer says why.
-const busyWith = (G) => (G.mission && G.mission.def && !G.mission.def.mode
+// W8-BUGS: the first job the game started by itself, untouched, does not count
+// (missionkit yieldsToMode); startMission closes it quietly instead.
+export const busyWith = (G) => (G.mission && G.mission.def && !G.mission.def.mode && !yieldsToMode(G.mission)
   ? G.mission.def.title : null);
 
 function paint(G) {
@@ -549,16 +591,19 @@ function paint(G) {
     '<div class="mrow">' + MODES.map((m) =>
       `<button class="m${m.id === state.mode ? ' on' : ''}" data-mode="${m.id}">` +
       `<b>${m.fr.toUpperCase()}</b><span>${m.blurb}</span></button>`).join('') + '</div>' +
-    (state.mode === 'cruise'
+    (EXTRA.has(state.mode)   // [w7-crashnight]
+      ? `<button class="c" data-id="${state.mode}"><i>↵</i><span><span class="t">${EXTRA.get(state.mode).fr}</span><br>` +
+        `<span class="w">${EXTRA.get(state.mode).blurb}</span><br><span class="w">${EXTRA.get(state.mode).row ? EXTRA.get(state.mode).row() : ''}</span></span></button>`
+      : state.mode === 'cruise'
       ? '<button class="c" data-id="cruise"><i>↵</i><span><span class="t">Partir en balade</span><br>' +
         '<span class="w">Aucun chrono. Les piliers jaunes sur la carte, c’est les jobs de la gang.</span></span>' +
         `<span class="b">${jobsDone(G.done ? G.done.size : 0)}</span></button>`
-      : list.map((c, i) => courseRow(G, c, i)).join('')) +
+      : '<p class="tag">Temps à battre</p>' + list.map((c, i) => courseRow(G, c, i)).join('')) +
     (busy
-      ? `<div class="busy">T’es en pleine job — « ${busy} ».\n` +
+      ? `<div class="busy">T’es en pleine job : « ${busy} ».\n` +
         'Finis-la, ou Retour arrière pour l’abandonner, avant de partir une course.</div>'
       : '') +
-    '<div class="foot"><span><b>1–4</b> choisir un parcours</span>' +
+    '<div class="foot"><span><b>1 à 4</b> choisir un parcours</span>' +
     '<span><b>←/→</b> changer de mode</span><span><b>M</b> ou <b>Échap</b> fermer</span>' +
     `<span>${mode.name}</span></div></div>`;
   if (busy) for (const b of el.querySelectorAll('.c')) {
@@ -610,6 +655,8 @@ function pick(G, id) {
     startCruise(G);
     return;
   }
+  const ex = EXTRA.get(id);   // [w7-crashnight]
+  if (ex) { openModes(G, false); if (ex.start) ex.start(G); return; }
   const c = COURSES.find((x) => x.id === id);
   if (!c) return;
   openModes(G, false);
@@ -620,7 +667,7 @@ function pick(G, id) {
 export function startCruise(G) {
   if (G.mission && G.mission.def && G.mission.def.mode) {
     // A course is running: abandon it the way Backspace would.
-    if (G.failMission) G.failMission('Abandonné — retour en balade.');
+    if (G.failMission) G.failMission('Abandonné. Retour en balade.');
   }
   G.modeNow = 'cruise';
   if (G.hud) {
@@ -633,9 +680,22 @@ export function startCruise(G) {
  * The teleport is deliberate and it is what every arcade racer does: you picked
  * a race off a menu, you should not then have to drive across town to it.
  */
-export function startCourse(G, course) {
+export function startCourse(G, course, opts) {
   if (!state.api || !state.api.startMission) return false;
-  if (G.mission && G.failMission) G.failMission('Abandonné.');
+  // W8-BUGS: an untouched auto-started first job is not failed (no RATÉ card
+  // for a job the player never chose); startMission closes it quietly.
+  if (G.mission && G.failMission && !yieldsToMode(G.mission)) G.failMission('Abandonné.');
+  placeOnStart(G, course);
+  G.modeNow = course.kind;
+  G.routeKey = '';
+  G.waypoint = null;
+  if (G.hud) G.hud.toast(`${courseName(course).toUpperCase()}\nSur la ligne. E pour partir.`, 2200);
+  state.api.startMission(missionFor(course), opts);   // [w7-replay] opts: { card: false } on a rerun
+  return true;
+}
+
+/** The truck on a course's start line (startCourse's teleport, no mission). */
+function placeOnStart(G, course) {
   let p = at(course.start);
   if (G.veh && p && G.world) {
     // The authored line passes on today's map (tools/smoke_racestarts.mjs);
@@ -658,12 +718,56 @@ export function startCourse(G, course) {
     // truck hopping into the air before the countdown has even started.
     if (G.world && G.world.roadAt) G.veh.onRoad = G.world.roadAt(G.veh.x, G.veh.z);
   }
-  G.modeNow = course.kind;
+  return p || null;
+}
+
+// [w7-polish] A save taken mid-course or mid Crash Night (W6-CRASHNIGHT,
+// W6-REPLAY). Neither is a story job, so main.js resumeMission found no def and
+// said « Job perdue », which is false: nothing was lost, a run is not resumed
+// from a save. A course puts the truck back on its start line, free roaming
+// (Cruise), and says M runs it again. A registered mode (Crash Night) leaves
+// the car where it was saved, free roaming. null = not a mode id (a story job).
+export function resumeModeSave(G, id) {
+  const course = COURSES.find((x) => x.id === id) || null;
+  const extra = course ? null : EXTRA.get(id) || null;
+  if (!course && !extra) return null;
+  if (course) placeOnStart(G, course);
+  G.modeNow = 'cruise';
   G.routeKey = '';
   G.waypoint = null;
-  if (G.hud) G.hud.toast(`${courseName(course).toUpperCase()}\nSur la ligne. E pour partir.`, 2200);
-  state.api.startMission(missionFor(course));
+  const name = course ? courseName(course) : (extra.fr || extra.name || id);
+  if (G.hud) G.hud.toast(`${name}\nUne run reprend pas d\u2019une sauvegarde. T\u2019es en balade`
+    + (course ? ' sur la ligne de départ' : '') + '. M pour la relancer.', 3200);
+  return { id, course, extra };
+}
+
+// ---------------------------------------------------------------- [w7-replay] une autre run
+
+/** R on a course: straight back on the line, no brief card. false = not a course. */
+export function restartRun(G, id) {
+  const c = COURSES.find((x) => x.id === id);
+  if (!c) return false;
+  return startCourse(G, c, { card: false });
+}
+/** After a finish: R restarts the course for the next 10 s. */
+export function offerRerun(G, id) {
+  if (!COURSES.some((x) => x.id === id)) return false;
+  G.rerun = { id, left: 10 };
   return true;
+}
+/** Per frame, one null check when no window is open. Consumes KeyR on a restart. */
+export function tickRerun(G, dt, input) {
+  const r = G.rerun;
+  if (!r) return false;
+  if (G.mission) { G.rerun = null; return false; }
+  if (input && input.hit && input.hit('KeyR')) {
+    if (input.consume) input.consume('KeyR');
+    G.rerun = null;
+    return restartRun(G, r.id);
+  }
+  r.left -= Math.max(0, dt || 0);
+  if (r.left <= 0) G.rerun = null;
+  return false;
 }
 
 // ---------------------------------------------------------------- the hook
@@ -693,6 +797,7 @@ export function installModes(G, api) {
         e.preventDefault();
         if (state.mode === 'cruise') { pick(G, 'cruise'); return; }
         if (busyWith(G)) return;
+        if (EXTRA.has(state.mode)) { pick(G, state.mode); return; }   // [w7-crashnight]
         const list = COURSES.filter((c) => c.kind === state.mode);
         const c = list[+d[1] - 1];
         if (c) pick(G, c.id);

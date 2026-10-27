@@ -23,7 +23,15 @@ export const UNIFORMS = {
 
 export const VERT = '';
 
-export const GLSL = `
+// W8-LIGHT: « Éclairage avancé » off (the default) assembles fix/look-on-qr's
+// wet road, verbatim; on, the radiance goes after the light (lightMode).
+const W8_CLASSIC = `  return base + min(S * gloss / la, vec3(4.0));
+`;
+const W8_LIN = `  vec3 w = min(S * gloss / la, vec3(4.0));
+  if (linearDraw()) { gReflRad += w * la; return base; }   // wave 7: after the light (reflect.js)
+  return base + w;
+`;
+const wetGlsl = (ADV) => `
 // ---- s5-reflect: wet roads
 float wnoise(highp vec2 p) {
   highp vec2 i = floor(p), f = fract(p);
@@ -60,6 +68,8 @@ vec3 wetAlbedo(vec3 base, vec3 n) {
   }
   // The light below multiplies what this returns: divide the radiance by it.
   vec3 la = max(ambientLight(n) + uSun * sunLambert(n), vec3(0.05));
-  return base + min(S * gloss / la, vec3(4.0));
-}
+${ADV ? W8_LIN : W8_CLASSIC}}
 `;
+export let GLSL = wetGlsl(false);
+const ADV_GLSL = wetGlsl(true), CLASSIC_GLSL = GLSL;
+export function lightMode(adv) { GLSL = adv ? ADV_GLSL : CLASSIC_GLSL; }

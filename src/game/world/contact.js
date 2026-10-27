@@ -1,6 +1,8 @@
-// Contact strips and baked ambient occlusion where things meet the ground
-// (walls, trunks, posts). Stub: V2-07 fills it in. Can read ctx.houses,
-// ctx.buildings, ctx.trees and ctx.poles, and queue its bake with
-// ctx.postBuild(fn), which runs once every builder is filled and before upload.
-// Emits nothing today.
-export function emitContact(ctx) {}
+// Contact shading where things meet the ground (V2-07). S5-LIGHT (20 Oct):
+// the baked vertex AO only (look/aobake.js), queued to run once every builder
+// is filled and before upload. The ground contact strips of the V2-07 spec are
+// not built yet (they need the triangle budget reconciled first).
+import { aoOn, bakeAO } from '../look/aobake.js';
+
+export function emitContact(ctx) { if (aoOn(ctx)) ctx.postBuild(runContact); }
+export function runContact(ctx) { bakeAO(ctx); }

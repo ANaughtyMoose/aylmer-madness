@@ -72,13 +72,13 @@ export const UNLOCKS = {
   // anybody else the card says whose it is. Same shape as Tyler's Z24 below.
   forester: {
     kind: 'start', character: 'mike', who: 'Mike',
-    need: 'Le Forester est à Mike — joue Mike',
-    needEn: 'Mike’s Forester — play as Mike',
+    need: 'Le Forester est à Mike : joue Mike',
+    needEn: 'Mike’s Forester: play as Mike',
   },
   sienna: {
     kind: 'start', character: 'abraham', who: 'Abraham',
-    need: 'La Sienna est à Abraham — joue Abraham',
-    needEn: 'Abraham’s Sienna — play as Abraham',
+    need: 'La Sienna est à Abraham : joue Abraham',
+    needEn: 'Abraham’s Sienna: play as Abraham',
   },
   cutlass:  { kind: 'buy', cost: 300,  need: '300 $ au lot d’occasion',   needEn: '$300 at the used lot' },
   // Tyler Yank's, parked at her aunt's on Samuel-Edey. It was the $450 beater
@@ -86,19 +86,19 @@ export const UNLOCKS = {
   // later » is a Wave 3 mission that does not exist yet, so for now the card
   // says whose it is and the lot is three cars.
   cavalier: { kind: 'owned', who: 'Tyler',
-              need: 'Le Z24 est à Tyler — 312 Samuel-Edey',
-              needEn: 'Tyler’s Z24 — 312 Samuel-Edey' },
+              need: 'Le Z24 est à Tyler, 312 Samuel-Edey',
+              needEn: 'Tyler’s Z24, 312 Samuel-Edey' },
   caravan:  { kind: 'buy', cost: 250,  need: '250 $ au lot d’occasion',   needEn: '$250 at the used lot' },
   // Roger Bouchard's 240D. The ad is his (game/kijiji.js) and the car is on
   // Ti-Guy's gravel on consignment, which is the same arrangement the Caravan
   // already has. $650 is the whole joke: the restoration in Deschênes is a flat
   // $800, so putting the thing right costs more than the thing.
   benz:     { kind: 'buy', cost: 350,
-              need: '350 $ — l’annonce de Roger sur Kijiji',
-              needEn: '$350 — Roger’s ad on Kijiji' },
+              need: '350 $ : l’annonce de Roger sur Kijiji',
+              needEn: '$350: Roger’s ad on Kijiji' },
   bus:      { kind: 'buy', cost: 1500, jobs: 10,
-              need: '1 500 $ au lot — après 10 jobs',
-              needEn: '$1,500 at the used lot — after 10 jobs' },
+              need: '1 500 $ au lot, après 10 jobs',
+              needEn: '$1,500 at the used lot, after 10 jobs' },
   // Parked at the clubhouse with the key in it, like every golf cart ever.
   cart:     { kind: 'free', who: 'Le Club' },
 };
@@ -290,7 +290,7 @@ export class Garage {
     if (this.bought.has(id)) return { ok: true, why: null };
     if (u.jobs && asSet(done).size < u.jobs) {
       const left = u.jobs - asSet(done).size;
-      return { ok: false, why: `pas avant ${u.jobs} job${u.jobs > 1 ? 's' : ''} — encore ${left}` };
+      return { ok: false, why: `pas avant ${u.jobs} job${u.jobs > 1 ? 's' : ''}, encore ${left}` };
     }
     const price = this.price(id, discount);
     if (!wallet || !wallet.can(price)) {

@@ -178,7 +178,7 @@ group('GOAL A — a friend’s car under your feet');
   ok(car && car.id === 'civic', 'the Civic is right there');
   const l = freeRoamLines(G);
   ok(l.kind === 'car', 'the line switches to the car');
-  ok(/^E — prendre la Civic de Sayyad/.test(l.text), 'named, with the key', l.text);
+  ok(/^E : prendre la Civic de Sayyad/.test(l.text), 'named, with the key', l.text);
   ok(/dort/.test(l.sub), 'and Sayyad is asleep', l.sub);
   // Rolling past it does not count.
   G.veh.vLong = 8;

@@ -26,14 +26,16 @@
   "golden": {
    "label": "19:30 clear",
    "phase": "day",
-   "clock": 0.45,
+   "clock": 0.586,
    "weather": "clear",
-   "note": "the game blends day into dusk over the last 55 percent of the day phase; 0.45 of the cycle is late afternoon, about 40 percent of the way to dusk"
+   "note": "0.586 of the cycle is 19:30 on the game clock (envcycle clockAt(19.5)/600). It was 0.45 until 20 Oct (S5-LIGHT), which the clock reads as 16:23, so the golden frames showed a high sun"
   },
   "dusk": {
    "label": "20:45 clear",
    "phase": "dusk",
-   "weather": "clear"
+   "clock": 0.651,
+   "weather": "clear",
+   "note": "0.651 is 20:45 on the game clock (clockAt(20.75)/600); phaseClock('dusk') alone reads as 19:37"
   },
   "night": {
    "label": "23:30 clear",

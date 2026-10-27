@@ -19,7 +19,7 @@ import { SET_TIER, PLACE, SNAPSHOT } from './lib/perf-instrument.mjs';
 
 const args = options();
 if (args.help) {
-  console.log('perf.mjs --poses=perf8 --env=noon,night,rain --tier=low,med,high --fresh --out=run.json [--resume] [--frames=600] [--timer=on|off] [--display=air|legacy] [--lock-wait-min=120]');
+  console.log('perf.mjs --poses=perf8 --env=noon,night,rain --tier=low,med,high --fresh --out=run.json [--resume] [--frames=600] [--timer=on|off] [--display=air|legacy] [--lock-wait-min=120] [--light=on|off]');
   done(0);
 }
 let report, out, rig, page, lock, activeRow, activeSession;
@@ -50,7 +50,11 @@ try {
   const tiers = setTiers || ['med'];
   if (!jobs.length || !tiers.length) throw new Error('nothing to measure');
   const view = display(args.display ?? 'air');
-  const params = { poses: args.poses ?? 'perf8', env: args.env ?? null, tiers, frames, gpuBar, fresh, timer, display: view,
+  // W8-LIGHT: « Éclairage avancé » for every page of the run (?light=on|off); the
+  // review namespace never sees the player's own setting, so it is explicit here.
+  const light = args.light ?? 'off';
+  if (!['on', 'off'].includes(light)) throw new Error('--light must be on or off');
+  const params = { poses: args.poses ?? 'perf8', env: args.env ?? null, tiers, frames, gpuBar, fresh, timer, display: view, light,
     jobs: jobs.map((j) => ({ pose: j.pose, envId: j.envId, env: j.env })), ports: reservedPorts(args) };
   out = path.resolve(args.out || path.join(ROOT, 'docs/qa/perf', `${stamp()}-${process.pid}.json`));
   // Serialize before reading or writing resumable output. A waiter must read
@@ -85,7 +89,7 @@ try {
     let errorOffset = 0;
     try {
       if (!page) {
-        page = await rig.page(`http://127.0.0.1:${params.ports.srv}/index.html?review=perf`);
+        page = await rig.page(`http://127.0.0.1:${params.ports.srv}/index.html?review=perf&light=${params.light}`);
         session.pageCount++; report.renderer = page.renderer;
         page.__number = session.pageCount; page.__tier = null;
       }

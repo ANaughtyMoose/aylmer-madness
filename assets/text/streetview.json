@@ -2,7 +2,7 @@
   "_note": "Extracted from the OLDEST available Street View panoramas (2009 — Canada coverage starts that year, so 2004 imagery does not exist). Gemini pulled the 2009 panos programmatically via the `streetlevel` library and rendered perspective crops, then described what it saw. The `changedSince` field is the important one: it tells you what to UNDO to get back to 2004. Where 2009 and today disagree, build the 2009 version.",
   "locations": [
     {
-      "name": "1 rue Arial (house) — Russell's",
+      "name": "1 rue Arial (house): Russell's",
       "lat": 45.38703, "lng": -75.822728, "earliestYear": 2009, "coverage": "good",
       "storeys": 1.5,
       "roof": "Gambrel (Dutch colonial / barn) with side dormers, asphalt shingle",
@@ -18,11 +18,11 @@
         "Gambrel barn roof, reddish-brown shingles, upper dormers",
         "Big evergreen centred in the front lawn and the red board fence"
       ],
-      "changedSince": "The mature front-lawn conifer has been cut down and saplings planted — in 2004 the big tree is THERE",
+      "changedSince": "The mature front-lawn conifer has been cut down and saplings planted. In 2004 the big tree is THERE",
       "confidence": "high"
     },
     {
-      "name": "1 rue Arial (detached garage) — where the work happens",
+      "name": "1 rue Arial (detached garage): where the work happens",
       "lat": 45.38704, "lng": -75.822606, "earliestYear": 2009, "coverage": "good",
       "storeys": 1,
       "roof": "Gable, asphalt shingle, red fascia matching the house",
@@ -42,7 +42,7 @@
       "confidence": "high"
     },
     {
-      "name": "129 avenue Frank-Robinson — Mike's",
+      "name": "129 avenue Frank-Robinson: Mike's",
       "lat": 45.393446, "lng": -75.840726, "earliestYear": 2009, "coverage": "good",
       "storeys": 1.5,
       "roof": "Side-gable with a large central front shed dormer and a red brick chimney; asphalt shingle",
@@ -63,7 +63,7 @@
       "confidence": "high"
     },
     {
-      "name": "75 rue Denise-Friend — Sayyad's",
+      "name": "75 rue Denise-Friend: Sayyad's",
       "lat": 45.398078, "lng": -75.844739, "earliestYear": 2009, "coverage": "good",
       "storeys": 2,
       "roof": "Truncated hip / mansard with a shallow flat top deck, plus a separate forward-sloping pent roof over the veranda; asphalt shingle",
@@ -76,14 +76,14 @@
       "surroundings": "Dense mature cedar hedge along the west boundary; gravel driveway on the right running alongside the house",
       "recognisable": [
         "Compact two-storey with a truncated hip/mansard roof in olive-green clapboard",
-        "Two tall narrow upper windows over an asymmetric ground floor — window left, door with transom right",
+        "Two tall narrow upper windows over an asymmetric ground floor: window left, door with transom right",
         "Burgundy square porch columns with green diagonal X-cross railings"
       ],
-      "changedSince": "**Completely repainted since: trim burgundy/green → white, siding olive → slate blue-grey, and a metal chimney pipe added.** For 2004 build OLIVE GREEN siding with BURGUNDY posts and GREEN X-brace railings — the modern colours are wrong.",
+      "changedSince": "**Completely repainted since: trim burgundy/green → white, siding olive → slate blue-grey, and a metal chimney pipe added.** For 2004 build OLIVE GREEN siding with BURGUNDY posts and GREEN X-brace railings. The modern colours are wrong.",
       "confidence": "high"
     },
     {
-      "name": "299 chemin Fraser — Tom's (the player's house)",
+      "name": "299 chemin Fraser: Tom's (the player's house)",
       "lat": 45.392673, "lng": -75.823921, "earliestYear": 2009, "coverage": "good",
       "storeys": 2,
       "roof": "Side-gable over the two-storey block, lower side-gable over the attached single-storey garage wing on the left; asphalt shingle",

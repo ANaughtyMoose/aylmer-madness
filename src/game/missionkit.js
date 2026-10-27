@@ -113,7 +113,7 @@ export function stageStep(G, m, st, dt) {
     const d = Math.hypot(v.x - m.target.x, v.z - m.target.z);
     inPlace = d < m.target.r;
     if (inPlace && st.maxSpeed && v.speedKmh > st.maxSpeed) {
-      hud?.prompt(`Ralentis — ${Math.round(st.maxSpeed)} km/h max ici`);
+      hud?.prompt(`Ralentis : ${Math.round(st.maxSpeed)} km/h max ici`);
       return null;
     }
   }
@@ -139,7 +139,7 @@ export function stageStep(G, m, st, dt) {
   if (gate) { hud?.prompt(gate); return null; }
 
   if (st.hold) {
-    hud?.prompt(st.holdText || 'E — continuer');
+    hud?.prompt(st.holdText || 'E : continuer');
     if (!G.wantStart) return null;
     G.wantStart = false;
   } else if (promptSet) {
@@ -187,14 +187,27 @@ const today = (G) => Math.floor((G && Number.isFinite(G.day)) ? G.day : 0);
  * not re-decide half way. Returns { kind, k } with kind one of 'first',
  * 'replay', 'replay-unpaid', 'mode-first', 'mode-pb', 'mode-repeat', 'bet'.
  */
+// [w7-polish] One clock for a course: the race time from GO (m.race.t), the
+// clock its medals and « ton record » use (W6-REPLAY). m.elapsed also counts
+// the grid and the E hold. A course's G.best, purse and best-time toast all
+// read this; m.elapsed is the fallback before a race clock exists.
+export function courseTime(m) {
+  if (!m) return 0;
+  return m.race && m.race.t > 0 ? m.race.t : (m.elapsed || 0);
+}
+
 export function runPay(G, m) {
   if (m && m.payKind) return m.payKind;
   const def = m && m.def;
   let out = { kind: 'first', k: 1 };
   if (def && def.course) {
     const prior = G && G.best ? G.best[def.id] : null;
-    if (prior == null) out = { kind: 'mode-first', k: 1 };
-    else if (m && Number.isFinite(m.elapsed) && m.elapsed < prior) out = { kind: 'mode-pb', k: 1, cap: MODE_PB_PAY };
+    // An old save's grid-inclusive best (save.js bestLegacy) still means « won
+    // once », but it is on the other clock, so it is never compared against.
+    const legacy = G && G.bestLegacy ? G.bestLegacy[def.id] : null;
+    const t = courseTime(m);
+    if (prior == null && legacy == null) out = { kind: 'mode-first', k: 1 };
+    else if (prior != null && Number.isFinite(t) && t > 0 && t < prior) out = { kind: 'mode-pb', k: 1, cap: MODE_PB_PAY };
     else out = { kind: 'mode-repeat', k: 0 };
     // Settled at the finish, so the time is final: decide every time.
     return out;
@@ -378,4 +391,13 @@ export function styleTipsPaying(G) {
   if (m.styleStart && m.styleStart.replay) return false;
   if (G.done && G.done.has && G.done.has(m.def.id)) return false;
   return true;
+}
+
+// W8-BUGS: does this job step aside for a mode picked from M (a course, Crash
+// Night)? Only the first job the game started on its own (main.js marks
+// L'alternateur `autoStarted` after a Balade libre start) and only while it is
+// still on its first stage: the player never chose it and has done nothing in
+// it yet. Any job the player took, or has moved on in, keeps the refusal.
+export function yieldsToMode(m) {
+  return !!(m && m.def && !m.def.mode && m.autoStarted && !((m.idx || 0) > 0));
 }

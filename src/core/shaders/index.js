@@ -32,6 +32,7 @@ import * as wet from './wet.js';
 import * as post from './post.js';
 import * as digicam from './digicam.js';
 import * as shadow from './shadow.js';
+import { advLight } from '../../game/look/advlight.js';
 
 export const MATERIALS = common.MATERIALS;
 export const MATERIAL_ALIASES = common.MATERIAL_ALIASES;
@@ -60,6 +61,49 @@ void main(){
 }`;
 
 const FRAG_MAIN = `
+void main(){
+  if (uMaterial == MAT_SKY) {
+    vec3 skyCol = skyColor(normalize(vRel));
+    outColor = vec4(digicam(postColor(tonemap(skyCol))), 1.0);
+    return;
+  }
+  vec3 n = normalize(vNor);
+  float d = sunShadow(sunLambert(n), n);
+  vec3 amb = ambientLight(n);
+  vec4 tx = materialTexel();
+  // Texture MULTIPLIES the vertex colour (white texel => vertex colour as it
+  // was), so a chunk can mix textured houses and untextured scenery in one
+  // draw and builders can tint a material (vinyl_white x tint = any siding).
+  vec3 base = glowAlbedo(vCol) * mix(vec3(1.0), tx.rgb, uUseTex);   // S5-LIGHT: the night-glow tag off (glass.js)
+  // Alpha cut-out is for absolute-UV geometry only: decals (windows, doors) and
+  // car skins. A tiled cell (vRect.z > 0) never discards: at a high mip level
+  // its edge texels average in the transparent gutter around the atlas cell,
+  // and a roof that dissolves at 150 m is worse than a slightly soft edge.
+  if (uUseTex > 0.5 && vRect.z <= 0.0 && tx.a < 0.35) discard;
+  base = materialAlbedo(base, tx);
+  base = wetAlbedo(base, n);
+  if (uMaterial == MAT_WATER) base = waterAlbedo(base);
+  // S5-LIGHT (V1-01): the albedo hooks above stay display-referred; light is linear from here.
+  base = linearAlbedo(base);
+  vec3 mulL = linearAlbedo(uColorMul);
+  vec3 light = dynLight(amb + uSun * d, n);
+  vec3 lit = albedoCeil(base) * mulL * light;
+  vec3 col = mix(lit, base * mulL, uUnlit);
+  col += gReflRad * mulL;   // wave 7: lake and wet-road reflection radiance, linear only (reflect.js)
+  col = glassShade(col, base, n);
+  if (uMaterial == MAT_CAR) col = carShade(col, base, n);
+  col = applyFog(col);
+  vec4 c = vec4(tonemap(col), uAlpha);
+  if (uMaterial == MAT_DECAL) c = decalShade(c);
+  else if (uMaterial == MAT_WIRE) c = wireShade(c);
+  else if (uMaterial == MAT_SPRITE || uMaterial == MAT_PARTICLE) c = spriteShade(c);
+  c.rgb = digicam(postColor(c.rgb));
+  outColor = c;
+}`;
+
+// W8-LIGHT: « Éclairage avancé » off (the default) is fix/look-on-qr's main(),
+// verbatim: no albedo decode, no ceiling, no linear reflection radiance.
+const FRAG_MAIN_CLASSIC = `
 void main(){
   if (uMaterial == MAT_SKY) {
     vec3 skyCol = skyColor(normalize(vRel));
@@ -127,7 +171,14 @@ function declare(table) {
 }
 
 // { vs, fs, uniforms }: the two stage sources and the uniform table.
-export function assemble() {
+// W8-LIGHT: point every chunk at its advanced or classic source. assemble()
+// does this itself from advLight(); a smoke may call it to read one side.
+export function lightMode(adv) {
+  for (const m of Object.values(CHUNKS)) if (typeof m.lightMode === 'function') m.lightMode(!!adv);
+}
+
+export function assemble(adv = advLight()) {
+  lightMode(adv);
   const uniforms = uniformTable();
   const decl = declare(uniforms);
   const mods = Object.values(CHUNKS);
@@ -135,6 +186,6 @@ export function assemble() {
     // Both stages highp: shared uniforms may not differ in precision (ANGLE link error).
     + 'precision highp float;\n';
   const vs = head + decl + '\n' + mods.map((m) => m.VERT || '').join('\n') + VERT_MAIN;
-  const fs = head + decl + '\n' + mods.map((m) => m.GLSL || '').join('\n') + FRAG_MAIN;
+  const fs = head + decl + '\n' + mods.map((m) => m.GLSL || '').join('\n') + (adv ? FRAG_MAIN : FRAG_MAIN_CLASSIC);
   return { vs, fs, uniforms };
 }

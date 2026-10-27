@@ -25,7 +25,7 @@ export class FortierChase {
     if(typeof document!=='undefined'){
       if(!this.subtitle){this.subtitle=document.createElement('div');this.subtitle.id='fortier-subtitle';
         this.subtitle.style.cssText='position:fixed;top:21%;left:50%;transform:translateX(-50%);max-width:650px;width:80%;padding:14px 20px;background:#111d26ed;color:#fff;border-left:4px solid #ffc94d;border-radius:8px;text-align:center;font:600 20px/1.4 system-ui;z-index:24;pointer-events:none';document.body.append(this.subtitle);}
-      this.subtitle.textContent=who+' — '+text;this.subtitle.hidden=false;this.captionT=5;
+      this.subtitle.textContent=who+' : '+text;this.subtitle.hidden=false;this.captionT=5;
     }
     this.cancelVoice();
     const synth=globalThis.speechSynthesis;
@@ -54,7 +54,7 @@ export class FortierChase {
   interact(G,garage){
     const p=G.parked?.svx,v=G.veh;
     if(!p||!v||Math.abs(v.vLong)>=3||Math.hypot(v.x-p.x,v.z-p.z)>6.5||G.repairOffer)return false;
-    G.hud?.prompt('E — prendre la SVX de Sara Fortier');
+    G.hud?.prompt('E : prendre la SVX de Sara Fortier');
     if(G.wantStart){G.wantStart=false;garage.earn('svx');G.hud?.prompt(null);G.swapCar('svx');G.autosave?.('svx-discovered');}
     return true;
   }

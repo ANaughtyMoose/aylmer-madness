@@ -488,7 +488,7 @@ export function contextFromJSON(json) {
       if (!id) { unknown.add(r.station); continue; }
       add(id, r.context, r.line);
     }
-    if (unknown.size) console.warn('radio: contextual lines for unknown stations —', [...unknown].join(', '));
+    if (unknown.size) console.warn('radio: contextual lines for unknown stations:', [...unknown].join(', '));
   }
   for (const id of Object.keys(EXTRA_CONTEXT)) {
     for (const ctx of Object.keys(EXTRA_CONTEXT[id])) {
@@ -504,7 +504,7 @@ export function headlinesFromJSON(json) {
   if (!rows) return null;
   const out = rows
     .filter((r) => r && typeof r.headline === 'string' && r.headline)
-    .map((r) => 'LE DROIT — ' + r.headline);
+    .map((r) => 'LE DROIT : ' + r.headline);
   return out.length ? out : null;
 }
 
@@ -516,7 +516,7 @@ export function headlinesFromJSON(json) {
 // belong to people in this story.
 export const FALLBACK_TAPES = [
   { label: 'SUMMER 2004 CRUIZIN (DONT TOUCH)', handwriting: 'Sharpie noir, souligné deux fois.', story: '' },
-  { label: 'MIX — CÔTÉ A', handwriting: 'Crayon de plomb, à moitié effacé.', story: '' },
+  { label: 'MIX, CÔTÉ A', handwriting: 'Crayon de plomb, à moitié effacé.', story: '' },
 ];
 export function tapesFromJSON(json) {
   const rows = json && Array.isArray(json.tapes) ? json.tapes : null;
@@ -934,7 +934,7 @@ export class Radio {
       this.dial = dial;
       const i = id ? dial.findIndex((s) => s.id === id) : -1;
       this.station = wasTape ? dial.length : (i >= 0 ? i : Math.min(this.station, dial.length - 1));
-      console.log(`radio: ${dial.length} stations — ${dial.map((s) => s.name).join(', ')}`);
+      console.log(`radio: ${dial.length} stations: ${dial.map((s) => s.name).join(', ')}`);
       this._emit();
       return dial.length;
     } catch (e) {
@@ -1081,7 +1081,7 @@ export class Radio {
     const tape = this.station === this.tapeIdx ? this.tapeLabel() : null;
     // A tape is known by what is written on it in Sharpie, not by an artist.
     const playing = t
-      ? (t.artist ? `${t.artist} — ${t.title}` : t.title)
+      ? (t.artist ? `${t.artist} - ${t.title}` : t.title)
       : (tape ? tape.label : '');
     const muted = this.on && !this._ctxRunning();
     const error = this.playbackError || (muted ? 'Son suspendu par le navigateur. Clique ou appuie sur R.' : '');
@@ -1247,7 +1247,7 @@ export class Radio {
     // An ad is a paragraph, so it goes out as an ad break: the business first,
     // then the copy a line at a time.
     if (pick && typeof pick === 'object' && pick.copy) {
-      const head = pick.business ? 'PUB — ' + pick.business : 'PUB';
+      const head = pick.business ? 'PUB : ' + pick.business : 'PUB';
       this.breakQueue = [head, ...chunkCopy(pick.copy)];
     } else {
       this.breakQueue = [String(pick)];

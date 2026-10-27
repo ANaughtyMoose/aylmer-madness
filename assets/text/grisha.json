@@ -3,13 +3,13 @@
     "name": "Grigori 'Grisha' Volkov",
     "shop": "Carrosserie Volkov",
     "where": "chemin Vanier, Deschênes",
-    "persona": "A 61-year-old restorer who came over from Leningrad in 1979 with a toolbox and no English, and works out of a Quonset hut and four hectares of nettles off chemin Vanier in Deschênes. Four foot eleven and nearly as wide, with a nose you could hang a coat on and eyebrows going in four directions at once; half of Aylmer calls him le p'tit troll du chemin Vanier, to his face, and he does not mind. He has some French now and no patience for any of it, so when a bolt rounds off — or when somebody offers him seven hundred and fifty dollars — he reverts to Russian. The Russian is always the polite kind: Ёшкин кот, Ёлки-палки, Чёрт побери, Блин, Зараза, Тьфу — what a man says instead of the word he means. He does exactly one job: he takes a car worth taking apart down to the shell and puts it back the way the factory did. Flat eight hundred dollars, no negotiation, no hourly rate, no parts counter, and he will not touch anything he does not respect.",
+    "persona": "A 61-year-old restorer who came over from Leningrad in 1979 with a toolbox and no English, and works out of a Quonset hut and four hectares of nettles off chemin Vanier in Deschênes. Four foot eleven and nearly as wide, with a nose you could hang a coat on and eyebrows going in four directions at once; half of Aylmer calls him le p'tit troll du chemin Vanier, to his face, and he does not mind. He has some French now and no patience for any of it, so when a bolt rounds off (or when somebody offers him seven hundred and fifty dollars) he reverts to Russian. The Russian is always the polite kind: Ёшкин кот, Ёлки-палки, Чёрт побери, Блин, Зараза, Тьфу: what a man says instead of the word he means. He does exactly one job: he takes a car worth taking apart down to the shell and puts it back the way the factory did. Flat eight hundred dollars, no negotiation, no hourly rate, no parts counter, and he will not touch anything he does not respect.",
     "greetings": [
       "Ferme la porte. Le vent rentre pis mon chat est vieux.",
       "Tu me montres le char, pas la photo du char. Recule-le dans la baie.",
       "Bonjour. Éteins-moi ça avant que je sente le diesel toute la journée.",
       "Encore toi. Bon. Ouvre le capot pis touche à rien.",
-      "Assis-toi su' le bidon. Pas su' l'aile — su' le BIDON.",
+      "Assis-toi su' le bidon. Pas su' l'aile. Su' le BIDON.",
       "Tu veux du thé? Non? Bon. D'abord on parle du char."
     ],
     "quote": [
@@ -21,7 +21,7 @@
     ],
     "done": [
       "Ёшкин кот! Trente-deux boulons cassés dans l'aile. TRENTE-DEUX. Prends tes clés.",
-      "Fini. J'ai tout sorti, tout décapé, tout remonté. Elle fume encore un peu — c'est un diesel, pas une théière.",
+      "Fini. J'ai tout sorti, tout décapé, tout remonté. Elle fume encore un peu... c'est un diesel, pas une théière.",
       "Ёлки-палки, quel char. Ils faisaient ça pour durer cent ans pis le monde les laisse dehors.",
       "Tiens. Les deux portes ferment au premier coup. Écoute-les. ÉCOUTE-LES.",
       "Чёрт побери, le plancher était de la dentelle. Il est en acier astheure. Roule dessus sans y penser.",
@@ -35,15 +35,15 @@
       "Non. Je prends pas de skateboard, pas de radio, pas de promesse. Huit cents, en papier."
     ],
     "refuse": [
-      "Зараза… Non. Ça, c'est de la tôle de canne de soupe. Va voir Norm.",
+      "Зараза… Non. Ça, c'est de la tôle de canne de soupe. Va voir le garagiste.",
       "Je touche pas à ça. Ramène-moi quelque chose qu'un homme a dessiné.",
       "Чёрт. Restaurer ça, ce serait repeinturer une poubelle. Ça resterait une poubelle.",
       "Non. Pas ce char-là. Redemande-moi pas, ça changera rien."
     ],
     "aside": [
-      "Le monde dit que je sacre. Je sacre pas — je NOMME les choses.",
+      "Le monde dit que je sacre. Je sacre pas. Je NOMME les choses.",
       "En Union soviétique on avait pas de pièces. On avait des idées. C'est pour ça que je suis bon.",
-      "Norm Lafleur répare des chars. Moi je les ressuscite. C'est pas le même métier."
+      "Le garagiste répare des chars. Moi je les ressuscite. C'est pas le même métier."
     ]
   }
 }

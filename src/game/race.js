@@ -45,6 +45,12 @@ export const SKILL = {
   // exactly what the car is.
   dave:     { cruise: 18.8, cornerK: 0.64, minSpeed: 6.2, gain: 1.55, damp: 0.26,
               band: { ahead: 0.88, behind: 1.08 } },
+  // [w6-races] Adam one on one, racedave only (the circuit keeps `dave`). At
+  // 18.8 a clean Ranger won 10 of 10 by a median 29 s and a sloppy one 9 of 10
+  // (tools/sim_racedave.mjs, 10 traffic seeds). At 22.5: clean median +1.3 s,
+  // sloppy median -4.7 s; no traffic, clean +9 s, two mistakes cost about 10.
+  daveSprint: { cruise: 22.5, cornerK: 0.64, minSpeed: 6.2, gain: 1.55, damp: 0.26,
+              band: { ahead: 0.88, behind: 1.08 } },
   // Sayyad's Civic: two thousand pounds of nothing. He barely lifts.
   sayyad:   { cruise: 17.8, cornerK: 0.40, minSpeed: 8.4, gain: 1.80, damp: 0.22,
               band: { ahead: 0.90, behind: 1.07 } },
@@ -74,6 +80,22 @@ export const ADVANCE_R = 10;      // "close enough to that hairpin, take the nex
 export const HAIRPIN = -0.6;      // ...and a hairpin is a node sharper than ~127 deg
 export const PROG_T = 2.5;        // seconds of no progress along the route...
 export const PROG_M = 2;          // ...meaning fewer than this many metres of it
+// [w6-races] Traffic, the same rules tools/review/page-agent.js gives the test
+// bot (S3-BOT fix 6), so a rival is no better in traffic than a player.
+export const FOLLOW_T = 1.6;      // s of road a rival looks ahead for a car in his lane
+export const FOLLOW_GAP = 8;      // m he stops short of a car that is stopped
+export const HARD_D = 6;          // m: inside this and closing, full brake
+export const CAR_L = 4.5;         // m centre to centre that is already bumper to bumper
+export const PASS_FROM = 8, PASS_TO = 45;   // m ahead a slower car starts a pass
+export const PASS_SLOWER = 2;     // m/s slower than him, or he just follows
+export const PASS_MIN_V = 6;      // m/s: no passing from a crawl (unless the car is stopped)
+export const PASS_OFF = 3.4;      // m sideways: one lane
+export const PASS_CLEAR = 70;     // m of the other lane free of cars to start
+export const PASS_HOLD = 40;      // ...and to keep going
+export const PASS_T = 6;          // s at most in the other lane
+export const PASS_DONE = 8;       // m behind him before he moves back over
+export const LANE_W = 2.4;        // m either side of a lane centre a car is "in" it
+export const FOLLOW_MAX_T = 10;   // s queued behind a car before the stuck watchdog may fire
 
 // Scratch. Module-level so the hot loop allocates nothing.
 const PA = [0, 0], PB = [0, 0];
@@ -129,6 +151,11 @@ export class Rival {
     this.resets = 0;
     this.band = 1;
     this.blocked = false;
+    this.passOff = 0;           // [w6-races] lateral offset of a pass in progress, m
+    this.passCar = null;        // ...the car being passed
+    this.passT = 0;             // ...and how long he may stay out there
+    this.passes = 0;
+    this.followT = 0;           // seconds queued behind a car in his lane
     this.progT = 0;             // seconds since the last progress check...
     this.progAt = 0;            // ...and how far along the route it found him
     this.stuckRun = 0;          // unsticks in a row that did not achieve anything
@@ -316,6 +343,12 @@ export class Rival {
     const sp = v.vLong;
     const look = clamp(9 + Math.abs(sp) * 0.62, LOOK_MIN, LOOK_MAX);
     const atEnd = !this.lookAhead(look, PA);
+    // [w6-races] Passing: the aim moves one lane over, in the car's own frame
+    // (lat = rx*fz - rz*fx, the bot's convention).
+    if (this.passOff) {
+      PA[0] += Math.cos(v.yaw) * this.passOff;
+      PA[1] -= Math.sin(v.yaw) * this.passOff;
+    }
     const err = angleDelta(Math.atan2(PA[0] - v.x, PA[1] - v.z), v.yaw);
     // Positive yaw is a left turn (forward is (sin yaw, cos yaw), local +X is
     // the driver's left), and Vehicle turns left on negative ctl.steer.
@@ -357,22 +390,47 @@ export class Rival {
     if (Math.abs(err) > 0.5) want = Math.min(want, s.minSpeed + 2);
     if (atEnd) want = Math.min(want, 9);
 
-    // ---- 3. crude traffic avoidance -------------------------------------
+    // ---- 3. traffic: follow, pass, brake (w6-races) ----------------------
+    // The rules the test bot drives by (page-agent.js, S3-BOT fix 6), so a
+    // rival is no better in traffic than a player:
+    //   - the look grows with speed (FOLLOW_T seconds of road, never under
+    //     AVOID_D), so at 72 km/h he sees a car 32 m out, not 10;
+    //   - a car in his lane caps his speed at its own speed plus the closing
+    //     speed that still stops FOLLOW_GAP short, and only inside HARD_D and
+    //     closing is it a full brake;
+    //   - a car 2 m/s slower and 8 to 45 m ahead is passed, one lane over, if
+    //     that lane is road and free of cars for 70 m; he moves back once it is
+    //     8 m behind him or after 6 s.
+    // skill.avoid scales how close he will sit (the air between bumpers): Kevin
+    // Boucher's 0.45 tailgates everybody, on purpose, but no longer rams them.
     this.blocked = false;
     const traffic = ctx && ctx.traffic;
+    const am = s.avoid != null ? s.avoid : 1;
+    let following = false;
     if (traffic && traffic.length) {
       const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
-      const avoidD = AVOID_D * (s.avoid != null ? s.avoid : 1);
+      const vms = Math.max(0, sp);
+      this._passPlan(dt, world, traffic, fx, fz, vms);
+      // Distances are centre to centre; CAR_L of it is the two half cars, and
+      // only the air between the bumpers shrinks with skill.avoid. The look is
+      // not scaled: a late braker still sees the car, he just sits on it.
+      const lookD = Math.max(AVOID_D, FOLLOW_T * vms) * Math.max(1, am);
+      const gap = CAR_L + (FOLLOW_GAP - CAR_L) * am, hard = CAR_L + (HARD_D - CAR_L) * am;
       for (let k = 0; k < traffic.length; k++) {
         const o = traffic[k];
         const rx = o.x - v.x, rz = o.z - v.z;
         const ahead = rx * fx + rz * fz;
-        if (ahead < 1 || ahead > avoidD) continue;
-        if (Math.abs(rx * fz - rz * fx) > AVOID_W) continue;
-        this.blocked = true;
-        break;
+        if (ahead < 1 || ahead > lookD) continue;
+        if (Math.abs(rx * fz - rz * fx - this.passOff) > AVOID_W) continue;
+        const cv = Math.max(0, (o.speed || 0) * Math.cos(angleDelta(o.yaw || 0, v.yaw)));
+        following = true;
+        if (ahead < hard && sp > cv + 0.5) { this.blocked = true; break; }
+        const cap = ahead < gap + 2 ? Math.max(0, cv - 1.4)
+          : cv + Math.sqrt(2 * 5 * (ahead - gap));
+        if (cap < want) want = cap;
       }
-    }
+    } else if (this.passOff) { this.passOff = 0; this.passCar = null; }
+    this.followT = following ? this.followT + dt : 0;
 
     // ---- 4. pedals -------------------------------------------------------
     if (this.blocked) {
@@ -382,6 +440,9 @@ export class Rival {
       this.ctl.throttle = 1; this.ctl.brake = 0;
     } else if (sp > want + 1.2) {
       this.ctl.throttle = 0; this.ctl.brake = clamp((sp - want) / 6, 0.2, 1);
+    } else if (want < 1) {
+      // [w6-races] queued behind a stopped car: sit, do not creep into it.
+      this.ctl.throttle = 0; this.ctl.brake = 0.6;
     } else {
       this.ctl.throttle = 0.4; this.ctl.brake = 0;
     }
@@ -404,12 +465,72 @@ export class Rival {
       this.progAt = now;
       this.progT = 0;
     }
-    if (Math.abs(v.vLong) < STUCK_MS || this.offLine() > 28) this.stuckT += dt;
+    // [w6-races] Waiting behind a car in his lane is not being stuck, for a
+    // while: a player queues at a red too. FOLLOW_MAX_T later it is.
+    const queued = this.followT > 0 && this.followT < FOLLOW_MAX_T;
+    if (queued && this.offLine() <= 28) { this.stuckT = 0; noProgress = false; }
+    else if (Math.abs(v.vLong) < STUCK_MS || this.offLine() > 28) this.stuckT += dt;
     else if (noProgress) this.stuckT = STUCK_T + 1;
     else this.stuckT = 0;
     if (this.stuckT > STUCK_T) this.unstick(world);
 
     if (this.along() >= this.pathLength - 4) this.finished = true;
+  }
+
+  // [w6-races] The pass, page-agent.js passPlan() with the same numbers. Sets
+  // this.passOff (m, + is to the right of the heading) for the next step's aim
+  // and this step's lane check. Allocates nothing.
+  _passPlan(dt, world, traffic, fx, fz, vms) {
+    const v = this.veh;
+    if (this.passOff) {
+      this.passT -= dt;
+      const c = this.passCar;
+      const along = c ? (c.x - v.x) * fx + (c.z - v.z) * fz : -1e9;
+      if (!c || along < -PASS_DONE || this.passT <= 0
+        || !this._laneClear(world, traffic, fx, fz, this.passOff, c, PASS_HOLD)) {
+        this.passOff = 0; this.passCar = null;
+      }
+      return;
+    }
+    let block = null, bAlong = 0, bLat = 0;
+    for (let k = 0; k < traffic.length; k++) {
+      const c = traffic[k];
+      const rx = c.x - v.x, rz = c.z - v.z;
+      const along = rx * fx + rz * fz, lat = rx * fz - rz * fx;
+      if (along < PASS_FROM || along > PASS_TO || Math.abs(lat) > AVOID_W) continue;
+      const cv = (c.speed || 0) * Math.cos(angleDelta(c.yaw || 0, v.yaw));
+      if (cv > vms - PASS_SLOWER && !(cv < 1 && along < 25)) continue;
+      // From a crawl only round a car that is not going anywhere (the bot's
+      // crawl-pass weaved behind moving traffic, S3-BOT fix 7).
+      if (vms < PASS_MIN_V && cv >= 1) continue;
+      if (!block || along < bAlong) { block = c; bAlong = along; bLat = lat; }
+    }
+    if (!block) return;
+    const first = bLat > 0 ? -PASS_OFF : PASS_OFF;
+    for (let side = 0; side < 2; side++) {
+      const off = side ? -first : first;
+      if (!this._laneClear(world, traffic, fx, fz, off, block, PASS_CLEAR)) continue;
+      this.passOff = off; this.passCar = block; this.passT = PASS_T; this.passes++;
+      return;
+    }
+  }
+
+  // Is the lane `off` metres over road for 30 m and free of cars for `ahead` m?
+  _laneClear(world, traffic, fx, fz, off, except, ahead) {
+    const v = this.veh;
+    if (world && world.roadAt) {
+      for (let d = 8; d <= 30; d += 11) {
+        if (!world.roadAt(v.x + fx * d + fz * off, v.z + fz * d - fx * off)) return false;
+      }
+    }
+    for (let k = 0; k < traffic.length; k++) {
+      const c = traffic[k];
+      if (c === except) continue;
+      const rx = c.x - v.x, rz = c.z - v.z;
+      const along = rx * fx + rz * fz, lat = rx * fz - rz * fx;
+      if (along > -6 && along < ahead && Math.abs(lat - off) < LANE_W) return false;
+    }
+    return true;
   }
 
   // Back onto the road a short way ahead, pointing the right way. Deliberately

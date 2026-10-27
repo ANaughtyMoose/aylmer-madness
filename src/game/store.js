@@ -22,6 +22,7 @@
 // an option takes effect and is persisted the moment you move the slider.
 
 import './storage-boot.js';
+import { resolveAdvLight, defaultAdvLight } from './look/advlight.js';   // W8-LIGHTAUTO: one default rule
 
 export const KEYS = {
   settings: 'aylmer.settings',
@@ -97,6 +98,17 @@ export const DEFAULT_SETTINGS = {
   showLegend: true,
   showHud: true,
   showFps: false,
+  // W8-LIGHT: « Éclairage avancé » (game/look/advlight.js). Per browser, like
+  // every key here, never in a save slot: the Mac mini can run it on and the
+  // Air off with the same summer. Read once at start-up, so it applies at the
+  // next launch. W8-LIGHTAUTO (Tom, 27 Oct): DEFAULT ON. `advLightChosen` says
+  // the player set it (options or the slow-frame card), so a later change of
+  // default never overrides a choice; `advLightNoAsk` is the card's « Garder »:
+  // never ask again on this browser. Neither is an option row.
+  // A getter, so it is always advlight.js's default (on in a browser).
+  get advLight() { return defaultAdvLight(); },
+  advLightChosen: false,
+  advLightNoAsk: false,
   // ---- controls
   steerSens: 1,            // 0.5 .. 1.6 multiplier on the steering input
   damageSensitivity: 1,    // 0 disables collision damage; 1 is the default
@@ -160,6 +172,11 @@ export function normalizeSettings(raw) {
     showLegend: bool(s.showLegend, D.showLegend),
     showHud: bool(s.showHud, D.showHud),
     showFps: bool(s.showFps, D.showFps),
+    // Chosen: the player's value. Not chosen: the default (advlight.js; on in
+    // a browser, off under node so the smokes keep today's bakes).
+    advLight: resolveAdvLight(s),
+    advLightChosen: s.advLightChosen === true,
+    advLightNoAsk: s.advLightNoAsk === true,
 
     steerSens: lim('steerSens', s.steerSens),
     damageSensitivity: lim('damageSensitivity', s.damageSensitivity),

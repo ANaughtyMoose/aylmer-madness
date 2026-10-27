@@ -38,10 +38,12 @@ export function historicSites({rectRing,walls,lot,lightStandard}) {
     for(let i=0;i<3;i++){box(K,361+i*5,.75,-225,1.1,.1,1.1,0x8f7252);box(K,361+i*5,.35,-225,.1,.7,.1,0x393b33);}
   },parking(345,-245,17,28),[sign(367,-224.8,9,'Gabriel Pizza','#8e3527',4.1,0,.95)]);
   add('mcdonalds',318,-239,[68609494],K=>{
-    shop(K,318,-240,17,28,4,0x737d76,-.09,0xb6afa0);
+    // West face pulled 3 m east off the drive-through lane (5 m one way along the
+    // west side): the wall stood on its centreline (w7-walls, 27 Oct 2026).
+    shop(K,319.5,-240.15,14,28,4,0x737d76,-.09,0xb6afa0);
     box(K,321,4.4,-225,4,7,3,0xab2926);
     box(K,321,8.2,-225,5,1.3,4,0x69726c,{wTop:.1,dTop:4});
-  },parking(299,-242,16,30),[sign(314,-225,10,'McDonald’s','#5b625c',3.6,0,1),sign(321,-223.3,2.4,'M','#b72b23',5,0,1.7)]);
+  },parking(299,-242,16,30),[sign(316.4,-225,5.2,'McDonald’s','#5b625c',3.6,0,1),sign(321,-223.3,2.4,'M','#b72b23',5,0,1.7)]);
   function station(key,x,z,ids,name,color,board){
     add(key,x,z,ids,K=>{
       shop(K,x,z-22,25,10,3.6,0xa7aaa2,0,0xb9b9a5);

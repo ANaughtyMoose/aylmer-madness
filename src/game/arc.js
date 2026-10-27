@@ -153,9 +153,9 @@ const bache = {
         text: 'Plage des Cèdres, sans rien casser',
         sub: 'GPS, pis 35 km/h max dans le pilier (S pour freiner). C’est fragile.',
         hint: 'Plein ouest par la Principale, jusqu’au bout, au bord de la rivière.',
-        // s1-timers: 2.1 km, pace car 81 s, so 115 s (was 320 s, 24 km/h: set
-        // dressing). Fast down the Principale, then 35 in the pillar.
-        at: 'beach', radius: 20, maxSpeed: 35, time: 115,
+        // s1-timers: 2.1 km (was 320 s, 24 km/h: set dressing). W6-CURFEW: the
+        // pace car now brakes to 35 for the pillar, 85 s, so 120 s (was 115).
+        at: 'beach', radius: 20, maxSpeed: 35, time: 120,
         toast: 'Montés, branchés, pis ça marche. La plage a du son. Le bois est empilé pour le feu.',
         money: 35,
       },

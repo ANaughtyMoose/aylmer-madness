@@ -86,24 +86,32 @@ export function oldAylmerSites({rectRing,walls,lot}) {
     F.box(4.5,2.6,1,4,5.2,10,0xd5d2c2);F.box(4.5,5.3,1,4.4,.4,10.4,0xb14c49);
     for(const u of [-4.5,.2]){F.box(u,1.65,6.1,3.8,3.2,.12,0xe2dfd1);for(let j=0;j<3;j++)for(let i=0;i<2;i++)F.box(u-1.1+i*2.2,1+j*.7,6.2,.8,.3,.1,0x343b3b);}
     F.door(4.6,6.2);for(let i=0;i<3;i++)for(let j=0;j<4;j++){const q=F.p(-8-i*.8,3);F.K.mb.cyl(q[0],.18+j*.35,q[1],.55,.32,8,rgb(0x252827));}
-  },[sign(-509.5,-145.6,4,'GARAGE','#303837',3.8,.95,'Hugo Caumartin')]);
+  // [w7-places] The owner's name came from 2026 OSM, with no 2004 source; a garage
+  // sign carries no owner's name (the D32 rule) until Tom says otherwise.
+  },[sign(-509.5,-145.6,4,'GARAGE','#303837',3.8,.95,'')]);
   add('oldlibrary',-662,-50,[68609085],F=>{
     F.wall(0,0,28,22,8,0xa7a79a,F.rows(2));F.roof(0,0,29,23,8,2.8,0x545d54);
     F.wall(0,9,13,6,9.1,0xa7a79a,F.rows(2));F.roof(0,9,14,7,9.1,2.6,0x899084,'gable');
     for(const u of [-4,0,4])F.arch(u,4.7,12.15,1.5,3.1);
     F.door(-3,12.1);F.door(3,12.1);F.steps(0,12.8,10);F.box(0,1,16,4,.4,2,0x8f9387);
     for(const u of [-1,0,1]){const q=F.p(u,16);F.K.mb.cyl(q[0],2,q[1],.35,1.7,7,rgb(0x58685e));F.K.mb.cyl(q[0],3.05,q[1],.4,.6,7,rgb(0x58685e));}
-  },[sign(-662,-62.4,7,'ANCIENNE BIBLIOTHÈQUE','#4d5c4d',3.4,1.1,'FERMÉE — DÉGÂTS D’EAU',Math.PI)]);
+  },[sign(-662,-62.4,7,'ANCIENNE BIBLIOTHÈQUE','#4d5c4d',3.4,1.1,'FERMÉE : DÉGÂTS D’EAU',Math.PI)]);
   // s1-hotel (20 Oct 2026): was 29 m wide at (-661, 3), which put its north wall
   // 2 m into Rue du Patrimoine (the bz_vieux line) and its west wall across the
   // lane at (-669, 7). Fitted to its OSM footprint (68609642, x -673 to -640,
   // z -9.1 to 24.7) between that lane and the one on its east side; same height,
   // roof and street face. tools/smoke_landmark_roads.mjs holds it there.
   add('aydelu',-653.9,4.5,[68609642],F=>{F.wall(0,0,26,27,4.4,0x9c4f3c);F.roof(0,0,27,28,4.4,6,0x82674e,'gable');F.door(9,13.6);},[sign(-654,-9.5,8,'BINGO','#e8dfc6',4.6,1.4,'AYDELU',Math.PI)]);
-  add('galaxie',-670,48,[68609238],F=>{F.wall(0,0,38,36,4.5,0xd8d7c9,F.rows(1));F.box(0,4.5,0,39,.4,37,0xbbbdb3);F.porch(9,19);F.roof(0,19,10,5,3.6,2.8,0xbec2b7,'gable');F.door(0,18.1);},[sign(-670,27,9,'GALAXIE','#325986',4,1.6,'SALLE DE QUILLES · BOWLING',Math.PI)]);
+  // w7-walls (27 Oct 2026): 7.5 m east and 2.5 m north, same size, so the west
+  // face clears the lane that runs Rue du Patrimoine to the arena lots (it stood
+  // on its centreline for 25 m). Still inside the OSM footprint (x -684 to -633).
+  add('galaxie',-662.5,50.5,[68609238],F=>{F.wall(0,0,38,36,4.5,0xd8d7c9,F.rows(1));F.box(0,4.5,0,39,.4,37,0xbbbdb3);F.porch(9,19);F.roof(0,19,10,5,3.6,2.8,0xbec2b7,'gable');F.door(0,18.1);},[sign(-662.5,29.5,9,'GALAXIE','#325986',4,1.6,'SALLE DE QUILLES · BOWLING',Math.PI)]);
   // s1-hotel (20 Oct 2026): 0.5 m west of where it was, so its east wall clears
   // the end of Rue Lord-Aylmer (it stood 0.4 m into the street's asphalt).
-  add('frankarena',-606.5,79,[68609092],F=>{F.wall(0,0,35,79,4,0xa7664b);F.wall(0,0,35,79,7.2,0x718f9a,[{y0:4.2,y1:6,w:1.5,gap:3,margin:4}]);F.box(0,2,40,35,4,.2,0xa7664b);F.roof(0,0,36,80,7.2,2.5,0x6a8e9f,'gable');F.door(0,40.2);},[sign(-606,38.5,10,'ARÉNA FRANK-ROBINSON','#42667f',3.4,1,'PATINAGE',Math.PI)],65);
+  // w7-walls (27 Oct 2026): 22 m south, same size, onto its OSM footprint (z 18
+  // to 107). It stood 12 m north of it, with its north-east corner on the lane
+  // behind the arena (the sc_arena shortcut, -585,94 to -607,152).
+  add('frankarena',-606.5,57,[68609092],F=>{F.wall(0,0,35,79,4,0xa7664b);F.wall(0,0,35,79,7.2,0x718f9a,[{y0:4.2,y1:6,w:1.5,gap:3,margin:4}]);F.box(0,2,40,35,4,.2,0xa7664b);F.roof(0,0,36,80,7.2,2.5,0x6a8e9f,'gable');F.door(0,40.2);},[sign(-606,16.5,10,'ARÉNA FRANK-ROBINSON','#42667f',3.4,1,'PATINAGE',Math.PI)],65);
   add('duchesnay',-655,134,[93974633],F=>{F.wall(0,0,52,64,10,0xbac3c3);F.roof(0,0,53,65,10,2,0xafbdbe,'gable');F.wall(0,30,49,8,3.6,0xa76451,F.rows(1));F.box(0,3.7,34.2,50,.2,.3,0xa33931);F.door(12,34.2);},[sign(-655,99.5,19,'ARÉNA ISABELLE-ET-PAUL-DUCHESNAY','#334453',3.9,1,'92',Math.PI)],65);
   add('morin',-1107,-44,[463458616],F=>{F.wall(-3,-2,7,15,5.5,0xb9bfc0,F.rows(2));F.roof(-3,-2,8,16,5.5,3,0x687372,'gable');F.wall(4,0,7,18,3.6,0xc6cbca,F.rows(1));F.box(4,3.7,0,7.3,.25,18.3,0xcbd0cc);for(const u of [-4,1]){F.door(u,9.1);F.roof(u,9.5,2.3,2,2.7,1,0x697672,'gable');}for(const v of [-3,1])F.box(-.8,6.3,v,1.1,.2,1.8,0x9eafb0);},[sign(-1107,-55,4.6,'Dr MORIN','#264a3e',1.7,1.3,'DENTISTE',Math.PI)]);
   add('clocklibrary',-742,-126.5,[1474477281],F=>{

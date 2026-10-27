@@ -308,9 +308,17 @@ tick();
 ok(m.idx === 5 && G.mealShift === null, 'nine bites finish the shift and close it');
 
 // 5. The samosas.
-ok(toasts.some((t) => /revenu de chez NASA/.test(t)) && said.some(([, t]) => /cedar’s still dripping/.test(t)), 'Sayyad is back from NASA with the bag');
+// W7-BUGS: the return narration is on the shift's own toast (the 20 Oct cloud
+// transcript lost it as a separate toast), before Sayyad's samosa line.
+ok(/Le service est terminé[\s\S]*\n.*revenu de chez NASA/.test(toasts[toasts.length - 1] || ''), 'the shift toast carries the return from NASA', toasts[toasts.length - 1]);
+ok(said.some(([, t]) => /cedar’s still dripping/.test(t)), 'Sayyad is back from NASA with the bag');
 tick();
 ok(m.idx === 5, 'the samosa needs E');
+// W7-BUGS: a held E from the first frame no longer ends the job before the
+// lines are read (the bot did it in 1.2 s on 20 Oct).
+for (let k = 0; k < Math.floor((SP.SAMOSA_DWELL_S - 0.2) / DT); k++) { G.wantStart = true; tick(); }
+ok(m.idx === 5, `E does nothing for the first ${SP.SAMOSA_DWELL_S} s in the lot`);
+for (let k = 0; k < Math.ceil(0.4 / DT); k++) tick();
 G.wantStart = true; tick();
 ok(m.idx === 6 && toasts.some((t) => /samosas chauds/.test(t)), 'E: a samosa, the job is done');
 missionCleanup(G, m, false);
@@ -350,6 +358,112 @@ function legRun(policy, secs, kmh) {
   const calm = legRun((s) => s.w + s.pend < H.BOT_POUR_BELOW, 120, 30);
   ok(!(calm.r && calm.r.fail) && calm.m.sauna.shorts === 0, `the bot rule for two minutes at 30 km/h: no fail, ${Math.round(H.saunaResult(calm.m.sauna).inBand * 100)} % green`);
   missionCleanup(calm.G, calm.m, true);
+}
+
+group('the end lines after the samosas (W7-BUGS)');
+{
+  // main.js at the finish: the samosa line may still be up; closeMission
+  // cancels 'friend', then sayFriend queues the end lines. Both must play, in
+  // order, before anything else the queue holds.
+  const { Heckle } = await import('../src/game/heckle.js');
+  const { friendLines } = await import('../src/game/story.js');
+  const hk = new Heckle();
+  hk.update(0.1, { veh: { speedKmh: 0 } });
+  hk.line('Sayyad', '« The cedar’s still dripping. Your truck smells like a cabin now. »', 3000, { group: 'sauna' });
+  for (let k = 0; k < Math.ceil(SP.SAMOSA_DWELL_S / DT); k++) hk.update(DT);
+  hk.cancel('friend');
+  const end = friendLines('stvincent', 'end');
+  ok(end.some(([w, t]) => w === 'Sayyad' && /Walked to NASA and back/.test(t)), 'stvincent end lines include Sayyad back from NASA');
+  for (const [w, t] of end) hk.line(w, t, 3000, { group: 'friend' });
+  const heard = [];
+  for (let k = 0; k < 15 / DT; k++) { hk.update(DT); if (hk.storyNow && heard[heard.length - 1] !== hk.storyNow.text) heard.push(hk.storyNow.text); }
+  const iP = heard.findIndex((t) => /plateaux vont sur le chariot/.test(t));
+  const iS = heard.findIndex((t) => /Walked to NASA and back/.test(t));
+  ok(iP >= 0 && iS > iP, 'the attendant, then Sayyad’s end line, both play', heard.join(' | '));
+}
+
+group('Sayyad in order through a real queue, at any frame rate (W8-BUGS)');
+{
+  // Cloud run 27 Oct (0.1x real time): « Go feed people » played after the
+  // shift, behind « Sayyad est revenu de chez NASA »; the samosa line and the
+  // end pair never came. The stages now wait on the queue itself (game time),
+  // so the order holds whatever the step size.
+  const { Heckle } = await import('../src/game/heckle.js');
+  const { friendLines } = await import('../src/game/story.js');
+  for (const step of [1 / 60, 1 / 6]) {
+    const Gx = freshG();
+    G = Gx;
+    const hk = new Heckle();
+    Gx.heckle = hk;
+    hk.update(0.1, Gx);
+    const heard = [];
+    const listen = () => { if (hk.storyNow && heard[heard.length - 1] !== hk.storyNow.text) heard.push(hk.storyNow.text); };
+    const mx = { def, stages: def.build({}), idx: 3, target: null, paid: 0 };
+    const p = PLACES.stvincent; Gx.veh.x = p.x; Gx.veh.z = p.z; Gx.veh.speedKmh = 0;
+    stageEnter(Gx, mx, mx.stages[3]);
+    let mealAt = -1, eAt = -1, guard = 0;
+    // main.js: the mission ticks, then the queue; the queue stands still during the meal.
+    const run = (until) => {
+      while (!until() && guard++ < 6000) {
+        const st = mx.stages[mx.idx];
+        mx.target = stageTarget(Gx, mx, st);
+        Gx.wantStart = true;
+        const r = stageStep(Gx, mx, st, step);
+        if (r === 'done') { stageExit(Gx, mx, st); mx.idx++; if (mx.stages[mx.idx]) stageEnter(Gx, mx, mx.stages[mx.idx]); }
+        if (!Gx.mealShift) { hk.update(step, Gx); listen(); }
+      }
+    };
+    const tag = `(step ${step.toFixed(3)} s)`;
+    hk.update(step, Gx); listen();
+    ok(SP.sayyadTalking(Gx), `the lot line is up or queued as you stop ${tag}`);
+    { const st = mx.stages[3]; mx.target = stageTarget(Gx, mx, st); Gx.wantStart = true; stageStep(Gx, mx, st, step); }
+    ok(mx.idx === 3, `a held E does not go in while Sayyad is talking ${tag}`);
+    run(() => mx.idx >= 4);
+    mealAt = heard.length;
+    ok(heard.some((t) => /walking to NASA/.test(t)) && !SP.sayyadTalking(Gx) && mx.idx === 4,
+      `« Go feed people » plays out before the meal opens ${tag}`, heard.join(' | '));
+    Gx.mealShift.state.served = [3, 3, 3];
+    run(() => mx.idx >= 5);
+    run(() => mx.idx >= 6);
+    eAt = heard.length;
+    ok(heard.slice(mealAt).some((t) => /cedar’s still dripping/.test(t)) && !SP.sayyadTalking(Gx),
+      `the samosa line plays out before E ends the job ${tag}`, heard.join(' | '));
+    missionCleanup(Gx, mx, false);
+    hk.cancel('friend');
+    for (const [w, t] of friendLines('stvincent', 'end')) hk.line(w, t, 3000, { group: 'friend' });
+    for (let k = 0; k < 20 / step; k++) { hk.update(step, Gx); listen(); }
+    const at = (re) => heard.findIndex((t) => re.test(t));
+    const iLot = at(/walking to NASA/), iSam = at(/cedar’s still dripping/), iAtt = at(/plateaux vont sur le chariot/), iEnd = at(/Walked to NASA and back/);
+    ok(iLot >= 0 && iLot < mealAt && iSam >= mealAt && iSam < eAt && iAtt > iSam && iEnd > iAtt,
+      `order: lot, (meal), samosa, the attendant, « Walked to NASA and back » ${tag}`, heard.join(' | '));
+  }
+  // A queue that never moves (or a line stuck behind others): E opens at the
+  // cap, and the meal cuts the lot line instead of playing it after the shift.
+  {
+    const Gx = freshG();
+    G = Gx;
+    const hk = new Heckle();
+    Gx.heckle = hk;
+    const mx = { def, stages: def.build({}), idx: 3, target: null, paid: 0 };
+    const p = PLACES.stvincent; Gx.veh.x = p.x; Gx.veh.z = p.z; Gx.veh.speedKmh = 0;
+    stageEnter(Gx, mx, mx.stages[3]);
+    let n = 0;
+    while (mx.idx === 3 && n < 60 * 20) {
+      const st = mx.stages[3]; mx.target = stageTarget(Gx, mx, st); Gx.wantStart = true;
+      if (stageStep(Gx, mx, st, DT) === 'done') { stageExit(Gx, mx, st); mx.idx++; stageEnter(Gx, mx, mx.stages[4]); }
+      n++;
+    }
+    ok(mx.idx === 4 && Math.abs(n * DT - SP.LINE_WAIT_MAX_S) < 0.1, `a stuck queue: E opens at ${(n * DT).toFixed(2)} s (cap ${SP.LINE_WAIT_MAX_S} s)`);
+    ok(!SP.sayyadTalking(Gx), 'the meal cuts the lot line that never got its turn');
+    missionCleanup(Gx, mx, true);
+  }
+  // main.js: the last stage's toast is the end card's body, not a second toast after it.
+  {
+    const fs = await import('node:fs');
+    const src = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+    ok(/const toastOnCard = [^\n]*m\.idx >= m\.stages\.length - 1/.test(src) && /if \(stageToast && !toastOnCard\) hud\.toast\(stageToast/.test(src)
+      && /else \{ if \(toastOnCard\) hud\.toast\(stageToast/.test(src), 'main.js: the end text shows once, on the card (toasted only when no card shows)');
+  }
 }
 
 group('abort from every stage');

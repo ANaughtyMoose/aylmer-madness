@@ -112,7 +112,7 @@ function sit(veh, w, seconds = 20) {
   const st = { t: 0, key: null };
   const first = updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w });
   ok('the driveway prompt says what it is and what it costs',
-    first.prompt === 'E — réparer dans ton entrée (gratuit, 10 s)', first.prompt);
+    first.prompt === 'E : réparer dans ton entrée (gratuit, 10 s)', first.prompt);
   ok('...and nothing happens until you press E', first.working === false && st.key === null);
 
   const run = sit(v, w);
@@ -134,7 +134,7 @@ function sit(veh, w, seconds = 20) {
   const w = wallet(80);
   const st = { t: 0, key: null };
   const first = updateRepairs(st, 1 / 60, v, { places: PLACES, wallet: w });
-  ok('the garage quotes its price and extra', first.prompt === 'E — devis 11 $ (+ 1 $ fournitures; total 12 $)', first.prompt);
+  ok('the garage quotes its price and extra', first.prompt === 'E : devis 11 $ (+ 1 $ fournitures; total 12 $)', first.prompt);
 
   const run = sit(v, w);
   ok('the historic garage takes four seconds', run.done && Math.abs(run.t - 4) < 0.1, `${r2(run.t)} s`);
@@ -199,14 +199,14 @@ function sit(veh, w, seconds = 20) {
 
   const a = repairHint(st, 26);
   ok('crossing 25 % names the historic garage and home',
-    a.toast === 'Ton char est magané — Garage Caumartin, 143 Principale, ou ton entrée (E)', a.toast);
+    a.toast === 'Ton char est magané. Garage Caumartin, 143 Principale, ou ton entrée (E)', a.toast);
   ok('...and the damage bar gets a standing line',
     a.hint === 'réparer : 143 Principale · chez vous', a.hint);
   ok('...exactly once', repairHint(st, 30).toast === null && repairHint(st, 40).toast === null);
 
   const b = repairHint(st, 61);
   ok('crossing 60 % is the one about pulling left',
-    b.toast === 'Ça tire à gauche pis ça pétarade — va le faire réparer', b.toast);
+    b.toast === 'Ça tire à gauche pis ça pétarade, va le faire réparer', b.toast);
   ok('...also exactly once', repairHint(st, 90).toast === null);
   ok('the hint stays up while it is bent', repairHint(st, 90).hint !== null);
 

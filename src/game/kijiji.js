@@ -39,7 +39,7 @@ export const ADS = [
     car: 'tempo', seller: 'Ghyslain', where: 'Aylmer (secteur Wychwood)',
     posted: 'le 11 août 2004', calls: 4,
     flaw: { text: 'Plancher mou côté conducteur, rebouché avec un tapis. Rouille perforante commencée.', damage: 18 },
-    title: 'FORD TEMPO 1991 GL — BON POUR ETUDIANT',
+    title: 'FORD TEMPO 1991 GL, BON POUR ETUDIANT',
     body: 'TEMPO 91 AUTOMATIQUE. 214 000 KM. LA PORTE DU PASSAGER EST GRISE PIS LE '
       + 'RESTE EST BLEU, C\'EST PAS GRAVE CA ROULE. VIENT DE PASSER SUR LE BANC D\'ESSAI. '
       + 'PNEUS NEUFS EN AVANT. LE CHAUFFAGE MARCHE JUSTE AU BOUTTE MAIS ON EST EN AOUT.\n'
@@ -49,7 +49,7 @@ export const ADS = [
     car: 'caravan', seller: 'Denise', where: 'Aylmer (Vieux-Aylmer)',
     posted: 'le 9 août 2004', calls: 2,
     flaw: { text: 'Essieu arrière ressoudé à la chandelle. Ça tient. Pour astheure.', damage: 14 },
-    title: 'DODGE CARAVAN 1988 — 7 PLACES — PARFAIT DEMENAGEMENT',
+    title: 'DODGE CARAVAN 1988, 7 PLACES, PARFAIT DEMENAGEMENT',
     body: 'CARAVAN 88. LES DEUX PORTES COULISSANTES MARCHENT. LES BANCS D\'EN ARRIERE '
       + 'SORTENT (SONT DANS LE GARAGE). SENT UN PEU LE CHIEN MAIS UN ARBRE MAGIQUE PIS '
       + 'C\'EST REGLE.\nAUCUN ECHANGE. ARGENT COMPTANT.',
@@ -61,7 +61,7 @@ export const ADS = [
     car: 'cutlass', seller: 'Ti-Guy (Les Chars à Ti-Guy)', where: 'Aylmer (lot, chemin d’Aylmer)',
     posted: 'le 2 août 2004', calls: 5,
     flaw: { text: 'Rouille perforante aux deux ailes arrière, rebouchée à la pâte pis peinturée par-dessus.', damage: 22 },
-    title: 'OLDSMOBILE CUTLASS CIERA 1987 BRUN — MOTEUR BON',
+    title: 'OLDSMOBILE CUTLASS CIERA 1987 BRUN, MOTEUR BON',
     body: 'CIERA 87. BRUN. BANQUETTE EN AVANT. CENDRIER PLEIN, JE LE VIDERAI PAS C\'EST '
       + 'PAS DANS LE PRIX. LA SUSPENSION EST MOLLE MAIS C\'EST DE MEME QUE C\'EST FAIT.\n'
       + 'PREMIER ARRIVE PREMIER SERVI. PAS DE NEGO.\nJE REPONDS PAS AUX COURRIELS.',
@@ -77,7 +77,7 @@ export const ADS = [
     car: 'benz', seller: 'Roger', where: 'Aylmer (Deschênes, chemin Vanier)',
     posted: 'le 6 août 2004', calls: 1,
     flaw: { text: 'Bas de portes pis plancher côté chauffeur mangés par le calcium. Le moteur, lui, est éternel.', damage: 26 },
-    title: 'MERCEDES 240D 1976 DIESEL — VERT — 4 PORTES — TRES PROPRE',
+    title: 'MERCEDES 240D 1976 DIESEL, VERT, 4 PORTES, TRES PROPRE',
     body: 'MERCEDES BENZ 240 D 1976. DIESEL. AUTOMATIQUE 4 VITESSES. VERT PALE D\'ORIGINE '
       + 'AVEC LES ENJOLIVEURS CHROMES. 318 000 KM PIS C\'EST RIEN POUR UN DIESEL, DEMANDEZ '
       + 'A N\'IMPORTE QUI.\nELLE PART A TOUS LES COUPS MEME A MOINS TRENTE SI TU ATTENDS '
@@ -97,7 +97,7 @@ export const ADS = [
     car: 'bus', seller: 'Transport urbain (liquidation)', where: 'Gatineau (garage municipal)',
     posted: 'le 28 juillet 2004', calls: 6,
     flaw: { text: 'Fuite d’air au frein arrière gauche pis ça fume bleu à froid. C’est un autobus de ville de 1979.', damage: 30 },
-    title: 'AUTOBUS ORION I — HORS SERVICE — VENDU TEL QUEL',
+    title: 'AUTOBUS ORION I, HORS SERVICE, VENDU TEL QUEL',
     body: 'ANCIEN AUTOBUS DE VILLE. 40 PLACES. LE DIESEL PART. LA PANCARTE DIT HORS '
       + 'SERVICE PIS ON CHANGERA PAS CA.\nVOUS VENEZ LE CHERCHER. ON LE LIVRE PAS.\n'
       + 'PASSE PAS SUR BANCROFT, LE VIADUC EST TROP BAS. VOUS ETES AVERTIS.\n'
@@ -107,7 +107,7 @@ export const ADS = [
   {
     seller: 'Marie-Josée', where: 'Aylmer (Promenade Wychwood)', posted: 'le 12 août 2004',
     calls: 1, priceText: 'Gratuit', look: { body: 0x7a5c34, len: 2.1, h: 0.9, style: 'thing' },
-    title: 'DIVAN 3 PLACES BRUN — GRATUIT',
+    title: 'DIVAN 3 PLACES BRUN, GRATUIT',
     body: 'DIVAN BRUN. PROPRE. FAUT LE MONTER TOI-MEME, 2E ETAGE, PAS D\'ASCENSEUR.\n'
       + 'IL EST LOURD. JE LE REPETE: IL EST LOURD.',
     footer: 'Tu connais déjà ce divan-là.',
@@ -123,7 +123,7 @@ export const ADS = [
   {
     seller: 'Réjean', where: 'Aylmer (Frank-Robinson)', posted: 'le 3 août 2004', calls: 9,
     priceText: '40 $', look: { body: 0x1a1c1e, len: 1.6, h: 1.1, style: 'thing' },
-    title: 'PNEUS D\'HIVER 185/70R14 x4 — 40$',
+    title: 'PNEUS D\'HIVER 185/70R14 x4, 40$',
     body: 'QUATRE PNEUS D\'HIVER. PAS DE JANTES. RESTE DE LA GOMME CORRECT.\n'
       + 'ON EST EN AOUT JE SAIS. C\'EST POUR CA QU\'ILS SONT A 40.',
     footer: 'Le mécanicien vend les siens neufs. Ceux-là ont fait dix hivers.',
@@ -131,7 +131,7 @@ export const ADS = [
   {
     seller: 'Patrick', where: 'Gatineau (Hull)', posted: 'le 1er août 2004', calls: 12,
     sold: true, look: { body: 0x9a9384, len: 1.0, h: 0.5, style: 'thing' },
-    title: 'NINTENDO 64 + 3 JEUX — 60$',
+    title: 'NINTENDO 64 + 3 JEUX, 60$',
     body: 'N64 AVEC MARIO KART, GOLDENEYE PIS UN AUTRE. MANETTE GRISE UN PEU MOLLE.\n'
       + 'PREMIER ARRIVE PREMIER SERVI.',
     footer: 'Quelqu’un a été plus vite que toi. En 2004 ça se passait de même.',
@@ -322,7 +322,7 @@ const CALL_END = {
 // deterministically off its own title, so the guy who will not budge is the
 // same guy every time you ring him.
 const CALL_BY_TITLE = [
-  [/TERCEL/, 'Mechanic selling an abandoned repair'],      // Garage Lafleur's lien sale
+  [/TERCEL/, 'Mechanic selling an abandoned repair'],      // the garage's lien sale
   [/FORD TEMPO 1991/, 'Won\'t come down a dollar'],
   [/CARAVAN 1988/, 'Mother selling her son\'s car while he\'s away'],
   [/CUTLASS CIERA 1987/, 'Upsells you the rest of his yard'],
@@ -556,7 +556,7 @@ function priceLabel(ad) {
   if (ad.sold) return '<span class="sold">vendu</span>';
   if (ad.priceText) return ad.priceText;
   const c = priceOf(ad);
-  return c != null ? money(c) : '&mdash;';
+  return c != null ? money(c) : '-';
 }
 
 function listHTML(garage) {
@@ -572,7 +572,7 @@ function listHTML(garage) {
   }).join('');
   return `
   <div class="crumb"><a data-nav="list">Accueil</a> &gt; Autos et véhicules &gt;
-    <b>Autos d’occasion — Gatineau / Outaouais</b> &mdash; ${list.length} annonces</div>
+    <b>Autos d’occasion, Gatineau / Outaouais</b> : ${list.length} annonces</div>
   <div class="search">
     <span>Rechercher&nbsp;:</span><input id="kjq" value="char pas cher aylmer">
     <button data-act="search">Rechercher</button>
@@ -596,7 +596,7 @@ function detailHTML(ad, garage, wallet, done) {
   const can = ad.car ? garage.canBuy(ad.car, wallet, done, off) : null;
   const caller = callerFor(ad);
   const buy = ad.car
-    ? `<div class="buyrow"><button data-act="buy">ACHETER &mdash; ${money(pay)}</button>`
+    ? `<div class="buyrow"><button data-act="buy">ACHETER : ${money(pay)}</button>`
       + (can.ok
         ? `<span class="meta">Il te rejoint au Tim Hortons de la Principale.${off
             ? ` Il a coupé ${money(off)}.` : ''}</span>`
@@ -609,7 +609,7 @@ function detailHTML(ad, garage, wallet, done) {
   // wrong with it is the same way anybody found out in 2004 — somebody knows.
   const inspect = ad.car
     ? `<div class="buyrow"><button data-act="inspect" ${seen ? 'disabled' : ''}>
-         ${seen ? 'INSPECTÉ' : 'FAIRE INSPECTER — ' + money(INSPECT_PRICE)}</button>
+         ${seen ? 'INSPECTÉ' : 'FAIRE INSPECTER : ' + money(INSPECT_PRICE)}</button>
        <span class="meta">Le mécanicien le met sur le pont avant que tu signes.</span></div>`
     : '';
   // The inspection report, and the free half of it: a seller who lied on the
@@ -647,13 +647,13 @@ function paint() {
   const { garage, wallet, done } = ctx;
   const body = screen === 'list' ? listHTML(garage) : detailHTML(current, garage, wallet, done);
   root.innerHTML = `
-  <div class="bar"><b>kijiji</b><span>Petites annonces gratuites &mdash; Gatineau / Outaouais</span>
+  <div class="bar"><b>kijiji</b><span>Petites annonces gratuites, Gatineau / Outaouais</span>
     <button class="x" data-act="close">Fermer (Échap)</button></div>
   <div class="strip">Autos &middot; Meubles &middot; Emplois &middot; Rencontres &middot; À donner
     &nbsp;&nbsp;|&nbsp;&nbsp; ${new Date(2004, 7, 14).toLocaleDateString('fr-CA')}</div>
   <div class="wrap">${body}
     <div class="foot"><span>Meilleur avec Internet Explorer 6 &middot; 800x600 &middot;
-      Connexion Sympatico 56k &mdash; 4,2 ko/s</span>
+      Connexion Sympatico 56k : 4,2 ko/s</span>
       <span>visiteurs : <span class="hits">0041827</span></span></div>
   </div>`;
   for (const c of root.querySelectorAll('canvas[data-shot]')) {
@@ -764,7 +764,7 @@ export function open(opts) {
   const ready = Promise.all([loadListings(), loadCalls()]);
   if (connected) { ready.then(() => { if (isOpen()) paint(); }); paint(); return e; }
   e.innerHTML = `<div class="modem"><b>Connexion…</b>
-    Composition du 1&nbsp;800&nbsp;773&nbsp;9977…<br>Sympatico &mdash; 56 000 bps<br><br>
+    Composition du 1&nbsp;800&nbsp;773&nbsp;9977…<br>Sympatico : 56 000 bps<br><br>
     <span style="color:#888">(ta mère va crier si le téléphone sonne)</span></div>`;
   const t = new Promise((r) => setTimeout(r, CONNECT_MS));
   Promise.all([ready, t]).then(() => { connected = true; if (isOpen()) paint(); });

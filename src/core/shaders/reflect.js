@@ -14,6 +14,36 @@
 // that show it.
 export const REFLECT_GLSL = `
 // ---- s5-reflect: reflSky / reflEnv / reflFresnel (shaders/reflect.js)
+// The sky dome's colour along a world direction R (y up): the sky owner's
+// skyDirColor (shaders/sky.js, wave 7), gradient plus the wide soft sun glow
+// (the disc is left to the glint). Linear light when the draw is linear.
+vec3 reflSky(highp vec3 R) { return skyDirColor(R); }
+// Wave 7 (S5-LIGHT merge): the lake and wet-road hooks run BEFORE the light, on
+// a display-referred albedo that linearAlbedo() then decodes and albedoCeil()
+// caps. With linear on, their reflected radiance must skip both (a decode of
+// radiance / light blows up at night, and the 0.80 ceiling clips it), so they
+// hand it to gReflRad and FRAG_MAIN adds it after the light. Display path: the
+// old divide by the light, exactly.
+vec3 gReflRad = vec3(0.0);
+// The sky above the horizon and, below it, the street, lawns and walls across
+// the way (the ground bounce, dimmed). blur widens the join for rough surfaces.
+vec3 reflEnv(highp vec3 R, float blur) {
+  vec3 sky = reflSky(vec3(R.x, max(R.y, 0.0), R.z));
+  return mix(uGround * 0.45, sky, smoothstep(-blur, blur, R.y));
+}
+// Schlick Fresnel; cosT is dot(normal, direction to the eye).
+float reflFresnel(float cosT, float f0) {
+  float m = 1.0 - clamp(cosT, 0.0, 1.0);
+  float m2 = m * m;
+  return f0 + (1.0 - f0) * m2 * m2 * m;
+}
+// ---- end s5-reflect helpers
+`;
+
+// W8-LIGHT: « Éclairage avancé » off (the default): fix/look-on-qr's helpers,
+// verbatim (water.js picks one by lightMode).
+export const REFLECT_GLSL_CLASSIC = `
+// ---- s5-reflect: reflSky / reflEnv / reflFresnel (shaders/reflect.js)
 // The sky dome's colour along a world direction R (y up), as game/sky.js
 // draws it: the ramp t = pow(sin(elevation), 0.6) between the horizon colour
 // and the zenith, plus the wide soft sun glow (the disc is left to the glint).

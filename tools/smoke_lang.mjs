@@ -14,7 +14,7 @@
 //    line is tagged by speaker from its file's `who` field or its call site:
 //      main      the main cast (Tom, his friends, Margaret, Dad on the phone):
 //                English
-//      walkon    everyone else (Norm, staff, rivals, pedestrians, the police):
+//      walkon    everyone else (the garagiste, staff, rivals, pedestrians, the police):
 //                Quebec French
 //      narrator  briefs, toasts, cards, tips, the porch's « day » line: French
 //      radio     real airchecks and the stations' copy: as recorded, tagged
@@ -48,7 +48,7 @@ const ROOT = join(HERE, '..');
 const ALLOW_PATH = join(HERE, 'lang-allowlist.json');
 // The allowlist's size when frozen (297 on 13 Oct 2026; 293 after s1-d31; 191
 // after S1-ENGLISH, 20 Oct 2026). Lower it when entries are fixed; never raise it.
-export const ALLOW_MAX = 191;
+export const ALLOW_MAX = 62;
 
 // ---------------------------------------------------------------- speakers
 
@@ -249,10 +249,10 @@ export async function collectLines() {
   const rj = json('racing.json');
   for (const r of rj.taunts || []) add(`racing.json.taunts.${r.when}`, 'Rival', r.line, ['assets/text/racing.json']);
   for (const r of rj.callouts || []) add(`racing.json.callouts.${r.when}`, 'Témoin', r.line, ['assets/text/racing.json']);
-  // Norm, Grisha, the Kijiji sellers on the phone.
+  // The garagiste, Grisha, the Kijiji sellers on the phone.
   const mech = json('mechanic.json').mechanic || {};
-  for (const k of ['greetings', 'broke', 'wrecked']) for (const t of mech[k] || []) add(`mechanic.json.${k}`, 'Norm', t, ['assets/text/mechanic.json']);
-  for (const r of mech.work || []) add('mechanic.json.work', 'Norm', r.line, ['assets/text/mechanic.json']);
+  for (const k of ['greetings', 'broke', 'wrecked']) for (const t of mech[k] || []) add(`mechanic.json.${k}`, 'Le garagiste', t, ['assets/text/mechanic.json']);
+  for (const r of mech.work || []) add('mechanic.json.work', 'Le garagiste', r.line, ['assets/text/mechanic.json']);
   const gr = json('grisha.json').restorer || {};
   for (const k of ['greetings', 'quote', 'done', 'broke', 'refuse', 'aside']) for (const t of gr[k] || []) add(`grisha.json.${k}`, 'Grisha', t, ['assets/text/grisha.json']);
   for (const c of json('calls.json').calls || []) for (const k of ['opening', 'middle']) add(`calls.json.${k}`, 'Vendeur', c[k], ['assets/text/calls.json']);
@@ -364,7 +364,7 @@ async function run() {
   ok(breachOf('main', 'Je stationne le Ranger, pis je rentre.') !== null, 'a main-cast French line is a breach');
   ok(breachOf('walkon', 'Where did you get your licence?') !== null, 'a walk-on English line is a breach');
   ok(breachOf('walkon', 'OK!') === null, 'one English loan word is not an English line');
-  ok(speakerKind('Sayyad') === 'main' && speakerKind('Ton père, au téléphone') === 'main' && speakerKind('Norm') === 'walkon'
+  ok(speakerKind('Sayyad') === 'main' && speakerKind('Ton père, au téléphone') === 'main' && speakerKind('Le garagiste') === 'walkon'
     && speakerKind('') === 'narrator' && speakerKind('Sayyad', 'SAINT_JEAN') === 'setpiece', 'speaker tags');
 
   const rows = [...await collectLines()];
@@ -405,9 +405,11 @@ async function run() {
   ok((allow.entries || []).length <= ALLOW_MAX, `the allowlist only shrinks (${(allow.entries || []).length} <= ${ALLOW_MAX})`);
   ok((allow.entries || []).every((e) => /^(B-06|E-0[1-7])$/.test(e.owner)), 'every allowlist entry names its owner task');
   const at350 = (allow.entries || []).find((e) => e.file === 'src/game/story.js' && e.line === 350);
-  const at66 = (allow.entries || []).find((e) => e.file === 'assets/text/hangout.json' && e.line === 66);
+  // E-07 (W6-ENGLISH2, 27 Oct 2026): the porch speaks English, so no
+  // hangout.json row may come back onto the allowlist.
+  const porch = (allow.entries || []).filter((e) => /hangout\.json$/.test(e.file));
   ok(!!at350 && at350.owner === 'B-06', 'story.js:350 is on the allowlist, owner B-06');
-  ok(!!at66 && at66.owner === 'E-07', 'hangout.json:66 is on the allowlist, owner E-07');
+  ok(porch.length === 0, `no hangout.json row is on the allowlist, E-07 is done (${porch.length})`);
   ok(fresh.length === 0, `no breach outside the allowlist (${fresh.length})`,
     fresh.slice(0, 5).map((r) => `${r.file}:${r.line} ${r.who || '(narrator)'} [${r.why}]: ${r.text.slice(0, 70)}`).join(' | '));
   // One tic per friend, nobody shares one (Tom, 20 Oct 2026; S1-ENGLISH).

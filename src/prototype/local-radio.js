@@ -54,7 +54,7 @@ export async function mountLocalRadio(panel, radio) {
     availability.replaceChildren(); imports.replaceChildren();
     for (const station of STATIONS) {
       const count = radio.tracks(station.id).length;
-      const row = text('label', ` ${station.name} — ${count} fichier${count === 1 ? '' : 's'}`), check = document.createElement('input');
+      const row = text('label', ` ${station.name} : ${count} fichier${count === 1 ? '' : 's'}`), check = document.createElement('input');
       check.type = 'checkbox'; check.checked = radio.enabled[station.id];
       check.onchange = () => radio.setEnabled(station.id, check.checked); row.prepend(check); availability.append(row);
     }

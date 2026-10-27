@@ -115,12 +115,33 @@ export function sleepTarget(G) {
   const from = today(G);
   if (from >= LAST) return from;
   const n = nextOpening(G);
-  return Math.max(from + 1, Math.min(LAST, n ? n.day : LAST));
+  const base = Math.max(from + 1, Math.min(LAST, n ? n.day : LAST));
+  // W7-BUGS: a day a failed job still owes (calendar.deferDay, open while its
+  // R offer is up) is paid on top of the nights, the way spendDay pays it on
+  // top of a job's day. Before, the sleep wiped it: fail, sleep one night,
+  // lose nothing. This can land a day past the next opening; that job stays
+  // open, nothing expires.
+  return Math.min(LAST, base + owedDays(G));
 }
 
-/** Can you sleep here, now? null when yes, else the reason (a toast). */
-export function sleepBlock(G) {
+/** Days a failed job still owes (calendar.deferDay), 0 when none. */
+export function owedDays(G) {
+  return Math.max(0, (G && G.dayOwed) | 0);
+}
+
+/** Reasons sleepBlock gives that are not worth a toast. */
+export const SLEEP_SILENT = new Set(['proto', 'card']);
+
+/**
+ * Can you sleep here, now? null when yes, else the reason (a toast).
+ * `ui.card` is true while anything owns the screen (a cinema card, the story
+ * opener, the ending cards, a menu, the map, the meal, a sector card): Z is
+ * then refused silently, so a sleep card can never open over another card
+ * and swallow its onDone (W7-BUGS, red team 20 Oct item 3).
+ */
+export function sleepBlock(G, ui = {}) {
   if (!G || isPrototype(G)) return 'proto';
+  if (ui && ui.card) return 'card';
   const E = en(G);
   if (G.mission || G.ambush) return E ? 'Finish the job first.' : 'Finis la job d’abord.';
   if (G.summerOver) return E ? 'The summer is over. Drive.' : 'L’été est fini. Roule.';
@@ -145,6 +166,8 @@ export function planSleep(G) {
   const E = en(G);
   const next = nextMain((G && G.done) || new Set(), known);
   const lines = [`${label(from)}  →  ${label(to)}`];
+  const owed = owedDays(G);
+  if (owed > 0) lines.push(E ? `+${owed} day${owed > 1 ? 's' : ''}: the job you failed` : `+${owed} jour${owed > 1 ? 's' : ''} : la job ratée`);
   if (to >= LAST) lines.push(E ? 'Labour Day.' : 'La fête du Travail.');
   else {
     const on = next ? opensOn(next) : null;
@@ -156,12 +179,18 @@ export function planSleep(G) {
   const body = nights > 1
     ? 'La plage, le dep, la radio dans l’entrée. Des journées de même, il y en a plein dans un été.'
     : 'Tu dors comme une roche. Le Ranger refroidit dans l’entrée.';
-  return { from, to, nights, title, body, task: lines.join('\n') };
+  return { from, to, nights, owed, title, body, task: lines.join('\n'), applied: false };
 }
 
-/** Move the calendar. A day a failed job still owed (calendar.deferDay) is paid by the nights. */
+/**
+ * Move the calendar. The owed days are already in plan.to (sleepTarget), so
+ * they are settled here and the caller drops the R offer after this (retry.js
+ * cancelRetry then has nothing left to spend). A plan applies once: a second
+ * onDone for the same card moves nothing (W7-BUGS).
+ */
 export function applySleep(G, plan) {
-  if (!G || !plan) return false;
+  if (!G || !plan || plan.applied) return false;
+  plan.applied = true;
   G.day = Math.min(LAST, Math.max(today(G), plan.to));
   G.dayOwed = 0;
   return true;

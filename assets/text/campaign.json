@@ -66,7 +66,7 @@
       "setup": "Aller booster la batterie du Pontiac Sunfire d'Adam avec les câbles de démarrage du Ranger.",
       "giver": "Mike McDonald",
       "from": "Aréna Frank-Robinson",
-      "to": "Marina d'Aylmer — le Sunfire d'Adam",
+      "to": "Marina d'Aylmer, le Sunfire d'Adam",
       "what": "Traversée du Vieux-Aylmer jusqu'au quai, la boîte pleine de câbles à booster.",
       "complication": "Le gravier lousse du stationnement de la marina fait patiner le train arrière vide du pickup.",
       "unlocks": {
@@ -80,7 +80,7 @@
       "title": "La course au Canadian Tire",
       "setup": "Acheter quatre bougies Champion et une pinte d'huile 5W30 avant la fermeture du comptoir des pièces.",
       "giver": "Adam Actell",
-      "from": "Marina d'Aylmer — le Sunfire d'Adam",
+      "from": "Marina d'Aylmer, le Sunfire d'Adam",
       "to": "Canadian Tire",
       "what": "Remontée rapide vers le pôle commercial des Galeries d'Aylmer.",
       "complication": "Un orage d'été soudain éclate et les essuie-glaces d'origine étalent l'eau au lieu de l'essuyer.",
@@ -118,7 +118,7 @@
         "kind": "place",
         "what": "Accès permanent à la cour du lot d'autos usagées pour trouver des pièces rares."
       },
-      "connects": "Sur place, le cellulaire vibre: Zahra a terminé sa pratique théâtrale et cherche un lift pour la plage."
+      "connects": "Sur place, le téléphone de l'Auberge sonne: Zahra a terminé sa pratique théâtrale et cherche un lift pour la plage."
     },
     {
       "n": 9,
@@ -193,13 +193,13 @@
         "kind": "cash",
         "what": "120$ en billets de banque pour une livraison express sans retard."
       },
-      "connects": "Aux Galeries, le mécanicien Norm Lafleur te repère et a besoin d'un transport transfrontalier vers Ottawa."
+      "connects": "Aux Galeries, le garagiste te repère et a besoin d'un transport transfrontalier vers Ottawa."
     },
     {
       "n": 14,
       "title": "La traversée d'Ottawa",
       "setup": "Transporter un carburateur d'époque rectifié chez un spécialiste situé au cœur du Marché By à Ottawa.",
-      "giver": "Norm Lafleur",
+      "giver": "Le garagiste",
       "from": "Galeries de Hull",
       "to": "Marché By",
       "what": "Traverser la rivière des Outaouais sur le pont Champlain et rouler dans les artères de la capitale fédérale.",

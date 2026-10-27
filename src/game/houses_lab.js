@@ -270,7 +270,7 @@ const ATLAS = new URLSearchParams(location.search).get('atlas') === 'real'
       }) }
   : {};
 loadMaterials(r, { base: '../../assets/materials/', ...ATLAS }).then((m) => { MATS = m; drawOpts.tex = m.tex; build(); })
-  .catch((e) => console.warn('lab: no atlas, vertex colours only —', e.message));
+  .catch((e) => console.warn('lab: no atlas, vertex colours only:', e.message));
 
 const mm = m4.create();
 function frame(t) {

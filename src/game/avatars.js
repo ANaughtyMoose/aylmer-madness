@@ -7,9 +7,9 @@
 // The rule for a caricature is that you pick the three things somebody's own
 // mother would draw and then make them too big:
 //
-//   Sayyad    round wire glasses, grey at the temples, salt-and-pepper stubble,
-//             and a maroon Hawaiian shirt with big magenta fronds worn WIDE
-//             open over a bare chest. Caught mid-move, because he always is.
+//   Sayyad    summer 2004 by Tom's looks card (14 Oct): no glasses, no grey,
+//             a plain dark tee and black jeans (never shorts, no Hawaiian
+//             shirt). Caught mid-move, because he always is.
 //             The Civic, 75 Denise-Friend.
 //   Margaret  dark brown hair with grey streaks, a smile that takes up a third of her face,
 //             a navy tee, and the grey fleece tied round her waist with the
@@ -44,11 +44,11 @@ import { greeting, personLine } from './story.js';
 // ---------------------------------------------------------------- palette
 
 const S = {   // Sayyad
-  skin: 0xc48f61, skinDark: 0xa87850, stubble: 0x796251,
-  hair: 0x2b2420, grey: 0xa9a49c,
-  shirt: 0x331522, shirtLit: 0x401a2a, frond: 0xc4285f, frondLit: 0xe2568d,
-  shorts: 0x8d1c22, band: 0xa8282e,
-  eye: 0x241d19, wire: 0xd8d4cb, watch: 0x16171a,
+  skin: 0xc48f61, skinDark: 0xa87850,
+  hair: 0x2b2420,
+  shirt: 0x232327, shirtLit: 0x2c2c31,
+  jeans: 0x1c1d22, band: 0x26272d, shoe: 0x141416,
+  eye: 0x241d19,
 };
 const M = {   // Margaret
   skin: 0xf2bd95, skinDark: 0xdcaa83, cheek: 0xecb28c,
@@ -106,13 +106,6 @@ function bar(b, dir, cx, cy, cz, w, h, ang, c) {
   decal(b, dir, cx, cy, cz, [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]], ang, c);
 }
 
-// One bold palm frond. The print on the real shirt is enormous magenta leaves
-// on near-black, so these are deliberately too big for the panel they sit on.
-function frond(b, dir, cx, cy, cz, len, wid, ang, c) {
-  const h = len / 2, w = wid / 2;
-  decal(b, dir, cx, cy, cz, [[0, h], [-w, h * 0.1], [0, -h], [w, -h * 0.25]], ang, c);
-}
-
 // A band bent into a smile: `segs` overlapping bars walking a parabola that
 // lifts `rise` metres at the corners. Three bars butted end to end leave gaps
 // at the joins and the gaps read as missing teeth, so every bar is half again
@@ -136,41 +129,27 @@ function sayyadHead(b, hy) {
   b.box(0, hy + 0.06, 0, 0.37, 0.28, 0.35, skin, { noBottom: true });
   b.box(0, hy - 0.125, 0, 0.355, 0.17, 0.335, skin, { wTop: 0.372, dTop: 0.352 });
   for (const s of [-1, 1]) b.box(s * 0.192, hy + 0.005, -0.02, 0.035, 0.10, 0.08, skin);
-  // Hair: dark on top, and SILVER at the temples. The grey is the second thing
-  // anybody says about him, so it is its own geometry high on the sides of the
-  // skull, not a lighter shade of the cap.
+  // Hair: dark all over. The grey temples were cut (Tom and the photos: no grey
+  // on Sayyad in 2004); the side pieces stay, in the hair colour.
   b.box(0, hy + 0.245, 0, 0.39, 0.11, 0.37, rgb(S.hair));
   b.box(0, hy + 0.30, -0.02, 0.30, 0.045, 0.28, rgb(S.hair));
   for (const s of [-1, 1]) {
-    b.box(s * 0.188, hy + 0.15, 0.02, 0.032, 0.15, 0.28, rgb(S.grey));
-    b.box(s * 0.182, hy + 0.03, -0.095, 0.032, 0.13, 0.10, rgb(S.grey));   // sideburn
-  }
-  // Stubble as decals, not as a block. A jaw painted grey edge to edge reads as
-  // a surgical mask; give it a shape — chin, cheeks, sides — and it reads as a
-  // man who last shaved on a day he could not name.
-  const st = rgb(S.stubble);
-  bar(b, 'z', 0, hy - 0.155, 0.180, 0.37, 0.12, 0, st);              // chin and jaw
-  for (const s of [-1, 1]) {
-    bar(b, 'z', s * 0.135, hy - 0.070, 0.180, 0.105, 0.18, 0, st);   // up the cheeks
-    bar(b, s > 0 ? 'xr' : 'xl', s * 0.187, hy - 0.10, 0.015, 0.22, 0.17, 0, st);
+    b.box(s * 0.188, hy + 0.15, 0.02, 0.032, 0.15, 0.28, rgb(S.hair));
+    b.box(s * 0.182, hy + 0.03, -0.095, 0.032, 0.13, 0.10, rgb(S.hair));   // sideburn
   }
   b.box(0, hy - 0.038, 0.191, 0.05, 0.078, 0.042, rgb(S.skinDark));  // nose
   for (const s of [-1, 1]) bar(b, 'z', s * 0.088, hy + 0.045, 0.178, 0.064, 0.054, 0, rgb(S.eye));
-  // Brows above the frames, and the right one is up. That look of his is mostly
+  // Brows, and the right one is up. That look of his is mostly
   // eyebrow: he has already decided what he is about to say.
   bar(b, 'z', -0.09, hy + 0.152, 0.179, 0.105, 0.028, 0.09, rgb(S.hair));
   bar(b, 'z', 0.09, hy + 0.182, 0.179, 0.105, 0.028, -0.17, rgb(S.hair));
   // The smirk: one corner up, and only one.
   bar(b, 'z', 0.012, hy - 0.128, 0.188, 0.125, 0.03, 0.20, rgb(0x4d3028));
-  // Round thin wire frames.
-  const wire = rgb(S.wire);
-  for (const s of [-1, 1]) ring(b, s * 0.088, hy + 0.045, 0.197, 0.062, 0.078, 9, wire);
-  b.box(0, hy + 0.045, 0.197, 0.034, 0.014, 0.014, wire);            // bridge
-  for (const s of [-1, 1]) b.box(s * 0.186, hy + 0.052, 0.08, 0.014, 0.014, 0.235, wire);
+  // No glasses (Tom 14 Oct).
 }
 
-// The open shirt: a back, two sides, and two narrow front panels swung out to
-// leave a strip of chest showing. The comedy is the gap, so the gap is wide.
+// The tee: a back, two sides and two front panels, closed. It was an open
+// Hawaiian shirt until 27 Oct (Tom 12 Oct: drop it); same boxes, no print.
 function sayyadShirt(b, y0, y1) {
   const dark = rgb(S.shirt), lit = rgb(S.shirtLit);
   const cy = (y0 + y1) / 2, h = y1 - y0;
@@ -182,20 +161,6 @@ function sayyadShirt(b, y0, y1) {
   // The yoke runs wider than the torso so the animated arm's shoulder is always
   // inside something: swing a limb off a 0.46 body and you open a hole.
   b.box(0, y1 - 0.03, 0, 0.56, 0.09, 0.27, dark);
-  for (const s of [-1, 1]) {                                         // popped collar
-    b.box(s * 0.098, y1 + 0.045, 0.085, 0.13, 0.085, 0.06, lit, { yaw: s * 0.5 });
-  }
-  // The print. Fronds on both panels, both sides and the back, at angles that
-  // do not agree with each other, which is how the real shirt is drawn.
-  const f1 = rgb(S.frond), f2 = rgb(S.frondLit);
-  frond(b, 'z', -0.165, cy + 0.09, 0.126, 0.22, 0.12, 0.5, f1);
-  frond(b, 'z', -0.155, cy - 0.11, 0.126, 0.18, 0.10, -0.9, f2);
-  frond(b, 'z', 0.165, cy + 0.05, 0.126, 0.24, 0.12, -0.4, f2);
-  frond(b, 'z', 0.158, cy - 0.15, 0.126, 0.17, 0.09, 1.1, f1);
-  frond(b, 'xl', -0.251, cy + 0.06, 0.02, 0.24, 0.13, 0.35, f1);
-  frond(b, 'xr', 0.251, cy - 0.02, -0.01, 0.26, 0.14, -0.6, f2);
-  frond(b, 'zb', 0, cy + 0.04, -0.144, 0.28, 0.16, 0.25, f1);
-  frond(b, 'zb', -0.14, cy - 0.12, -0.144, 0.20, 0.11, -0.8, f2);
 }
 
 /**
@@ -211,12 +176,11 @@ export function buildSayyad(mode = 'stand') {
     sayyadHead(b, 0.02);
     b.box(0, -0.245, 0, 0.14, 0.11, 0.14, skin);
     sayyadShirt(b, -0.60, -0.30);
-    b.box(0, -0.45, 0.055, 0.20, 0.26, 0.055, skin);                 // the chest in the gap
+    b.box(0, -0.45, 0.055, 0.20, 0.26, 0.055, dark);                 // the front of the tee
     b.box(-0.295, -0.415, 0.03, 0.12, 0.18, 0.14, dark);             // sleeve, elbow out
     b.box(-0.325, -0.555, 0.10, 0.10, 0.18, 0.115, skin, { dx: 0.02 });
     b.box(0.295, -0.415, 0.03, 0.12, 0.18, 0.14, dark);
     b.box(0.315, -0.565, 0.12, 0.10, 0.18, 0.12, skin, { dx: -0.03 });
-    b.box(0.315, -0.50, 0.12, 0.105, 0.035, 0.125, rgb(S.watch));    // the smartwatch
     return b;
   }
 
@@ -224,8 +188,8 @@ export function buildSayyad(mode = 'stand') {
   const hy = 1.52;
   sayyadHead(b, hy);
   b.box(0, hy - 0.255, 0, 0.14, 0.11, 0.14, skin);                   // neck
-  b.box(0, 1.13, 0.055, 0.20, 0.40, 0.055, skin);                    // bare chest strip
-  b.box(0, 1.10, 0, 0.30, 0.44, 0.19, skin, { noBottom: true });     // torso under the shirt
+  b.box(0, 1.13, 0.055, 0.20, 0.40, 0.055, dark);                    // the front of the tee
+  b.box(0, 1.10, 0, 0.30, 0.44, 0.19, dark, { noBottom: true });     // torso under the tee
   sayyadShirt(b, 0.90, 1.34);
 
   // Right arm: down and forward, fingers pinched — the half of the move that is
@@ -234,19 +198,19 @@ export function buildSayyad(mode = 'stand') {
   b.box(0.285, 1.20, 0.03, 0.135, 0.22, 0.15, dark);                 // short sleeve
   b.box(0.315, 1.005, 0.11, 0.105, 0.23, 0.12, skin, { dx: -0.02, dz: 0.045 });
   b.box(0.30, 0.885, 0.17, 0.10, 0.085, 0.115, skin);                // hand
-  b.box(0.315, 1.10, 0.10, 0.115, 0.035, 0.13, rgb(S.watch));        // smartwatch
 
-  // Shorts: dark red terry, a lighter band at the waist.
-  b.box(0, 0.83, 0, 0.385, 0.26, 0.27, rgb(S.shorts));
+  // Black jeans (never shorts, Tom's looks card), a darker band at the waist.
+  const jeans = rgb(S.jeans), shoe = rgb(S.shoe);
+  b.box(0, 0.83, 0, 0.385, 0.26, 0.27, jeans);
   b.box(0, 0.955, 0, 0.39, 0.05, 0.275, rgb(S.band));
-  b.box(0, 0.70, 0, 0.40, 0.05, 0.28, rgb(S.shorts));                // the terry hem flares
+  b.box(0, 0.70, 0, 0.40, 0.05, 0.28, jeans);
 
-  // Bare legs, barefoot. Back leg straight, front leg forward with the heel up:
-  // the exact frame of the photograph, which is a man about to say something.
-  b.box(-0.135, 0.38, -0.06, 0.14, 0.66, 0.165, skin, { dx: 0.025, dz: 0.06 });
-  b.box(-0.115, 0.035, -0.10, 0.14, 0.07, 0.27, skin);
-  b.box(0.145, 0.40, 0.10, 0.14, 0.62, 0.165, skin, { dx: -0.03, dz: -0.10 });
-  b.box(0.155, 0.075, 0.235, 0.14, 0.15, 0.20, skin, { dz: 0.06 });  // up on the toes
+  // Legs in the jeans, dark shoes. Back leg straight, front leg forward with the
+  // heel up: a man about to say something.
+  b.box(-0.135, 0.38, -0.06, 0.14, 0.66, 0.165, jeans, { dx: 0.025, dz: 0.06 });
+  b.box(-0.115, 0.035, -0.10, 0.14, 0.07, 0.27, shoe);
+  b.box(0.145, 0.40, 0.10, 0.14, 0.62, 0.165, jeans, { dx: -0.03, dz: -0.10 });
+  b.box(0.155, 0.075, 0.235, 0.14, 0.15, 0.20, shoe, { dz: 0.06 });  // up on the toes
   return b;
 }
 

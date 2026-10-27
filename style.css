@@ -219,8 +219,14 @@ kbd{display:inline-block;min-width:17px;padding:1px 4px;border-radius:4px;text-a
 
 /* ---- driving agent: damage bar (R4) and reverse indicator (D5) ----------
    #speedo sits bottom-right; these hang off the same corner, above it. Both
-   are hidden until they have something to say. */
-#dmgwrap{position:fixed;right:26px;bottom:104px;z-index:5;display:flex;align-items:center;
+   are hidden until they have something to say.
+   W7-BUGS: the bar sat at bottom:104px, inside the speedo's 20 to 152 px
+   (the 132 px dial), so every frame with damage drew it over the dial (cloud
+   hud-overlap 20 Oct: speedo x dmgwrap, 20 of 40 frames). It now sits in the
+   gap between the dial (top 152) and the legend (bottom 170), 12 px tall, and
+   right:50px keeps it clear of the reverse R (#gear, right:26px).
+   smoke_ui checks the stack. */
+#dmgwrap{position:fixed;right:50px;bottom:156px;height:12px;line-height:12px;z-index:5;display:flex;align-items:center;
   gap:8px;font-size:10px;font-weight:700;letter-spacing:1.4px;opacity:.85;
   text-shadow:0 2px 8px rgba(0,0,0,.85);pointer-events:none}
 #dmgwrap.hidden{display:none}
@@ -519,7 +525,7 @@ body.modal #pause{background:linear-gradient(90deg,rgba(7,14,18,.94),rgba(7,14,1
    only the last one shows. */
 #objective{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #sub{transition:opacity .35s ease}
-#sub.faded{opacity:0}
+#sub.faded{opacity:0;transition:none}
 #timer{background:rgba(6,11,15,.62);border-radius:12px;padding:2px 14px 4px;line-height:1.1}
 #timer.pending{background:rgba(6,11,15,.4)}
 #tuto.hud-gone{display:none !important}

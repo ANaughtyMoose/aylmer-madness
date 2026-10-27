@@ -135,6 +135,26 @@ export class BigMap {
       for (let i = 1; i < state.route.length; i++) g.lineTo(sx(state.route[i][0]), sy(state.route[i][1]));
       g.stroke();
     }
+    // [w6-shortcuts] the cuts you have found: a dashed orange line and the name.
+    if (state.shortcuts && state.shortcuts.length) {
+      g.save();
+      g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash([7, 6]);
+      g.font = 'bold 11px Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      for (const s of state.shortcuts) {
+        const p = s.pts;
+        g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 5;
+        g.beginPath(); g.moveTo(sx(p[0][0]), sy(p[0][1]));
+        for (let i = 1; i < p.length; i++) g.lineTo(sx(p[i][0]), sy(p[i][1]));
+        g.stroke();
+        g.strokeStyle = '#ffa53d'; g.lineWidth = 3; g.stroke();
+        if (z > 0.3) {
+          const m = p[p.length >> 1];
+          g.fillStyle = 'rgba(0,0,0,.6)'; g.fillText(s.name, sx(m[0]) + 1, sy(m[1]) - 11);
+          g.fillStyle = '#ffa53d'; g.fillText(s.name, sx(m[0]), sy(m[1]) - 12);
+        }
+      }
+      g.restore();
+    }
     // street names
     if (z > 0.22) {
       g.fillStyle = COL.text; g.textAlign = 'center'; g.textBaseline = 'middle';

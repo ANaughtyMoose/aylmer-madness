@@ -10,6 +10,7 @@ import { SURF, FLAT } from './terrain.js';
 // noise and is free to lag a frame; this one is in the physics and only ever
 // built for a vehicle that declares a `feel` block.
 import { Gearbox } from './gearbox.js';
+import { advLight } from './look/advlight.js';   // W8-LIGHT: car body AO only with Advanced lighting
 
 const TIRE = 0x17181a, GLASS = 0x26313b, CHROME = 0xd4d6d8;
 const LAMP = 0xfff3c4, TAIL = 0xc0332a, AMBER = 0xf0a030, PLATE = 0xe8e6dc, TRIM = 0x2e3033;
@@ -108,7 +109,7 @@ export const CARS = [
     // 8 mm of t apart so they land in the panel gap rather than across a panel.
     wear: { dirt: 0xbcb6a8, rise: 0.40, arch: 0.45, film: 0.32,
             panels: [[0, 0.972], [0.404, 0.972], [0.412, 1.006], [0.731, 1.006], [0.739, 0.955], [1, 0.955]] },
-    flavour: 'Cabine simple, 2.3 L quatre cylindres, cinq vitesses, banquette trois places. XL de base — pas de chrome, pas de tapis. Lente partout, arrête nulle part, part à tout coup.',
+    flavour: 'Cabine simple, 2.3 L quatre cylindres, cinq vitesses, banquette trois places. XL de base : pas de chrome, pas de tapis. Lente partout, arrête nulle part, part à tout coup.',
     len: 4.78, wid: 1.77, h: 1.64, wheelbase: 2.75, overhangF: 0.80, track: 1.67, wheelR: 0.34,
     topSpeed: 41.67, accel: 3.5, brake: 8.0, grip: 0.80, steerMax: 0.50, mass: 1420, aero: 0.000456,
     seatY: 1.28, seatZ: 0.30, seatX: 0.50, clearance: 0.30,
@@ -256,7 +257,7 @@ export const CARS = [
     // down rather than faked.
     wear: { dirt: 0x9a9c97, rise: 0.34, arch: 0.40, film: 0.28,
             panels: [[0, 0.985], [0.30, 0.985], [0.31, 1.012], [0.66, 1.012], [0.67, 0.968], [1, 0.968]] },
-    flavour: 'Sept places, deux portes coulissantes, un V6 qu’on entend pas. Toute la gang rentre en un voyage — pis c’est Abraham qui conduit, parce que c’est lui que le monde veut dans l’char.',
+    flavour: 'Sept places, deux portes coulissantes, un V6 qu’on entend pas. Toute la gang rentre en un voyage, pis c’est Abraham qui conduit, parce que c’est lui que le monde veut dans l’char.',
     // 4849 × 1826 × 1676 mm, 2900 mm wheelbase, 205/70R15. No `track` here
     // either, for the same reason as the Forester above.
     len: 4.85, wid: 1.83, h: 1.68, wheelbase: 2.90, overhangF: 0.93, wheelR: 0.33,
@@ -334,7 +335,7 @@ export const CARS = [
     cladding: { rocker: 0.08, bumper: 0.30, tRear: 0.025, tFront: 0.975, color: 0x3e4044 },
   },
   {
-    id: 'bus', name: 'Orion I — ex-transport urbain', who: 'Le lot', lot: true,
+    id: 'bus', name: 'Orion I, ex-transport urbain', who: 'Le lot', lot: true,
     body: 0xd8d5cd, seats: 39, style: 'bus',
     flavour: 'Quarante places, un diesel qui claque, pis une pancarte HORS SERVICE en avant. Passe pas sur Bancroft.',
     len: 12.00, wid: 2.59, h: 3.10, wheelbase: 6.20, overhangF: 2.00, track: 2.44, wheelR: 0.53,
@@ -376,7 +377,7 @@ export const CARS = [
     restorable: true, smokes: 1,
     wear: { dirt: 0x8d906f, rise: 0.46, arch: 0.50, film: 0.40,
             panels: [[0, 0.938], [0.268, 0.938], [0.282, 0.986], [0.695, 0.986], [0.709, 0.922], [1, 0.922]] },
-    flavour: 'Diesel 2,4 L, 65 chevaux, quatre vitesses automatiques. Zéro à cent en vingt-cinq secondes, pis c’est si la côte descend. Du chrome su’ chaque coin, de la cuirette su’ la banquette, pis un nuage de boucane noire à chaque fois que tu pèses dessus. Le char le plus lent en ville — pis le plus classe.',
+    flavour: 'Diesel 2,4 L, 65 chevaux, quatre vitesses automatiques. Zéro à cent en vingt-cinq secondes, pis c’est si la côte descend. Du chrome su’ chaque coin, de la cuirette su’ la banquette, pis un nuage de boucane noire à chaque fois que tu pèses dessus. Le char le plus lent en ville... pis le plus classe.',
     len: 4.68, wid: 1.77, h: 1.44, wheelbase: 2.75, overhangF: 0.86, wheelR: 0.33,
     topSpeed: 36.4, accel: 2.0, brake: 7.2, grip: 0.78, steerMax: 0.46, mass: 1450, aero: 0.000380,
     seatY: 1.10, seatZ: 0.05, seatX: 0.42, clearance: 0.22,
@@ -1858,8 +1859,24 @@ export function buildCarBody(s, opts = {}) {
     return [p[0],p[1],[p[2][0]+d,p[2][1]-d],p[2],p[3],[p[3][0]-d,p[3][1]-d],p[4],p[5]];
   }, specPaint(s), s.id==='ranger' ? [...s.top,...s.belt,...s.plan].map(p=>p[0]) : []);
   addDetails(mb, s, opts);
+  if (advLight()) groundCarAO(mb);   // S5-LIGHT (V2-07); W8-LIGHT: Advanced lighting only
   finishTags(mb);   // s5-reflect
   return mb;
+}
+
+// S5-LIGHT (V2-07, 20 Oct): prelit contact shading on a car body, baked once
+// into the vertex colours (0 ms a frame). Sills, bumpers and wheel arches
+// darken toward the road and the underside goes dark, so a car sits on the
+// ground under its blob instead of floating; the roof and glass are untouched.
+const CAR_AO = { Y0: 0.18, Y1: 0.70, K0: 0.68, UNDER: 0.45, DOWN_NY: -0.5 };
+function groundCarAO(mb) {
+  const v = mb.v, A = CAR_AO;
+  for (let o = 0; o < v.length; o += 9) {
+    const y = v[o + 1], ny = v[o + 4];
+    let k = ny < A.DOWN_NY ? A.UNDER : 1;
+    if (y < A.Y1) { const t = Math.min(1, Math.max(0, (y - A.Y0) / (A.Y1 - A.Y0))); k *= A.K0 + (1 - A.K0) * t * t * (3 - 2 * t); }
+    if (k < 1) { v[o + 6] *= k; v[o + 7] *= k; v[o + 8] *= k; }
+  }
 }
 
 // ---------------------------------------------------------------- C4: lamps
@@ -2560,8 +2577,12 @@ export class Vehicle {
             * (spd > CURB_SOFT_V ? CURB_SOFT_V + CURB_SOFT_K * (spd - CURB_SOFT_V) : spd));
           this.kerbAir = true;                     // this flight, if any, is a kerb hop
           this.pitch += (onRoad ? -0.075 : 0.10) * k;
-          vLong *= 1 - 0.09 * k;                    // scrub
-          vLat *= 1 - 0.18 * k;
+          // [w6-frictions] feel.md 10: a fast kerb crossing scrubs 3.5 % long and
+          // 8 % lat (was 9 % and 18 %), so cutting a corner across the sidewalk
+          // (two crossings) costs about 7 % at 50+ km/h instead of 17 %, less
+          // than braking for the corner does. The slow thud below is unchanged.
+          vLong *= 1 - 0.035 * k;                   // scrub
+          vLat *= 1 - 0.08 * k;
         } else {                                     // a thud, and it stops you more
           this.vy = 0.30 + 0.06 * spd;
           this.pitch += (onRoad ? -0.04 : 0.055) * k;

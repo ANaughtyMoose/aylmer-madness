@@ -172,6 +172,16 @@ group('i18n');
 
   ok(KEYMAP.length >= 12, 'the key map covers the whole keyboard legend');
   ok(KEYMAP.every((k) => t(k.label) !== k.label), 'every legend row has a translation');
+  // [w7-polish] V also replays a big crash while « V : revoir » is offered
+  // (W6-CRASHNIGHT); the legend row says so in both languages, no dash.
+  {
+    const vRow = KEYMAP.find((k) => k.caps.length === 1 && k.caps[0] === 'V');
+    ok(vRow && /revoir/.test(t(vRow.label)) && /météo/i.test(t(vRow.label)), 'the V row says weather and the crash replay: ' + t(vRow && vRow.label));
+    setLang('en');
+    ok(vRow && /replay/i.test(t(vRow.label)) && /weather/i.test(t(vRow.label)), 'the English V row says weather and replay: ' + t(vRow && vRow.label));
+    setLang('fr');
+    ok(!/[\u2013\u2014]/.test(t(vRow.label)), 'the V row has no em or en dash');
+  }
   const kb = keyboardHTML();
   ok(kb.includes('class="used"'), 'the keyboard diagram highlights used keys');
   for (const cap of ['Tab', 'Espace', 'Shift', '?']) {
@@ -344,6 +354,96 @@ console.log('\nS3-RANGER: the speedo fits the car, the steering chip retires');
   const upAt40 = tu.hold === 0;
   for (let k = 0; k < 2 * 60; k++) step(1 / 60, { speedKmh: 36, steer: 0.2 });  // past 50 m
   ok(upStraight && upAt40 && (tu.hold > 0 || tu.i === 2), 'the « A / D » chip retires after 50 m of driving with steering on, not before');
+}
+
+// ---------------------------------------------------------------- W8-BUGS
+// Cloud run 27 Oct: « S pour reculer. Sors de l'entrée. » stayed up on
+// Principale at Crash Night GO after a Balade libre start far from 299 Fraser.
+group('the first-drive tip is for the driveway only (W8-BUGS)');
+{
+  const { Tutorial, DRIVEWAY_R } = await import('../src/game/ui.js');
+  const { t: tr } = await import('../src/game/i18n.js');
+  const fresh = () => { const tu = new Tutorial(); tu.finished = false; tu.i = 0; tu.wait = 0; tu.hold = 0; return tu; };
+  const c0 = { speedKmh: 0, steer: 0, brake: 0, handbrake: false };
+  const a = fresh();
+  for (let k = 0; k < 120; k++) a.update(1 / 60, { ...c0, drivewayM: 2 });
+  ok(a.i === 0 && a.hold === 0, 'in the driveway, standing still: « S pour reculer » stays up');
+  const b = fresh();
+  b.update(1 / 60, { ...c0, drivewayM: Infinity });
+  ok(b.i === 1 && b.hold === 0, 'a start away from the driveway drops it at once, with no green flash');
+  const c = fresh();
+  for (let k = 0; k < 30; k++) c.update(1 / 60, { ...c0, drivewayM: 1 });
+  c.update(1 / 60, { ...c0, drivewayM: DRIVEWAY_R + 1 });
+  ok(c.i === 1, `moved (or put) more than ${DRIVEWAY_R} m from the driveway: dropped`);
+  const d = fresh();
+  for (let k = 0; k < 60; k++) d.update(1 / 60, { ...c0 });
+  ok(d.i === 0, 'a caller that passes no drivewayM keeps the old rule');
+  ok(/reculer/.test(tr('tut.go')) || /reverse|back/i.test(tr('tut.go')), 'the step is still the reverse tip');
+  const { readFileSync } = await import('node:fs');
+  const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  ok(/drivewayM: G\.tutoDrive \? Math\.hypot\(v\.x - G\.tutoDrive\.x, v\.z - G\.tutoDrive\.z\) : Infinity/.test(main)
+    && /G\.tutoDrive = d && Math\.hypot\(start\.x - d\.x, start\.z - d\.z\) < 6/.test(main), 'main.js measures from the driveway start, Infinity when the game started elsewhere');
+}
+
+// ---------------------------------------------------------------- W8-BUGS 4
+// Cloud hud-overlap, 27 Oct, curfew start: tuto + story + a toast in the
+// centre and three top-left lines in one frame. The story bubble and the tip
+// did not re-rank the centre when they changed; now hud.js watches them.
+group('the centre has one ranking, applied the moment a layer changes (W8-BUGS)');
+{
+  const { Hud } = await import('../src/game/hud.js');
+  const { Tutorial } = await import('../src/game/ui.js');
+  const seen = [];
+  const saved = globalThis.MutationObserver;
+  globalThis.MutationObserver = class { constructor(cb) { this.cb = cb; } observe(el, opts) { seen.push([el.id, opts]); } };
+  let laid = 0;
+  const fake = { layoutCentre(force) { if (force) laid++; } };
+  const els = { heckles: { id: 'heckles' }, tuto: { id: 'tuto' } };
+  Hud.prototype._watchCentre.call(fake, (id) => els[id] || null);
+  ok(seen.some(([id, o]) => id === 'heckles' && o.childList) && seen.some(([id, o]) => id === 'tuto' && o.attributes),
+    'the story bubbles and the tip are watched', JSON.stringify(seen.map((x) => x[0])));
+  fake._centreObs.cb([]);
+  ok(laid === 1, 'a change there re-ranks the centre at once (forced, not on the 100 ms throttle)');
+  globalThis.MutationObserver = saved;
+  // A yielded tip waits: no timeout runs out unseen.
+  const tu = new Tutorial();
+  const cls = new Set(['hud-yield']);
+  tu.root = { classList: { contains: (c) => cls.has(c), add: (c) => cls.add(c), remove: (c) => cls.delete(c), toggle: (c, on) => (on ? cls.add(c) : cls.delete(c)) }, querySelector: () => null };
+  tu.finished = false; tu.i = 3; tu.wait = 0; tu.hold = 0;
+  for (let k = 0; k < 40 * 60; k++) tu.update(1 / 60, { speedKmh: 30, steer: 0, brake: 0, handbrake: false });
+  ok(tu.i === 3 && tu.hold === 0, 'the handbrake tip does not time out while yielded');
+  cls.delete('hud-yield');
+  for (let k = 0; k < 26 * 60; k++) tu.update(1 / 60, { speedKmh: 30, steer: 0, brake: 0, handbrake: false });
+  ok(tu.hold > 0 || tu.i === 4, 'and runs its 25 s once it is back on screen');
+  // The sub line leaves at once when it fades (a 0.35 s fade-out was a third top-left line).
+  const { readFileSync } = await import('node:fs');
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  ok(/#sub\.faded\{[^}]*opacity:0[^}]*transition:none/.test(css), 'the faded sub is gone in the same frame');
+}
+
+// ---------------------------------------------------------------- the speedo corner (W7-BUGS)
+// The damage bar was drawn over the dial whenever the truck had damage (cloud
+// hud-overlap, 20 Oct: speedo x dmgwrap). Read the rules from style.css and
+// stack the bottom-right boxes in px from the bottom of the screen.
+group('the speedo corner: damage bar off the dial (W7-BUGS)');
+{
+  const { readFileSync } = await import('node:fs');
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  const rule = (sel) => {
+    const m = css.match(new RegExp('(^|\\n)' + sel.replace('#', '\\#') + '\\{([^}]*)\\}'));
+    return m ? m[2] : '';
+  };
+  const px = (body, prop) => { const m = body.match(new RegExp('(^|[;\\s{])' + prop + ':\\s*(-?[\\d.]+)px')); return m ? +m[2] : NaN; };
+  const speedo = rule('#speedo'), gauge = rule('#gauge'), dmg = rule('#dmgwrap'), gear = rule('#gear'), legend = rule('#legend');
+  const spB = px(speedo, 'bottom'), spTop = spB + px(gauge, 'height');
+  const dB = px(dmg, 'bottom'), dH = px(dmg, 'height'), dTop = dB + dH;
+  ok(Number.isFinite(spTop) && Number.isFinite(dB) && Number.isFinite(dH), `the corner rules parse (speedo ${spB}..${spTop}, damage ${dB}..${dTop})`);
+  ok(dB >= spTop + 2, `the damage bar sits above the dial, not on it (bottom ${dB} px, dial top ${spTop} px)`);
+  ok(dTop <= px(legend, 'bottom'), `and under the key legend (top ${dTop} px, legend ${px(legend, 'bottom')} px)`);
+  // The reverse R: 22 px glyph from bottom:150px at right:26px, about 18 px wide.
+  const gR = px(gear, 'right'), gB = px(gear, 'bottom'), gTop = gB + px(gear, 'font-size') * 1.2;
+  const vert = dB < gTop && dTop > gB;
+  ok(!vert || px(dmg, 'right') >= gR + 20, `and clear of the reverse R (damage right ${px(dmg, 'right')} px, R at ${gR} px)`);
 }
 
 // ---------------------------------------------------------------- report

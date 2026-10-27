@@ -11,6 +11,9 @@ async function sendPacket(kind, packet) {
   await waiting;
 }
 async function bake(message) {
+  // W8-LIGHT: a Worker has no localStorage; it bakes with the main thread's
+  // Advanced lighting choice (glow tags, vertex AO), set before any builder runs.
+  (await import('../look/advlight.js')).setAdvLight(!!message.advLight);
   // Match main's side-effect order exactly before any cached signal plan or
   // geometry is requested. Both modules mutate MAP at module initialization.
   await import('../landmarks.js');

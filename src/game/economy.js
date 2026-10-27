@@ -34,14 +34,14 @@ import { collectTowDebt } from './tow.js';
 const SHOPS = [{place:'norm',name:'Garage Hugo Caumartin',line:'143 rue Principale'}];
 const SHOP_RADIUS = 30;
 // Grigori Volkov's yard. Same « U » key, different address, and the opposite
-// shop in every way: Norm sells you five parts, two levels each and a paint
+// shop in every way: the garagiste sells you five parts, two levels each and a paint
 // colour; Grisha sells one thing at one price and will not discuss it. He is
-// far enough out of town (places.js `grisha`) that his prompt and Norm's can
+// far enough out of town (places.js `grisha`) that his prompt and the garage's can
 // never both be up, so nothing has to arbitrate between them.
 const VOLKOV = { place: 'grisha', line: 'chemin Vanier, Deschênes' };
 
 const money = (n) => Math.round(n).toLocaleString('fr-CA') + ' $';
-const secs = (v) => (v == null ? '—' : v.toFixed(1).replace('.', ',') + ' s');
+const secs = (v) => (v == null ? '-' : v.toFixed(1).replace('.', ',') + ' s');
 const kmh = (v) => Math.round(v) + ' km/h';
 const metres = (v) => v.toFixed(1).replace('.', ',') + ' m';
 const gee = (v) => v.toFixed(2).replace('.', ',') + ' g';
@@ -158,7 +158,7 @@ export function installEconomy(env) {
   // The famous cars and the Tempo have their driveway in homes.js's OWNER,
   // which already spreads famouscars.js's OWNERS: nothing to copy in here.
 
-  // U8: the « U — Garage Norm · K — Kijiji » line used to be #econprompt, its
+  // U8: the « U — garage · K — Kijiji » line used to be #econprompt, its
   // own element stacked under #prompt. It goes through hud.setShopPrompt() and
   // the one prompt slot now, so there is nothing to create.
   const moment = div('moment', 'hidden');
@@ -225,7 +225,7 @@ export function installEconomy(env) {
   const shopEl = div('mecano', 'hidden');
   shopEl.style.display = 'none';
   let shopOpen = false, shopName = '', before = null;
-  // One greeting and one rumour per visit, and whatever Norm last said about
+  // One greeting and one rumour per visit, and whatever the garagiste last said about
   // the work — kept out of paintShop() so a repaint does not restart him.
   let visit = 0, said = '', shopSub = '';
   loadMechanic();
@@ -244,7 +244,7 @@ export function installEconomy(env) {
   // formatting happens here so the comparison is done on numbers, which is the
   // bug this shape exists to make impossible.
   function statRow(label, val, prev, fmt, better) {
-    if (val == null) return `<div class="st"><u>${label}</u><span><b>—</b></span></div>`;
+    if (val == null) return `<div class="st"><u>${label}</u><span><b>-</b></span></div>`;
     let was = '';
     // Compared on the PRINTED value, not the raw one: a rounding-width wobble in
     // the measurement is not a change the customer paid for.
@@ -259,7 +259,7 @@ export function installEconomy(env) {
     return `<h3>FICHE TECHNIQUE</h3>
       ${statRow('0 &agrave; 100 km/h', now.zeroTo100, prev && prev.zeroTo100, secs, 'down')}
       ${statRow('Vitesse max', now.top, prev && prev.top, kmh, 'up')}
-      ${statRow('Freinage 100&ndash;0', now.brake, prev && prev.brake, metres, 'down')}
+      ${statRow('Freinage 100 à 0', now.brake, prev && prev.brake, metres, 'down')}
       ${statRow('Courbe (rayon 40 m)', now.corner, prev && prev.corner, kmh, 'up')}
       <div class="note">Chiffres pris sur le banc, pas dans le stationnement.</div>`;
   }
@@ -277,7 +277,7 @@ export function installEconomy(env) {
       <div class="note">Quatre chars que tout le monde en ville connaît. Y a pas de prix dessus.</div>`;
   }
 
-  // Norm's line for this repaint: whatever he just said about the work, or the
+  // The garagiste's line for this repaint: whatever he just said about the work, or the
   // state of the thing you drove in on, or hello.
   function normBlock(damage, brokeFor) {
     if (said) return `<div class="norm"><b>Le mécano</b>${said}</div>`;
@@ -319,11 +319,11 @@ export function installEconomy(env) {
     const paintCost = Math.round(PAINT_PRICE * partsMul(base) / 5) * 5;
     const nowHex = mods.paint == null ? base.body : mods.paint;
     const swatches = PAINT.map((c) =>
-      `<button data-paint="${c.hex}" title="${c.name} — ${money(paintCost)}"
+      `<button data-paint="${c.hex}" title="${c.name} : ${money(paintCost)}"
         class="${c.hex === nowHex ? 'on' : ''}"
         style="background:#${c.hex.toString(16).padStart(6, '0')}"></button>`).join('');
 
-    // Somebody Norm would refuse today: the cheapest thing he sells that you
+    // Somebody the garagiste would refuse today: the cheapest thing he sells that you
     // still cannot pay for.
     const brokeFor = PARTS.map((p) => canFit(base, mods, p.id, wallet))
       .find((r) => !r.ok && /manque/.test(r.why || '')) || null;
@@ -372,7 +372,7 @@ export function installEconomy(env) {
       retune();
       if (audio && audio.wrench) audio.wrench();
       said = normSay('work', visit + r.level, b.dataset.fit);
-      hud.toast(`Posé — ${money(r.price)}\n${carById(id).name}`, 2200);
+      hud.toast(`Posé : ${money(r.price)}\n${carById(id).name}`, 2200);
       paintShop();
       if (G.autosave) G.autosave('upgrade');
       return;
@@ -407,7 +407,7 @@ export function installEconomy(env) {
       repaint(id);
       const name = (PAINT.find((c) => c.hex === hex) || {}).name || '';
       said = normSay('work', visit, 'peinture');
-      hud.toast(`Peinturé — ${money(cost)}\n${name}`, 2400);
+      hud.toast(`Peinturé : ${money(cost)}\n${name}`, 2400);
       paintShop();
       if (G.autosave) G.autosave('paint');
     }
@@ -493,7 +493,7 @@ export function installEconomy(env) {
       <div class="pr">${r.done ? '' : money(RESTORE_PRICE)}</div>
       <button data-act="restore" ${r.ok ? '' : 'disabled'}>${r.done ? 'C’EST FAIT' : 'HUIT CENTS'}</button></div>
       <div class="note">${GRISHA.name} fait ça pis rien d’autre. Pas de pièces, pas de pneus,
-        pas de pose de silencieux — pour ça c’est Norm, su’ l’chemin d’Aylmer.
+        pas de pose de silencieux. Pour ça c’est le garagiste.
         <br>« ${grishaSay('quote', volkovVisit)} »</div>
     </div>`;
     volkovEl.onclick = onVolkovClick;
@@ -529,7 +529,7 @@ export function installEconomy(env) {
     G.repairHints.h25 = false; G.repairHints.h60 = false;
     hud.setRepairHint(null);
     volkovSaid = grishaSay('done', volkovVisit);
-    hud.toast(`RESTAURÉE — ${money(r.price)}\n${base.name}\n${volkovSaid}`, 4200);
+    hud.toast(`RESTAURÉE : ${money(r.price)}\n${base.name}\n${volkovSaid}`, 4200);
     if (audio && audio.chime) audio.chime(true);
     if (volkovOpen) paintVolkov();
     if (G.autosave) G.autosave('restore');
@@ -592,7 +592,7 @@ export function installEconomy(env) {
           G.health[id] = Math.max(G.health[id] || 0, flaw.damage);
           if (G.veh && G.veh.spec.id === id) restoreDamage(G.veh, G.health[id]);
         }
-        hud.toast(`VENDU — ${carById(id).name}\nIl t’a finalement rappelé.\n`
+        hud.toast(`VENDU : ${carById(id).name}\nIl t’a finalement rappelé.\n`
           + `Le char t’attend au ${p.label}.`
           + (deal.rebate ? `\n(${money(deal.rebate)} de moins grâce au rapport)` : ''), 3600);
         if (flaw && flaw.damage) {
@@ -669,7 +669,7 @@ export function installEconomy(env) {
     const j = watchJumps(G.veh, G.garage);
     if (j) {
       const n = jumpsFound(G.garage);
-      hud.toast(`SAUT TROUVÉ — ${j.label}\n${n}/${JUMPS.length}`, 2800);
+      hud.toast(`SAUT TROUVÉ : ${j.label}\n${n}/${JUMPS.length}`, 2800);
       if (audio && audio.blip) audio.blip(980, 0.12, 'triangle', 0.18);
     }
 
@@ -691,7 +691,7 @@ export function installEconomy(env) {
     // standing in it there is exactly one thing you came for. There is no
     // « K — Kijiji » out here either; Roger does not have a computer and
     // neither does Grisha.
-    if (volkovAt()) { hud.setShopPrompt(`U  —  ${GRISHA.shop}`); return; }
+    if (volkovAt()) { hud.setShopPrompt(`U  :  ${GRISHA.shop}`); return; }
     const s = shopAt();
     // U8: one prompt slot. This used to be #econprompt, its own line 66 px
     // under #prompt — which at 1280x800 is exactly where the tutorial card
@@ -701,7 +701,7 @@ export function installEconomy(env) {
     // slot is free.
     hud.setShopPrompt(
       !s && !nearHint() ? null
-        : s ? `U  —  ${s.name}     ·     K  —  Kijiji` : 'K  —  Kijiji');
+        : s ? `U  :  ${s.name}     ·     K  :  Kijiji` : 'K  :  Kijiji');
   }
 
   const momentVisible = () => !moment.classList.contains('hidden');
@@ -755,7 +755,7 @@ export function installEconomy(env) {
       if (volkovAt()) { openVolkov(); e.preventDefault(); return; }
       const s = shopAt();
       if (s) openShop(s);
-      else hud.toast('Garage Hugo Caumartin — 143 rue Principale. Stationne-toi devant les deux portes.', 2600);
+      else hud.toast('Garage Hugo Caumartin, 143 rue Principale. Stationne-toi devant les deux portes.', 2600);
       e.preventDefault();
     }
   });

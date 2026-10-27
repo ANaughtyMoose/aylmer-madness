@@ -1,7 +1,8 @@
 // Section 7: street furniture. Streetlights and their pools, hydro poles.
 import { rgb } from '../../core/mesh.js';
-import { C, Y, PAVED, CAP } from './consts.js';
+import { C, Y, PAVED, CAP, GLOW, glowCol } from './consts.js';
 import { subsample, quads4 } from './geom.js';
+import { advLight } from '../look/advlight.js';
 
 export function buildFurniture(ctx) {
   const { nAt, DISC, discCos, discSin, baseAt, PROTO_NATURE, bKey, bAt, poleCol, lampCol, addPole, hydroCol,
@@ -19,6 +20,7 @@ export function buildFurniture(ctx) {
   // Pool of warm light on the tarmac under the lamp head. Unlit, alpha-blended,
   // and only ever drawn after dark - the cheapest streetlight there is. (W7)
   const poolCol = rgb(C.pool);
+  const LENS = glowCol([0.86, 0.82, 0.70], GLOW.LAMP);   // S5-LIGHT
   // Lit prototype: a sodium gradient drawn additively, brightest under the head
   // and fading over twice the radius, instead of a hard-edged octagon.
   const POOL_RINGS = [[0, 1.0], [0.3, 0.72], [0.7, 0.34], [1.2, 0.1], [1.9, 0]];
@@ -68,6 +70,11 @@ export function buildFurniture(ctx) {
     bd.box(x + dx * 1.5, g + 8.2, z + dz * 1.5, 3.0, 0.22, 0.22, poleCol,
       { yaw: Math.atan2(-dz, dx), noBottom: true });
     bd.box(x + dx * 3.0, g + 7.85, z + dz * 3.0, 1.2, 0.4, 1.0, lampCol, { noBottom: true });
+    // S5-LIGHT: the lamp's lens, facing down, glows after dark (shaders/glass.js).
+    if (!ctx.renderer?.isPrototype && advLight()) {   // W8-LIGHT: Advanced lighting only
+      const lx = x + dx * 3.0, lz = z + dz * 3.0, ly = g + 7.64;
+      bd.quad([lx - 0.5, ly, lz - 0.4], [lx + 0.5, ly, lz - 0.4], [lx + 0.5, ly, lz + 0.4], [lx - 0.5, ly, lz + 0.4], LENS, [0, -1, 0]);
+    }
     addPole(x, z, 'streetlight', 8.4, k, i0, bd.i.length);
     lightPool(x + dx * 3.0, z + dz * 3.0, 7.4);
   }

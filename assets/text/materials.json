@@ -13,7 +13,7 @@
       "repeatMetres": 0.6,
       "roughness": "Forte porosité, arrêtes légèrement érodées par le gel, surface granuleuse sableuse.",
       "weathering": "Efflorescences de sel blanchâtres sous les corniches, noircissement de suie près des cheminées, mousses verdâtres à la base.",
-      "confidence": "Haute — typique des maisons patrimoniales et anciens magasins de la rue Principale dans le Vieux-Aylmer."
+      "confidence": "Haute : typique des maisons patrimoniales et anciens magasins de la rue Principale dans le Vieux-Aylmer."
     },
     {
       "id": "brick_1960s_buff",
@@ -28,7 +28,7 @@
       "repeatMetres": 0.6,
       "roughness": "Texture piquée à empreinte de rouleau, surface semi-lisse et dense.",
       "weathering": "Taches grises de ruissellement d'eau sous les allèges de fenêtres en aluminium, décoloration par les UV su'l côté sud.",
-      "confidence": "Haute — standard des bungalows d'après-guerre et écoles primaires de la Commission scolaire des Portages-de-l'Outaouais."
+      "confidence": "Haute : standard des bungalows d'après-guerre et écoles primaires de la Commission scolaire des Portages-de-l'Outaouais."
     },
     {
       "id": "brick_1980s_dark_wirecut",
@@ -43,7 +43,7 @@
       "repeatMetres": 0.6,
       "roughness": "Stries horizontales prononcées coupées au fil de fer (wire-cut), angles vifs et rugueux.",
       "weathering": "Dépôts blanchâtres de calcaire sur les briques inférieures, traces de boue séchée projetée par les pneus dans l'entrée.",
-      "confidence": "Haute — omniprésente sur les maisons à étages et split-levels des banlieues 1980 d'Aylmer (secteurs Lucerne et Wilfrid-Lavigne)."
+      "confidence": "Haute : omniprésente sur les maisons à étages et split-levels des banlieues 1980 d'Aylmer (secteurs Lucerne et Wilfrid-Lavigne)."
     },
     {
       "id": "aluminium_siding_earth_brown",
@@ -57,7 +57,7 @@
       "repeatMetres": 0.4,
       "roughness": "Peinture émaillée semi-mate cuite au four, fine ondulation métallique.",
       "weathering": "Farinage blanc poudreux sur les surfaces exposées au soleil, bosses rondes de balles de tennis ou grêlons.",
-      "confidence": "Haute — couleur classique CanExel / VicWest des années 1970 et 1980 dans les développements de Deschênes."
+      "confidence": "Haute : couleur classique CanExel / VicWest des années 1970 et 1980 dans les développements de Deschênes."
     },
     {
       "id": "aluminium_siding_sage_green",
@@ -71,7 +71,7 @@
       "repeatMetres": 0.4,
       "roughness": "Fini mat velouté par l'érosion éolienne et les pluies acides.",
       "weathering": "Décoloration inégale sous les débords de toit, oxydation blanchâtre aux pourtours des têtes de clous.",
-      "confidence": "Haute — couleur très populaire sur les split-levels 1975 d'Aylmer."
+      "confidence": "Haute : couleur très populaire sur les split-levels 1975 d'Aylmer."
     },
     {
       "id": "aluminium_siding_maize_yellow",
@@ -85,7 +85,7 @@
       "repeatMetres": 0.4,
       "roughness": "Satiné d'origine devenu mat calcaire après vingt ans d'exposition.",
       "weathering": "Traces noires de moisissure superficielle sur les façades nord à l'ombre des grands pins.",
-      "confidence": "Haute — vue fréquemment sur les bungalows 1970 près du chemin Fraser."
+      "confidence": "Haute : vue fréquemment sur les bungalows 1970 près du chemin Fraser."
     },
     {
       "id": "aluminium_siding_baby_blue",
@@ -99,7 +99,7 @@
       "repeatMetres": 0.4,
       "roughness": "Surface mince et métallique sonnant creux au contact.",
       "weathering": "Farinage prononcé laissant des traces blanches sur les doigts quand on frotte la carrosserie.",
-      "confidence": "Haute — teinte distinctive des premières phases de bungalows de banlieue à Wychwood."
+      "confidence": "Haute : teinte distinctive des premières phases de bungalows de banlieue à Wychwood."
     },
     {
       "id": "aluminium_siding_faded_beige",
@@ -113,7 +113,7 @@
       "repeatMetres": 0.4,
       "roughness": "Semi-lisse avec léger grain d'apprêt d'usine.",
       "weathering": "Taches de rouille autour des vis d'ancrage de la soucoupe satellite Star Choice fixée au mur.",
-      "confidence": "Haute — couleur par défaut des rénovations économiques des années 1980."
+      "confidence": "Haute : couleur par défaut des rénovations économiques des années 1980."
     },
     {
       "id": "aluminium_siding_pearl_grey",
@@ -127,7 +127,7 @@
       "repeatMetres": 0.4,
       "roughness": "Peinture d'usine cuite mate avec texture d'écorce discrète.",
       "weathering": "Pellicule de poussière de route grise et d'échappement accumulée le long du chemin d'Aylmer.",
-      "confidence": "Haute — répandu sur les maisons multifamiliales et duplex de banlieue."
+      "confidence": "Haute : répandu sur les maisons multifamiliales et duplex de banlieue."
     },
     {
       "id": "vinyl_siding_horizontal",
@@ -141,7 +141,7 @@
       "repeatMetres": 0.45,
       "roughness": "Plastique souple gaufré faux-bois, brillant atténué.",
       "weathering": "Légère déformation thermique (gondolement) au soleil du midi, algues vertes minuscules sur le côté humide.",
-      "confidence": "Haute — revêtement de référence des constructions neuves 1990-2004 sur le plateau de la Capitale."
+      "confidence": "Haute : revêtement de référence des constructions neuves 1990-2004 sur le plateau de la Capitale."
     },
     {
       "id": "wood_clapboard_heritage",
@@ -155,7 +155,7 @@
       "repeatMetres": 0.25,
       "roughness": "Texture organique fibreuse, nœuds de bois scellés à la gomme laque.",
       "weathering": "Peinture à l'huile écaillée en petites écailles carrées révélant le bois grisé par endroits.",
-      "confidence": "Haute — historique, typique des maisons victoriennes et georgiennes du Vieux-Aylmer."
+      "confidence": "Haute : historique, typique des maisons victoriennes et georgiennes du Vieux-Aylmer."
     },
     {
       "id": "asphalt_shingle_charcoal",
@@ -170,7 +170,7 @@
       "repeatMetres": 0.9,
       "roughness": "Granulats de basalte et céramique rugueux enrobés de bitume.",
       "weathering": "Perte de granules dans les noues laissant voir la membrane noire, soulèvement par le vent printanier aux coins.",
-      "confidence": "Haute — couverture de toit la plus commune à 60% sur l'ensemble de la ville."
+      "confidence": "Haute : couverture de toit la plus commune à 60% sur l'ensemble de la ville."
     },
     {
       "id": "asphalt_shingle_weathered_grey",
@@ -185,7 +185,7 @@
       "repeatMetres": 0.9,
       "roughness": "Granulométrie moyenne à forte rugosité.",
       "weathering": "Mousses et lichens circulaires jaunâtres poussant sur les versants nord sous les grands chênes.",
-      "confidence": "Haute — présent sur les maisons des années 1970 n'ayant pas refait leur toit récemment."
+      "confidence": "Haute : présent sur les maisons des années 1970 n'ayant pas refait leur toit récemment."
     },
     {
       "id": "asphalt_shingle_driftwood_brown",
@@ -200,7 +200,7 @@
       "repeatMetres": 1.0,
       "roughness": "Forte texture tridimensionnelle à relief marqué.",
       "weathering": "Dépôts de feuilles d'arbres mortes décomposées et de brindilles dans les gouttières.",
-      "confidence": "Haute — choix haut de gamme populaire dans les quartiers cossus d'Aylmer dans les années 1990."
+      "confidence": "Haute : choix haut de gamme populaire dans les quartiers cossus d'Aylmer dans les années 1990."
     },
     {
       "id": "asphalt_shingle_bark_cedar",
@@ -215,7 +215,7 @@
       "repeatMetres": 0.9,
       "roughness": "Granulaire dense et granuleux.",
       "weathering": "Bords des pattes légèrement recourbés (curling) sous l'effet de la chaleur des étés québécois.",
-      "confidence": "Haute — standard des toitures de chalets d'été convertis à l'année le long de la rivière."
+      "confidence": "Haute : standard des toitures de chalets d'été convertis à l'année le long de la rivière."
     },
     {
       "id": "sheet_metal_roof_galvanized",
@@ -230,7 +230,7 @@
       "repeatMetres": 0.45,
       "roughness": "Métal lisse à reflets spéculaires durs et résonance acoustique à la pluie.",
       "weathering": "Taches de rouille orange vif le long des plis d'agrafage et aux sorties d'égouttement.",
-      "confidence": "Haute — indispensable sur les granges, hangars de ferme su'a 148 et vieux toits à forte pente du Vieux-Aylmer."
+      "confidence": "Haute : indispensable sur les granges, hangars de ferme su'a 148 et vieux toits à forte pente du Vieux-Aylmer."
     },
     {
       "id": "limestone_rubble_ottawa_valley",
@@ -245,7 +245,7 @@
       "repeatMetres": 1.2,
       "roughness": "Extrêmement accidentée, blocs bruts de carrière avec fossiles marins incrustés et veines de calcite.",
       "weathering": "Joints effrités et creusés par les cycles gel-dégel centenaires, patine grise foncée de pluie.",
-      "confidence": "Haute — signature géologique locale incontournable (Auberge Symmes, vieux murs de clôture)."
+      "confidence": "Haute : signature géologique locale incontournable (Auberge Symmes, vieux murs de clôture)."
     },
     {
       "id": "dressed_limestone_smooth",
@@ -259,7 +259,7 @@
       "repeatMetres": 1.2,
       "roughness": "Fini bouchardé ou adouci au ciseau de tailleur de pierre.",
       "weathering": "Salissures noires de carbone urbain sous les larmiers et les appuis de fenêtre.",
-      "confidence": "Haute — édifices institutionnels, Hôtel British et églises patrimoniales de la région."
+      "confidence": "Haute : édifices institutionnels, Hôtel British et églises patrimoniales de la région."
     },
     {
       "id": "poured_concrete_foundation",
@@ -273,7 +273,7 @@
       "repeatMetres": 1.0,
       "roughness": "Texture semi-rugueuse avec nids d'abeilles mineurs et bavures de laitance.",
       "weathering": "Fissures verticales fines de retrait thermique colmatées au mastic noir, remontées d'humidité foncées à la base.",
-      "confidence": "Haute — solages visibles de 2 à 3 pieds sous toutes les résidences unifamiliales d'Aylmer."
+      "confidence": "Haute : solages visibles de 2 à 3 pieds sous toutes les résidences unifamiliales d'Aylmer."
     },
     {
       "id": "cinder_block_wall",
@@ -287,7 +287,7 @@
       "repeatMetres": 0.8,
       "roughness": "Surface poreuse très abrasive à grains de scories visibles.",
       "weathering": "Peinture blanche pelée découvrant le béton gris, efflorescences poudreuses le long des joints.",
-      "confidence": "Haute — murs de garages détachés, ateliers de fond de cour (garage de Russell) et arrières de commerces."
+      "confidence": "Haute : murs de garages détachés, ateliers de fond de cour (garage de Russell) et arrières de commerces."
     },
     {
       "id": "asphalt_fresh",
@@ -301,7 +301,7 @@
       "repeatMetres": 2.0,
       "roughness": "Micro-rugosité dense à forte adhérence de pneus, grain fin uniforme.",
       "weathering": "Traces grasses irisées de liant bitumineux frais scintillant sous le soleil chaud de juillet.",
-      "confidence": "Haute — sections récemment resurfacées sur le boulevard Wilfrid-Lavigne ou entrées pavées neuves."
+      "confidence": "Haute : sections récemment resurfacées sur le boulevard Wilfrid-Lavigne ou entrées pavées neuves."
     },
     {
       "id": "asphalt_worn",
@@ -316,7 +316,7 @@
       "repeatMetres": 1.5,
       "roughness": "Rugosité moyenne à élevée, bruit de roulement prononcé sous les pneus.",
       "weathering": "Décoloration due aux rayons UV et à l'usure des pneus à clous d'hiver, petits nids-de-poule superficiels.",
-      "confidence": "Haute — état par défaut de 80% des rues résidentielles d'Aylmer en 2004."
+      "confidence": "Haute : état par défaut de 80% des rues résidentielles d'Aylmer en 2004."
     },
     {
       "id": "asphalt_patched",
@@ -331,7 +331,7 @@
       "repeatMetres": 1.5,
       "roughness": "Dénivellation sensible de 1 à 2 cm entre l'ancien pavage et la rustine, surface bosselée.",
       "weathering": "Granulats libres projetés sur les accotements lors des passages de camionnettes.",
-      "confidence": "Haute — omniprésent sur le chemin d'Aylmer et le chemin Pink après le dégel printanier."
+      "confidence": "Haute : omniprésent sur le chemin d'Aylmer et le chemin Pink après le dégel printanier."
     },
     {
       "id": "asphalt_crack_sealed",
@@ -345,7 +345,7 @@
       "repeatMetres": 2.5,
       "roughness": "Bandes de bitume lisses et collantes sous la chaleur intense de juillet, contrastant avec la roche rugueuse.",
       "weathering": "Traces de pneus ayant arraché des bandes fraîches au carrefour.",
-      "confidence": "Haute — technique de colmatage municipale standard de la Ville de Gatineau."
+      "confidence": "Haute : technique de colmatage municipale standard de la Ville de Gatineau."
     },
     {
       "id": "concrete_sidewalk",
@@ -359,7 +359,7 @@
       "repeatMetres": 1.5,
       "roughness": "Stries fines de finition au balai pour l'antidérapant, bords arrondis à la truelle.",
       "weathering": "Coins épaufrés par les chenilles des petites déneigeuses de trottoir Bombardier, taches de gomme séchée foncée.",
-      "confidence": "Haute — trottoirs bordant la rue Principale, le boulevard Lucerne et les abords des écoles."
+      "confidence": "Haute : trottoirs bordant la rue Principale, le boulevard Lucerne et les abords des écoles."
     },
     {
       "id": "gravel_crushed_stone",
@@ -374,7 +374,7 @@
       "repeatMetres": 1.0,
       "roughness": "Très meuble en surface, crissement distinct sous la semelle et projection sous les garde-boues.",
       "weathering": "Deux ornières parallèles tassées et brunies par le passage répété des pneus, crête centrale d'herbe folle.",
-      "confidence": "Haute — allées de garage privées, accotements du chemin Eardley et cours d'ateliers."
+      "confidence": "Haute : allées de garage privées, accotements du chemin Eardley et cours d'ateliers."
     },
     {
       "id": "mown_suburban_lawn",
@@ -389,7 +389,7 @@
       "repeatMetres": 1.05,
       "roughness": "Feuillage dense de pâturin du Kentucky coupé à 3 pouces de hauteur.",
       "weathering": "Taches jaunes de pissenlits séchés et zones jaunies par la sécheresse de juillet près des bordures de béton.",
-      "confidence": "Haute — pelouses soignées des résidences de Denise-Friend et Wychwood."
+      "confidence": "Haute : pelouses soignées des résidences de Denise-Friend et Wychwood."
     },
     {
       "id": "long_ditch_grass",
@@ -404,7 +404,7 @@
       "repeatMetres": 2.0,
       "roughness": "Tiges flexibles ondulant sous le vent, panicules de graines plumeuses.",
       "weathering": "Tiges couchées par les roues de pickups ayant mordu l'accotement, débris d'emballages de Tim Hortons piégés dans les tiges.",
-      "confidence": "Haute — fossés du chemin Pink, de la montée Breckenridge et de la route 148."
+      "confidence": "Haute : fossés du chemin Pink, de la montée Breckenridge et de la route 148."
     },
     {
       "id": "beach_sand_cedres",
@@ -419,7 +419,7 @@
       "repeatMetres": 1.5,
       "roughness": "Grains de quartz et de feldspath arrondis fins et doux au toucher.",
       "weathering": "Frange de sable mouillé brun foncé le long de la ligne de ressac avec dépôts de bois flotté et coquilles de moules d'eau douce.",
-      "confidence": "Haute — spécifique à la grève sablonneuse du parc des Cèdres le long du lac Deschênes."
+      "confidence": "Haute : spécifique à la grève sablonneuse du parc des Cèdres le long du lac Deschênes."
     },
     {
       "id": "ottawa_river_water",
@@ -434,7 +434,7 @@
       "repeatMetres": 3.0,
       "roughness": "Fluide réfléchissant à faible transparence (profondeur de vision de 60 cm), teinté de tanins forestiers.",
       "weathering": "Écume blanche sur les hauts-fonds rocheux près du phare et reflets dorés du soleil rasant en fin d'après-midi.",
-      "confidence": "Haute — rivière des Outaouais / lac Deschênes entourant Aylmer."
+      "confidence": "Haute : rivière des Outaouais / lac Deschênes entourant Aylmer."
     },
     {
       "id": "chainlink_fence_frost",
@@ -448,7 +448,7 @@
       "repeatMetres": 2.4,
       "roughness": "Fils métalliques durs semi-rugueux laissant passer 90% de la lumière.",
       "weathering": "Petites herbes sauvages et liserons grimpant dans le bas, fil supérieur légèrement courbé par les enfants qui grimpent dessus.",
-      "confidence": "Haute — clôtures de cours d'écoles (Lord Aylmer, Philemon Wright) et limites de parcs municipaux."
+      "confidence": "Haute : clôtures de cours d'écoles (Lord Aylmer, Philemon Wright) et limites de parcs municipaux."
     },
     {
       "id": "cedar_hedge_trimmed",
@@ -463,7 +463,7 @@
       "repeatMetres": 1.2,
       "roughness": "Feuillage squamiforme compact et odorant masquant entièrement le tronc intérieur.",
       "weathering": "Intérieur brun de ramilles mortes visible aux endroits creux, pointes roussies par les embruns de sel d'hiver près de la rue.",
-      "confidence": "Haute — élément d'intimité universel séparant 90% des terrains résidentiels d'Aylmer."
+      "confidence": "Haute : élément d'intimité universel séparant 90% des terrains résidentiels d'Aylmer."
     },
     {
       "id": "cedar_privacy_fence_weathered",
@@ -478,7 +478,7 @@
       "repeatMetres": 1.8,
       "roughness": "Bois brut de sciage non raboté avec gerces longitudinales et échardes.",
       "weathering": "Grisaillement complet par les UV, clous rouillés ayant laissé de longues coulisses noires verticales sur le bois.",
-      "confidence": "Haute — clôtures de fond de cour entourant les piscines hors-terre des banlieues 1980."
+      "confidence": "Haute : clôtures de fond de cour entourant les piscines hors-terre des banlieues 1980."
     }
   ]
 }

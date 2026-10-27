@@ -271,11 +271,12 @@ group('the forty ads in assets/text/kijiji.json');
   ok(kinds.deal > 0 && (kinds.ferme || 0) + (kinds.jase || 0) + (kinds.repondeur || 0) > kinds.deal,
     'and most calls waste your afternoon, which is the joke');
 
-  // The one that ties the classifieds to the mechanic: Norm's lien sale.
+  // The one that ties the classifieds to the mechanic: the garage's lien sale.
   const tercel = all.find((a) => /TERCEL/.test(a.title));
   ok(tercel && K.callerFor(tercel).sellerType === 'Mechanic selling an abandoned repair',
-    'the Tercel out front is Garage Lafleur selling a repair the customer never paid for');
-  ok(/Garage Lafleur/.test(K.callerFor(tercel).opening), `« ${K.callerFor(tercel).opening.slice(0, 60)}… »`);
+    'the Tercel out front is the garage selling a repair the customer never paid for');
+  // D32: the garage answers as a garage, with nobody's name on it.
+  ok(/^Garage\b/.test(K.callerFor(tercel).opening) && !/Lafleur|Norm\b/.test(K.callerFor(tercel).opening), `« ${K.callerFor(tercel).opening.slice(0, 60)}… »`);
 
   // Calling changes the price, and being lied to is worth as much as paying for
   // the inspection — because it tells you exactly where to look.
@@ -307,7 +308,7 @@ group('the famous cars');
 {
   ok(F.FAMOUS.length === 4, `${F.FAMOUS.length} famous cars`);
   // Four of the writers' eight legends need a car model cars.js does not have.
-  // They are not shipped as unearnable unlocks; they are things Norm says.
+  // They are not shipped as unearnable unlocks; they are things the garagiste says.
   ok(F.RUMOURS.length + F.FAMOUS.length >= 8, 'all eight legends have a home, earnable or not');
   ok(F.FAMOUS.some((f) => f.id === 'sicivic'), 'Sayyad\'s Si is one of them');
   ok(carById('sicivic').name.includes('Civic Si'), `and it is a ${carById('sicivic').name}`);
@@ -430,9 +431,9 @@ group('persistence');
     'and the restored car really is quicker than a stock one');
 }
 
-// ---------------------------------------------------------------- 8. Norm
+// ---------------------------------------------------------------- 8. The garagiste
 
-group('Normand « Norm » Lafleur');
+group('Le garagiste (never named, D32)');
 {
   const fs = await import('node:fs');
   const url = (u) => new URL('../' + u, import.meta.url);
@@ -445,8 +446,8 @@ group('Normand « Norm » Lafleur');
   ok(U.NORM.work.some((w) => w.part === 'brakes'), 'and it covers every part the shop sells');
 
   await U.loadMechanic(fake);
-  ok(/Lafleur/.test(U.NORM.name) && /\u00ab\s*Norm\s*\u00bb/.test(U.NORM.name),
-    `he is ${U.NORM.name}`);
+  ok(/^le garagiste$/i.test(U.NORM.name) && !/Norm|Lafleur/.test(U.NORM.name + ' ' + U.NORM.shop),
+    `he is ${U.NORM.name}, with no invented name or shop sign (D32)`);
   ok(U.NORM.greetings.length >= 12, `${U.NORM.greetings.length} greetings`);
   ok(U.NORM.broke.length >= 8, `${U.NORM.broke.length} ways of saying you are broke`);
   ok(U.NORM.wrecked.length >= 8, `${U.NORM.wrecked.length} ways of saying you wrecked it`);

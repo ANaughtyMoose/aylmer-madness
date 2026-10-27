@@ -2,10 +2,11 @@
 // other footprint extruded here (the facade helpers are commercial.js).
 import { makeStreetYawIndex, buildHouse } from '../houses.js';
 import { fraserFootprint, FRASER, buildFraser } from '../fraser.js';
-import { ROOF, C, SIDING, COMMERCIAL, GABLE } from './consts.js';
+import { ROOF, C, SIDING, COMMERCIAL, GABLE, GLOW, glowCol, glowPick } from './consts.js';
 import { rgb, shade } from '../../core/mesh.js';
 import { mulberry32, clamp } from '../../core/math.js';
 import MATS from '../materials_stub.js';
+import { advLight } from '../look/advlight.js';   // W8-LIGHT: the glow tag only with Advanced lighting
 import { mixHex, ringArea2 } from './geom.js';
 import { FACADE_KIND, facadeQuad, facadeExtras } from './commercial.js';
 import { tagGlass } from './glasstag.js';   // s5-reflect
@@ -281,7 +282,8 @@ export function buildBuildings(ctx) {
             const tx = dx * ww / 2, tz = dz * ww / 2;
             const g0 = bd.vertCount;   // s5-reflect
             bd.quad([cx - tx, y0, cz - tz], [cx + tx, y0, cz + tz],
-              [cx + tx, y1, cz + tz], [cx - tx, y1, cz - tz], winCol);
+              [cx + tx, y1, cz + tz], [cx - tx, y1, cz - tz],
+              !PROTO_FACADES && advLight() && glowPick(cx, cz + y0, GLOW.SHOP_SHARE) ? glowCol(winCol, GLOW.SHOP) : winCol);   // S5-LIGHT: lit at night
             tagGlass(bd, g0);          // s5-reflect: glass.js reflection
             quads++; cnt.winQuads++;
           }

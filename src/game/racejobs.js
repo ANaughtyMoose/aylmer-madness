@@ -20,16 +20,22 @@
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
 import { Rival, Track, SKILL, ordinalFr, fmtGap, BAND_AHEAD, BAND_BEHIND } from './race.js';
+// [w6-races] the calendar's difficulty now reaches the rivals.
+import { DIFF } from './calendar.js';
+export function rivalSkill(G, sk) {
+  const dk = G && G.difficulty && DIFF[G.difficulty];
+  return dk ? Object.assign({}, sk, { cruise: sk.cruise * (dk.rival / DIFF.normal.rival) }) : sk;
+}
 
 export const GATE_R = 18;         // checkpoint ring radius, metres
 export const FINISH_R = 20;
 export const COUNT_IN = 3;        // 3 - 2 - 1 - GO
 export const BLITZ_BONUS = 15;    // seconds per checkpoint
-// The story blitz: 2.4 km, the pace car finishes in 150 s (gates at 24, 47, 85,
-// 101, 126, 150 s). 130 + 15 x 5 = 205 s = (150 + 3) x 1.35, and every gate is
-// inside its own share of the clock (tools/smoke_timers.mjs). It was 60 s: a
-// 65 km/h average through the Vieux grid.
-export const BLITZ_CLOCK = 130;
+// The story blitz: 2.4 km, the pace car finishes in 154 s (gates at 25, 49, 87,
+// 103, 128, 154 s; W6-CURFEW re-pace, 27 Oct, was 150). 135 + 15 x 5 = 210 s =
+// (154 + 3) x 1.35, and every gate is inside its own share of the clock
+// (tools/smoke_timers.mjs). It was 60 s: a 65 km/h average through the Vieux grid.
+export const BLITZ_CLOCK = 135;
 
 const say = (G, text, ms) => G.hud && G.hud.toast(text, ms);
 const blip = (G, f, d, t, v) => G.audio && G.audio.blip(f, d, t, v);
@@ -120,7 +126,12 @@ function spawnRivals(G, cfg) {
     // whole tuning object for a rival off the roster in game/rivals.js, whose
     // driving style is written down per person rather than per archetype.
     const sk = (typeof r.skill === 'string' ? SKILL[r.skill] : r.skill) || SKILL.dave;
-    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: sk, phys: G.phys });
+    // [w6-races] DIFF.rival was written for this and never read. Normal is the
+    // tuning every race was written against, so it scales relative to normal:
+    // easy lifts the rival's cruise to 0.70/0.82 of it, hard to 0.92/0.82. Only
+    // a set G.difficulty applies it, so node suites keep their numbers.
+    const skd = rivalSkill(G, sk);
+    const rv = new Rival(spec, { id: r.carId, name: r.name, skill: skd, phys: G.phys });
     const spot = gridSpot(start, i + 1);
     rv.place(spot.x, spot.z, spot.yaw);
     if (path) rv.setPath(path);
@@ -149,11 +160,11 @@ export function raceStages(cfg, ctx) {
   const grid = {
     kind: 'grid',
     text: cfg.gridText || 'À la ligne de départ',
-    sub: cfg.gridSub || `E sur la grille pour partir — le ${ctx.carName}, pis pas d’excuses`,
+    sub: cfg.gridSub || `E sur la grille pour partir : le ${ctx.carName}, pis pas d’excuses`,
     hint: cfg.gridHint
       || 'Colle-toi sur la ligne, arrête-toi (moins de 7 km/h) dans le pilier jaune, pis appuie sur E.',
     at: cfg.start, radius: 16, stopped: 7, hold: true,
-    holdText: cfg.gridHold || 'E — on part',
+    holdText: cfg.gridHold || 'E : on part',
     onEnter(G, m) {
       m.legs = spawnRivals(G, cfg);
       if (cfg.onGrid) cfg.onGrid(G, m);
@@ -177,7 +188,8 @@ export function raceStages(cfg, ctx) {
     time: cfg.clock != null ? cfg.clock : undefined,
     failWhy: cfg.clockFail || 'Le chrono t’a battu.',
     money: cfg.money,
-    toast: cfg.win,
+    // [w7-polish] a measured win line (a function) keeps a plain default for the text scanners.
+    toast: typeof cfg.win === 'function' && typeof cfg.winText === 'string' ? cfg.winText : cfg.win,
 
     onEnter(G, m) {
       const laps = cfg.laps || 1;
@@ -209,7 +221,7 @@ export function raceStages(cfg, ctx) {
       if (!R) return null;
       if (!R.going) {
         const n = Math.min(3, Math.max(0, Math.ceil(R.count)));
-        return n > 0 ? `— ${n} —` : 'GO';
+        return n > 0 ? `${n}...` : 'GO';
       }
       const bits = [];
       if (cfg.rivals && cfg.rivals.length) {
@@ -290,8 +302,8 @@ export function raceStages(cfg, ctx) {
           if (R.bestLap == null || lap < R.bestLap) {
             R.bestLap = lap;
             saveBestLap(cfg.id, lap);
-            say(G, `Tour ${R.track.lapOf(R.me.done)} — ${lapTime(lap)}\nMEILLEUR TOUR`, 2200);
-          } else say(G, `Tour ${R.track.lapOf(R.me.done)} — ${lapTime(lap)}`, 1800);
+            say(G, `Tour ${R.track.lapOf(R.me.done)} : ${lapTime(lap)}\nMEILLEUR TOUR`, 2200);
+          } else say(G, `Tour ${R.track.lapOf(R.me.done)} : ${lapTime(lap)}`, 1800);
         }
         if (finished) {
           // A course's purse depends on whether this is a first win or a new
@@ -352,6 +364,29 @@ export function raceMission(cfg) {
   };
 }
 
+// [w7-polish] How far behind a rival is when you cross the line, in seconds:
+// the metres he still has to go at his own average pace so far. null when it
+// cannot be told (no such rival, no clock yet).
+export function rivalGapSeconds(G, m, name) {
+  const R = m && m.race;
+  const rv = (G && G.rivals || []).find((r) => r.name === name);
+  if (!R || !rv || !R.track || !(R.t > 0)) return null;
+  const left = Math.max(0, (R.track.total || 0) - (rv.progress || 0));
+  const pace = Math.max(4, (rv.progress || 0) / R.t);
+  return left / pace;
+}
+const FR_NUM = ['zéro', 'une', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix',
+  'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf', 'vingt'];
+/** « Adam arrive quatre secondes plus tard » from a measured gap (no number when unknown). */
+export function arrivesLine(name, secs) {
+  if (secs == null || !isFinite(secs)) return `${name} arrive en arrière, ben tranquille.`;
+  const n = Math.round(secs);
+  if (n < 1) return `${name} arrive collé sur ton pare-chocs.`;
+  if (n === 1) return `${name} arrive une seconde plus tard.`;
+  const w = n <= 20 ? FR_NUM[n] : String(n);
+  return `${name} arrive ${w} secondes plus tard${n >= 6 ? ', ben tranquille' : ''}.`;
+}
+
 // ============================================================ 1. Adam
 
 const daveRace = raceMission({
@@ -365,16 +400,20 @@ const daveRace = raceMission({
   money: 25,
   timeOfDay: 'day',
   gridText: 'Le stationnement de la marina',
-  gridSub: 'E sur la grille pour partir — il chauffe le moteur depuis dix minutes, colle-toi à côté',
-  gridHold: 'E — « trois, deux, un »',
-  gridToast: 'Adam: « Le perdant paye le gaz. Du gagnant. »',
-  intro: 'Adam: « Trois. Deux. UN— »',
-  text: 'Galeries d’Aylmer — le stationnement',
-  sub: 'W à fond, suis la ligne bleue du GPS jusqu’au pilier — la Principale, le chemin d’Aylmer, pis tout droit',
-  win: 'PREMIER.\nAdam arrive douze secondes plus tard, ben tranquille.\n+25 $ — il paye ton gaz. Presque tout.',
+  gridSub: 'E sur la grille pour partir. Il chauffe le moteur depuis dix minutes, colle-toi à côté',
+  gridHold: 'E : « trois, deux, un »',
+  gridToast: 'Adam: « Loser pays for gas. The winner’s gas. »',
+  intro: 'Adam: « Three. Two. ONE... »',
+  text: 'Galeries d’Aylmer : le stationnement',
+  sub: 'W à fond, suis la ligne bleue du GPS jusqu’au pilier : la Principale, le chemin d’Aylmer, pis tout droit',
+  // [w7-polish] the margin is measured at the line (W6-RACES: a clean win is
+  // now a few seconds, not « douze »).
+  win: (G, m) => `PREMIER.\n${arrivesLine('Adam', rivalGapSeconds(G, m, 'Adam'))}\n+25 $, il paye ton gaz. Presque tout.`,
+  winText: `PREMIER.\n${arrivesLine('Adam', null)}\n+25 $, il paye ton gaz. Presque tout.`,
   lose: (rv) => `${rv.name} est déjà stationné. Il te fait de la main.\n` +
-    '« Tu veux-tu que je te montre le raccourci? »',
-  rivals: [{ carId: 'sunfire', name: 'Adam', skill: 'dave' }],
+    '« Want me to show you the shortcut? »',
+  // [w6-races] his own sprint tuning; `dave` was too easy here (W6-RACES.md step 3).
+  rivals: [{ carId: 'sunfire', name: 'Adam', skill: 'daveSprint' }],
 });
 
 // ============================================================ 2. Sayyad
@@ -389,15 +428,15 @@ const civicRace = raceMission({
   money: 30,
   timeOfDay: 'dusk',
   gridText: 'Devant le 75 Denise-Friend',
-  gridSub: 'E sur la grille quand t’es prêt — la Civic tourne au ralenti, ça sonne comme une guêpe dans une canne',
-  gridHold: 'E — quand t’es prêt',
-  gridToast: 'Sayyad: « Par le Vieux. Pas par le boulevard, c’est plate. »',
-  intro: 'Sayyad: « Compte, toi. »',
+  gridSub: 'E sur la grille quand t’es prêt. La Civic tourne au ralenti, ça sonne comme une guêpe dans une canne',
+  gridHold: 'E : quand t’es prêt',
+  gridToast: 'Sayyad: « Through the Vieux. Not the boulevard. The boulevard’s boring. »',
+  intro: 'Sayyad: « You count. »',
   text: 'Le Vieux-Aylmer, pis la marina',
-  sub: 'W à fond, le pilier jaune saute d’un checkpoint à l’autre — passe par la Principale, lui il freine pas dans les courbes',
+  sub: 'W à fond, le pilier jaune saute d’un checkpoint à l’autre. Passe par la Principale, lui il freine pas dans les courbes',
   win: 'La Civic arrive au quai en deuxième.\nSayyad dit rien pendant un boutte.\n+30 $',
   lose: (rv) => `${rv.name} est assis sur le capot au bout du quai.\n` +
-    '« Les jantes, mon chum. Les jantes. »',
+    '« The rims, buddy. The rims. »',
   rivals: [{ carId: 'civic', name: 'Sayyad', skill: 'sayyad' }],
 });
 
@@ -426,13 +465,13 @@ const circuit = raceMission({
   laps: 3,
   money: 40,
   timeOfDay: 'morning',
-  gridText: 'Ligne de départ — rue Principale, coin Bancroft',
-  gridSub: 'E sur la grille pour le départ — trois chars sur deux voies, y a personne le dimanche matin',
-  gridHold: 'E — départ',
-  gridToast: 'Sayyad: « Trois tours. I’ve calculated the racing line. »',
+  gridText: 'Ligne de départ : rue Principale, coin Bancroft',
+  gridSub: 'E sur la grille pour le départ. Trois chars sur deux voies, y a personne le dimanche matin',
+  gridHold: 'E : départ',
+  gridToast: 'Sayyad: « Three laps. I’ve calculated the racing line. »',
   intro: 'Trois tours du Vieux. Départ arrêté.',
-  text: 'Circuit du Vieux-Aylmer — 3 tours',
-  sub: 'W à fond, Espace dans les quatre coins — Principale → Frank-Robinson → du Patrimoine → Bancroft, ×3',
+  text: 'Circuit du Vieux-Aylmer : 3 tours',
+  sub: 'W à fond, Espace dans les quatre coins : Principale → Frank-Robinson → du Patrimoine → Bancroft, ×3',
   win: 'TROIS TOURS, PREMIER.\nAdam dit que sa suspension est finie. Elle l’était avant.\n+40 $',
   lose: (rv) => `${rv.name} passe la ligne avant toi. Trois tours pour rien.`,
   rivals: [
@@ -456,13 +495,13 @@ const blitz = raceMission({
   bonus: BLITZ_BONUS,
   money: 35,
   timeOfDay: 'dusk',
-  gridText: 'Rue Principale — le départ du blitz',
-  gridSub: 'E sur la grille pour partir le chrono — cent trente secondes, pis quinze de plus par checkpoint',
-  gridHold: 'E — partir le chrono',
+  gridText: 'Rue Principale : le départ du blitz',
+  gridSub: 'E sur la grille pour partir le chrono : cent trente-cinq secondes, pis quinze de plus par checkpoint',
+  gridHold: 'E : partir le chrono',
   gridToast: 'Six checkpoints. Le chrono arrête jamais.',
   intro: 'Le chrono part à zéro.',
-  text: 'Blitz — six checkpoints',
-  sub: 'W à fond, le GPS trace la ligne bleue jusqu’au prochain pilier — Saint-Paul, le dep, l’aréna, Frank-Robinson, le Tim, les Galeries',
+  text: 'Blitz : six checkpoints',
+  sub: 'W à fond, le GPS trace la ligne bleue jusqu’au prochain pilier : Saint-Paul, le dep, l’aréna, Frank-Robinson, le Tim, les Galeries',
   clockFail: 'Le chrono est à zéro. Le blitz est fini.',
   win: 'SIX SUR SIX.\nT’as fait le tour de la ville avant que le chrono te rattrape.\n+35 $',
   rivals: [],

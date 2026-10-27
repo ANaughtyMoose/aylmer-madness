@@ -230,3 +230,14 @@ body.menu-has-save #menuside #start{background:rgba(255,255,255,.08);color:#fff;
 /* Where you were sits right under the button that takes you back there. */
 #menuside #btnContinue{order:-2}
 #menuside #contmeta{order:-1}
+/* [w6-opening] W2: the first-launch gate (main.js armGate). The painting and
+   the logo stay; the one button reads « Appuie sur une touche » and breathes
+   (opacity only: the world is baking under it); every other door waits for the
+   first film, except the English toggle. */
+body.first-launch #menuside #btnContinue,body.first-launch #menuside #btnFree,body.first-launch #menuside #btnIntro,
+body.first-launch #menuside #btnLoad,body.first-launch #menuside #btnOptions,body.first-launch #menuside #btnGarage,
+body.first-launch #contmeta,body.first-launch #erratum{display:none!important}
+body.first-launch #menuside #start{animation:op-gate 1.4s ease-in-out infinite alternate}
+body.first-launch #menuside #btnEnglish{opacity:.7;font-size:13px}
+@keyframes op-gate{from{opacity:1}to{opacity:.55}}
+@media (prefers-reduced-motion:reduce){body.first-launch #menuside #start{animation:none}}

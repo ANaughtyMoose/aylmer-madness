@@ -39,6 +39,12 @@ export const STOP_E_S = 4;
 // The pace car leaves the instant a stage starts; a player first reads the new
 // objective and picks a direction. Added once per clock, before the 1.35.
 export const REACT_S = 3;
+// W6-CURFEW: how the pace car meets a stage's maxSpeed circle. It brakes at
+// BRAKE_MS2 (firm, under the Ranger's 8.0 m/s2 limit: a driver who knows the
+// drive is coming, not one who stamps on it) to VMAX_MARGIN km/h under the cap
+// by the circle's edge, and the stage only finishes at or under the cap.
+export const BRAKE_MS2 = 6;
+export const VMAX_MARGIN = 3;
 /** The clock a pace earns: (pace + REACT_S) x PACE_FACTOR, rounded to 5 s. */
 export const clockFor = (pace) => Math.round(((pace + REACT_S) * PACE_FACTOR) / 5) * 5;
 
@@ -199,7 +205,7 @@ export const rangerCtx = () => {
 
 // ---------------------------------------------------------------- the pace car
 
-async function paceAll() {
+export async function paceAll() {
   const ctx2d = new Proxy({}, { get: (t, k) => (k === 'measureText' ? () => ({ width: 40 })
     : k === 'getImageData' ? () => ({ data: new Uint8ClampedArray(4), width: 1, height: 1 }) : () => {}) });
   globalThis.document = globalThis.document || {
@@ -252,20 +258,39 @@ async function paceAll() {
     const split = [];
     let leg = 0, t = 0, top = 0;
     const st = c.stageRef;
-    const done = (l) => {
-      const tgt = l.to, r = (st && st.radius) || 16;
-      if (Math.hypot(rv.x - tgt.x, rv.z - tgt.z) < r) return true;
+    // The circle is missionkit's: st.radius, else 14 m (stageTarget). The blitz
+    // gates keep the 16 m they were paced with.
+    const R = (st && st.radius) || (c.kind === 'blitz' ? 16 : 14);
+    // W6-CURFEW: a stage with maxSpeed only finishes at or under it inside the
+    // circle (missionkit stageStep), so the pace car has to arrive that slow too.
+    // It brakes on a plan, BRAKE_MS2 from the speed it holds down to VMAX_MARGIN
+    // under the cap at the circle's edge, the way a decent driver lifts and
+    // brakes for a driveway, and only the last leg is capped (a capped stage is
+    // never part of a shared clock).
+    const vmax = st && st.maxSpeed ? st.maxSpeed : null;
+    const capCtx = { cap: null };
+    const done = (l, last) => {
+      const tgt = l.to;
+      if (Math.hypot(rv.x - tgt.x, rv.z - tgt.z) < R) return !(last && vmax && rv.speedKmh > vmax);
       if (st && st.anywhere && st.condition) { try { return !!st.condition({ veh: rv }); } catch (e) { return false; } }
       return false;
     };
+    let arrive = null;
     for (let i = 0; i < 60 * 60 * 20 && leg < c.legs.length; i++) {
-      rv.update(STEP, phys, null);
+      const last = leg === c.legs.length - 1;
+      if (vmax && last) {
+        const tgt = c.legs[leg].to;
+        const d = Math.max(0, Math.hypot(rv.x - tgt.x, rv.z - tgt.z) - R);
+        const v0 = Math.max(1, (vmax - VMAX_MARGIN) / 3.6);
+        capCtx.cap = Math.sqrt(v0 * v0 + 2 * BRAKE_MS2 * d);
+      }
+      rv.update(STEP, phys, vmax && last ? capCtx : null);
       t += STEP;
       if (rv.speedKmh > top) top = rv.speedKmh;
-      if (done(c.legs[leg])) { split.push(+t.toFixed(1)); leg++; }
+      if (done(c.legs[leg], last)) { if (last && vmax) arrive = Math.round(rv.speedKmh); split.push(+t.toFixed(1)); leg++; }
     }
-    res[keyOf(c)] = leg < c.legs.length ? { pace: null, split, top } : { pace: t, split, top: Math.round(top), resets: rv.resets, how: 'pace car, Ranger' };
-    console.error(`  paced ${keyOf(c).padEnd(22)} ${res[keyOf(c)].pace ? res[keyOf(c)].pace.toFixed(1) + ' s' : 'NEVER'}  top ${Math.round(top)} km/h  splits ${split.join(' ')}`);
+    res[keyOf(c)] = leg < c.legs.length ? { pace: null, split, top } : { pace: t, split, top: Math.round(top), resets: rv.resets, how: 'pace car, Ranger', ...(vmax ? { maxSpeed: vmax, arriveKmh: arrive } : {}) };
+    console.error(`  paced ${keyOf(c).padEnd(22)} ${res[keyOf(c)].pace ? res[keyOf(c)].pace.toFixed(1) + ' s' : 'NEVER'}  top ${Math.round(top)} km/h  splits ${split.join(' ')}${vmax ? `  in at ${arrive} km/h (max ${vmax})` : ''}`);
   }
   return res;
 }

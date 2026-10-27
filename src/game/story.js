@@ -117,8 +117,8 @@ export class StoryOpener {
     }
     if (this.elKey) {
       this.elKey.textContent = this.i >= this.cards.length - 1
-        ? 'E — embarque   ·   Échap pour passer'
-        : 'E — la suite   ·   Échap pour passer';
+        ? 'E : embarque   ·   Échap pour passer'
+        : 'E : la suite   ·   Échap pour passer';
     }
   }
 }
@@ -235,7 +235,7 @@ export function freeRoamLines(G, garage = null) {
   if (car && (owned || cost > 0)) {
     if (!owned) {
       return {
-        text: `E — acheter ${car.art} ${car.name}   ·   ${cost} $`,
+        text: `E : acheter ${car.art} ${car.name}   ·   ${cost} $`,
         sub: `Arrête-toi à côté pis appuie sur E${car.why ? ' (' + car.why + ')' : ''}`,
         kind: 'buy',
         car,
@@ -243,8 +243,8 @@ export function freeRoamLines(G, garage = null) {
     }
     return {
       text: car.who
-        ? `E — prendre ${car.art} ${car.name} de ${car.who}`
-        : `E — prendre ton ${car.name}`,
+        ? `E : prendre ${car.art} ${car.name} de ${car.who}`
+        : `E : prendre ton ${car.name}`,
       sub: car.why ? `(${car.why})` : 'Appuie sur E pour changer de char',
       kind: 'car',
       car,
@@ -254,7 +254,7 @@ export function freeRoamLines(G, garage = null) {
   const job = nearestJob(G);
   if (job) {
     return {
-      text: `Prochaine job: ${job.def.title} — ${fmtDist(job.dist)}`,
+      text: `Prochaine job: ${job.def.title}, ${fmtDist(job.dist)}`,
       sub: `E sur le pilier jaune   ·   ${job.place.label}`,
       kind: 'job',
       job,
@@ -358,10 +358,10 @@ export const FRIEND_LINES = {
   },
   // Zahra and the blackberry soda at Sol (28 Sept).
   solerrand: {
-    start: [['Zahra', '« The blackberry one. Pas la framboise. Je suis pas un bébé. »']],
+    start: [['Zahra', '« The blackberry one. Not raspberry. I’m not a baby. »']],
     end: [
-      ['Zahra', '« Parfait. Les chats aimeraient ça, s’ils buvaient de la liqueur. »'],
-      ['Sayyad', '« Merci d’avoir amené ma sœur. Elle t’a-tu griffé? »'],
+      ['Zahra', '« Perfect. Cats would like this, if cats drank pop. »'],
+      ['Sayyad', '« Thanks for driving my sister. Did she scratch you? »'],
     ],
   },
   // Tom worked at St. Vincent; Sayyad came along (28 Sept) and, awake, walks to
@@ -398,8 +398,8 @@ export const FRIEND_LINES = {
     end: [['Sayyad', '« See? Shortcut. Dis-le pas à Adam. »']],
   },
   vitres: {
-    start: [['Norm', '« C’est une vitre. Pas une planche. Roule comme si ta mère était dessus. »']],
-    end: [['Norm', '« …Correct. Va te chercher un café, je te l’offre. »']],
+    start: [['Le garagiste', '« C’est une vitre. Pas une planche. Roule comme si ta mère était dessus. »']],
+    end: [['Le garagiste', '« …Correct. Va te chercher un café, je te l’offre. »']],
   },
   // The theories were Sayyad's, not Mike's (28 Sept). Mike watches.
   seme: {
@@ -421,14 +421,14 @@ export const FRIEND_LINES = {
   highwayhull: {
     start: [
       ['Margaret', '« Hull? Call me when you get there. Not after. When. »'],
-      ['Sayyad', '« Vertical Reality. Je me suis entraîné. Mentally. »'],
+      ['Sayyad', '« Vertical Reality. I’ve been training. Mentally. »'],
     ],
-    end: [['Adam', '« Bon. Astheure faut retrouver le chemin pour revenir. »']],
+    end: [['Adam', '« Okay. Now we just have to find the way back. »']],
   },
   // The 105 to Chelsea is real (28 Sept).
   chelsea: {
-    start: [['Adam', '« Continue sur la 105. Quand ça devient juste des arbres, t’es presque rendu. »']],
-    end: [['Sayyad', '« Chelsea aller-retour pour aucune raison. That’s a real ride. »']],
+    start: [['Adam', '« Stay on the 105. When it’s all trees, you’re almost there. »']],
+    end: [['Sayyad', '« Chelsea and back for no reason. That’s a real ride. »']],
   },
   // Late for the 5:45 a.m. shift at the Royal Ottawa (28 Sept).
   school: {
@@ -470,8 +470,8 @@ export const FRIEND_LINES = {
   },
   // Liberty yogurt, $1.99 for 750 g, at the Super C in the Galeries (28 Sept).
   dep: {
-    start: [['Sayyad', '« Liberty, le 750 grammes. Au Super C, c’est 1,99 $. Just saying. »']],
-    end: [['Adam', '« On est venus au parc pour manger du yogourt. OK. »']],
+    start: [['Sayyad', '« Liberty, the 750 gram. Super C has it for $1.99. Just saying. »']],
+    end: [['Adam', '« We drove to the park to eat yogurt. Okay. »']],
   },
   // OPEN DECISION (STORY-REBUILD.md): the CV run is not real. Guitar lessons
   // are (Tom taught guitar), so the three stops post his lesson ads instead.
@@ -560,31 +560,33 @@ export const FRIEND_LINES = {
   },
   racedave: {
     start: [
-      ['Adam', '« Mon Sunfire est plus vite que ton char. C’est mathématique. »'],
-      ['Adam', '« Le perdant paye le gaz. Du gagnant. »'],
+      ['Adam', '« My Sunfire is faster than your car. That’s math. »'],
+      ['Adam', '« Loser pays for gas. The winner’s gas. »'],
     ],
-    end: [['Adam', '« ...bon. C’était la mathématique de l’autre sens. »']],
+    end: [['Adam', '« ...okay. The math went the other way. »']],
   },
   racecivic: {
     start: [
-      ['Sayyad', '« J’ai mis des jantes. Faut que le monde le sache. »'],
-      ['Sayyad', '« Par le Vieux. Pas par le boulevard, c’est plate. »'],
+      ['Sayyad', '« I put rims on. People need to know. »'],
+      ['Sayyad', '« Through the Vieux. Not the boulevard. The boulevard’s boring. »'],
     ],
-    end: [['Sayyad', '« Les jantes, c’est peut-être pas dans les jantes. »']],
+    end: [['Sayyad', '« OK OK OK. Maybe the speed isn’t in the rims. »']],
   },
   circuit: {
     start: [
-      ['Sayyad', '« Trois tours. I’ve calculated the racing line. Twice. »'],
-      ['Adam', '« Y a personne le dimanche matin. Personne. »'],
+      ['Sayyad', '« Three laps. I’ve calculated the racing line. Twice. »'],
+      ['Adam', '« Nobody’s out Sunday morning. Nobody. »'],
     ],
-    end: [['Adam', '« Ma suspension est finie. Elle l’était avant, mais quand même. »']],
+    end: [['Adam', '« My suspension’s done. It was done before, but still. »']],
   },
+  // The blitz clock is BLITZ_CLOCK (130 s) plus BLITZ_BONUS per checkpoint
+  // (racejobs.js); the old French line said sixty.
   blitz: {
     start: [
-      ['Sayyad', '« Soixante secondes. Chaque checkpoint t’en redonne quinze. »'],
-      ['Sayyad', '« Le chrono arrête jamais. Moi non plus. »'],
+      ['Sayyad', '« Hundred and thirty seconds. Every checkpoint gives you fifteen back. »'],
+      ['Sayyad', '« The clock never stops. Neither do I. »'],
     ],
-    end: [['Sayyad', '« Six sur six. T’as battu la ville. »']],
+    end: [['Sayyad', '« Six for six. You beat the town. »']],
   },
 };
 

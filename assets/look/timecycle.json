@@ -1,0 +1,31 @@
+{
+ "version": 1,
+ "space": "display sRGB 0..1 (hex or floats), like TIME_OF_DAY; the renderer decodes",
+ "note": "S5-LIGHT (V1-02 smallest version, 20 Oct 2026). Clear rows by hour; the weather leans the day rows exactly as weather.tintEnv always did (so every noon frame is the shipped one), and night rows per weather are authored navy, never the daytime storm grey. Blend weight between the two: w = (lum(clear skyTop) / lum(clear skyTop at 13:00))^2.",
+ "keys": ["05:00", "06:30", "09:00", "13:00", "17:00", "19:30", "20:45", "22:30", "01:00"],
+ "ease": { "19:30": "late", "20:45": "early", "01:00": "later" },
+ "hold": { "13:00": [11.5, 14.0] },
+ "pins": { "morning": 7.0, "day": 13.0, "dusk": 20.75, "night": 23.5 },
+ "moon": { "az": 160, "el": 35 },
+ "rows": {
+  "05:00": { "skyTop": "#22345A", "fog": "#5A5F78", "sun": "#E7A478", "sunInt": 0.0, "ambSky": "#2A3550", "ambGround": "#1A1C22", "fogDensity": 0.0016, "cloud": 0.05, "cirrus": 0.3, "townGlow": "#2A2018" },
+  "06:30": { "skyTop": "#6F92C4", "fog": "#E2C4A4", "sun": "#F2C48A", "sunInt": 0.75, "ambSky": "#6C7A96", "ambGround": "#3A3830", "fogDensity": 0.0014, "cloud": 0.08, "cirrus": 0.6, "townGlow": "#000000" },
+  "09:00": { "skyTop": "#6B9AD8", "fog": "#C9D6E4", "sun": "#FFEBD0", "sunInt": 0.95, "ambSky": "#6B9AD8", "ambGround": "#4E5246", "fogDensity": 0.0012, "cloud": 0.12, "cirrus": 0.6, "townGlow": "#000000" },
+  "13:00": { "skyTop": [0.42, 0.62, 0.95], "fog": [0.72, 0.80, 0.92], "sun": [1.0, 0.95, 0.86], "sunInt": 1.0, "ambSky": [0.42, 0.62, 0.95], "ambGround": [0.34, 0.38, 0.30], "fogDensity": 0.0011, "lightDir": [0.25069, 0.942596, 0.220608], "cloud": 0.28, "cirrus": 0.6, "townGlow": "#000000", "note": "TIME_OF_DAY.day exactly, untinted; tintEnv at clear makes it the shipped noon" },
+  "17:00": { "skyTop": "#6E9BD6", "fog": "#C4CFDA", "sun": "#FFE2B8", "sunInt": 0.95, "ambSky": "#6E9BD6", "ambGround": "#57523F", "fogDensity": 0.0011, "cloud": 0.32, "cirrus": 0.6, "townGlow": "#000000" },
+  "19:30": { "skyTop": "#5F7FB4", "fog": "#E9B486", "sun": "#F7B26A", "sunInt": 0.85, "ambSky": "#4D5A86", "ambGround": "#5A4436", "fogDensity": 0.0013, "cloud": 0.22, "cirrus": 0.6, "townGlow": "#000000", "note": "the hero hour: amber sun low over Lac Deschenes, blue-violet shade, warm bounce" },
+  "20:45": { "skyTop": "#46557F", "fog": "#B0705A", "sun": "#FF9A5A", "sunInt": 0.30, "ambSky": "#3A3658", "ambGround": "#2A2224", "fogDensity": 0.0015, "cloud": 0.15, "cirrus": 0.45, "townGlow": "#1A120C" },
+  "22:30": { "skyTop": "#0B1024", "fog": "#111626", "sun": "#3C4766", "sunInt": 1.0, "ambSky": "#29304A", "ambGround": "#17181C", "fogDensity": 0.0018, "cloud": 0.10, "cirrus": 0.3, "townGlow": "#3A2A1E" },
+  "01:00": { "skyTop": "#080C1C", "fog": "#0D1221", "sun": "#3C4766", "sunInt": 1.0, "ambSky": "#252B44", "ambGround": "#17181C", "fogDensity": 0.0018, "cloud": 0.08, "cirrus": 0.3, "townGlow": "#3A2A1E" }
+ },
+ "night": {
+  "note": "per weather, the colours a night takes (they replace the clear row by 1 - w); fogDensity is absolute and never above checks.nightFogDensityMax",
+  "clear": {},
+  "haze": { "fogDensity": 0.0021 },
+  "cloudy": { "sunInt": 0.7, "skyTop": "#0E1426", "fog": "#161C2E", "cloud": 0.5 },
+  "overcast": { "skyTop": "#121828", "fog": "#1A2236", "sunInt": 0.4, "ambSky": "#1E2436", "ambGround": "#121316", "fogDensity": 0.0022, "cloud": 0.95, "cirrus": 0, "townGlow": "#4A3424" },
+  "rain": { "skyTop": "#141B2E", "fog": "#1D263C", "sunInt": 0.30, "ambSky": "#1D2232", "ambGround": "#101114", "fogDensity": 0.0024, "cloud": 1.0, "cirrus": 0, "townGlow": "#4A3424" },
+  "storm": { "skyTop": "#11182A", "fog": "#1A2236", "sunInt": 0.25, "ambSky": "#1A1F2E", "ambGround": "#0E0F12", "fogDensity": 0.0024, "cloud": 1.0, "cirrus": 0, "townGlow": "#4A3424" }
+ },
+ "checks": { "skyLumMax": 42, "castBminusR": [19, 35], "sepLumMin": 10, "roadLumMin": 16, "nightFogDensityMax": 0.0026 }
+}

@@ -37,7 +37,7 @@ const SIGN_ORANGE = 0xff8c14;
 
 const CITY = {
   id: 'bus',
-  name: 'GM New Look — ex-STO 7901', who: 'Le lot',
+  name: 'GM New Look, ex-STO 7901', who: 'Le lot',
   body: STO_WHITE,
   flavour: 'Le fishbowl. Quarante places, un diesel qui claque, pis la pancarte 40 LAVIGNE encore dedans. Passe pas sur Bancroft.',
   // Dimensions, wheelbase, mass and every driving number stay exactly what the

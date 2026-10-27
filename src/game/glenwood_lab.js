@@ -92,7 +92,7 @@ build();
 const drawOpts = { tex: null };
 loadMaterials(r, { base: '../../assets/materials/' })
   .then((m) => { MATS = m; drawOpts.tex = m.tex; build(); })
-  .catch((e) => console.warn('glenwood lab: no atlas, vertex colours only —', e.message));
+  .catch((e) => console.warn('glenwood lab: no atlas, vertex colours only:', e.message));
 
 const mm = m4.create();
 function frame(t) {

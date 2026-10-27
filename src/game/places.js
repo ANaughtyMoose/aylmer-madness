@@ -11,10 +11,10 @@ import { MAP } from './mapdata.js';
 const POI_SNAP = 600;
 
 export const PLACES = {
-  sol: {x:67,z:-201,label:'Sol — aliments naturels, 195 Principale'},
-  morin: {x:-1107,z:-60,label:'Dr Morin — rue Principale'},
-  mocaloca: {x:-471,z:-118,label:'Moca-Loca — ancien café'},
-  oldlibrary: {x:-662,z:-72,label:'Ancienne bibliothèque — fermée (dégâts d’eau)'},
+  sol: {x:67,z:-201,label:'Sol : aliments naturels, 195 Principale'},
+  morin: {x:-1107,z:-60,label:'Dr Morin, rue Principale'},
+  mocaloca: {x:-471,z:-118,label:'Moca-Loca (ancien café)'},
+  oldlibrary: {x:-662,z:-72,label:'Ancienne bibliothèque, fermée (dégâts d’eau)'},
   stvincent: { poi:'Saint-Vincent Hospital',road:'Cambridge Street North',x:9906.8,z:-2136.2,label:'Hôpital St. Vincent',snap:true },
   royalottawa: { poi:'Royal Ottawa Golf Club',x:5062.5,z:-2605.7,label:'Royal Ottawa Golf Club',snap:true,lot:true },
   // The four homes.
@@ -35,7 +35,13 @@ export const PLACES = {
   // corner of the parking lot facing a blank wall. This one is the stopping
   // point in front of the south entrance landmarks.js builds — no snapping,
   // because the whole point is that it lines up with the canopy.
-  foodcourt: { x: 3.4, z: -271.2, a: 1.3305, label: 'Galeries d’Aylmer — l’entrée sud' },
+  foodcourt: { x: 3.4, z: -271.2, a: 1.3305, label: 'Galeries d’Aylmer : l’entrée sud' },
+  // [w8-signs] D-12: the Super C door, on the lot 12 m out from the east
+  // storefront wall, parallel to it like foodcourt. Not snapped. The yogurt
+  // run's stop; retargeting the mission is not this key's job.
+  superc:    { x: 67.6, z: -263.2, a: 1.4949, label: 'Super C, Galeries d’Aylmer' },
+  // [w8-signs] D-12: the polyvalente, on Rue Broad abeam its west-wall name board.
+  granderiviere: { road: 'Rue Broad', x: -732.1, z: -1093.7, label: 'École secondaire Grande-Rivière', snap: true },
   beach:     { x: -1918.1, z: -451.5, label: 'Plage des Cèdres', snap: true, lot: true },
   marina:    { x: -1766, z: -88, label: 'Marina d’Aylmer', snap: true, lot: true },
   lookout:   { x: -1798, z: -22, label: 'Le phare de la marina', snap: true, lot: true },
@@ -50,7 +56,7 @@ export const PLACES = {
   deschenes: { x: 2369.5, z: 1133.3, label: 'Hôtel Deschênes', snap: true, lot: true },
   // Highway to Hull expansion: the old east-edge placeholder is now the seam,
   // and Heritage is a real destination beyond it.
-  hullgate:  { x: 2734.8, z: -3245.4, label: 'Route 148 — entrée vers Hull' },
+  hullgate:  { x: 2734.8, z: -3245.4, label: 'Route 148 : entrée vers Hull' },
   heritage:  { poi: 'Heritage College', road: 'Boulevard de la Cité-des-Jeunes', x: 5521, z: -6836, label: 'Heritage College, secteur Hull', snap: true },
   hullmuseum:{ poi: "Musée canadien de l'histoire", x: 9827, z: -4016, label: 'Musée canadien de l’histoire, Hull', snap: true, lot: true },
   hulldowntown:{ poi: 'La Place du Portage', road: 'Promenade du Portage', x: 9510, z: -3364, label: 'Centre-ville de Hull', snap: true },
@@ -61,9 +67,9 @@ export const PLACES = {
 
   // ---- side jobs -------------------------------------------------------
   // 225 chemin d'Aylmer. The footprint and the POI are both in mapdata.
-  ctire:     { x: -157, z: -236, a: Math.PI / 2, label: 'Canadian Tire — Galeries d’Aylmer', snap: false, lot: false },
+  ctire:     { x: -157, z: -236, a: Math.PI / 2, label: 'Canadian Tire, Galeries d’Aylmer', snap: false, lot: false },
   // The legacy key now points to Tom's pictured garage and its own map pin.
-  norm:      { x: -514, z: -137, label: 'Garage Hugo Caumartin — 143 Principale', landmark: true },
+  norm:      { x: -514, z: -137, label: 'Garage Hugo Caumartin, 143 Principale', landmark: true },
   // The used lot: a gravel corner on chemin d'Aylmer beside the Canadian Tire.
   // Four beaters nose-to-tail and a plywood sign — see game/garage.js.
   usedlot:   { road: "Chemin d'Aylmer", x: 520, z: -246, label: 'Lot d’occasion, chemin d’Aylmer', snap: true },

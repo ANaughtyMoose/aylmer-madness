@@ -103,7 +103,7 @@ export const STOREFRONT_URL = 'assets/text/storefronts.json';
 const FALLBACK = [
   { type: 'casse-croûte', name: 'Le Roi de la Poutine d’Aylmer' },
   { type: 'dépanneur', name: 'Dépanneur Chez Ti-Guy' },
-  { type: 'garage', name: 'Garage Norm Lafleur & Fils' },
+  { type: 'garage', name: 'Garage Mécanique Générale' },
   { type: 'coiffure', name: 'Salon Coupe Longueuil' },
   { type: 'quincaillerie', name: 'Quincaillerie du Coin' },
   { type: 'pharmacie', name: 'Pharmacie du Village' },
@@ -215,9 +215,9 @@ function nameSigns(plan) {
     if (!byTrade.has(s.type)) byTrade.set(s.type, []);
     byTrade.get(s.type).push(s.name);
   }
-  // Two names cross-reference other agents' work (the mechanic Normand 'Norm'
-  // Lafleur, and Ti-Guy's used-car lot), so they go out first in their trade.
-  for (const [pin, trade] of [['Garage Norm Lafleur & Fils', 'garage'],
+  // Pinned names go out first in their trade: a plain garage sign with no
+  // owner's name on it (the garagiste is never named, D32), and Ti-Guy's lot.
+  for (const [pin, trade] of [['Garage Mécanique Générale', 'garage'],
     ['Les Chars à Ti-Guy', 'vente de chars usagés'], ['Dépanneur Chez Ti-Guy', 'dépanneur']]) {
     const a = byTrade.get(trade);
     const i = a ? a.indexOf(pin) : -1;

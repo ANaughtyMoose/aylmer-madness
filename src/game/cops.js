@@ -253,12 +253,76 @@ export const MAX_UNITS = 2;     // driving cruisers; the third star is the roadb
 export const BLOCK_MIN = 70, BLOCK_MAX = 420;   // roadblock hunt range
 // Heat at which somebody says something before anybody has been dispatched, and
 // how long before they will say it again.
+// [w6-escape] C-16 step 1: line of sight and the search circle.
+export const SIGHT = { look: 0.2, step: 6, hear: 45, d: [0, 110, 110, 140] };
+export const BLIND_T = 2.0;          // seconds unseen before the search starts
+export const SEARCH = { r: [100, 100, 140, 200], band: 0.7, retarget: 5, sirenQuiet: 4, reach: 15, drain: 1.6, loseT: 6, miss: 35 };
+// [w8-bugs] No search target within SEARCH.miss m of where they lost you, nor
+// within 20 m of a hide spot's edge: unit 0 used to drive to the exact
+// lost-sight point, which is the spot itself when you lose them as you turn in
+// (cloud run 27 Oct: busted at 7 m instead of « Y ont passé tout droit »).
+// 35 m is past HIDE.pass (30), so a target never pauses the hide by itself.
+// First sweep: unit 0 this share of the radius along your heading, unit 1 the
+// next; each tries straight on, then turned a little either way.
+const FIRST_R = [0.4, 0.5];
+const FIRST_TURN = [0, 0.6, -0.6];
 export const WARN_AT = 0.45, WARN_AGAIN = 22;
+// [w6-escape] C-16 hide spots. In a spot a cruiser sees you only inside
+// `seen` m, or inside `watched` m if it saw you less than `watchedT` s ago (it
+// watched you turn in). Stopped (under `kmh`) and unseen, the count runs:
+// `first` s for the first star, `next` s for each one after; a cruiser within
+// `pass` m that does not see you pauses it. A spot used for an escape is
+// burned for `burnT` s of game time and its first star then takes `burnFirst`.
+export const HIDE = { seen: 16, watched: 45, watchedT: 1.5, pass: 30, first: 8, next: 6, kmh: 3, burnT: 120, burnFirst: 12 };
+// After a hide escape the cruisers drive off, lights dim, siren off.
+export const LEAVE = { d: 400, life: 20, gone: 350, band: 0.55 };
+// Narrator strings (radio lines live in hidespots.json `lines`).
+export const COPS_TEXT = Object.freeze({
+  teach: 'Y t’ont perdu de vue.\nSors du cercle rouge, ou cache-toi.',
+  search: 'Y fouillent le secteur.',
+  respotted: 'Y t’ont revu.',
+  hide: 'Cachette, bouge pus.',
+  still: 'Bouge pas…',
+  hidden: 'Y ont passé tout droit.',
+});
+let HIDE_SPOTS = [];
+let HIDE_LINES = { search: [], respotted: [], drop: [], escaped: [] };
+let HIDE_LOADING = false;
+/** Parsed hide spots and lines, for tests and for loadHideSpots. */
+export function setHideSpots(json) {
+  const pts = json && Array.isArray(json.points) ? json.points : [];
+  HIDE_SPOTS = pts.filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.z))
+    .map((p) => ({ id: String(p.id || p.label), label: String(p.label || p.id), x: p.x, z: p.z, r: p.r > 0 ? p.r : 14 }));
+  const L = (json && json.lines) || {};
+  for (const k of ['search', 'respotted', 'drop', 'escaped']) HIDE_LINES[k] = Array.isArray(L[k]) ? L[k].slice() : [];
+  HIDE_LOADING = true;
+  return HIDE_SPOTS;
+}
+export function hideSpots() { return HIDE_SPOTS; }
+/** Fetch in the page, fs in node. Resolves to the parsed file (or null); never throws. */
+export async function loadHideSpots(base = 'assets/text/') {
+  HIDE_LOADING = true;
+  try {
+    let json;
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      const r = await fetch(base + 'hidespots.json');
+      json = r.ok ? await r.json() : null;
+    } else {
+      const fs = await import('node:fs');
+      const url = new URL('../../' + base + 'hidespots.json', import.meta.url);
+      json = JSON.parse(fs.readFileSync(url, 'utf8'));
+    }
+    if (json) setHideSpots(json);
+    return json || null;
+  } catch { return null; }
+}
+const hideLine = (k, rnd) => { const L = HIDE_LINES[k]; return L && L.length ? L[Math.floor(rnd() * L.length) % L.length] : ''; };
 
 // ---------------------------------------------------------------- the force
 
 export class Cops {
   constructor() {
+    this._seed = 1;             // [w6-escape] search rng; reset() keeps it
     this.reset();
   }
 
@@ -286,6 +350,151 @@ export class Cops {
     this.trail = [];            // S3-COPS: where the truck drove, oldest first
     this.bumpLog = [];          // S3-COPS: every cruiser contact { t, unit, closing, dmg, by, pit }
     this.clock = 0;
+    this._burn = {};            // [w6-escape] spot id -> game time it was used for an escape
+    this._chaseZero();          // [w6-escape]
+  }
+
+  // [w6-escape] chase sight state, zeroed by reset() and clear().
+  _chaseZero() {
+    this.seen = true; this.blindT = 0; this.lookT = 0;
+    this.lastSeen = null; this.search = null; this.searchTeach = this.searchTeach || 0;
+    if (!this.hide) this.hide = { id: null, label: '', t: 0, need: 0, drops: 0, paused: false };
+    else { this.hide.id = null; this.hide.t = 0; this.hide.drops = 0; this.hide.paused = false; }
+    this.leaving = this.leaving || [];
+    this.leaving.length = 0;
+    this.promptText = null;
+    this._respotT = -99;
+  }
+
+  /** [w6-escape] Does cruiser u see the truck at (px, pz)? No world queries: always. */
+  _sees(G, u, px, pz, stars, spot = null) {
+    const W = G.world;
+    if (!W || typeof W.buildingAt !== 'function') return true;
+    const dx = px - u.x, dz = pz - u.z, d = Math.hypot(dx, dz);
+    if (spot) return d < HIDE.seen || (d < HIDE.watched && (u.sawT == null ? 99 : u.sawT) < HIDE.watchedT);
+    if (d < SIGHT.hear) return true;
+    if (d > SIGHT.d[clamp(stars, 0, 3)]) return false;
+    const n = Math.floor((d - 8) / SIGHT.step);
+    for (let k = 1; k <= n; k++) {
+      const f = (4 + k * SIGHT.step) / d;
+      if (W.buildingAt(u.x + dx * f, u.z + dz * f, 0)) return false;
+    }
+    return true;
+  }
+
+  /** [w6-escape] Dispatch, a new unit or a re-dispatch: the radio told them where you are. */
+  _radioSeen(v) {
+    this.seen = true; this.blindT = 0; this.search = null; this.lookT = 0;
+    if (!this.lastSeen) this.lastSeen = { x: v.x, z: v.z, yaw: v.yaw, t: this.clock };
+    else { this.lastSeen.x = v.x; this.lastSeen.z = v.z; this.lastSeen.yaw = v.yaw; this.lastSeen.t = this.clock; }
+    for (const u of this.units) u.searched = false;
+  }
+
+  /** [w6-escape] Seed the search rng (mulberry32). The constructor seeds 1; reset() keeps it. */
+  seed(n) { this._seed = (Number(n) >>> 0) || 1; return this; }
+  _rnd() {
+    let t = (this._seed = (this._seed + 0x6D2B79F5) >>> 0);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  /** [w6-escape] { x, z, r } of the search, or null. */
+  searchCircle() {
+    const S = this.search;
+    if (!S) return null;
+    const o = this._sc || (this._sc = { x: 0, z: 0, r: 0 });   // one object, rewritten (read every frame)
+    o.x = S.x; o.z = S.z; o.r = S.r;
+    return o;
+  }
+
+  /**
+   * [w6-escape] Where unit u sweeps next. First target: unit 0 four tenths of
+   * the radius on along your heading, unit 1 half a radius (W8-BUGS: no longer
+   * the exact point where they lost you). Then a forward cone inside the
+   * circle, snapped to a street node (never a service lane, never outside the
+   * circle; 4 tries). Every target, the first ones and the last-resort ring
+   * included, keeps 20 m off a hide spot and SEARCH.miss off the lost-sight
+   * point. Never the truck's true position. Writes into u.target (no garbage).
+   */
+  _searchPoint(u, i, nav) {
+    const S = this.search;
+    if (!u.target) u.target = [0, 0];
+    const h = this.lastSeen ? this.lastSeen.yaw : 0;
+    if (!u.searched) {
+      u.searched = true;
+      const rr = FIRST_R[i === 0 ? 0 : 1] * S.r;
+      for (let k = 0; k < FIRST_TURN.length; k++) {
+        const a = h + FIRST_TURN[k];
+        if (this._searchTry(u, S, nav, S.x + Math.sin(a) * rr, S.z + Math.cos(a) * rr)) return u.target;
+      }
+    }
+    for (let k = 0; k < 4; k++) {
+      const a = h + (this._rnd() - 0.5) * 1.2 * Math.PI;
+      const rr = S.r * 0.9 * Math.sqrt(this._rnd());
+      if (this._searchTry(u, S, nav, S.x + Math.sin(a) * rr, S.z + Math.cos(a) * rr)) return u.target;
+    }
+    // Last resort: a ring at 0.6 r, ahead first, unsnapped.
+    for (let k = 0; k < 8; k++) {
+      const a = h + (k & 1 ? -1 : 1) * Math.ceil(k / 2) * (Math.PI / 4);
+      const x = S.x + Math.sin(a) * 0.6 * S.r, z = S.z + Math.cos(a) * 0.6 * S.r;
+      if (!this._nearSpot(x, z, 20)) { u.target[0] = x; u.target[1] = z; return u.target; }
+    }
+    u.target[0] = S.x + Math.sin(h) * 0.6 * S.r; u.target[1] = S.z + Math.cos(h) * 0.6 * S.r;
+    return u.target;
+  }
+
+  /** [w8-bugs] Snap (x, z) to a street node and keep it if it is a fair search target. */
+  _searchTry(u, S, nav, x, z) {
+    if (nav && nav.nearest) {
+      const n = nav.nearest(x, z);
+      if (!n) return false;
+      if (Math.hypot(n.x - S.x, n.z - S.z) > S.r) return false;
+      if (n.edges && n.edges.length && n.edges.every((e) => e.cls === 'service')) return false;
+      x = n.x; z = n.z;
+    }
+    if (Math.hypot(x - S.x, z - S.z) < SEARCH.miss) return false;
+    if (this._nearSpot(x, z, 20)) return false;
+    u.target[0] = x; u.target[1] = z;
+    return true;
+  }
+
+  /** [w6-escape] The hide spot the truck is in, or null (linear scan, a handful of points). */
+  _spotAt(x, z) {
+    const P = HIDE_SPOTS;
+    for (let k = 0; k < P.length; k++) if (Math.hypot(x - P[k].x, z - P[k].z) < P[k].r) return P[k];
+    return null;
+  }
+
+  /** [w6-escape] Every prompt cops writes goes through here and is kept in promptText. */
+  _prompt(G, text) {
+    this.promptText = text;
+    if (G.hud && G.hud.prompt) G.hud.prompt(text);
+  }
+
+  /** [w6-escape] { id, label, left, paused } of the hide in progress, or null. */
+  hideState() {
+    const H = this.hide;
+    if (!H || !H.id) return null;
+    const o = this._hs || (this._hs = { id: '', label: '', left: 0, paused: false });
+    o.id = H.id; o.label = H.label; o.left = Math.max(0, H.need - H.t); o.paused = H.paused;
+    return o;
+  }
+
+  /** [w6-escape] Hide spots within r of (x, z) while you are wanted, else []. One array, rewritten. */
+  hideSpotsNear(x, z, r) {
+    const out = this._near || (this._near = []);
+    out.length = 0;
+    if (this.stars < 1) return out;
+    for (const p of HIDE_SPOTS) if (Math.hypot(p.x - x, p.z - z) <= r) out.push(p);
+    return out;
+  }
+
+  /** [w6-escape] Is (x, z) within spot.r + pad of a hide spot? */
+  _nearSpot(x, z, pad) {
+    const P = HIDE_SPOTS;
+    for (let k = 0; k < P.length; k++) if (Math.hypot(x - P[k].x, z - P[k].z) < P[k].r + pad) return true;
+    return false;
   }
 
   get wanted() { return this.stars; }
@@ -308,6 +517,7 @@ export class Cops {
     this.chasing = false;
     this.peak = 0;
     this.trail.length = 0;
+    this._chaseZero();          // [w6-escape]
   }
 
   // ---- accrual ---------------------------------------------------------
@@ -510,6 +720,7 @@ export class Cops {
     // that is guarding a street he is no longer on.
     if (this._px != null && Math.hypot(v.x - this._px, v.z - this._pz) > JUMP_D) {
       this.units.forEach((u, i) => this._dispatch(G, u, i));
+      this._radioSeen(v);   // [w6-escape] the radio told them
       this.blocks.length = 0;
       this.trail.length = 0;
     }
@@ -537,10 +748,56 @@ export class Cops {
     const want = racing ? Math.min(this.units.length, MAX_UNITS) : Math.min(stars, MAX_UNITS);
     while (this.units.length > want) this.units.pop();
     if (!racing) {
+      const n0 = this.units.length;
       while (this.units.length < want) this.spawn(G);
+      if (this.units.length > n0) this._radioSeen(v);   // [w6-escape] a new unit was told where you are
       if (stars >= 3) this.roadblock(G);
     }
     if (stars <= 0 && this.blocks.length) this.blocks.length = 0;
+
+    // [w6-escape] The hide spot you are in (page: load the spots once).
+    if (!HIDE_LOADING && typeof window !== 'undefined') loadHideSpots();
+    const spot = stars >= 1 && !racing ? this._spotAt(v.x, v.z) : null;
+
+    // [w6-escape] Sight, every SIGHT.look s. Lose it for BLIND_T at 2+ stars
+    // and they stop homing: they sweep a circle round where they last saw you.
+    if (!this.units.length && !this.blocks.length) { this.seen = true; this.blindT = 0; this.search = null; }
+    else if (racing) { this.seen = true; this.blindT = 0; this.search = null; }
+    else {
+      for (const u of this.units) u.sawT = (u.sawT == null ? 99 : u.sawT) + dt;
+      this.lookT -= dt;
+      if (this.lookT <= 0) {
+        this.lookT = SIGHT.look;
+        let s = false;
+        for (const u of this.units) if (this._sees(G, u, v.x, v.z, stars, spot)) { s = true; u.sawT = 0; }
+        if (!s) for (const b of this.blocks) if (this._sees(G, b, v.x, v.z, stars, spot)) { s = true; break; }
+        if (s && this.search) {
+          this.search = null;
+          for (const u of this.units) { u.searched = false; if (u.routeT <= RETARGET) u.routeT = 0; }
+          if (G.hud && this.clock - this._respotT > 6) {
+            this._respotT = this.clock;
+            const radio = hideLine('respotted', () => this._rnd());
+            G.hud.toast(COPS_TEXT.respotted + (radio ? '\n« ' + radio + ' »' : ''), 1600);
+          }
+        }
+        this.seen = s;
+      }
+      if (this.seen) {
+        this.blindT = 0;
+        if (!this.lastSeen) this.lastSeen = { x: v.x, z: v.z, yaw: v.yaw, t: this.clock };
+        else { this.lastSeen.x = v.x; this.lastSeen.z = v.z; this.lastSeen.yaw = v.yaw; this.lastSeen.t = this.clock; }
+      } else this.blindT += dt;
+      if (!this.search && !this.seen && this.blindT >= BLIND_T && (stars >= 2 || (spot && stars >= 1))) {
+        if (!this.lastSeen) this.lastSeen = { x: v.x, z: v.z, yaw: v.yaw, t: this.clock };
+        this.search = { x: this.lastSeen.x, z: this.lastSeen.z, r: SEARCH.r[stars], t0: this.clock };
+        for (const u of this.units) { u.searched = false; if (u.routeT <= SEARCH.retarget) u.routeT = Math.min(u.routeT, 0); }
+        if (G.hud) {
+          const radio = hideLine('search', () => this._rnd());
+          G.hud.toast(this.searchTeach++ < 3 ? COPS_TEXT.teach
+            : COPS_TEXT.search + (radio ? '\n« ' + radio + ' »' : ''), 2400);
+        }
+      }
+    }
 
     // Drive them.
     const traffic = G.traffic ? G.traffic.cars : null;
@@ -561,7 +818,11 @@ export class Cops {
       u.routeT -= dt;
       if (!u.onLine && u.routeT <= 0 && G.nav) {
         u.routeT = RETARGET;
-        const path = G.nav.route(u.x, u.z, v.x, v.z);
+        // [w6-escape] searching: never the true position.
+        let tx = v.x, tz = v.z;
+        if (this.search) { const t = this._searchPoint(u, i, G.nav); tx = t[0]; tz = t[1]; u.routeT = SEARCH.retarget; }
+        else if (spot && !this.seen && this.lastSeen) { tx = this.lastSeen.x; tz = this.lastSeen.z; }
+        const path = G.nav.route(u.x, u.z, tx, tz);
         // Off the road (a lawn, a yard, nose in a porch) the route's last leg
         // is a straight line to the truck, and it goes through whatever house
         // is in the way: the review pack's three-star cruisers sat wedged
@@ -589,6 +850,10 @@ export class Cops {
       // A cruiser holding station on purpose is not stuck (race.js would hop it up the road).
       if (u.ctx.cap != null && u.ctx.cap < 2) u.stuckT = 0;
       u.finished = false;                       // a cruiser is never done
+      if (this.search) {   // [w6-escape] a sweep, not a pursuit
+        u.ctx.band = SEARCH.band;
+        if (u.target && Math.hypot(u.x - u.target[0], u.z - u.target[1]) < SEARCH.reach && u.routeT <= SEARCH.retarget) u.routeT = Math.min(u.routeT, 0);
+      }
       u.update(dt, G.phys, u.ctx);
       this._contact(G, v, u, i, stars, ready);
       if (G.traffic && G.traffic.collideBody) G.traffic.collideBody(u.veh);
@@ -612,7 +877,9 @@ export class Cops {
     }
 
     // Siren and the odd blast of the horn.
-    const on = this.units.length > 0;
+    // [w6-escape] the siren drops out SEARCH.sirenQuiet s into a search.
+    const quiet = !!this.search && this.blindT > SEARCH.sirenQuiet;
+    const on = this.units.length > 0 && !quiet;
     // Said again once a second while it is on: audio.siren() is a no-op until
     // the AudioContext exists, and a chase that started before the first key
     // press used to latch sirenOn and stay silent for good. A repeat call on a
@@ -643,31 +910,40 @@ export class Cops {
     // in), or, from two stars, with one of them anywhere in view.
     let out = null;
     const law = this.units.length || this.blocks.length;
-    const reach = !racing && stars >= BUST_STARS ? BUST_SEEN : BUST_D;
+    // [w6-escape] parked in a hide spot and unseen: only a cruiser right there (BUST_D) writes it.
+    const reach = !racing && stars >= BUST_STARS && !(spot && !this.seen) ? BUST_SEEN : BUST_D;
     if (law && nearest < reach && Math.abs(v.speedKmh) < BUST_KMH) {
       this.stopT += dt;
-      if (G.hud) G.hud.prompt(`Décrisse ! ${Math.max(1, Math.ceil(BUST_T - this.stopT))}`);
+      this._prompt(G, `Décrisse ! ${Math.max(1, Math.ceil(BUST_T - this.stopT))}`);
       if (this.stopT >= BUST_T) out = this.bust(G);
     } else {
-      if (this.stopT > 0 && G.hud) G.hud.prompt(null);
+      if (this.stopT > 0) this._prompt(G, null);
       this.stopT = 0;
     }
 
+    // [w6-escape] The hide: stopped in a spot, unseen, the count runs; a
+    // cruiser passing within HIDE.pass pauses it; seen or rolling resets it.
+    if (!out) out = this._hideTick(dt, G, v, spot, stars);
+    this._tickLeaving(dt, G, v);
+
     // Lost them?
-    if (!this.units.length || nearest > LOSE_D) this.unseen += dt;
+    // [w6-escape] in a search: out of the circle unseen counts, and the stars
+    // drain faster (SEARCH.drain) after SEARCH.loseT; inside it, the clock holds.
+    let drain = 1, loseT = LOSE_T;
+    if (this.search) {
+      const outC = Math.hypot(v.x - this.search.x, v.z - this.search.z) > this.search.r;
+      if (this.seen) this.unseen = 0;
+      else if (outC || nearest > LOSE_D) this.unseen += dt;
+      if (outC) { drain = SEARCH.drain; loseT = SEARCH.loseT; }
+    } else if (!this.units.length || nearest > LOSE_D) this.unseen += dt;
     else this.unseen = 0;
-    if (this.unseen > LOSE_T && this.heat > 0) {
-      this.heat = Math.max(0, this.heat - HEAT.decay * dt);
+    if (!out && this.unseen > loseT && this.heat > 0) {
+      this.heat = Math.max(0, this.heat - HEAT.decay * drain * dt);
       if (this.heat < 0.02) {
-        this.heat = 0;
         // The units thin out as the stars drop, so "did anybody ever turn up"
         // is its own flag rather than "is anybody still here".
         if (this.chasing) out = this.escaped(G);
-        this.chasing = false;
-        this.peak = 0;
-        this.units.length = 0;
-        this.blocks.length = 0;
-        if (this.sirenOn && G.audio && G.audio.siren) { G.audio.siren(false); this.sirenOn = false; }
+        else this._endChase(G);
       }
     }
     if (G.hud && G.hud.setStars) G.hud.setStars(this.stars);
@@ -799,20 +1075,100 @@ export class Cops {
    * so on the toast and leaves { stars, pay } on this.lastEscape. A scripted
    * escape stage (the job is the reward) pays 0. Returns 'escaped'.
    */
-  escaped(G) {
+  escaped(G, how = 'lost', spot = null) {
     const st = G.mission && G.mission.stages ? G.mission.stages[G.mission.idx] : null;
     const scripted = !!(st && st.kind === 'escape');
     const stars = Math.max(0, Math.min(3, this.peak | 0));
-    const pay = scripted ? 0 : escapePay(stars);
+    // A hide spot pays once per day, so sitting in the same lane is not a job.
+    const day = Math.floor(G.day || 0);
+    const paidHere = how === 'hide' && spot && this._hidePaid && this._hidePaid[spot.id] === day;
+    const pay = scripted || paidHere ? 0 : escapePay(stars);
+    if (how === 'hide' && spot && pay > 0) (this._hidePaid || (this._hidePaid = {}))[spot.id] = day;
     if (pay > 0 && G.wallet && G.wallet.add) G.wallet.add(pay);
-    this.lastEscape = { stars, pay };
+    const v = G.veh;
+    // [w6-escape] how ('lost' or 'hide'), the spot id and where, for C-07's scanner line.
+    this.lastEscape = { stars, pay, how, spot: spot ? spot.id : null, x: v ? v.x : 0, z: v ? v.z : 0, t: this.clock };
     if (G.hud && G.hud.toast) {
-      const radio = textLine(policeLine('lost'));
-      G.hud.toast('Tu les as semés.' + (pay > 0 ? ` +${pay} $` : '') + '\nRoule normal deux minutes.'
-        + (radio ? '\n« ' + radio + ' »' : ''), 2400);
+      const radio = how === 'hide' ? hideLine('escaped', () => this._rnd()) : textLine(policeLine('lost'));
+      G.hud.toast((how === 'hide' ? COPS_TEXT.hidden : 'Tu les as semés.') + (pay > 0 ? ` +${pay} $` : '')
+        + '\nRoule normal deux minutes.' + (radio ? '\n« ' + radio + ' »' : ''), 2400);
     }
-    this.peak = 0;
+    if (how === 'hide' && spot) this._burn[spot.id] = this.clock;
+    this._endChase(G, how === 'hide');
     return 'escaped';
+  }
+
+  /** [w6-escape] The end of a chase, by losing them or by a hide. A hide sends the cruisers off, dimmed. */
+  _endChase(G, driveOff = false) {
+    const v = G.veh;
+    if (driveOff && v) {
+      for (const u of this.units) {
+        // Away from the truck, LEAVE.d m on, routed once to a street node.
+        const ax = u.x - v.x, az = u.z - v.z, al = Math.hypot(ax, az) || 1;
+        const tx = v.x + ax / al * LEAVE.d, tz = v.z + az / al * LEAVE.d;
+        const path = G.nav ? G.nav.route(u.x, u.z, tx, tz) : null;
+        if (path && path.length > 1) u.setPath(path);
+        u.ctx.band = LEAVE.band; u.ctx.cap = null;
+        u.leaveT = 0;
+        this.leaving.push(u);
+      }
+    }
+    this.heat = 0;
+    this.stars = 0;
+    this.chasing = false;
+    this.peak = 0;
+    this.units.length = 0;
+    this.blocks.length = 0;
+    this.search = null;
+    this.seen = true; this.blindT = 0;
+    if (this.hide.id || this.promptText) this._prompt(G, null);
+    this.hide.id = null; this.hide.t = 0; this.hide.drops = 0; this.hide.paused = false;
+    if (this.sirenOn && G.audio && G.audio.siren) { G.audio.siren(false); this.sirenOn = false; }
+  }
+
+  /** [w6-escape] One tick of the hide count. Returns 'escaped' on the last star. */
+  _hideTick(dt, G, v, spot, stars) {
+    const H = this.hide;
+    const still = Math.abs(v.speedKmh || 0) < HIDE.kmh;
+    if (!spot || stars < 1) {
+      if (H.id) { H.id = null; H.t = 0; H.drops = 0; H.paused = false; if (!this.stopT) this._prompt(G, null); }
+      return null;
+    }
+    if (H.id !== spot.id) { H.id = spot.id; H.label = spot.label; H.t = 0; H.drops = 0; }
+    const burned = this._burn[spot.id] != null && this.clock - this._burn[spot.id] < HIDE.burnT;
+    H.need = H.drops ? HIDE.next : burned ? HIDE.burnFirst : HIDE.first;
+    if (this.seen || !still) {
+      H.t = 0; H.paused = false;
+      if (!this.stopT) this._prompt(G, null);
+      return null;
+    }
+    let near = Infinity;
+    for (const u of this.units) near = Math.min(near, Math.hypot(u.x - v.x, u.z - v.z));
+    H.paused = near < HIDE.pass;
+    if (!H.paused) H.t += dt;
+    if (!this.stopT) this._prompt(G, H.paused ? COPS_TEXT.still : `${COPS_TEXT.hide} ${Math.max(1, Math.ceil(H.need - H.t))}`);
+    if (H.t < H.need) return null;
+    H.t = 0;
+    if (stars >= 2) {
+      H.drops++;
+      this.heat = Math.floor(this.heat) - 0.01;
+      const radio = hideLine('drop', () => this._rnd());
+      if (radio && G.hud) G.hud.toast('« ' + radio + ' »', 2000);
+      return null;
+    }
+    return this.escaped(G, 'hide', spot);
+  }
+
+  /** [w6-escape] Cruisers driving off after a hide: never see, bust or count. */
+  _tickLeaving(dt, G, v) {
+    const L = this.leaving;
+    for (let i = L.length - 1; i >= 0; i--) {
+      const u = L[i];
+      u.leaveT += dt;
+      u.finished = false;
+      u.update(dt, G.phys, u.ctx);
+      if (u.leaveT > LEAVE.life || Math.hypot(u.x - v.x, u.z - v.z) > LEAVE.gone) L.splice(i, 1);
+    }
   }
 
   // 150 $ and, if you were working, the job.
@@ -838,7 +1194,7 @@ export class Cops {
     if (G.audio) { G.audio.chime(false); if (G.audio.siren) G.audio.siren(false); }
     this.clear();
     this.sirenOn = false;
-    if (G.hud) G.hud.prompt(null);
+    this._prompt(G, null);
     if (G.hud && G.hud.setStars) G.hud.setStars(0);
     if (G.mission && G.failMission) G.failMission('Ramassé par la police de Gatineau.');
     return 'busted';
@@ -848,8 +1204,13 @@ export class Cops {
 
   /** Every cruiser body, then the light bars on top. `drawCar` is main.js's. */
   draw(G, drawCar) {
-    if (!this.units.length && !this.blocks.length) return;
+    if (!this.units.length && !this.blocks.length && !this.leaving.length) return;
     const v = G.veh;
+    for (const u of this.leaving) {   // [w6-escape] driving off, lights out
+      if (Math.hypot(u.x - v.x, u.z - v.z) > 400) continue;
+      const c = u.veh;
+      drawCar(CRUISER, c.x, c.z, c.yaw, c.pitch, c.roll, c.spin, c.steer, null, 1, c.y, c.gh);
+    }
     for (const u of this.units) {
       if (Math.hypot(u.x - v.x, u.z - v.z) > 400) continue;
       const c = u.veh;
@@ -863,6 +1224,12 @@ export class Cops {
     if (!r || !mesh || !mesh.copPodL) return;
     // 5 Hz alternation, red then blue, both unlit so they read at any hour.
     const red = (this.blink * 5) % 2 < 1;
+    for (const u of this.leaving) {
+      if (Math.hypot(u.x - v.x, u.z - v.z) > 400) continue;
+      m4.compose(MM, u.x, u.veh.y, u.z, u.yaw, 0, 0);
+      r.draw(mesh.copPodL, MM, OPT_DIM);
+      r.draw(mesh.copPodR, MM, OPT_DIM);
+    }
     for (const list of [this.units, this.blocks]) {
       for (const u of list) {
         const x = u.x, z = u.z, yaw = u.yaw;

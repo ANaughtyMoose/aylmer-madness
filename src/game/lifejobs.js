@@ -132,7 +132,7 @@ export const LIFE_MISSIONS=[{
     const breakWhy='Le Dr Morin ouvre la boîte, regarde ta mère, pis te regarde. « On recommence lundi, Margaret. »';
     const tol=10;
     const [load,go]=fragile({
-      from:'home',to:'morin',tolerance:tol,time:115,// s1-timers: 2.4 km, pace 83 s (was 190)
+      from:'home',to:'morin',tolerance:tol,time:120,// W6-CURFEW re-pace: 2.4 km, pace 85 s (s1-timers 115, was 190)
       loadText:'Ta mère pis la boîte - 299 Fraser',loadSub:'Arrête-toi (S) dans l’entrée, pis E pour la faire embarquer.',loadHint:'Ta mère t’attend sur le perron, la boîte dans les mains.',
       holdText:'E - ta mère embarque',loadToast:'Ta mère s’assoit, la boîte sur les genoux. « You drive. My hands are for porcelain. »',
       text:'Cabinet du Dr Morin - Principale',sub:'Le chrono roule, mais doux sur le W pis le S. Pas de coups, pas de trottoirs, pas de sauts.',

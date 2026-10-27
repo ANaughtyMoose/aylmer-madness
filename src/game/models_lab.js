@@ -184,7 +184,7 @@ function rebuild() {
     + `${m.tris} tris · ${m.verts} verts${cmpTris ? ` · procedural: ${cmpTris} tris` : ''}\n`
     + `${size.map((v) => v.toFixed(2)).join(' x ')} m  (w x h x l)\n`
     + `min y ${m.min[1].toFixed(3)}  ·  z ${m.min[2].toFixed(2)} .. ${m.max[2].toFixed(2)}\n`
-    + `${lic.pack || '?'} — ${lic.author || '?'} — ${lic.license || '?'}\n`
+    + `${lic.pack || '?'}, ${lic.author || '?'}, ${lic.license || '?'}\n`
     + (wantCmp ? `converted at x ${(-gap).toFixed(1)} m, today's geometry at x +${gap.toFixed(1)} m`
       : 'converted model only')
     + (WHEELS_FOR[slug] ? '\nboth carry the GAME\u2019S own wheels' : '');
@@ -268,7 +268,7 @@ loadModels(r, { base: '../../assets/models/' }).then((got) => {
     o.value = e.slug; o.textContent = `${e.slug}  (${e.kind})`;
     sel.appendChild(o);
   }
-  if (!reg.list.length) { $('stats').textContent = 'no models — run node tools/build_models.mjs'; return; }
+  if (!reg.list.length) { $('stats').textContent = 'no models: run node tools/build_models.mjs'; return; }
   rebuild();
   // What the headless screenshot pass drives (tools/shots_models.mjs).
   window.LAB = {

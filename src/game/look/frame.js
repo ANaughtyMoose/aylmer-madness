@@ -32,14 +32,18 @@ import * as parkedfleet from './parkedfleet.js';
 import * as photomode from './photomode.js';
 import * as tiers from './tiers.js';
 import * as season from './season.js';
+import * as grade from './grade.js';   // S5-LIGHT (V1-01)
+import * as glow from './glow.js';     // S5-LIGHT (V3-02 night side)
 import * as carpaint from './carpaint.js';   // s5-reflect (V3-05)
 import * as wetroads from './wetroads.js';   // s5-reflect (V5-02 subset)
 
 // [module, flag, the stage its draw() runs at]. Order is draw order inside a stage.
 const FEATURES = [
+  [grade, 'linear', 'beforeSky'],   // S5-LIGHT: first, so the timecycle's ambient lands after it
   [tiers, 'tiers', 'beforeSky'],
   [season, 'season', 'beforeSky'],
   [timecycle, 'timecycle', 'beforeSky'],
+  [glow, 'glass', 'beforeSky'],   // S5-LIGHT
   [aobake, 'ao', 'afterWorld'],
   [parkedfleet, 'parked', 'afterWorld'],
   [headlights, 'headlights2', 'afterTransparent'],

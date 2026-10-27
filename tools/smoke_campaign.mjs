@@ -102,10 +102,10 @@ group('D31: the bridge beat is cut, step 7 is the sauna alone, old saves go on')
     const raw = { ...SV.newSave('d31'), progress, mission };
     const sv = SV.normalizeSave(JSON.parse(JSON.stringify(raw)), 'tom.1');
     ok(!!sv && sv.progress.length === progress.length, `${label}: loads, progress kept as saved (${sv && sv.progress.length})`);
-    // main.js resumeMission looks the job up in ALL_MISSIONS; a cut id is not
-    // there, so the job is dropped (« Job perdue ») and the player drives free.
-    if (mission) ok(sv.mission && sv.mission.id === 'arcsurchauffe' && !M.ALL_MISSIONS.some((d) => d.id === sv.mission.id),
-      `${label}: the saved job is read but has no def to resume, so it is dropped`);
+    // W7-BUGS: the load migrates the cut job away (save.js migrateRetiredJob),
+    // so main.js never tries to resume it and shows no « Job perdue ».
+    if (mission) ok(sv.mission === null && sv.doing === '' && !M.ALL_MISSIONS.some((d) => d.id === mission.id),
+      `${label}: the cut job is not carried into the game`, sv.mission);
     const done = new Set(sv.progress);
     ok(C.mainStepsDone(done, has) === 6, `${label}: six steps done (${C.mainStepsDone(done, has)})`);
     ok(C.nextMain(done, has) === 'stvincent', `${label}: the next main mission is the sauna`, C.nextMain(done, has));
@@ -117,6 +117,34 @@ group('D31: the bridge beat is cut, step 7 is the sauna alone, old saves go on')
     ok(C.mainStepsDone(done, has) === 7, `${label}: seven steps done`);
     ok(C.storyBlocker('nuittim', done, has) === null, `${label}: nuittim is open`);
   }
+}
+
+group('W7-BUGS: an old save mid « arcsurchauffe » loads clean');
+{
+  const SV = await import('../src/game/save.js');
+  const H = SV.RETIRED_HOSE;
+  const upToGolf = C.mainIds(has).slice(0, C.mainIds(has).indexOf('golfcart') + 1);
+  const mk = (stage, ranger, extra = {}) => SV.normalizeSave(JSON.parse(JSON.stringify({
+    ...SV.newSave('w7'), progress: upToGolf, carId: 'ranger', day: 15, calendar: SV.CALENDAR,
+    health: { ranger, civic: 12 }, doing: 'La surchauffe du pont',
+    mission: { id: 'arcsurchauffe', stage, elapsed: 300, timeLeft: null, passengers: 1, state: {} }, ...extra,
+  })), 'tom.1');
+  // Stage 3 (at Norm's): the hose has blown, Norm is not paid yet.
+  const a = mk(3, H.damage);
+  ok(a.mission === null && a.doing === '', 'the cut job is dropped on load, and the slot no longer says it is in progress');
+  ok(a.health.ranger === 0 && a.health.civic === 12, 'the hose damage comes off the Ranger, other cars untouched', a.health);
+  ok(a.day === 15, 'the day is kept (the wait line and Z take the player to the sauna)', a.day);
+  ok(a.progress.length === upToGolf.length && C.nextMain(new Set(a.progress), has) === 'stvincent', 'progress kept, the next story is the sauna');
+  // Stage 0 or 1: the hose has not blown; nothing to take off.
+  ok(mk(1, 20).health.ranger === 20, 'before the hose blew, the truck keeps its own damage');
+  // A crash on top of the hose: more than the hose did stays.
+  ok(mk(4, 80).health.ranger === 80, 'damage above the hose (a crash on top) stays');
+  // A live job is never touched, nor a save with no job.
+  const live = SV.normalizeSave({ ...SV.newSave('w7'), health: { ranger: 40 }, mission: { id: 'stvincent', stage: 2 } }, 'tom.1');
+  ok(live.mission && live.mission.id === 'stvincent' && live.health.ranger === 40, 'a save mid a live job is untouched');
+  ok(SV.migrateRetiredJob(null) === null && SV.normalizeSave({ ...SV.newSave('w7') }, 'tom.1').mission === null, 'no job, no change');
+  // Every retired id goes the same way.
+  for (const id of C.RETIRED) ok(SV.normalizeSave({ ...SV.newSave('w7'), mission: { id, stage: 1 } }, 'tom.1').mission === null, `a save mid « ${id} » loads with no job`);
 }
 
 group('the cuts stay cut');

@@ -66,3 +66,16 @@ export const PAVED = { trunk: 1, primary: 1, secondary: 1, tertiary: 1 };
 
 // Caps - the whole scene has to stay well under 450k triangles.
 export const CAP = { woodTrees: 900, parkTrees: 500, roadTrees: 1800, shrubs: 950, poles: 2500, hedges: 1400 };
+
+// S5-LIGHT (20 Oct): the night-glow tag (shaders/glass.js). A builder adds
+// 2 x kind to each channel of an emitter's vertex colour; the shader takes it
+// off and adds the glow after dark. 1 house window, 2 shop or flat window,
+// 3 lamp head. glowPick(x, z, share) is a fixed hash, so the same windows are
+// lit every night and in every bake.
+export const GLOW = { HOUSE: 1, SHOP: 2, LAMP: 3, HOUSE_SHARE: 0.45, SHOP_SHARE: 0.55 };
+export function glowCol(c, kind) { const o = 2 * kind; return [c[0] + o, c[1] + o, c[2] + o]; }
+export function glowPick(x, z, share) {
+  let h = Math.imul(Math.round(x * 4) | 0, 73856093) ^ Math.imul(Math.round(z * 4) | 0, 19349663);
+  h = Math.imul(h ^ (h >>> 13), 0x5bd1e995); h ^= h >>> 15;
+  return ((h >>> 0) % 1000) / 1000 < share;
+}

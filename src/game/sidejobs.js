@@ -118,13 +118,13 @@ const canot = {
       // ---- a. the garage sale -------------------------------------------
       {
         kind: 'buy',
-        text: 'Vente de garage — 41 Promenade Wychwood',
+        text: 'Vente de garage, 41 Promenade Wychwood',
         sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour acheter le canot (45 $)',
         hint: 'Promenade Wychwood. Faut être arrêté dans le pilier avant que le E marche.',
         at: 'yardsale', radius: 13, hold: true, cost: 45,
         condition: (G) => !onTwoWheels(G),
         prompt: needsARoof('Un canot de cèdre de seize pieds'),
-        holdText: 'E — acheter le canot   ·   45 $',
+        holdText: 'E : acheter le canot   ·   45 $',
         brokeText: 'Quarante-cinq piasses. T’en as pas quarante-cinq. Va tondre des gazons.',
         toast: 'Un canot. 45 $. « Il flotte », qu’il a dit. En principe.',
         onEnter(G) {
@@ -144,11 +144,11 @@ const canot = {
       // ---- b. Canadian Tire ---------------------------------------------
       {
         kind: 'buy',
-        text: 'Canadian Tire — 225 chemin d’Aylmer',
-        sub: `GPS jusqu’au pilier, arrête-toi, pis E pour acheter du Bondo (21 $) — le canot est attaché sur le ${ctx.carName}`,
+        text: 'Canadian Tire, 225 chemin d’Aylmer',
+        sub: `GPS jusqu’au pilier, arrête-toi, pis E pour acheter du Bondo (21 $). Le canot est attaché sur le ${ctx.carName}`,
         hint: 'Chemin d’Aylmer, le gros magasin rouge. Arrête-toi dans le pilier, pis E.',
         at: 'ctire', radius: 20, hold: true, cost: 21,
-        holdText: 'E — acheter du Bondo   ·   21 $',
+        holdText: 'E : acheter du Bondo   ·   21 $',
         brokeText: 'Vingt-et-une piasses pour du Bondo. T’es cassé.',
         toast: 'Bondo, papier sablé, pis un Coke. 21 $.',
         onEnter(G) {
@@ -170,7 +170,7 @@ const canot = {
         prompt(G, m) {
           const r = repairState(m);
           if (r.done) return null;
-          if (!r.on) return 'E — sortir le Bondo';
+          if (!r.on) return 'E : sortir le Bondo';
           const u = (r.t * REPAIR.sweep * 2) % 2;
           const pos = u < 1 ? u : 2 - u;
           return `E dans le vert   ${meterBar(pos, REPAIR.lo, REPAIR.hi)}   `
@@ -217,7 +217,7 @@ const canot = {
       {
         kind: 'paddle',
         text: 'Île Aylmer : 850 m d’eau',
-        sub: 'W pagaie, S recule, A/D tourne — l’île est droit devant, suis la flèche',
+        sub: 'W pagaie, S recule, A/D tourne. L’île est droit devant, suis la flèche',
         hint: 'La flèche ▲ dans le prompt veut dire « t’es dans la bonne direction ». ◀ ou ▶ veut dire tourne avec A/D.',
         at: 'island', radius: 34, focus: 'boat', noRoute: true,
         toast: 'L’ÎLE. Le canot a fait la traversée. Quarante-cinq piasses bien placées.',
@@ -401,7 +401,7 @@ const sayyad = {
     return [
       {
         kind: 'drive',
-        text: 'Rends-toi chez Sayyad — 75 Denise-Friend',
+        text: 'Rends-toi chez Sayyad, 75 Denise-Friend',
         sub: 'Suis la ligne bleue du GPS jusqu’au pilier jaune devant sa maison',
         hint: 'Denise-Friend, dans le Vieux-Aylmer, au sud-ouest. Tab ouvre la grande carte.',
         at: 'sayyad', radius: 30,
@@ -409,7 +409,7 @@ const sayyad = {
       },
       {
         kind: 'doughnuts',
-        text: 'Fais 3 doughnuts devant chez lui — 0/3',
+        text: 'Fais 3 doughnuts devant chez lui : 0/3',
         sub: 'Dans le cercle de craie : Espace (frein à main) + A/D pour braquer, garde le gaz W, pis H pour klaxonner',
         hint: 'Reste dans le cercle de craie devant le 75. Tiens Espace ET W en même temps, pis braque à fond avec A ou D.',
         at: 'sayyad', radius: DONUT.radius, anywhere: true, noRoute: true,
@@ -440,7 +440,7 @@ const sayyad = {
           // prompt: the top-left is where a lost player looks first.
           if (d.shown !== d.meter.count && G.hud && G.hud.setObjective) {
             d.shown = d.meter.count;
-            G.hud.setObjective(`Fais 3 doughnuts devant chez lui — ${Math.min(3, d.meter.count)}/3`, st.sub);
+            G.hud.setObjective(`Fais 3 doughnuts devant chez lui : ${Math.min(3, d.meter.count)}/3`, st.sub);
           }
           // In the zone the lever spins the rear instead of stopping the truck
           // (stunts.js doughnutAssist): from rest it gets past DONUT.minKmh.
@@ -495,7 +495,7 @@ const sayyad = {
           return `${Math.max(0, Math.round(ESCAPE_M - d))} m`;
         },
         money: 20,
-        toast: 'Personne t’a vu. Sayyad est réveillé pis il parle déjà de son Mac.\n+20 $ — il te devait ça depuis avril.',
+        toast: 'Personne t’a vu. Sayyad est réveillé pis il parle déjà de son Mac.\n+20 $. Il te devait ça depuis avril.',
       },
     ];
   },
@@ -563,13 +563,13 @@ const divan = {
     return [
       {
         kind: 'load',
-        text: 'Chez Mike — 129 avenue Frank-Robinson',
+        text: 'Chez Mike, 129 avenue Frank-Robinson',
         sub: 'GPS jusqu’au pilier jaune, arrête-toi, pis E pour charger le divan',
         hint: 'Frank-Robinson, au nord de la Principale. Faut être arrêté dans le pilier pour que le E marche.',
         at: 'mike', radius: 14, hold: true,
         condition: (G) => !onTwoWheels(G),
         prompt: needsARoof('Un divan trois places'),
-        holdText: `E — charger le divan sur le ${ctx.carName}`,
+        holdText: `E : charger le divan sur le ${ctx.carName}`,
         toast: 'Le divan est chargé. Sayyad tient le bras. Mike a un plan.',
         onEnter(G) {
           G.props.add({

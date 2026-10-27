@@ -163,6 +163,72 @@ console.log('always something to do, and a key');
   ok(/Prochaine histoire : le 2 juillet/.test(S.nextStoryNote({ ...H, day: 7 })), 'the end card says when the story comes back');
 }
 
+console.log('sleep is not re-entrant (W7-BUGS)');
+{
+  // Red team 20 Oct item 3: Z could open the sleep card over another card
+  // (a job's end card, the ending, a menu) and replace its onDone.
+  const H = newG();
+  H.done.add('alternateur'); H.done.add('sayyad'); H.done.add('arcbache'); H.day = 7;
+  for (const id of ['dep', 'margaretdental', 'gang', 'racecivic', 'solerrand']) H.done.add(id);
+  ok(S.sleepBlock(H) === null && S.sleepBlock(H, { card: false }) === null, 'parked at home, nothing up: Z sleeps');
+  ok(S.sleepBlock(H, { card: true }) === 'card', 'a card or menu owns the screen: Z is refused');
+  ok(S.SLEEP_SILENT.has('card') && S.SLEEP_SILENT.has('proto'), '...silently (no toast over the card)');
+  ok(S.sleepHint(H) !== '', 'the hint is unchanged when nothing is up');
+  // The same card's onDone twice (a double click, a pad A and Enter in one
+  // frame) moves the calendar once.
+  const p = S.planSleep(H);
+  ok(S.applySleep(H, p) === true && H.day === 10, 'Debout: the morning of the 2nd', H.day);
+  ok(S.applySleep(H, p) === false && H.day === 10, 'a second Debout on the same card moves nothing', H.day);
+  // main.js builds the card flag from every screen owner, and checks it first.
+  const { readFileSync } = await import('node:fs');
+  const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const body = main.slice(main.indexOf('function trySleep()'), main.indexOf('// ---- S4-SUMMER sleep (end) ----'));
+  for (const owner of ['cinema.active', 'story.active', 'endingCard.active', 'modalOpen()', 'G.seamHold', 'G.mealShift', "G.mode !== 'drive'"]) {
+    ok(body.includes(owner), `trySleep counts ${owner} as a card`);
+  }
+  ok(/sleepBlock\(G, \{ card \}\)/.test(body) && body.indexOf('sleepBlock(') < body.indexOf('cinema.show('), 'trySleep asks sleepBlock with the card flag before showing anything');
+  ok(/if \(!summer\.applySleep\(G, plan\)\) return;/.test(body), 'the card applies its plan once');
+}
+
+console.log('a sleep pays an owed day (W7-BUGS)');
+{
+  // Red team 20 Oct item 4: a paid job's first fail defers its day
+  // (calendar.deferDay, while the R offer is up); a sleep used to wipe it.
+  const R = await import('../src/game/retry.js');
+  const base = () => {
+    const H = newG();
+    H.done.add('alternateur'); H.done.add('sayyad'); H.done.add('arcbache'); H.day = 7;
+    for (const id of ['dep', 'margaretdental', 'gang', 'racecivic', 'solerrand']) H.done.add(id);
+    return H;
+  };
+  const A = base();
+  const plain = S.sleepTarget(A);
+  ok(plain === 10 && S.owedDays(A) === 0, 'nothing owed: the sleep goes to the next opening', plain);
+  const B = base(); CAL.deferDay(B);
+  ok(S.owedDays(B) === 1 && S.sleepTarget(B) === plain + 1, 'one day owed: one more night than without', S.sleepTarget(B));
+  const pB = S.planSleep(B);
+  ok(pB.owed === 1 && /\+1 jour : la job ratée/.test(pB.task) && !/[–—]/.test(pB.task), 'the sleep card says the owed day', pB.task);
+  // main.js's order: applySleep, then cancelRetry (its settleDay must find nothing left).
+  B.retry = { deferred: true, left: 30, free: true };
+  S.applySleep(B, pB);
+  const moved = R.cancelRetry(B);
+  ok(B.day === plain + 1 && !B.dayOwed && !B.retry && moved, 'after Debout: day paid once, offer gone, nothing owed', { day: B.day, owed: B.dayOwed });
+  // Fail, sleep one night: the summer is shorter than with no fail.
+  const D = base(); D.done.delete('solerrand');
+  const E0 = base(); E0.done.delete('solerrand');
+  CAL.deferDay(D);
+  S.applySleep(D, S.planSleep(D)); R.cancelRetry(D);
+  S.applySleep(E0, S.planSleep(E0));
+  ok(D.day === E0.day + 1, 'a failed job still costs its day across a sleep', { failed: D.day, clean: E0.day });
+  // Never past Labour Day.
+  const L = base(); L.day = CAL.LAST - 1; CAL.deferDay(L); CAL.deferDay(L);
+  ok(S.sleepTarget(L) === CAL.LAST, 'owed days stop at Labour Day', S.sleepTarget(L));
+  const { readFileSync } = await import('node:fs');
+  const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const body = main.slice(main.indexOf('function trySleep()'), main.indexOf('// ---- S4-SUMMER sleep (end) ----'));
+  ok(body.indexOf('cancelRetry(G)') > body.indexOf('applySleep(G, plan)'), 'trySleep drops the R offer only after the plan is applied (it used to settle first, then the night swallowed the day)');
+}
+
 console.log('easy and hard summers');
 for (const diff of ['easy', 'hard']) {
   const G = newG(diff);

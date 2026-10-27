@@ -17,6 +17,8 @@ const { isRetired } = await import('../src/game/campaign.js');
 const { VERB_MISSIONS } = await import('../src/game/verbjobs.js');
 const verbs = await import('../src/game/verbs.js');
 const ambush = await import('../src/game/ambush.js');
+const { heckle } = await import('../src/game/heckle.js');   // [w7-polish] V8b
+const fs = await import('node:fs');
 const skills = await import('../src/game/skills.js');
 const { PLACES } = await import('../src/game/places.js');
 const { carById } = await import('../src/game/cars.js');
@@ -180,6 +182,36 @@ ok('V8 the race that interrupts: eligibility, the destination, the def, the offe
   let started = null; G.startMission = (d) => { started = d; };
   G.wantStart = true; ambush.tick(G, 1 / 60, G.hud);
   assert.ok(started && started.id === 'ambush' && !G.wantStart && !G.ambush);
+});
+
+// [w7-polish] W7-BUGS « Noticed »: the challenge waits for the friends' end lines.
+ok('V8b the challenge after a job is held until the dialogue queue is empty', () => {
+  heckle.clear();
+  const G = fakeG(PLACES.home.x, PLACES.home.z);
+  G.done = new Set(['a', 'b', 'c']); G.stats.ambushAt = -99;
+  heckle.line('Sayyad', 'Walked to NASA and back.');
+  heckle.line('Adam', 'Good job, man.');
+  ambush.holdAfterJob(G, { giver: 'home' });
+  for (let i = 0; i < 60 * 20; i++) ambush.tick(G, 1 / 60, G.hud);
+  assert.ok(!G.ambush, 'no offer while the end lines are queued');
+  assert.ok(G.ambushHeld && G.ambushHeld.waited > 19, 'still held after 20 s of a busy queue');
+  heckle.clear();
+  ambush.tick(G, 1 / 60, G.hud);
+  assert.ok(G.ambush && !G.ambushHeld, 'offered on the first tick with the queue empty');
+  // a job taken meanwhile drops it
+  G.ambush = null; G.stats.ambushAt = -99; heckle.line('Sayyad', 'One more.');
+  ambush.holdAfterJob(G, { giver: 'home' }); G.mission = {};
+  ambush.tick(G, 1 / 60, G.hud);
+  assert.ok(!G.ambushHeld && !G.ambush, 'a job started meanwhile drops the held offer');
+  G.mission = null; heckle.clear();
+  // a queue that never empties gives up after HOLD_MAX_S
+  heckle.line('Sayyad', 'Again.');
+  ambush.holdAfterJob(G, { giver: 'home' });
+  for (let i = 0; i < 60 * (ambush.HOLD_MAX_S + 2); i++) ambush.tick(G, 1 / 60, G.hud);
+  assert.ok(!G.ambushHeld && !G.ambush, 'dropped after the hold cap');
+  heckle.clear();
+  const MAIN = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  assert.ok(/followUp = \(\) => \{[^}]*holdAfterJob\(G, def\)/.test(MAIN), 'main.js holds the offer instead of making it at the card');
 });
 
 ok('V9 skills: earned by driving, small on the car, cached', () => {

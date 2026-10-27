@@ -14,7 +14,7 @@
 // changes nothing.
 
 export const PROTOTYPE = typeof document !== 'undefined'
-  && document.documentElement.dataset.prototype === '2004';
+  && document.documentElement?.dataset?.prototype === '2004';
 
 const DEFAULTS = {
   // wave 1: light, air, sky, texture sources

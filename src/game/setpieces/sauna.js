@@ -86,10 +86,32 @@ const NARR = {
   walk: 'Sayyad part à pied vers la rue Somerset, chez NASA.',
   back: 'Sayyad est revenu de chez NASA, sur Somerset. Un sac brun, déjà transparent de gras.',
 };
+// Seconds in the last lot stage before E takes the samosa: Sayyad's samosa
+// line (heckle.storySeconds, about 3.3 s) and the return narration read first.
+export const SAMOSA_DWELL_S = 3.5;
+// W8-BUGS: the lot and samosa stages also wait until Sayyad's own line has
+// left the story queue (sayyadTalking), counted in game time through the queue
+// itself, so a slow frame rate cannot reorder them. LINE_WAIT_MAX_S of stage
+// time is the cap: past it E works anyway, and the meal cuts a lot line that
+// never got its turn rather than let it play after the shift.
+export const LINE_WAIT_MAX_S = 12;
 export const FAIL_COOK = 'Coup de chaleur. Le cèdre est sec comme une toast, pis Sayyad aussi.';
 export const FAIL_DROWN = 'Troisième court-circuit. Le dash est noyé, le Ranger s’éteint dans un nuage de vapeur.';
 
 const closeMeal = (G) => { G.mealShift?.close(); G.mealShift = null; };
+
+/** Is one of Sayyad's sauna lines queued or on screen? False when the heckle has no queue to read. */
+export function sayyadTalking(G) {
+  const hk = G && G.heckle;
+  if (!hk) return false;
+  if (hk.storyNow && hk.storyNow.group === 'sauna') return true;
+  return Array.isArray(hk.pending) && hk.pending.some((p) => p && p.group === 'sauna');
+}
+// A stage's E opens once `minS` of stage time has passed and Sayyad is done, or at the cap.
+export function lineDone(G, m, minS = 0) {
+  const t = (m && m.stageTime) || 0;
+  return t >= LINE_WAIT_MAX_S || (t >= minS && !sayyadTalking(G));
+}
 const toast = (G, text, ms = 2600) => G.hud?.toast?.(text, ms);
 const audioOf = (G) => G.audio || (G.radio && G.radio.audio) || null;
 
@@ -110,6 +132,11 @@ export function sayyad(G, cls) {
 // always reach them, whatever stage the job ends in.
 export function stopHeat(G) {
   const h = G && G.sauna;
+  // W8-BUGS: Sayyad's lines go even when the toy is already gone. The lot
+  // stage stops the toy, so this used to return before the cancel from then
+  // on: a lot line still queued when the meal opened played after the shift,
+  // and the samosa line outlived the job into the end card.
+  if (G && !h) { try { G.heckle?.cancel?.('sauna'); } catch { /* no heckle */ } }
   if (!h) return;
   try { h.off?.(); } catch { /* already gone */ }
   try { h.fx?.close(); } catch { /* already gone */ }
@@ -324,6 +351,10 @@ export const STVINCENT_MISSION = {
         hint: 'Arrêté dans le cercle du stationnement, E.',
         at: 'stvincent', radius: 22, hold: true,
         holdText: 'E - entrer. Le service du dîner t’attend.',
+        // W8-BUGS: E waits for Sayyad's « Go feed people » to play out. The
+        // queue stands still during the meal, so a line still queued here came
+        // up after the shift, behind « Sayyad est revenu de chez NASA ».
+        condition: (G, m) => lineDone(G, m),
         onEnter(G) { stopHeat(G); sayyad(G, 'lot'); },
         toast: NARR.walk,
       },
@@ -337,7 +368,11 @@ export const STVINCENT_MISSION = {
         onTick(G) { if (G.mealShift?.state.done) return 'done'; },
         onExit: closeMeal,
         money: 40,
-        toast: 'Les plateaux sont ramassés. Le service est terminé. 40 $.',
+        // W7-BUGS: the return narration rides on the shift's own toast. As a
+        // toast of its own, pushed on the next stage's enter, it queued behind
+        // this one, yielded to the prompt and Sayyad's bubble, then sat under
+        // the end card: the 20 Oct cloud transcript never showed it.
+        toast: 'Les plateaux sont ramassés. Le service est terminé. 40 $.\n' + NARR.back,
       },
       {
         kind: 'samosas',
@@ -346,7 +381,13 @@ export const STVINCENT_MISSION = {
         hint: 'Sayyad attend au truck avec le sac. Arrêté dans le cercle, E.',
         at: 'stvincent', radius: 22, hold: true,
         holdText: 'E - prendre un samosa',
-        onEnter(G) { toast(G, NARR.back, 3000); sayyad(G, 'samosa'); },
+        // W7-BUGS: you are already in the lot circle when the shift ends, so a
+        // held E finished the job 1.2 s in, before anyone read the return. The
+        // E opens once Sayyad's line has had its time on screen.
+        // W8-BUGS: and only once his samosa line has left the queue (game time
+        // through the queue, not a fixed dwell), so the end lines come next.
+        condition: (G, m) => lineDone(G, m, SAMOSA_DWELL_S),
+        onEnter(G) { sayyad(G, 'samosa'); },
         toast: 'Des samosas chauds, une planche de cèdre mouillée pis 40 $. Pas pire, comme journée.',
       },
     ];
@@ -354,4 +395,5 @@ export const STVINCENT_MISSION = {
 };
 
 // For tests and the bot: the cut's numbers and the dry-out timings.
-export const SAUNA_TUNE = { TALK_GAP, LOT_R, CUT_CROW_M, LEG2_M, FADE_S, DROWN_S, PINNED_S };
+export const SAUNA_TUNE = { TALK_GAP, LOT_R, CUT_CROW_M, LEG2_M, FADE_S, DROWN_S, PINNED_S, SAMOSA_DWELL_S, LINE_WAIT_MAX_S };
+export const SAUNA_NARR = NARR;

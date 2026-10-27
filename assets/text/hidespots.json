@@ -1,0 +1,55 @@
+{
+  "_note": "C-16 (w6-escape). Public places only (hard rule 5); game metres. Placed on the VM with the C-16 rules (off buildings, dry, flat, road within 40 m, 20 m from any street centreline, 30 m from every house, terrace or apartments footprint) and checked with tools/qa/public-place.mjs --task=W6-ESCAPE. The lave-auto was cut: its map point is inside the building and the nearest point that passes is 38 m off, outside the lot.",
+  "points": [
+    {
+      "id": "galeries",
+      "label": "Derrière les Galeries",
+      "x": -18.9,
+      "z": -451.7,
+      "r": 14,
+      "kind": "lane",
+      "source": "OSM 68609502 rear service lane"
+    },
+    {
+      "id": "arena",
+      "label": "Derrière l’aréna",
+      "x": -591.7,
+      "z": 69.5,
+      "r": 14,
+      "kind": "lot",
+      "source": "PLACES.arena, moved 14 m off the street"
+    },
+    {
+      "id": "pont",
+      "label": "Au pied du pont Champlain",
+      "x": 5630.3,
+      "z": -2024.8,
+      "r": 16,
+      "kind": "shore",
+      "source": "Quebec abutment, 30 m back from the shore, 25 m off the deck"
+    }
+  ],
+  "lines": {
+    "search": [
+      "Centrale, je l’ai perdu de vue. Je fais le tour du secteur.",
+      "Pas de visuel. Je fais le tour du bloc.",
+      "Le véhicule est disparu. Je regarde dans les petites rues.",
+      "Centrale, pas de visuel sur le suspect. Je cherche dans le coin."
+    ],
+    "respotted": [
+      "Je le vois! Y repart!",
+      "Visuel retrouvé, je suis dessus.",
+      "Centrale, je le vois encore, je le suis."
+    ],
+    "drop": [
+      "Rien icitte. Je fais le tour plus loin.",
+      "Pas de trace du véhicule de mon bord.",
+      "Le secteur est tranquille, je continue."
+    ],
+    "escaped": [
+      "Centrale, je lâche. Y’est parti.",
+      "Je l’ai perdu pour de bon. Je retourne en patrouille.",
+      "Rien à faire, le suspect est introuvable."
+    ]
+  }
+}

@@ -248,9 +248,12 @@ function paceLap(c, opts = {}) {
   return { t: null, top, length, resets: rv.resets, damage: rv.veh.damage, done: me.done, path: path.length };
 }
 
+// [w7-replay] every pace lap's exact seconds, for the medal check at the end.
+const PACE_SEEN = {};
 group('the pace car finishes every blitz inside its clock');
 for (const c of BLITZ) {
   const r = paceLap({ ...c, kind: 'blitz' });
+  PACE_SEEN[c.id] = r.t;
   const budget = c.clock + c.bonus * c.cps.length;
   if (r.t == null) {
     ok(false, `${c.id}: NEVER FINISHED`, `${r.done}/${c.cps.length} gates in ${mmss(15 * 60)}`);
@@ -269,6 +272,7 @@ for (const c of BLITZ) {
 group('the pace car gets round every checkpoint course');
 for (const c of CHECKPOINT) {
   const r = paceLap({ ...c, kind: 'checkpoint' });
+  PACE_SEEN[c.id] = r.t;
   if (r.t == null) {
     ok(false, `${c.id}: NEVER FINISHED`, `${r.done}/${c.cps.length} gates`);
     continue;
@@ -372,6 +376,17 @@ group('the picker will not throw a story job away by accident');
   ok(G.veh.x === BLITZ[0].start.x && G.veh.z === BLITZ[0].start.z, 'and the truck is on the start line',
     `${G.veh.x}, ${G.veh.z}`);
   ok(G.modeNow === 'blitz', 'in Blitz mode', G.modeNow);
+  // W8-BUGS: the first job the game started by itself (Balade libre), still on
+  // its first stage, steps aside without a fail card; once moved on, it does not.
+  started = null; failed = null;
+  G.mission = { def: { id: 'alternateur', title: 'L’alternateur' }, idx: 0, autoStarted: true };
+  api.start('bz_vieux');
+  ok(started === 'bz_vieux' && failed === null, 'a course starts over the untouched auto-started first job, no RATÉ', `${started} ${failed}`);
+  started = null;
+  G.mission = { def: { id: 'alternateur', title: 'L’alternateur' }, idx: 1, autoStarted: true };
+  api.start('bz_vieux');
+  ok(started === null && failed === null, 'once it has moved on, the course is refused and the job kept', String(started));
+  G.mission = null;
 }
 
 // ================================================================ 4b. the rivals
@@ -524,6 +539,25 @@ group('a checkpoint race puts a written taunt on the grid');
     grid.toast.split('\n').pop().slice(0, 60));
   ok(grid.toast.includes(c.rivals[0].name), 'attributed to whoever showed up',
     c.rivals[0].name);
+}
+
+// [w7-replay] The medal table (src/game/medals.js) is frozen from these laps:
+// a map rebake that moves a pace lap by more than 8 % fails here. It reuses the
+// laps driven above, so no extra Math.random draws and no extra minutes.
+group('medals: the frozen course pace matches the pace car');
+{
+  const { COURSE_PACE, thresholdsFor, BLITZ_BUDGET } = await import('../src/game/medals.js');
+  for (const c of COURSES) {
+    const seen = PACE_SEEN[c.id], frozen = COURSE_PACE[c.id];
+    ok(seen > 0 && frozen > 0 && Math.abs(seen - frozen) / frozen < 0.08,
+      `${c.id}: frozen ${frozen} s`, `measured ${seen ? seen.toFixed(1) : 'never'} s`);
+    const t = thresholdsFor(c.id);
+    ok(t && t.or < t.argent && t.argent < t.bronze, `${c.id}: Or < Argent < Bronze`, JSON.stringify(t));
+    if (c.kind === 'blitz') {
+      const budget = c.clock + c.bonus * (c.cps.length - 1);
+      ok(BLITZ_BUDGET[c.id] === budget && t.bronze <= budget - 10, `${c.id}: bronze leaves 10 s on the clock`, `${t.bronze} of ${budget}`);
+    }
+  }
 }
 
 // ================================================================ done

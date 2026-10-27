@@ -7,7 +7,7 @@
 // Asserts: the JSON has exactly MAX_SIGNS names across twelve trades with no
 // repeats, every planned sign gets a unique name, no generated "Parc Gilles Pas
 // Pire" survives, real chains keep their real names, the two cross-referenced
-// names (Norm Lafleur's garage, Ti-Guy's lot) are actually placed, a trade never
+// names (the plain garage sign, Ti-Guy's lot) are actually placed, a trade never
 // lands on the wrong kind of POI, and signage still plans with the file missing.
 import { readFileSync } from 'node:fs';
 import {
@@ -81,10 +81,10 @@ if (!planned.some((n) => CHAINS.test(n))) fail('not one real chain kept its own 
 else ok('real chains keep their real names: ' + planned.filter((n) => CHAINS.test(n)).slice(0, 6).join(', '));
 
 // Cross-references to other agents' work, kept verbatim.
-for (const pin of ['Garage Norm Lafleur & Fils', 'Les Chars à Ti-Guy', 'Dépanneur Chez Ti-Guy']) {
+for (const pin of ['Garage Mécanique Générale', 'Les Chars à Ti-Guy', 'Dépanneur Chez Ti-Guy']) {
   if (!planned.includes(pin)) fail(`"${pin}" is in the list but never gets placed`);
 }
-ok('Norm Lafleur’s garage, Ti-Guy’s lot and Ti-Guy’s dep are all standing');
+ok('the plain garage, Ti-Guy’s lot and Ti-Guy’s dep are all standing');
 
 // A trade must land on a POI that could plausibly be it.
 const WRONG = { park: 1, playground: 1, place_of_worship: 1, school: 1, cemetery: 1 };

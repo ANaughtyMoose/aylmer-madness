@@ -45,6 +45,13 @@ import { TILES } from './materials_stub.js';
 import { historicSites } from './historicstrip.js';
 import { oldAylmerSites } from './oldaylmer.js';
 import { tagGlass } from './world/glasstag.js';   // s5-reflect
+import { nightAmount } from './world/headlights.js';
+// [w7-places] V3-04's flag: ?look=-landmarks2 gives back the pre-pass bake.
+// Read straight from the URL, not through look/flags.js: several smokes stub
+// `document` without documentElement before importing this module, and
+// flags.js reads document.documentElement at load.
+const L2 = !(typeof location !== 'undefined' && location && /[?&]look=[^&#]*-landmarks2/
+  .test(String(location.search || '')));
 
 // How far the detailed bake reaches, camera to building centre. Bigger than
 // HOUSE_NEAR (200 m) because a school is 90 m long: at 200 m it still fills a
@@ -64,6 +71,7 @@ export const BUDGET = {
   mike:       { near: 7000,  far: 1000, site: 600 },
   lordaylmer: { near: 8000,  far: 1200, site: 800 },
   galeries:   { near: 8000,  far: 1400, site: 900 },
+  granderiviere: { near: 48, far: 48, site: 24 },
 };
 
 // ---------------------------------------------------------------- ring maths
@@ -942,8 +950,10 @@ function buildSymmesJr(K) {
   band(K, main, mainT, 7.6, 0.7, 0.24, 0x9a948a);
   mb.capPoly(offsetRing(main, 0.24), mainT, 7.6, flat(0x6f6d68));
 
-  // gym on the east end: one blank volume, a clerestory, a taller parapet
-  const gym = rectRing(-284, SJ.cz, 22, 17, SJ.yaw), gymT = fanTris(4);
+  // gym on the east end: one blank volume, a clerestory, a taller parapet.
+  // w7-walls (27 Oct 2026): 5 m north and 2 m narrower on the east, so its
+  // south-east corner clears the campus through lane (it stood on its centreline).
+  const gym = rectRing(-285.2, SJ.cz - 4.95, 20, 17, SJ.yaw), gymT = fanTris(4);
   const clere = [{ y0: 6.3, y1: 7.5, w: 1.8, gap: 0.7, margin: 1.6, mullions: 1 }];
   walls(K, gym, 0, 8.6,
     { mat: 'brick_buff', tint: tint(K, 'brick_buff'), rows: clere, jamb: trimHex, reveal: 0.22 },
@@ -959,7 +969,7 @@ function buildSymmesJr(K) {
   steps(K, fx, fz, ox, oz, 6.0, 2, 0.16, 0.5, CONCRETE);
   flagpole(K, SJ.cx - 25, SJ.cz + 9, 8, 0x1e4fa0);
   bikeRack(K, SJ.cx + 16, SJ.cz + 9, SJ.yaw, 5);
-  dumpster(K, -279, 368, SJ.yaw, 0x3f5a4a);
+  dumpster(K, -279, 362, SJ.yaw, 0x3f5a4a);
 }
 
 function siteSymmesJr(K) {
@@ -1509,27 +1519,62 @@ export const GALERIES_DOOR = {
 
 const GA_ORANGE = 0x326267, GA_TRIM = 0xf0ece2;
 
+// [w7-places] The signs the five-places pass placed (D-12, V3-04 design 3).
+// `fit` keeps glyph proportions true on a board that is taller than the 8:1
+// atlas cell; `cap` is the font size in cell pixels (default 52).
+export const SUPER_C = { x: 66.66, z: -275.00, yaw: -0.0759, w: 20, h: 3.3, y: 4.3,
+  mount: 'wall', text: 'Super C', sub: '', board: '#b42e29', fit: true, cap: 96, lit: true };
+export const GALERIES_NAME = { x: -0.41, z: -286.55, yaw: GA_YAW, w: 20, h: 2.6, y: 5.66,
+  mount: 'wall', text: 'LES GALERIES D’AYLMER', sub: '', board: '#6a4a1c', fit: true, cap: 84,
+  lit: true };
+// The Canadian Tire pylon at the lot entrance off Principale: it was a board
+// floating 4 m up with nothing under it. Now 1.3x the old 7 x 3 on two steel
+// posts and a stone skirt (signFrame, mount 'pylon').
+export const CT_PYLON = { x: -170, z: -177, yaw: 0, w: 9.1, h: 3.9, y: 4.0, mount: 'pylon',
+  text: 'CANADIAN TIRE', sub: 'Galeries d’Aylmer', board: '#ad2825' };
+
 // 2004 reference photos supplied by Tom: Canadian Tire occupies the west
 // anchor, not the modern stand-alone store east of Wilfrid-Lavigne.
 export const HISTORIC_CT = { x: -157, z: -236, a: Math.PI / 2 };
 const MALL_SIGNS = [
   {x:-155,z:-252.7,w:25,h:2,y:4.5,text:'CANADIAN TIRE',sub:'Pièces et accessoires',board:'#ad2825'},
   {x:-184,z:-252.7,w:17,h:1.4,y:5.3,text:'AUTO SERVICE',sub:'CANADIAN TIRE',board:'#ad2825'},
-  {x:-103,z:-258.5,w:18,h:1.5,y:5.2,text:'St-Hubert',sub:'Rôtisserie',board:'#99422d',yaw:GA_YAW},
+  // [w6-boards] St-Hubert and Jean Coutu sit 0.15 m proud of the real mall wall
+  // (OSM 68609502 edges (-104.1,-257.8)->(-94,-260.7) and (16.9,-286.9)->(26.8,-287.7)),
+  // yawed to that edge. Before: St-Hubert 0.37 m inside the wall, Jean Coutu 4.88 m off it.
+  {x:-102.86,z:-258.00,w:18,h:1.5,y:5.2,text:'St-Hubert',sub:'Rôtisserie',board:'#99422d',yaw:-0.2796},
   {x:-54,z:-272,w:16,h:2,y:6.4,text:'Zellers',sub:'',board:'#315e64',yaw:GA_YAW},
-  {x:23,z:-282.5,w:15,h:1.5,y:5.3,text:'Jean Coutu',sub:'Pharmacie',board:'#bd963b'},
-  {x:63,z:-275.8,w:26,h:2.2,y:5.5,text:'Super C',sub:'',board:'#b42e29'},
-  {x:-170,z:-177,w:7,h:3,y:4,text:'CANADIAN TIRE',sub:'Galeries d’Aylmer',board:'#ad2825'},
+  {x:22.61,z:-287.21,w:15,h:1.5,y:5.3,text:'Jean Coutu',sub:'Pharmacie',board:'#bd963b',yaw:-0.0806},
+  // [w7-places] D-12 design 1: the Super C board now hangs on the real east
+  // storefront wall (OSM 68609502 edge (48.9,-273.8)->(84.4,-276.5)), 0.15 m
+  // proud, over the doors. The old board at (63,-275.8) was 0.8 to 1.05 m
+  // INSIDE the footprint, so the wall hid it. y is above the site ground
+  // (26.68 under the vestibule), so the bottom stays at D-12's 30.98 abs.
+  SUPER_C,
+  // [w7-places] D-12: the mall's own name over the south doors, on the wall
+  // 0.94 m over the vestibule roof, so it reads over the windshield as you
+  // pull up. Same brown as the lot board, one family.
+  GALERIES_NAME,
+  CT_PYLON,
   {x:-130,z:-175,w:7,h:5,y:2,text:'CINÉMA',sub:'BILLARD · SAQ',board:'#38657f'},
+  // [w6-places] Tom 14 Oct: the Super C panel sits on the Principale pylon,
+  // stacked flush on top of the CINÉMA board (same x, z, width).
+  {x:-130,z:-175,w:7,h:1.6,y:7,text:'Super C',sub:'',board:'#b42e29'},
 ].map(g=>({yaw:0,...g}));
 
 function historicMall(K) {
   const mb=K.mb;
   const wingStart = mb.v.length;
   // Replace the modern residence with the low retail/service wing.
-  const ring=rectRing(-157,-290,76,74,0);
+  // w7-walls (27 Oct 2026): the south-west corner is cut back 9 m along the
+  // south face and 11 m up the west face, so the driveway that comes in off
+  // Wilfrid-Lavigne and turns south behind the wing meets a face instead of
+  // running into the corner (the corner stood 3.5 m outside the OSM ring).
+  const box4=rectRing(-157,-290,76,74,0), k=box4.findIndex(q=>q[0]<-190&&q[1]<-320), c=box4[k];
+  const cut=q=>{const d=q[1]===c[1]?9:11,L=Math.hypot(q[0]-c[0],q[1]-c[1]);return [c[0]+(q[0]-c[0])*d/L,c[1]+(q[1]-c[1])*d/L];};
+  const ring=[...box4.slice(0,k),cut(box4[(k+3)%4]),cut(box4[(k+1)%4]),...box4.slice(k+1)];
   walls(K,ring,0,7.2,{mat:'brick_buff',tint:tint(K,'brick_buff',1.05),rows:[]});
-  mb.capPoly(ring,fanTris(4),7.2,flat(0x797c78));
+  mb.capPoly(ring,fanTris(5),7.2,flat(0x797c78));
   mb.box(-157,6.2,-252.85,76,1.8,0.3,flat(0xd5d8d3));
   // Horizontal silver siding and utilitarian service doors.
   for(let i=0;i<5;i++) mb.box(-157,5.45+i*.33,-252.64,76,.035,.04,flat(0x9a9e9c));
@@ -1561,9 +1606,18 @@ function historicMall(K) {
   }
   // The photograph's mixed buff/red brick shopfront, teal entry towers,
   // yellow St-Hubert surround and red Super C fascia at the east end.
-  for(const [x,z,w,colour] of [[-103,-258.8,19,0xb69775],[-77,-266,22,0xbd957a],[-54,-272.3,19,0x326267],[23,-282.8,16,0xbca176],[63,-276.1,29,0xb52c28]]) {
+  for(const [x,z,w,colour] of [[-103,-258.8,19,0xb69775],[-77,-266,22,0xbd957a],[-54,-272.3,19,0x326267],[23,-287.4,16,0xbca176] /* [w6-boards] fascia onto the wall, was z -282.8 */]) {
     mb.panel(x,5,z,w,3,0,1,flat(colour));
     mb.panel(x,1.9,z+.06,w*.65,3,0,1,flat(0x30434b));
+  }
+  // [w7-places] The Super C's red fascia and its glass front, on the real east
+  // storefront wall (it was 1.1 m inside the footprint, so it never showed).
+  // The board (SUPER_C) hangs on this band.
+  {
+    const nx = -Math.sin(SUPER_C.yaw), nz = Math.cos(SUPER_C.yaw);
+    const wx = SUPER_C.x - nx * 0.15, wz = SUPER_C.z - nz * 0.15;
+    mb.panel(wx, 6.45, wz, 26, 4.4, nx, nz, flat(0xb52c28), null, 0.05);
+    mb.panel(wx, 1.75, wz, 17, 3.0, nx, nz, flat(0x30434b), null, 0.07);
   }
   mb.box(-103,2.9,-258.5,4.8,5.8,.2,flat(0xd4ae4d));
   mb.panel(-103,1.6,-258.3,2.8,3.2,0,1,flat(0x27323a));
@@ -1636,6 +1690,237 @@ function siteGaleries(K) {
   lightStandard(K, GA_FX + GA_NZ * 13 + GA_NX * 15, GA_FZ - GA_NX * 13 + GA_NZ * 15, 8, GA.yaw);
 }
 
+// --- J. Le Tim Hortons, 165 rue Principale ---------------------------------
+// [w7-places] V3-04 design 1. The strip shop box in historicstrip.js becomes
+// the place a local names on sight: a stone gable to Principale, a steep
+// shingled roof with the two east dormers the old data had, the red board on
+// the east wall (1.3x, where the Street View ray meets it), pavers, a black
+// heritage lamp on the corner, and the back lot. Tom, 6 Oct 2026: NO
+// drive-through in 2004, so no window lane, no menu board, no queue lane.
+export const TIMS = {
+  ring: [[-248.9, -194.9], [-245.8, -165.5], [-236.3, -166.5], [-239.4, -195.9]],
+  eaveY: 3.6, ridgeY: 7.4,
+  yawEast: Math.atan2(-195.9 + 166.5, -239.4 + 236.3),
+};
+const TIMS_C = { x: -242.6, z: -180.7 };
+// Long axis (toward Principale) and the east wall's outward normal.
+const TIMS_AX = (() => { const x = -245.8 + 248.9, z = -165.5 + 194.9, l = Math.hypot(x, z); return [x / l, z / l]; })();
+const TIMS_EN = [TIMS_AX[1], -TIMS_AX[0]];
+// A point on the east wall line at a given z.
+function timsEastAt(z) {
+  const t = (z + 166.5) / (-195.9 + 166.5);
+  return [-236.3 + t * (-239.4 + 236.3), z];
+}
+const TIMS_SIGN_AT = timsEastAt(-182);
+export const TIMS_SIGN = {
+  x: +(TIMS_SIGN_AT[0] + TIMS_EN[0] * 0.12).toFixed(3), z: +(TIMS_SIGN_AT[1] + TIMS_EN[1] * 0.12).toFixed(3),
+  yaw: TIMS.yawEast, w: 5.2, h: 1.5, y: 2.0, mount: 'wall',
+  text: 'Tim Hortons', sub: '', board: '#af3029', style: 'tims', fit: true, lit: true,
+};
+export const TIMS_LAMP = { x: -233.0, z: -163.5, h: 4.2 };
+export const TIMS_LOT = { x: -264, z: -181, w: 22, d: 30 };
+
+function timsLamp(K) {
+  const mb = K.mb, L = TIMS_LAMP, start = mb.v.length, iron = flat(0x1c1d1f);
+  mb.cyl(L.x, 0.25, L.z, 0.2, 0.5, 6, iron, 'y', false);           // fluted base
+  mb.cyl(L.x, L.h / 2, L.z, 0.09, L.h, 6, iron, 'y', false);        // post
+  const hy = L.h + 0.4;
+  mb.box(L.x, L.h + 0.02, L.z, 0.5, 0.06, 0.5, iron);
+  for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    mb.panel(L.x + nx * 0.25, hy, L.z + nz * 0.25, 0.48, 0.66, nx, nz, flat(0xd9c38a), null, 0.0);
+  }
+  mb.cone(L.x, L.h + 0.75, L.z, 0.38, 0.32, 4, iron);
+  if (K.heightAt) {
+    const dy = K.heightAt(L.x, L.z) - K.y0;
+    for (let i = start + 1; i < mb.v.length; i += STRIDE) mb.v[i] += dy;
+  }
+}
+
+function buildTims(K, ring, tris) {
+  const mb = K.mb;
+  ring = ring && ring.length >= 4 ? ring : TIMS.ring;
+  tris = tris || fanTris(ring.length);
+  const stone = 'stone_beige', st = tint(K, stone, 0.97);
+  const EAVE = TIMS.eaveY, RISE = TIMS.ridgeY - TIMS.eaveY;
+  const front = [{ y0: 0.5, y1: 2.3, w: 1.4, gap: 3.6, margin: 1.2, max: 2, mullions: 1, sill: 0.12 }];
+  // Two windows each side of a 5.6 m bay that the board hangs in.
+  const east = [{ y0: 0.5, y1: 1.9, w: 1.2, gap: 5.6, margin: 1.0, max: 4, mullions: 1, sill: 0.12 }];
+  const N = edgeNormals(ring);
+  const spec = { mat: stone, tint: st, jamb: 0xbfae90, reveal: 0.28, bar: 0xf2ece0,
+    glassLo: 0x22303a, glassHi: 0x506b7c };
+  walls(K, ring, 0, EAVE, spec, (i) => {
+    const n = N[i];
+    if (n[0] * TIMS_AX[0] + n[1] * TIMS_AX[1] > 0.7) return front;    // the gable to Principale
+    if (n[0] * TIMS_EN[0] + n[1] * TIMS_EN[1] > 0.7) return east;     // Wilfrid-Lavigne side
+    return null;                                                     // the back reads as back
+  });
+  band(K, ring, tris, 0, 0.55, 0.12, 0x8d867a, 'stone_grey');
+  band(K, ring, tris, EAVE - 0.05, 0.22, 0.18, 0xe9e2d2);
+  quoins(K, ring, 0.55, EAVE, 0.45, 0xd8cfbd);
+
+  // A true gable, ridge on the long axis, the stone gable ends to Principale.
+  const span = Math.hypot(ring[2][0] - ring[1][0], ring[2][1] - ring[1][1]);
+  const len = Math.hypot(ring[1][0] - ring[0][0], ring[1][1] - ring[0][1]);
+  const ryaw = Math.atan2(-TIMS_AX[1], TIMS_AX[0]);
+  on(K, 'shingle_dark');
+  mb.roof(TIMS_C.x, EAVE + 0.17, TIMS_C.z, len, span, RISE, tint(K, 'shingle_dark', 0.95), ryaw, 0.35,
+    { onGable: () => { on(K, stone); }, gableCol: st });
+  off(K);
+
+  // The front door, in the middle of the gable, between the two windows.
+  const fi = N.findIndex((n) => n[0] * TIMS_AX[0] + n[1] * TIMS_AX[1] > 0.7);
+  if (fi >= 0) {
+    const a = ring[fi], b = ring[(fi + 1) % ring.length], n = N[fi];
+    const dx = (a[0] + b[0]) / 2, dz = (a[1] + b[1]) / 2;
+    mb.panel(dx, 1.2, dz, 1.3, 2.4, n[0], n[1], flat(0x2a2722), null, 0.03);
+    mb.panel(dx, 1.15, dz, 1.1, 2.2, n[0], n[1], flat(0x5a1f19), null, 0.05);
+    mb.panel(dx, 1.5, dz, 0.7, 1.0, n[0], n[1], rgb(GLASS_LO), null, 0.06);
+  }
+
+  // The two east dormers, rising out of the slope 1.4 m in from the wall.
+  const dyaw = Math.atan2(-TIMS_EN[1], TIMS_EN[0]);
+  const slope = RISE / (span / 2 + 0.35);
+  for (const z of [-186, -178]) {
+    const w = timsEastAt(z);
+    const fx = w[0] - TIMS_EN[0] * 1.4, fz = w[1] - TIMS_EN[1] * 1.4;
+    const cx = fx - TIMS_EN[0] * 0.8, cz = fz - TIMS_EN[1] * 0.8;
+    const yFace = EAVE + 0.17 + (1.4 + 0.35) * slope;
+    mb.box(cx, yFace + 0.25, cz, 1.8, 1.6, 1.6, flat(0xe9e2d2), { yaw: ryaw });
+    mb.panel(fx, yFace + 0.45, fz, 0.9, 0.75, TIMS_EN[0], TIMS_EN[1], rgb(GLASS_LO), null, 0.02);
+    on(K, 'shingle_dark');
+    mb.roof(cx, yFace + 1.05, cz, 1.9, 1.9, 0.75, tint(K, 'shingle_dark', 0.95), dyaw, 0.12,
+      { onGable: () => { off(K); }, gableCol: flat(0xe9e2d2) });
+    off(K);
+  }
+  timsLamp(K);
+}
+
+function siteTims(K) {
+  const mb = K.mb, pav = flat(0x9a5e4a), joint = flat(0x9a5e4a, 0.9);
+  const fyaw = Math.atan2(-TIMS_EN[1], TIMS_EN[0]);   // flatRot local X along the gable
+  // Forecourt: south gable to Principale, building width plus 2 m each side.
+  const fz0 = -165.5, fz1 = -156, fcx = -241.05, fcz = (fz0 + fz1) / 2, fw = 13.5, fd = fz1 - fz0;
+  mb.flatRot(fcx, fcz, fw, fd, 0.036, fyaw, pav);
+  for (let u = -fw / 2 + 0.6; u < fw / 2; u += 0.6) mb.flatRot(fcx + u * Math.cos(fyaw), fcz - u * Math.sin(fyaw), 0.05, fd, 0.04, fyaw, joint);
+  for (let v = -fd / 2 + 0.6; v < fd / 2; v += 0.6) mb.flatRot(fcx + v * Math.sin(fyaw), fcz + v * Math.cos(fyaw), fw, 0.05, 0.04, fyaw, joint);
+  // A 2.4 m strip along the east wall.
+  const m = timsEastAt(-181.2);
+  mb.flatRot(m[0] + TIMS_EN[0] * 1.2, m[1] + TIMS_EN[1] * 1.2, 2.4, 29.4, 0.036, fyaw, pav);
+  // The back lot and its two standards. Not a drive-through lane.
+  lot(K, TIMS_LOT.x, TIMS_LOT.z, TIMS_LOT.w, TIMS_LOT.d, 0, { rows: 2 });
+  lightStandard(K, -272.8, -181, 7);
+  lightStandard(K, -268, -194, 7);
+}
+
+export const TIMS_SITE = {
+  key: 'timhortons', cx: -243, cz: -181, r: 65, near: HERO_NEAR, v304: true,
+  hide: [{ id: 94173715, at: [-242.6, -180.7], keepRing: true }],
+  build: buildTims, site: siteTims, signs: [TIMS_SIGN],
+};
+
+// --- K. Paroisse Saint-Paul, 26 chemin Eardley ----------------------------
+// [w7-places] V3-04 design 2. The generic OSM box with a 24 m stub becomes the
+// silver needle you steer by westbound on Principale: rubble nave, a
+// frontispiece tower to 22 m, a louvred belfry to 26.5, a tin spire to 44 m and
+// a cross. 44 m is a caricature number (the 2.5D sweep in V3-04: westbound
+// samples 14 at 24 m, 35 at 44 m), not a survey. It bakes INTO the British
+// site's near and far meshes, so it adds no draw call at any pose.
+export const SAINT_PAUL = { id: 68609126, x: -926, z: -397, tip: 44, towerW: 5.0 };
+const SP_SIGN = { x: -926, z: -389.5, yaw: 0, w: 4.2, h: 1.1, y: 1.2,
+  text: 'PAROISSE SAINT-PAUL', sub: '', board: '#5a5f63', lit: true };
+
+function buildStPaul(K) {
+  const mb = K.mb, start = mb.v.length;
+  const hid = HIDDEN.get(SAINT_PAUL.id);
+  const stone = 'stone_grey', st = tint(K, stone, 1.0), TIN = 0xc9ccce, DRESS = 0xc8c1b2;
+  const WALL = 10.2;
+  if (hid && hid.ring && hid.ring.length >= 3) {
+    const ring = hid.ring, tris = hid.tris;
+    const rows = [{ y0: 2.4, y1: 5.8, w: 1.0, gap: 3.2, margin: 2.2, max: 3, mullions: 1, sill: 0.15 }];
+    walls(K, ring, 0, WALL, { mat: stone, tint: st, jamb: DRESS, reveal: 0.3, bar: 0xdcd6c8,
+      glassLo: 0x24303c, glassHi: 0x56708a }, (i, L) => (L > 14 ? rows : null));
+    band(K, ring, tris, 0, 0.6, 0.12, 0x7f796f, 'stone_grey');
+    quoins(K, ring, 0.6, WALL, 0.45, DRESS);
+    // The nave roof: a steep gable over the ring's box, ridge on its long axis.
+    let lx = 1, lz = 0, best = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (L > best) { best = L; lx = (b[0] - a[0]) / L; lz = (b[1] - a[1]) / L; }
+    }
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const [x, z] of ring) {
+      const u = x * lx + z * lz, v = -x * lz + z * lx;
+      u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v);
+    }
+    const um = (u0 + u1) / 2, vm = (v0 + v1) / 2;
+    const cx = um * lx - vm * lz, cz = um * lz + vm * lx;
+    on(K, 'shingle_grey');
+    mb.roof(cx, WALL, cz, u1 - u0, v1 - v0, 6.0, tint(K, 'shingle_grey', 0.92),
+      Math.atan2(-lz, lx), 0.4, { onGable: () => { on(K, stone); }, gableCol: st });
+    off(K);
+  }
+  // The frontispiece tower, its front 0.6 m proud of the south facade.
+  const X = SAINT_PAUL.x, Z = SAINT_PAUL.z, W = SAINT_PAUL.towerW;
+  on(K, stone);
+  mb.tower(X, 0, Z, W, W, 22, st, { noBottom: true });
+  off(K);
+  mb.box(X, 22.15, Z, W + 0.4, 0.3, W + 0.4, flat(DRESS));
+  mb.tower(X, 22.3, Z, W - 0.4, W - 0.4, 4.2, flat(0xd2ccbf), { noBottom: true });
+  // Two louvred openings a face: dark panels, three slats each in the near bake.
+  const hw = (W - 0.4) / 2;
+  for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const s of [-0.95, 0.95]) {
+      const px = X + nx * hw - nz * s, pz = Z + nz * hw + nx * s;
+      mb.panel(px, 24.4, pz, 1.1, 2.6, nx, nz, flat(0x23272b), null, 0.03);
+      if (K.detail) for (let k = 0; k < 3; k++)
+        mb.panel(px, 23.6 + k * 0.8, pz, 1.1, 0.12, nx, nz, flat(0x8a8f93), null, 0.06);
+    }
+  }
+  // The south door at the foot of the tower.
+  mb.panel(X, 1.7, Z + W / 2, 1.8, 3.4, 0, 1, flat(0x3a2a20), null, 0.04);
+  mb.box(X, 26.6, Z, W, 0.2, W, flat(TIN, 0.9));
+  // The octagonal tin spire, the lightest value in Old Aylmer, and the cross.
+  mb.cone(X, 26.7, Z, 2.3, SAINT_PAUL.tip - 26.7 - 1.6, 8, flat(TIN));
+  const ty = SAINT_PAUL.tip - 1.6;
+  mb.box(X, ty + 0.8, Z, 0.14, 1.6, 0.14, flat(0xd8c98a));
+  mb.box(X, ty + 1.1, Z, 0.9, 0.14, 0.14, flat(0xd8c98a));
+  if (K.heightAt) {
+    const dy = K.heightAt(-926, -405) - K.y0;
+    for (let i = start + 1; i < mb.v.length; i += STRIDE) mb.v[i] += dy;
+  }
+}
+
+// --- L. École secondaire Grande-Rivière, west wall on Rue Broad ------------
+// [w8-signs] D-12 design 1 as a landmark board: the polyvalente's name on the
+// west wall of OSM 68609168, facing Rue Broad 26.7 m away. The OSM building
+// stays as it is (no `hide`); this site is only the concrete sign band the
+// board is fixed to, so the board has a site and a ground of its own (the
+// footing rule in smoke_landmark_ground). Wall (-703.3,-1121)->(-699.3,-1067),
+// outward normal (-sin yaw, cos yaw) to the west. Navy with cream letters, the
+// board colour the game uses for school signs (PWHS). 1.8 m tall: the cap
+// (about 0.94 m) is what reads from the chase frame on Broad (D-12, 42 m).
+export const GRANDE_RIVIERE = { x: -701.45, z: -1093.99, yaw: 1.4968, w: 13.0, h: 1.8, y: 4.4,
+  mount: 'wall', text: 'GRANDE-RIVIÈRE', sub: '', board: '#1d3f6e', fit: true, cap: 84 };
+const GR_WALL = { x: -701.30, z: -1093.99 };   // the wall line abeam the board
+
+function buildGrandeRiviere(K) {
+  const g = GRANDE_RIVIERE, mb = K.mb, yaw = -g.yaw;
+  const nx = -Math.sin(g.yaw), nz = Math.cos(g.yaw), tx = Math.cos(g.yaw), tz = Math.sin(g.yaw);
+  // Band 14.2 x 2.6 m, 0.2 m deep, centred on the wall plane: its face is
+  // 0.1 m proud, 5 mm behind the board frame's back (0.105 m out).
+  const W = 14.2, D = 0.2, y0 = g.y - 0.4, H = 2.6;
+  mb.box(GR_WALL.x, y0 + H / 2, GR_WALL.z, W, H, D, flat(CONCRETE, 0.92), { yaw });
+  // A coping cap, the line the band reads by from Broad.
+  mb.box(GR_WALL.x + nx * 0.05, y0 + H + 0.1, GR_WALL.z + nz * 0.05, W + 0.3, 0.2, 0.3, flat(CONCRETE), { yaw });
+  if (K.seg) {
+    const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) =>
+      [GR_WALL.x + tx * a * W / 2 + nx * b * D / 2, GR_WALL.z + tz * a * W / 2 + nz * b * D / 2]);
+    for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; K.seg(c[i][0], c[i][1], c[j][0], c[j][1]); }
+  }
+}
+function siteGrandeRiviere() {}
+
 // ============================================================ registry
 //
 // Each site: where it is, how big a sphere it fills (LOD swap + frustum test),
@@ -1667,7 +1952,8 @@ export const SITES = [
   { key: 'marina', cx: -1684.6, cz: -106.4, r: 132, near: HERO_NEAR, ground: true,
     build: buildMarina, site: siteMarina,
     sign: { x: -1673.5, z: -114, yaw: -2.165 + Math.PI, w: 4.2, h: 1.2, y: 1.4,
-      text: 'MARINA D’AYLMER', sub: 'Capitainerie · Rampe de mise à l’eau', board: '#1d3f6e' } },
+      text: 'MARINA D’AYLMER', sub: 'Capitainerie · Rampe de mise à l’eau', board: '#1d3f6e',
+      lit: true } },
   // A house gets no marquee. The street-name post at the corner is in siteMike.
   { key: 'mike', cx: MK.cx, cz: MK.cz, r: 26, near: HERO_NEAR,
     hide: [{ id: MK.id, at: [MK.cx, MK.cz], keepRing: true }],
@@ -1690,11 +1976,26 @@ export const SITES = [
       yaw: GA.yaw, w: 5.4, h: 1.35, y: 1.5,
       text: 'LES GALERIES D’AYLMER', sub: 'Entrée sud · Casse-croûte du food court',
       board: '#6a4a1c' } },
+  // [w8-signs] D-12: the board only, on the polyvalente's own wall.
+  { key: 'granderiviere', cx: GRANDE_RIVIERE.x, cz: GRANDE_RIVIERE.z, r: 12, near: HERO_NEAR,
+    build: buildGrandeRiviere, site: siteGrandeRiviere, signs: [GRANDE_RIVIERE] },
 ];
 
 for (const site of [...historicSites({rectRing,walls,lot,lightStandard}), ...oldAylmerSites({rectRing,walls,lot})]) {
+  // [w7-places] The landmarks2 Tim's replaces the strip-shop entry by key,
+  // before the hide loop, so footprint 94173715 is hidden exactly once.
+  if (L2 && site.key === 'timhortons') continue;
   SITES.push(site);
   BUDGET[site.key] = {near:8000,far:4000,site:1800};
+}
+if (L2) { SITES.push(TIMS_SITE); BUDGET.timhortons = { near: 4500, far: 900, site: 1000 }; }
+// [w7-places] Saint-Paul rides the British site: second hidden footprint, the
+// church chained after the hotel in both bakes, its board on the British.
+if (L2) {
+  const br = SITES.find((q) => q.key === 'british');
+  br.hide.push({ id: SAINT_PAUL.id, at: [-924.1, -408.2] });
+  br.build = (K, ring, tris) => { buildBritish(K, ring, tris); buildStPaul(K); };
+  br.signs = [SP_SIGN];
 }
 
 // --------------------------------------------------------- footprint removal
@@ -1723,7 +2024,7 @@ function hideFootprint(spec) {
   return false;
 }
 
-Object.assign(PLACES.ctire, HISTORIC_CT, {poi: null, snap: false, lot: false, label: 'Canadian Tire — Galeries d’Aylmer'});
+Object.assign(PLACES.ctire, HISTORIC_CT, {poi: null, snap: false, lot: false, label: 'Canadian Tire, Galeries d’Aylmer'});
 // Do not leave a duplicate modern Canadian Tire storefront/sign in the 2004 world.
 for (const b of MAP.buildings) if (b.name === 'Canadian Tire' && Math.hypot(b.c[0]-429.2,b.c[1]+242.8)<120) delete b.name;
 for (const p of MAP.pois) if (p.name === 'Canadian Tire' && Math.hypot(p.x-429.2,p.z+242.8)<120) { p.x=HISTORIC_CT.x; p.z=HISTORIC_CT.z; }
@@ -1982,11 +2283,37 @@ export function bakeColliders(s) {
 // signage.js plays for the 120 storefronts, kept separate so a hero sign can run
 // to two lines and be sized to its building instead of to a 4:1 fascia slot.
 const SIGN_W = 1024, SIGN_H = 128;
+// [w8-signs] V3-04 4, the lit-sign night overlay. A board marked `lit` stays in
+// the main sign mesh (smoke_landmark_ground indexes it 8 vertices per board)
+// and is baked a second time, LIT_OUT m further out, into a small per-site
+// mesh drawn unlit (the renderer's existing uUnlit path, so no new shader and
+// no new pass) only after dark and only near it: the board reads as a backlit
+// box at night and costs nothing by day.
+export const LIT_OUT = 0.08;
+export const LIT_NIGHT = 0.35;      // nightAmount(r.env) above which they glow
+export const LIT_NEAR = 250;        // car to the overlay's box centre, metres
+export const LIT_MUL = [0.92, 0.88, 0.84];
 
 // The board a sign hangs on: masonry plinth and posts, or a bracket for the one
 // that swings over a sidewalk. In the site mesh, so it is there from the road.
 function signFrame(K, g) {
   const nx = -Math.sin(g.yaw), nz = Math.cos(g.yaw);
+  if (g.mount === 'pylon') {
+    // [w7-places] V3-04 design 3: two steel posts from the ground to the board
+    // top, a cabinet frame round the board and a stone skirt at the base. The
+    // backing box keeps its bottom edge at g.y - 0.06 (smoke_landmark_ground).
+    const tx = Math.cos(g.yaw), tz = Math.sin(g.yaw), top = g.y + g.h;
+    K.mb.box(g.x, g.y + g.h / 2, g.z, g.w + 0.12, g.h + 0.12, 0.09, flat(0x2b2f31), { yaw: -g.yaw });
+    for (const s of [-1, 1]) {
+      K.mb.tower(g.x + tx * s * 3.2, 0, g.z + tz * s * 3.2, 0.45, 0.45, top, flat(0x6f7378),
+        { yaw: -g.yaw, noBottom: true });
+    }
+    K.mb.box(g.x, top + 0.1, g.z, g.w + 0.4, 0.2, 0.35, flat(0x5d6166), { yaw: -g.yaw });
+    K.mb.box(g.x, g.y - 0.1, g.z, g.w + 0.4, 0.2, 0.35, flat(0x5d6166), { yaw: -g.yaw });
+    K.mb.tower(g.x, 0, g.z, 7.4, 0.9, 1.2, flat(0x9c9488),
+      { yaw: -g.yaw, noBottom: true, top: flat(0x8a857b) });
+    return;
+  }
   if (g.y > 3 || g.mount === 'wall') {
     K.mb.box(g.x, g.y + g.h / 2, g.z, g.w + 0.12, g.h + 0.12, 0.09, flat(0x2b2f31),
       { yaw: -g.yaw });
@@ -2005,26 +2332,49 @@ function buildSignMesh(renderer, ground, world) {
   if (typeof document === 'undefined' || !document.createElement) return null;
   const boards = SITES.flatMap(s => [s.sign, ...(s.signs || [])].filter(Boolean).map(sign=>({key: s.key, sign})));
   const cv = document.createElement('canvas');
-  const cols = Math.ceil(boards.length / 16), rows = Math.min(16, boards.length);
+  // [w8-signs] Columns of 16 cells, but the last few boards stretch the columns
+  // down instead of opening a new one: board 49 (Grande-Riviere) would have
+  // added a whole 1024 x 2048 column (8 MB) for one cell. Up to 48 boards the
+  // layout is exactly what it was.
+  const cols = Math.max(1, Math.floor(boards.length / 16)), rows = Math.ceil(boards.length / cols);
   cv.width = SIGN_W * cols; cv.height = SIGN_H * rows;
   const ctx = cv.getContext('2d');
   if (!ctx) return null;
   const mb = new MeshBuilder();
   mb.textured = true;
   const white = [1, 1, 1];
+  // [w8-signs] V3-04 4: the night overlay for `lit` boards, one small mesh per
+  // owning site so each is culled on its own tight box.
+  const litB = new Map();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   boards.forEach((s, i) => {
-    const g = s.sign, px = Math.floor(i / 16) * SIGN_W, py = (i % 16) * SIGN_H;
+    const g = s.sign, px = Math.floor(i / rows) * SIGN_W, py = (i % rows) * SIGN_H;
     ctx.save();ctx.translate(px,0);
     ctx.fillStyle = g.board; ctx.fillRect(0, py, SIGN_W, SIGN_H);
-    ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(0, py, SIGN_W, 4);
+    // [w7-places] `fit`: a board relatively taller than the 8:1 cell would
+    // stretch its glyphs; draw into a narrower virtual cell under scale(k,1)
+    // so the letters keep their shape on the world board. Opt-in only.
+    const k = g.fit ? (g.h / SIGN_H) / (g.w / SIGN_W) : 1;
+    const VW = k > 1 ? SIGN_W / k : SIGN_W;
+    if (k > 1 && typeof ctx.scale === 'function') ctx.scale(k, 1);   // test stubs have no scale
+    if (g.style === 'tims') {
+      // [w7-places] V3-04: red field, cream inner rule, the script name.
+      ctx.strokeStyle = '#f3e6cf'; ctx.lineWidth = 6;
+      ctx.strokeRect(10, py + 10, VW - 20, SIGN_H - 20);
+      ctx.fillStyle = '#f6ead2';
+      ctx.font = 'italic 700 86px "Brush Script MT", "Segoe Script", cursive, Georgia, serif';
+      ctx.fillText(g.text, VW / 2, py + 92, VW - 50);
+    } else {
+    ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(0, py, VW, 4);
     ctx.fillStyle = '#f3ead6';
-    ctx.font = '700 52px "Helvetica Neue", Helvetica, Arial, sans-serif';
-    ctx.fillText(g.text, SIGN_W / 2, py + 64, SIGN_W - 40);
+    const fs = g.cap || 52;
+    ctx.font = `700 ${fs}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+    ctx.fillText(g.text, VW / 2, g.cap && !g.sub ? py + 64 + fs * 0.36 : py + 64, VW - 40);
     ctx.fillStyle = '#cfc7b2';
     ctx.font = '500 32px "Helvetica Neue", Helvetica, Arial, sans-serif';
-    ctx.fillText(g.sub, SIGN_W / 2, py + 106, SIGN_W - 60);
+    ctx.fillText(g.sub, VW / 2, py + 106, VW - 60);
+    }
     if(g.text === 'SOL') {
       ctx.fillStyle='#17462f';ctx.fillRect(0,py,SIGN_W,SIGN_H);
       ctx.strokeStyle='#d6c385';ctx.lineWidth=3;ctx.strokeRect(12,py+6,1000,116);
@@ -2056,9 +2406,25 @@ function buildSignMesh(renderer, ground, world) {
       mb.vert(bx, y + g.h, bz, nx, 0, nz, white, u1, v0);
       mb.vert(ax, y + g.h, az, nx, 0, nz, white, u0, v0);
       mb.tri(b, b + 1, b + 2); mb.tri(b, b + 2, b + 3);
+      if (g.lit) {
+        // Same quad, same texels, LIT_OUT further out along the face normal.
+        let lb = litB.get(s.key);
+        if (!lb) { lb = new MeshBuilder(); lb.textured = true; litB.set(s.key, lb); }
+        const ox = nx * LIT_OUT, oz = nz * LIT_OUT;
+        const c = lb.vert(ax + ox, y, az + oz, nx, 0, nz, white, u0, v1);
+        lb.vert(bx + ox, y, bz + oz, nx, 0, nz, white, u1, v1);
+        lb.vert(bx + ox, y + g.h, bz + oz, nx, 0, nz, white, u1, v0);
+        lb.vert(ax + ox, y + g.h, az + oz, nx, 0, nz, white, u0, v0);
+        lb.tri(c, c + 1, c + 2); lb.tri(c, c + 2, c + 3);
+      }
     }
   });
-  return { mesh: renderer.upload(mb), tex: renderer.texture(cv) };
+  const lit = [];
+  for (const [key, lb] of litB) {
+    const cx = (lb.min[0] + lb.max[0]) / 2, cz = (lb.min[2] + lb.max[2]) / 2;
+    lit.push({ key, cx, cz, quads: lb.vertCount / 4, mesh: renderer.upload(lb) });
+  }
+  return { mesh: renderer.upload(mb), tex: renderer.texture(cv), lit };
 }
 
 // ============================================================ install
@@ -2096,6 +2462,13 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
       col: bakeColliders(s),
     });
   }
+  // [w7-places] Saint-Paul's walls are in the British collider set but 290 m
+  // from the hotel, outside its query circle. One collider-only entry shares
+  // that set so a query by the church finds the church cells (grid-based, so
+  // nothing comes back twice). No meshes: the draw loop skips it.
+  const brB = L2 && built.find((q) => q.key === 'british');
+  if (brB) built.push({ key: 'stpaul', cx: -924, cz: -408, cy: brB.cy, r: 30, near2: 0,
+    nearMesh: null, farMesh: null, siteMesh: null, col: brB.col, shared: true });
   const signs = buildSignMesh(renderer, ground, world);
   const couchY = COUCH.y + (ground.get('mike') || 0);
   const couchB = buildCouchMesh(ground.get('mike') || 0);
@@ -2109,7 +2482,7 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
   // still see the whole tree.
   const couch = {
     x: COUCH.x, z: COUCH.z, y: couchY, radius: 26, found: false,
-    line: 'LE DIVAN EST ENCORE LÀ-HAUT\n129 Frank-Robinson — personne l’a jamais descendu',
+    line: 'LE DIVAN EST ENCORE LÀ-HAUT\n129 Frank-Robinson. Personne l’a jamais descendu',
   };
 
   // ---- collider merge
@@ -2132,11 +2505,14 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
   const nearOpts = { tex: (mats && mats.tex) || null, fogMul: 1, material: 'building' };
   const plainOpts = { material: 'building' };
   const signOpts = { tex: null };
-  const stats = { near: 0, far: 0, tris: 0, draws: 0 };
+  const litOpts = { tex: null, unlit: true, colorMul: new Float32Array(LIT_MUL) };
+  const litList = (signs && signs.lit) || [];
+  const LIT2 = LIT_NEAR * LIT_NEAR;
+  const stats = { near: 0, far: 0, tris: 0, draws: 0, lit: 0 };
   world.draw = (r, model, x, z, drawDist, dtSec) => {
     baseDraw(r, model, x, z, drawDist, dtSec);
     const dd = drawDist + 160, dd2 = dd * dd;
-    stats.near = 0; stats.far = 0; stats.tris = 0; stats.draws = 0;
+    stats.near = 0; stats.far = 0; stats.tris = 0; stats.draws = 0; stats.lit = 0;
     for (let i = 0; i < built.length; i++) {
       const b = built[i];
       const dx = b.cx - x, dz = b.cz - z;
@@ -2159,6 +2535,15 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
       r.draw(signs.mesh, model, signOpts);
       stats.draws++;
     }
+    if (litList.length && nightAmount(r.env) > LIT_NIGHT) {
+      litOpts.tex = signs.tex;
+      for (let i = 0; i < litList.length; i++) {
+        const L = litList[i], dx = L.cx - x, dz = L.cz - z;
+        if (dx * dx + dz * dz > LIT2 || !r.visible(L.mesh)) continue;
+        r.draw(L.mesh, model, litOpts);
+        stats.draws++; stats.lit++; stats.tris += L.mesh.count / 3;
+      }
+    }
     // The couch, drawn only while the flag says it is up there. 154 triangles,
     // its own mesh, so a mission can lift it in and out for free.
     if (LANDMARK_FLAGS.couchInTree && couchMesh) {
@@ -2177,14 +2562,14 @@ export function installLandmarks(world, renderer, mats, opts = {}) {
 
   const ms = ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0) | 0;
   let colliders = 0;
-  for (const b of built) colliders += b.col.count;
+  for (const b of built) if (!b.shared) colliders += b.col.count;
   // The handle the couch side job should reach for at merge time: flip
   // world.landmarks.flags.couchInTree, and read world.landmarks.couch for where
   // it came to rest.
   world.landmarks = { sites: built, stats, signs, flags: LANDMARK_FLAGS, couch, ground };
   const ys = [...ground.values()];
   console.log(`landmarks: ${SITES.length} hero sites, ${nearT | 0} near + ${farT | 0} far `
-    + `+ ${siteT | 0} paving + ${couchTris} couch tris, ${colliders} colliders — ${ms} ms`);
+    + `+ ${siteT | 0} paving + ${couchTris} couch tris, ${colliders} colliders, ${ms} ms`);
   console.log(`landmarks: standing on ground ${Math.min(...ys).toFixed(1)} to `
     + `${Math.max(...ys).toFixed(1)} m; the couch is ${couchY.toFixed(2)} m up`);
   return { tris: nearT + farT + siteT + couchTris, near: nearT, far: farT, site: siteT,

@@ -156,7 +156,7 @@ export async function loadModels(renderer, opts = {}) {
           if (!r.ok) throw new Error(`${name} ${r.status}`);
           return r.arrayBuffer();
         }));
-    } catch (err) { console.warn(`models: ${e.slug} —`, err.message); continue; }
+    } catch (err) { console.warn(`models: ${e.slug}:`, err.message); continue; }
     reg.models.set(e.slug, m);
     reg.entries.push(e);
     reg.list.push(e.slug);

@@ -39,7 +39,7 @@ console.log('main.js: one close path');
   ok(/closeMission\('fail'\)/.test(body('failMission')), 'failMission closes through it');
   ok(/closeMission\('done'\)/.test(body('updateMission')), 'completion closes through it');
   const upd = body('updateMission');
-  ok(upd.indexOf("closeMission('done')") < upd.indexOf('endOfJob();'), '...and cleanup still runs before endOfJob()');
+  ok(upd.indexOf("closeMission('done')") < upd.indexOf('endOfJob(def);'), '...and cleanup still runs before endOfJob()');
   const menu = body('toMenu');
   ok(/closeMission\('quit'\)/.test(menu) && menu.indexOf("closeMission('quit')") < menu.indexOf('pause(false)'),
     'toMenu closes the job before it touches pause or the mode');

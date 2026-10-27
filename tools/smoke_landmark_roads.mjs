@@ -97,29 +97,19 @@ function crossings(q) {
 }
 
 // Service-way crossings found on 20 Oct 2026 (7ed4dfb), waiting for a ruling.
+// w7-walls (27 Oct 2026) fixed 26 of the 36: walls moved at mcdonalds, galaxie,
+// frankarena, symmesjr and the galeries wing; ways cut back at pwhs and loblaws
+// (src/game/service_cuts.js). The 10 left are ACCEPTED (pump islands, posts, the
+// galeries kiosk, a heritage graze); this list may only shrink.
 // key: `${site}|${collider ax az bx bz to 1 dp}`, value: deepest metres of
 // asphalt the wall stands in (half width minus centreline distance).
 const SERVICE_KNOWN = {
-  'pwhs|6717.0 -8018.0 6717.0 -8106.0': 2.40, 'pwhs|6695.0 -8106.0 6695.0 -8018.0': 2.48,
-  'pwhs|6806.0 -8020.0 6806.0 -8140.0': 2.48, 'pwhs|6794.0 -8140.0 6794.0 -8020.0': 2.44,
-  'pwhs|6899.0 -8061.0 6899.0 -8087.0': 1.82, 'pwhs|6899.0 -8087.0 6869.0 -8087.0': 2.49,
-  'pwhs|6907.0 -8030.0 6873.0 -8030.0': 2.44, 'pwhs|6869.0 -8061.0 6899.0 -8061.0': 2.44,
-  'pwhs|6879.0 -8029.0 6901.0 -8029.0': 2.45, 'pwhs|6901.0 -8029.0 6901.0 -8063.0': 2.42,
-  'pwhs|6901.0 -8063.0 6879.0 -8063.0': 2.50, 'pwhs|6873.0 -7994.0 6907.0 -7994.0': 2.50,
   'heritage|5545.8 -6737.1 5539.2 -6762.5': 0.66,
-  'symmesjr|-294.6 389.0 -272.6 388.0': 2.49, 'symmesjr|-272.6 388.0 -273.4 371.0': 2.43,
-  'galeries|-119.0 -327.0 -195.0 -327.0': 2.49, 'galeries|-195.0 -327.0 -195.0 -253.0': 2.48,
   'galeries|-5.6 -280.3 7.1 -283.4': 2.03, 'galeries|-6.8 -285.3 -5.6 -280.3': 1.31,
   'galeries|7.1 -283.4 5.8 -288.4': 2.03,
-  'loblaws|997.9 -304.7 1021.4 -309.6': 2.48, 'loblaws|1021.4 -309.6 1008.1 -373.3': 2.44,
-  'mcdonalds|325.2 -254.7 308.3 -253.2': 2.46, 'mcdonalds|308.3 -253.2 310.8 -225.3': 2.50,
-  'mcdonalds|310.8 -225.3 327.7 -226.8': 2.39,
   'esso|416.5 -248.0 441.5 -248.0': 0.90, 'esso|441.5 -258.0 416.5 -258.0': 1.85,
   'esso|416.5 -258.0 416.5 -248.0': 0.87, 'esso|441.5 -248.0 441.5 -258.0': 1.85,
   'edeycorner|517.5 -232.6 518.5 -232.6': 1.54, 'edeycorner|517.5 -231.4 518.5 -231.4': 1.44,
-  'galaxie|-651.0 30.0 -689.0 30.0': 2.47, 'galaxie|-689.0 30.0 -689.0 66.0': 2.47,
-  'galaxie|-689.0 66.0 -651.0 66.0': 1.48,
-  'frankarena|-589.0 118.5 -589.0 39.5': 2.46, 'frankarena|-624.0 118.5 -589.0 118.5': 2.40,
 };
 
 const cols = new Map(SITES.map((s) => [s.key, collidersOf(s)]));
@@ -177,6 +167,8 @@ group('3. service-way crossings: only the ones listed for a ruling, none deeper'
     if (known == null) news.push(`${key} ${r2(h.depth)} m at ${h.at.join(', ')}`);
     else if (h.depth > known + 0.02) deeper.push(`${key} ${r2(h.depth)} m (listed ${known})`);
   }
+  ok(MAP.expansions?.serviceCuts === true, 'service_cuts.js ran over the merged map (w7-walls)');
+  ok(MAP.roads.every((r) => r.pts.length >= 2 && r.pts.length === r.ids.length), 'every way still has two or more points, one id each');
   ok(!news.length, 'no new hero wall across a service way', news.join('; '));
   ok(!deeper.length, 'no listed crossing got deeper', deeper.join('; '));
   const gone = Object.keys(SERVICE_KNOWN).filter((k) => !seen.has(k));
@@ -220,6 +212,25 @@ group('4. every hero collider stands on something drawn');
     }
     ok(!bare.length, `${s.key}: ${cols.get(s.key).length} colliders, all drawn`, bare.join('; '));
   }
+}
+
+group('5. the Galeries shortcut clears the accepted lot kiosk by 3 m (w7-polish)');
+{
+  const { SHORTCUTS } = await import('../src/game/shortcuts.js');
+  const sc = SHORTCUTS.find((x) => x.id === 'sc_galeries');
+  // The kiosk: the galeries colliders around its centre (SERVICE_KNOWN lists three of its four walls).
+  const kiosk = cols.get('galeries').filter((q) => Math.hypot((q.ax + q.bx) / 2 - 0.2, (q.az + q.bz) / 2 + 284.4) < 9);
+  let gap = Infinity;
+  for (let i = 0; i + 1 < sc.pts.length; i++) {
+    const [ax, az] = sc.pts[i], [bx, bz] = sc.pts[i + 1];
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.25));
+    for (let j = 0; j <= n; j++) {
+      const x = ax + (bx - ax) * j / n, z = az + (bz - az) * j / n;
+      for (const q of kiosk) gap = Math.min(gap, Math.sqrt(dist2(x, z, q.ax, q.az, q.bx, q.bz)));
+    }
+  }
+  ok(kiosk.length >= 3, 'the kiosk walls are found', `${kiosk.length} colliders`);
+  ok(gap >= 3, 'sc_galeries passes 3 m or more from the kiosk walls', `${gap.toFixed(2)} m`);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -155,7 +155,7 @@ export const JUMPS = [
     // has already done this; either side of it is loose sand — slow, slidey and
     // soft to land on. The only jump in Aylmer that forgives you for getting it
     // wrong, and the only one with Lac Deschênes sixty metres past the landing.
-    type: 'crest', x: -1910, z: -426, yaw: -1.4289,
+    type: 'crest', x: -1904.1, z: -426.8, yaw: -1.4289, // [w6-ramps2] 6 m inland on its axis (was -1910, -426; 12 m put it on the falling hillside and it stopped flying at 70)
     H: 2.7, rx: 12, rz: 11, kind: 'dirt', side: 'sand',
     entry: [-1799.1, -441.7], from: [-1754.0, -444.0], kmh: 70, runout: 48,
   },
@@ -216,7 +216,7 @@ export const JUMPS = [
     // over with the neighbour's bobcat, and it is a different sport.
     type: 'ramp', x: -922.0, z: 336.8, yaw: 1.2245,
     H: 2.6, run: 6.5, hw: 7, hl: 1.0, kind: 'dirt', side: 'dirt',
-    entry: [-1037.0, 316.8], from: [-1129.4, 234.8], path: [[-1030, 302], [-990, 312]], kmh: 80,
+    entry: [-1037.0, 310.8] /* [w6-ramps2] 6 m south (was 316.8): track clears the corner at (-1029, 318) */, from: [-1129.4, 234.8], path: [[-1030, 302], [-990, 312]], kmh: 80,
   },
   {
     id: 'railkick', text: 1, name: 'Le Talus du CP',

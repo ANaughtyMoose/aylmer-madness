@@ -47,10 +47,21 @@ out vec3 vNor; out vec3 vCol; out float vDist; out highp vec2 vUV; out vec3 vRel
 flat out highp vec4 vRect;
 `;
 
-export const GLSL = `${DEFINES}
+const CLASSIC_GLSL = `${DEFINES}
 in vec3 vNor; in vec3 vCol; in float vDist; in highp vec2 vUV; in highp vec3 vRel;
 flat in highp vec4 vRect;
 out vec4 outColor;
 // World-space position of this fragment.
 highp vec3 worldPos() { return vRel + uEye; }
 `;
+// W8-LIGHT: « Éclairage avancé » adds the transfer functions; off (the
+// default) assembles exactly the lines above (shaders/index.js lightMode).
+const ADV_GLSL = CLASSIC_GLSL + `// S5-LIGHT (V1-01): exact sRGB transfer, not a 2.2 power, and Rec.709 luminance.
+vec3 srgbToLinear(vec3 c) { c = max(c, vec3(0.0));
+  return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c)); }
+vec3 linearToSrgb(vec3 c) { c = max(c, vec3(0.0));
+  return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c)); }
+float lum709(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+`;
+export let GLSL = CLASSIC_GLSL;
+export function lightMode(adv) { GLSL = adv ? ADV_GLSL : CLASSIC_GLSL; }

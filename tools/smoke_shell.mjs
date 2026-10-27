@@ -486,7 +486,7 @@ group('the radio deck');
   eq(r.state().track, r.breakLine, '…not the song');
   r.breakT = 0;
   ok(!r.state().onBreak, 'the break ends');
-  ok(r.state().track.includes('—') || r.state().track.length > 0, 'and the song comes back');
+  ok(r.state().track.includes(' - ') || r.state().track.length > 0, 'and the song comes back');
 }
 
 group('the cassette deck still works');
@@ -652,7 +652,7 @@ else {
   r.station = r.dial.findIndex((s) => s.id === 'the_bear');
   r.breakIdx = 2;                         // the ad slot
   r._openBreak();
-  ok(r.breakLine.startsWith('PUB — '), `an ad break opens with the advertiser: « ${r.breakLine} »`);
+  ok(r.breakLine.startsWith('PUB : '), `an ad break opens with the advertiser: « ${r.breakLine} »`);
   ok(r.breakQueue.length >= 3, `…and has ${r.breakQueue.length} lines of copy behind it`);
   ok(typeof before === 'string', 'breaks keep producing lines');
   r.tune('cjrc_talk');
@@ -702,7 +702,7 @@ group('the DJ notices the weather');
     // Le Droit.
     const heads = headlinesFromJSON(j);
     ok(heads.length >= 20, `${heads.length} Le Droit headlines`);
-    ok(heads.every((h) => h.startsWith('LE DROIT — ')), 'read out as the paper');
+    ok(heads.every((h) => h.startsWith('LE DROIT : ')), 'read out as the paper');
     ok(j.headlines.some((h) => h.confidence === 'high'), 'some of them are verified');
     ok(j.headlines.some((h) => h.confidence === 'low'), '…and some are honest fiction');
 

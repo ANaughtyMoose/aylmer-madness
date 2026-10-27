@@ -1,6 +1,7 @@
 import { WORKER_PACKET_VERSION } from './worker-packet.js';
 import { createWorldUpload } from './upload.js';
 import { restoreWorldQueries, finishWorld } from '../world.js';
+import { advLight } from '../look/advlight.js';
 
 const scheduleFrame = globalThis.requestAnimationFrame?.bind(globalThis);
 const nextFrame = () => new Promise((resolve) => scheduleFrame(resolve));
@@ -87,7 +88,7 @@ export function createSectorClient(renderer, mats, options = {}) {
       };
       try {
         worker.postMessage({ kind: 'bake', id, sector, distant: !!opts.distant, prototype: !!renderer.isPrototype,
-          prototypeStyle: !!mats?.prototypeStyle, materials: mats?.atlas ? { size: mats.size, tiles: mats.tiles } : null });
+          prototypeStyle: !!mats?.prototypeStyle, advLight: advLight(), materials: mats?.atlas ? { size: mats.size, tiles: mats.tiles } : null });
       } catch (error) { fail(error); }
     });
     return promise;

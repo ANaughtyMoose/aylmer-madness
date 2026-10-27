@@ -39,6 +39,8 @@
 
 import { rgb, shade } from '../core/mesh.js';
 import { clamp, mulberry32 } from '../core/math.js';
+import { GLOW, glowCol, glowPick } from './world/consts.js';   // S5-LIGHT: lit windows
+import { advLight } from './look/advlight.js';   // W8-LIGHT: the glow tag only with Advanced lighting
 import { buildGlenwood, chooseGlenwood, GLENWOOD_STREETS, GLENWOOD_VARIANTS } from './glenwood.js';
 
 export { GLENWOOD_VARIANTS, GLENWOOD_STREETS };
@@ -1388,7 +1390,8 @@ function windows(mb, r, footprint, L2M, y0, eave, storeys, spec, col, uv, front,
           const along = Math.abs((wx - door.x) * f.tx + (wz - door.z) * f.tz);
           if (along < (door.w + spec.winW) * 0.5 + 0.34) continue;
         }
-        if (style === null) mb.panel(wx, cy, wz, spec.winW, winH, f.nx, f.nz, col, uv, OUT + 0.012);
+        if (style === null) mb.panel(wx, cy, wz, spec.winW, winH, f.nx, f.nz,
+          advLight() && glowPick(wx, wz, GLOW.HOUSE_SHARE) ? glowCol(col, GLOW.HOUSE) : col, uv, OUT + 0.012);   // S5-LIGHT: lit at night
         else {
           // Prototype: a sized panel the shader draws as frame, sill and recessed
           // glass (src/prototype/facade.js); 12 cm taller for the sill, and

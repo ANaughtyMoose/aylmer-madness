@@ -1367,7 +1367,12 @@ export class RoadDriver {
     n.tyreG.gain.setTargetAtTime(g * roll * su.roar * 0.135, at, 0.08);
 
     n.grit.frequency.setTargetAtTime(1500 + su.tyreF * 0.8, at, 0.15);
-    n.gritG.gain.setTargetAtTime(g * roll * su.grit * 0.085, at, 0.08);
+    // [w6-frictions] feel.md 10: loose ground (grit over 0.6: gravel, sand,
+    // dirt, path) crunches from walking pace, speed^0.7 instead of ^1.3, so the
+    // gravel shake (feel.js, from 20 km/h) always has a sound under it. At
+    // 40 km/h on gravel the crunch is about 2x louder; at 130 it is the same.
+    const crunch = air ? 0 : su.grit > 0.6 ? Math.pow(v, 0.7) : roll;
+    n.gritG.gain.setTargetAtTime(g * crunch * su.grit * 0.085, at, 0.08);
 
     // Whine: Hz per km/h straight off the profile, and it needs some load on it
     // before the teeth are pressed hard enough to sing.
