@@ -1,0 +1,297 @@
+[
+ {
+  "label": "sc_galeries pts 1",
+  "x": -216,
+  "z": -236
+ },
+ {
+  "label": "sc_galeries pts 2",
+  "x": -195,
+  "z": -236
+ },
+ {
+  "label": "sc_galeries pts 3",
+  "x": -110,
+  "z": -243
+ },
+ {
+  "label": "sc_galeries pts 4",
+  "x": -58,
+  "z": -264
+ },
+ {
+  "label": "sc_galeries pts 5",
+  "x": -24,
+  "z": -274
+ },
+ {
+  "label": "sc_galeries pts 6",
+  "x": 8,
+  "z": -283
+ },
+ {
+  "label": "sc_galeries pts 7",
+  "x": 27,
+  "z": -279
+ },
+ {
+  "label": "sc_galeries pts 8",
+  "x": 27,
+  "z": -262
+ },
+ {
+  "label": "sc_galeries pts 9",
+  "x": 81,
+  "z": -263
+ },
+ {
+  "label": "sc_galeries pts 10",
+  "x": 97,
+  "z": -290
+ },
+ {
+  "label": "sc_galeries pts 11",
+  "x": 93,
+  "z": -327
+ },
+ {
+  "label": "sc_galeries pts 12",
+  "x": 246,
+  "z": -342
+ },
+ {
+  "label": "sc_galeries pts 13",
+  "x": 261,
+  "z": -344
+ },
+ {
+  "label": "sc_galeries pass 1",
+  "x": -150,
+  "z": -240
+ },
+ {
+  "label": "sc_galeries pass 2",
+  "x": 54,
+  "z": -262
+ },
+ {
+  "label": "sc_galeries pass 3",
+  "x": 93,
+  "z": -327
+ },
+ {
+  "label": "sc_galeries seal",
+  "x": 54,
+  "z": -262
+ },
+ {
+  "label": "sc_galeries gate from",
+  "x": -215,
+  "z": -215
+ },
+ {
+  "label": "sc_galeries gate to",
+  "x": 262,
+  "z": -336
+ },
+ {
+  "label": "sc_arena pts 1",
+  "x": -500,
+  "z": 112
+ },
+ {
+  "label": "sc_arena pts 2",
+  "x": -585,
+  "z": 94
+ },
+ {
+  "label": "sc_arena pts 3",
+  "x": -607,
+  "z": 152
+ },
+ {
+  "label": "sc_arena pts 4",
+  "x": -622,
+  "z": 176
+ },
+ {
+  "label": "sc_arena pts 5",
+  "x": -685,
+  "z": 184
+ },
+ {
+  "label": "sc_arena pts 6",
+  "x": -700,
+  "z": 199
+ },
+ {
+  "label": "sc_arena pts 7",
+  "x": -712,
+  "z": 200
+ },
+ {
+  "label": "sc_arena pts 8",
+  "x": -740,
+  "z": 208
+ },
+ {
+  "label": "sc_arena pts 9",
+  "x": -744,
+  "z": 212
+ },
+ {
+  "label": "sc_arena pass 1",
+  "x": -607,
+  "z": 152
+ },
+ {
+  "label": "sc_arena pass 2",
+  "x": -712,
+  "z": 200
+ },
+ {
+  "label": "sc_arena pass 3",
+  "x": -744,
+  "z": 212
+ },
+ {
+  "label": "sc_arena seal",
+  "x": -712,
+  "z": 200
+ },
+ {
+  "label": "sc_arena gate from",
+  "x": -500,
+  "z": 112
+ },
+ {
+  "label": "sc_arena gate to",
+  "x": -744,
+  "z": 212
+ },
+ {
+  "label": "sc_piste pts 1",
+  "x": -940,
+  "z": 316
+ },
+ {
+  "label": "sc_piste pts 2",
+  "x": -898,
+  "z": 329
+ },
+ {
+  "label": "sc_piste pts 3",
+  "x": -880,
+  "z": 352
+ },
+ {
+  "label": "sc_piste pts 4",
+  "x": -845,
+  "z": 382
+ },
+ {
+  "label": "sc_piste pts 5",
+  "x": -800,
+  "z": 410
+ },
+ {
+  "label": "sc_piste pts 6",
+  "x": -793,
+  "z": 433
+ },
+ {
+  "label": "sc_piste pass 1",
+  "x": -889,
+  "z": 341
+ },
+ {
+  "label": "sc_piste pass 2",
+  "x": -845,
+  "z": 382
+ },
+ {
+  "label": "sc_piste pass 3",
+  "x": -793,
+  "z": 433
+ },
+ {
+  "label": "sc_piste seal",
+  "x": -889,
+  "z": 341
+ },
+ {
+  "label": "sc_piste gate from",
+  "x": -940,
+  "z": 316
+ },
+ {
+  "label": "sc_piste gate to",
+  "x": -793,
+  "z": 433
+ },
+ {
+  "label": "sc_eglise pts 1",
+  "x": -415,
+  "z": -27
+ },
+ {
+  "label": "sc_eglise pts 2",
+  "x": -353,
+  "z": -33
+ },
+ {
+  "label": "sc_eglise pts 3",
+  "x": -309,
+  "z": -38
+ },
+ {
+  "label": "sc_eglise pts 4",
+  "x": -294,
+  "z": -48
+ },
+ {
+  "label": "sc_eglise pts 5",
+  "x": -262,
+  "z": -56
+ },
+ {
+  "label": "sc_eglise pts 6",
+  "x": -246,
+  "z": -52
+ },
+ {
+  "label": "sc_eglise pts 7",
+  "x": -246,
+  "z": -49
+ },
+ {
+  "label": "sc_eglise pass 1",
+  "x": -340,
+  "z": -35
+ },
+ {
+  "label": "sc_eglise pass 2",
+  "x": -294,
+  "z": -48
+ },
+ {
+  "label": "sc_eglise pass 3",
+  "x": -246,
+  "z": -50
+ },
+ {
+  "label": "sc_eglise seal",
+  "x": -294,
+  "z": -48
+ },
+ {
+  "label": "sc_eglise gate from",
+  "x": -415,
+  "z": -27
+ },
+ {
+  "label": "sc_eglise gate to",
+  "x": -246,
+  "z": -49
+ }
+]
