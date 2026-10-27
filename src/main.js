@@ -47,9 +47,9 @@ import { loadCarSkin } from './game/carskin.js';
 import { Nav } from './game/nav.js';
 import { buildSky, skyOpts, cloudOpts, cloudModel } from './game/sky.js';
 import { BigMap } from './game/bigmap.js';
-import { MISSIONS, ALL_MISSIONS, unlockArc, nextMission, missionAvailable, missionLockReason, availableMissions, storyProgress } from './game/missions.js';
+import { MISSIONS, ALL_MISSIONS, unlockArc, nextMission, missionAvailable, missionLockReason, availableMissions, storyProgress, mamanTime, homeLeg } from './game/missions.js';
 // The restructure (29 Sept 2026): the finale id, and the quiet streets counter.
-import { FINALE } from './game/campaign.js';
+import { FINALE, quietStart } from './game/campaign.js';
 import { noteStreet, streetsLine } from './game/streets.js';
 // ---- S4-SUMMER (begin): pacing, sleep, summer-end screen ----
 import * as summer from './game/summer.js';
@@ -66,7 +66,7 @@ import {
   loadSettings, saveSettings, loadMapPrefs, saveMapPrefs, MAP_SIZES,
 } from './game/store.js';
 import {
-  Legend, Tutorial, Loading, keyboardHTML, slotsHTML, groupsHTML, wireSlots,
+  Legend, Tutorial, hudCalm, Loading, keyboardHTML, slotsHTML, groupsHTML, wireSlots,
   setModal, syncModal, onModal, modalOpen,
 } from './game/ui.js';
 // Explicit save slots (save.js) and the options screen (options.js). Between
@@ -140,6 +140,7 @@ import * as replay from './game/replay.js';
 // [w7-crashnight] crash replay (C-12 small) and Crash Night (C-04).
 import { crashReplay } from './game/crashreplay.js';
 import { installCrashNight } from './game/crashnight.js';
+import * as qaCourse from './game/qacourse.js';   // [w8-courseproof] QA only: AYLMER.qa exists only under ?review= / the harness
 import * as modesNs from './game/modes.js';
 import * as ghost from './game/ghost.js';
 import { jobMedalNote, resultLine as medalLine, eyebrow as medalEyebrow, thresholdsFor as medalThresholds } from './game/medals.js';
@@ -1285,9 +1286,10 @@ function enterDrive(save = null, startKey = null) {
   refreshFreeRoam();
   hud.setTimer(null);
   hud.setGear(1);
-  hud.toast(save
-    ? t('save.loaded') + '\n' + (save.name || '')
-    : 'AYLMER, QUÉBEC\nprends ton temps', 2600);
+  // W8-FIRST15: a new game says nothing here. « AYLMER, QUÉBEC / prends ton
+  // temps » landed at first control, one text element too many, and it said the
+  // opposite of Margaret's « I'm timing you » (redteam FIRST-15 dead spot 2).
+  if (save) hud.toast(t('save.loaded') + '\n' + (save.name || ''), 2600);
   legend.render();
   G.tutoMapOpened = false; G.tutoJobTaken = false;
   audio.start(); audio.resume();
@@ -2051,7 +2053,11 @@ function updateMission(dt) {
     // next few seconds, so the job pillar under the truck does not.
     if (G.ambush) { G.wantStart = false; return; }
     // Several missions share a start marker, so offer one and let Tab cycle.
+    // W8-FIRST15: in the first driveway (before Sayyad is awake) the home
+    // pillar offers no « (déjà fait) » replay of L'alternateur: one « next ».
+    const quiet = quietStart(G);
     const near = availableMissions(G).filter((d) => {
+      if (quiet && G.done.has(d.id)) return false;
       const p = PLACES[d.giver];
       return Math.hypot(v.x - p.x, v.z - p.z) < 12;
     });
@@ -2131,7 +2137,8 @@ function updateMission(dt) {
     if (!opening.cast.active) m.timeLeft -= dt;
     hud.setTimer(Math.max(0, m.timeLeft));
     if (m.timeLeft <= 0) { failMission(st.failWhy || 'Trop tard, mon chum.'); return; }
-  } else hud.setTimer(null);
+  } else if (st.softClock) hud.setSoftClock(m.legT || 0, mamanTime(G), G.settings.lang === 'en');   // W8-FIRST15: Maman's time, never a fail
+  else hud.setTimer(null);
 
   // Everything a stage can be — radius, timer, speed cap, a held E, a price, a
   // custom condition — lives in missionkit.js. This is just the plumbing.
@@ -2184,6 +2191,8 @@ function updateMission(dt) {
     const record = prev == null || runT < prev;
     if (record) G.best[def.id] = runT;
     const style = missionStyleBonus(m.styleStart, G.stats, v.damage);
+    // W8-FIRST15: L'alternateur's way home, scored softly (missions.js homeLeg).
+    const leg = def.id === 'alternateur' ? homeLeg(G, m) : null;
     if (style.money) style.money = Math.min(15, style.money);   // the budget table caps it
     if (style.money && G.wallet) G.wallet.add(style.money);
     hud.toast('FINI : ' + def.title + '\n' + (medal ? medalEyebrow(medal, medalEn) + '  ' + medalLine(medal, medalEn) + (ghostLine ? '\n' + ghostLine : '')   // [w7-replay]
@@ -2193,7 +2202,9 @@ function updateMission(dt) {
     // Cleanup runs before endOfJob(), as it always has.
     closeMission('done');
     // [opening-v2] W7b: a card due at the end (Sayyad's) comes before the end lines.
-    { const n = opening.cast.queueForJob(def.id, 'end'); n ? opening.cast.onIdle(() => sayFriend(def, 'end')) : sayFriend(def, 'end'); }
+    // W8-FIRST15: Margaret at the door first: under her time or not (English, main cast).
+    const sayEnd = () => { if (leg) heckle.line('Margaret', leg.line, 3000, { group: 'friend' }); sayFriend(def, 'end'); };
+    { const n = opening.cast.queueForJob(def.id, 'end'); n ? opening.cast.onIdle(sayEnd) : sayEnd(); }
     endOfJob(def);     // the day is spent (a course rerun is free); Labour Day may have arrived
     // « Le dernier soir » is the ending, in both builds (the prototype spends
     // no day on a job, so endOfJob() alone would never get there).
@@ -2211,6 +2222,7 @@ function updateMission(dt) {
       body: (stageToast || 'Une autre job de faite.')
         + (def.id === 'alternateur' ? '\n\nLe reste de l’été commence ici.' : ''),
       task: (medal ? medalLine(medal, medalEn) + (ghostLine ? '  ·  ' + ghostLine : '') + '\n' : '') + `${fmtTime(m.elapsed)}  ·  ${storyLine()}`
+        + (leg ? '\n' + leg.task : '')
         + (m.paid ? `\nPaye : ${Math.round(m.paid)} $` : '')
         + (style.money ? `\nStyle +${style.money} $` : '')
         // ---- S4-SUMMER (begin): when the story comes back ----
@@ -2227,7 +2239,11 @@ function updateMission(dt) {
   if (m.def.id === 'alternateur' && m.idx === 1) cinema.show({
     eyebrow: 'CANADIAN TIRE · COMMANDE RAMASSÉE', title: 'C’est dans la boîte.',
     body: 'L’alternateur, le reçu, pis un peu d’argent Canadian Tire. Tout est là.\n\nReste à ramener la boîte au 299 Fraser. Tu prépares la prochaine réparation du Ranger.',
-    task: m.stages[1].text, note: 'Aucun chrono. Prends ton temps.',
+    // W8-FIRST15: Margaret's « I'm timing you » is true on the way home now: a
+    // soft record, never a fail (missions.js MAMAN_T).
+    task: m.stages[1].text, note: G.settings.lang === 'en'
+      ? `Mom is timing the way home: ${fmtTime(mamanTime(G))}. No penalty. Last corner: slide it.`
+      : `Maman chronomètre le retour : ${fmtTime(mamanTime(G))}. Aucune pénalité. Le dernier coin : prends-le en dérapage.`,
     art: 'alternateur', button: G.settings.lang === 'en' ? 'Head home →' : 'On rentre →',
   });
 }
@@ -2956,6 +2972,7 @@ function tick(dt) {
     heckle.say('Chauffeur', 'red');
   }
   ambush.tick(G, dt, hud);
+  if (G.qaFollow) qaCourse.qaTick(G, dt);   // [w8-courseproof] QA only: G.qaFollow is never set in play
   updateMission(dt);
   ghost.update(G);   // [w7-replay] records the run, plays back the best
   heckleTriggers(dt, v);
@@ -2982,6 +2999,10 @@ function tick(dt) {
 
   updateRepairSpot(dt, v);                 // feel agent: after the mission runner
   if (G.props) G.props.update(dt, G);
+  // W8-FIRST15 (set before the counters paint): the legend pill and the job counters wait for the first near
+  // miss, smash or the tutorial's end (ui.js hudCalm). No allocation per frame.
+  G.hudCalm = hudCalm(G, tutorial.finished);
+  legend.setHeld(G.hudCalm);
   if (G.reactive) G.reactive.update(dt, G);
   G.time += dt;
   crashReplay.record(G, dt);   // [w7-crashnight]
@@ -4215,6 +4236,9 @@ Object.assign(window.AYLMER, {
   resetJumps,
   shortcuts: () => shortcuts.debug(G),   // [w6-shortcuts] metric bag for the C-06 beat
 });
+// [w8-courseproof] The course driver for the cloud checks (medals, R, ghost). Defined only under a
+// review namespace (?review=, ?audioReview=, a tools/ harness frame): unreachable in normal play.
+if (qaCourse.qaAllowed(globalThis.AYLMER_STORAGE)) window.AYLMER.qa = qaCourse.qaApi(G);
 // ================================================================ end modes agent
 
 // ---------------------------------------------------------------- economy agent

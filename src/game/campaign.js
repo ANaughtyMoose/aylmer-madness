@@ -189,6 +189,30 @@ export function finaleOpen(done, has, summerOver = false) {
   return allMainDone(done, has) || !!summerOver;
 }
 
+// ---------------------------------------------------------------- the first fifteen minutes
+//
+// W8-FIRST15 (pressure check 27 Oct, risk 3; redteam FIRST-15 dead spot 3): the
+// driveway after L'alternateur showed three prompts (Dr Morin's box, « NOUVELLE
+// JOB Réveiller Sayyad », « K : Kijiji ») plus « Z : dormir » before a new
+// player knew days existed. Two rules, index.html only (the prototype has hour
+// windows: holding its optional jobs would leave nothing to do at noon):
+//   * quietStart: no optional job opens before Sayyad is awake, so the only new
+//     pillar after the first errand is his. The OPTIONAL pairing above (which
+//     place introduces a job) does not change; this only holds the door a step.
+//   * earlyStory: until the Saint-Jean is done the free-roam line names the
+//     next main mission, and the HUD does not advertise sleeping.
+export const QUIET_UNTIL = 'sayyad';
+export const EARLY_STEPS = 3;
+export function quietStart(G, has) {
+  if (!G || isPrototype(G)) return false;
+  if (!exists(QUIET_UNTIL, has)) return false;
+  return !doneSet(G.done).has(QUIET_UNTIL);
+}
+export function earlyStory(G, has) {
+  if (!G || isPrototype(G)) return false;
+  return mainStepsDone(doneSet(G.done), has) < EARLY_STEPS;
+}
+
 /**
  * The story's own lock (no hours, no dates): null when this id may be offered,
  * else the id of the main mission that has to come first. `lastDay` is true on

@@ -420,7 +420,8 @@ export class Reactive {
       doc.body.appendChild(el);
       this.el = el;
     }
-    const on = !!G.mission;
+    // W8-FIRST15: not while the first-control HUD is calm (ui.js hudCalm).
+    const on = !!G.mission && !G.hudCalm;
     this.el.style.display = on ? 'block' : 'none';
     if (!on) return;
     const s = this.stats;

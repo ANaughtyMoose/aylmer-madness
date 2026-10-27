@@ -17,7 +17,7 @@ import {
 // The summer's order and gates (restructure, 29 Sept 2026).
 import {
   FINALE, nextMain, finaleOpen, storyBlocker, isMain, isRetired, orderRank, setKnown,
-  dateLock, pastSaintJean, mainStepsDone, mainStepsTotal,
+  dateLock, pastSaintJean, mainStepsDone, mainStepsTotal, quietStart, QUIET_UNTIL,
 } from './campaign.js';
 import { LAST as LAST_DAY } from './calendar.js';
 // When a job may start, by the hour and by the date, in the prototype.
@@ -125,12 +125,115 @@ export function boxTick(G, m, dt) {
   return said;
 }
 
+// W8-FIRST15 (pressure check 27 Oct risk 3; redteam FIRST-15 dead spot 1): the
+// way home was 1.6 km with nothing to aim at, and Margaret's « I'm timing you »
+// was a lie. Two things on stage 2 only, and neither can fail the job (Tom: the
+// first errand is a driving lesson, so it stays untimed as a job):
+//   * Maman's time, a soft record. A dim count-up in the clock slot, « 1:12 ·
+//     Maman 2:10 », then one line from Margaret at the door: under her time or
+//     not. Your own best for the leg is kept (G.best[LEG_BEST]) for a replay.
+//     2:10 is 1,660 m (tools/timers.md, stage 2/2) at 46 km/h on average: a
+//     new driver who pushes a little beats it, one who potters does not.
+//     It scales with the difficulty's timer factor like every story clock.
+//   * A slide zone: the last sharp corner of the GPS line before home (off
+//     chemin d'Aylmer onto Fraser on the usual line, right after the ramp's
+//     west face). The game calls it once as you come up to it, and a handbrake
+//     slide through it gets a line. Found on the live route, so no coordinate
+//     is hard-coded and a player who comes home another way gets his own corner.
+export const MAMAN_T = 130;
+export const LEG_BEST = 'alternateur.retour';
+export function mamanTime(G) { return Math.round(MAMAN_T * ((G && G.timerScale) || 1)); }
+const clock = (t) => { const s = Math.max(0, Math.round(t)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+export const MAMAN_LINES = {
+  beat: (t) => `« ${t}. Faster than I said. Don’t make a habit of it. »`,
+  miss: (t) => `« ${t}. I said straight back, Tom. »`,
+};
+
+/**
+ * The way home, scored softly. Pure on (G, m); writes the leg's best to G.best
+ * when it is one. Returns { t, maman, beat, best, record, slid, line, task }:
+ * `line` is Margaret's (English, main cast), `task` the end card's line in the
+ * HUD's language. Never a fail.
+ */
+export function homeLeg(G, m) {
+  const t = Math.max(0, (m && m.legT) || 0);
+  const maman = mamanTime(G);
+  const beat = t <= maman;
+  if (G && !G.best) G.best = {};
+  const prev = G && G.best ? G.best[LEG_BEST] : undefined;
+  const record = !(Number.isFinite(prev)) || t < prev;
+  if (record && G && G.best) G.best[LEG_BEST] = Math.round(t * 10) / 10;
+  const best = G && G.best ? G.best[LEG_BEST] : t;
+  const en = !!(G && G.settings && G.settings.lang === 'en');
+  const slid = !!(m && m.slid);
+  const task = (en ? `Home leg ${clock(t)}  ·  Mom ${clock(maman)}` : `Retour ${clock(t)}  ·  Maman ${clock(maman)}`)
+    + (beat ? (en ? '  ·  beaten' : '  ·  battue') : '')
+    + (Number.isFinite(prev) ? (record ? (en ? '  ·  new personal best' : '  ·  nouveau record perso') : (en ? `  ·  your best ${clock(prev)}` : `  ·  ton record ${clock(prev)}`)) : '')
+    + (slid ? (en ? '  ·  corner slid' : '  ·  coin glissé') : '');
+  return { t, maman, beat, best, record, slid, line: (beat ? MAMAN_LINES.beat : MAMAN_LINES.miss)(clock(t)), task };
+}
+
+export const SLIDE = { callD: 90, r: 26, kmh: 20, yawRate: 0.5, skipEnd: 60, maxEnd: 900, arm: 12, turnDeg: 50 };
+export const SLIDE_LINES = {
+  call: ['Dernier coin avant la maison : Espace pour le frein à main, pis prends-le en dérapage.', 'Last corner before home: Space for the handbrake, and slide it.'],
+  done: ['BEAU DÉRAPAGE. La boîte, elle, a pas aimé ça.', 'NICE SLIDE. The box did not enjoy it.'],
+};
+
+/**
+ * The last sharp corner of a GPS line, counted back from its end: the first
+ * vertex at least SLIDE.skipEnd m and at most SLIDE.maxEnd m from the end whose
+ * heading turns by SLIDE.turnDeg or more, measured SLIDE.arm m either side so a
+ * curve drawn in short segments still reads as one corner. Pure. {x, z} or null.
+ */
+export function lastCorner(route) {
+  if (!Array.isArray(route) || route.length < 3) return null;
+  const n = route.length;
+  const cum = new Array(n).fill(0);   // metres from each vertex to the end
+  for (let i = n - 2; i >= 0; i--) cum[i] = cum[i + 1] + Math.hypot(route[i + 1][0] - route[i][0], route[i + 1][1] - route[i][1]);
+  const cos = Math.cos(SLIDE.turnDeg * Math.PI / 180);
+  for (let i = n - 2; i >= 1; i--) {
+    if (cum[i] < SLIDE.skipEnd) continue;
+    if (cum[i] > SLIDE.maxEnd) break;
+    let a = i - 1; while (a > 0 && cum[a] - cum[i] < SLIDE.arm) a--;
+    let b = i + 1; while (b < n - 1 && cum[i] - cum[b] < SLIDE.arm) b++;
+    const ux = route[i][0] - route[a][0], uz = route[i][1] - route[a][1];
+    const wx = route[b][0] - route[i][0], wz = route[b][1] - route[i][1];
+    const lu = Math.hypot(ux, uz), lw = Math.hypot(wx, wz);
+    if (lu < 1 || lw < 1) continue;
+    if ((ux * wx + uz * wz) / (lu * lw) <= cos) return { x: route[i][0], z: route[i][1] };
+  }
+  return null;
+}
+
+/** Stage 2's slide zone, once a step. Pure on G.veh, G.route, G.input. Returns the line said, or null. */
+export function slideZoneTick(G, m) {
+  const v = G && G.veh;
+  if (!v || !m) return null;
+  if (!m.slideCalled && G.route && G.route !== m.slideRoute) { m.slideRoute = G.route; m.slideAt = lastCorner(G.route); }
+  const c = m.slideAt;
+  if (!c) return null;
+  const en = !!(G.settings && G.settings.lang === 'en') ? 1 : 0;
+  const d = Math.hypot(v.x - c.x, v.z - c.z);
+  if (!m.slideCalled && d < SLIDE.callD) {
+    m.slideCalled = 1;
+    G.hud?.toast?.(SLIDE_LINES.call[en], 3200);
+    return SLIDE_LINES.call[en];
+  }
+  if (m.slideCalled && !m.slid && d < SLIDE.r && G.input && G.input.handbrake
+    && (v.speedKmh || 0) > SLIDE.kmh && Math.abs(v.yawRate || 0) > SLIDE.yawRate) {
+    m.slid = 1;
+    G.hud?.toast?.(SLIDE_LINES.done[en], 2600);
+    return SLIDE_LINES.done[en];
+  }
+  return null;
+}
+
 const CORE_MISSIONS = [
   // Tom owns the Ranger. The first errand doubles as an untimed driving lesson.
   {
     id: 'alternateur',
     title: 'L’alternateur',
-    brief: 'La lumière de batterie clignote. Ton alternateur est commandé au Canadian Tire des Galeries d’Aylmer. Prends ton Ranger : on commence par une commission sans chrono pour apprendre à conduire.',
+    brief: 'La lumière de batterie clignote. Ton alternateur est commandé au Canadian Tire des Galeries d’Aylmer. Prends ton Ranger : on commence par une commission sans chrono pour apprendre à conduire. Au retour, ta mère te chronomètre, pour le fun.',
     giver: 'home',
     timeOfDay: 'morning',
     build(ctx) {
@@ -152,8 +255,18 @@ const CORE_MISSIONS = [
           // parking lesson (the return leg was 188 s of the bot's 304, 6 Oct).
           at: 'home', radius: 22, time: null,
           kind: 'slidingbox',
-          onEnter(G, m) { m.boxSlides = 0; m.boxCool = 0; m.boxLast = null; m.boxYaw = null; },
-          onTick(G, m, st, dt) { boxTick(G, m, dt); return null; },
+          // W8-FIRST15: Maman's soft clock (main.js paints it, homeLeg scores it).
+          softClock: true,
+          onEnter(G, m) {
+            m.boxSlides = 0; m.boxCool = 0; m.boxLast = null; m.boxYaw = null;
+            m.legT = 0; m.slideRoute = null; m.slideAt = null; m.slideCalled = 0; m.slid = 0;
+          },
+          onTick(G, m, st, dt) {
+            if (dt > 0) m.legT = (m.legT || 0) + dt;
+            boxTick(G, m, dt);
+            slideZoneTick(G, m);
+            return null;
+          },
           // The twist is Tom's (28 Sept): it only needed the solenoid.
           toast: 'L’alternateur est rendu chez vous. Pis là tu lis le manuel : c’était juste le solénoïde. Bonus de formation, 22 $. Ça couvre le gaz.',
           money: 22,
@@ -496,9 +609,17 @@ function queue(G) {
   if (fin && !done.has(FINALE) && finaleOpen(done, known, lastDay(G))) out.unshift(fin);
   for (const d of ALL_MISSIONS) {
     if (done.has(d.id) || out.includes(d) || isMain(d.id) || d.id === FINALE) continue;
-    if (storyBlocker(d.id, done, known, lastDay(G)) == null) out.push(d);
+    if (storyBlocker(d.id, done, known, lastDay(G)) == null && !quietHold(G, d.id)) out.push(d);
   }
   return out.filter(Boolean);
+}
+
+// W8-FIRST15: an optional job waits for Sayyad in index.html (campaign.js
+// quietStart), so the first driveway has one « next ». Main jobs and the
+// finale are never held here.
+function quietHold(G, id) {
+  if (isMain(id) || id === FINALE) return null;
+  return quietStart(G, known) ? QUIET_UNTIL : null;
 }
 
 // A job can also be waiting on the calendar (campaign.js DATE_GATES: in
@@ -538,6 +659,8 @@ export function missionLockReason(G, def) {
   if (done.has(def.id)) return def.id === FINALE ? null : windowLock(G, def);
   const blocker = storyBlocker(def.id, done, known, lastDay(G));
   if (blocker) return finishFirst(G, blocker);
+  const quiet = quietHold(G, def.id);
+  if (quiet) return finishFirst(G, quiet);
   return timeLock(G, def);
 }
 

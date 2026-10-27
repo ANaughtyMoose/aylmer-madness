@@ -15,7 +15,7 @@
 // and keeps only the Saint-Jean's date, so it has no sleep.
 import { ALL_MISSIONS, missionAvailable } from './missions.js';
 import {
-  DATE_GATES, FINALE, isRetired, nextMain, storyBlocker, mainStepsDone, mainStepsTotal,
+  DATE_GATES, FINALE, isRetired, nextMain, storyBlocker, mainStepsDone, mainStepsTotal, earlyStory,
 } from './campaign.js';
 import { LAST, label, daysLeft, dateOf } from './calendar.js';
 import { dayName, isPrototype } from './jobwindows.js';
@@ -155,6 +155,9 @@ export function sleepBlock(G, ui = {}) {
 /** « Z : dormir jusqu’au 2 juillet », for the HUD when you are parked at home. */
 export function sleepHint(G) {
   if (sleepBlock(G)) return '';
+  // W8-FIRST15: no sleep line in the first driveways (before the Saint-Jean is
+  // done) unless the story really waits on a date. Z itself still works.
+  if (earlyStory(G) && !storyWaiting(G)) return '';
   const to = sleepTarget(G), nights = to - today(G);
   if (en(G)) return nights > 1 ? `Z: sleep till ${dayText(G, to)}` : 'Z: sleep';
   return nights > 1 ? `Z : dormir jusqu’au ${dayName(to)}` : 'Z : dormir';

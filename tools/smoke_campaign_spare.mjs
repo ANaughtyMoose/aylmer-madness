@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {ALL_MISSIONS,RETIRED_MISSIONS,nextMission,missionAvailable,missionLockReason} from '../src/game/missions.js';
-import {nextMain,FINALE,OPTIONAL} from '../src/game/campaign.js';
+import {nextMain,FINALE,OPTIONAL,QUIET_UNTIL} from '../src/game/campaign.js';
 import {SPARE,stepSpare,buildSpare,buildChainLink,drawSpare} from '../src/game/spare.js';
 import {m4} from '../src/core/math.js';
 // Restructure (29 Sept 2026): the old walk asserted exactly ONE job was ever
@@ -10,7 +10,8 @@ import {m4} from '../src/core/math.js';
 const G={done:new Set()};let count=0;
 assert.equal(nextMission(G).id,'alternateur');
 const expected=()=>ALL_MISSIONS.map(d=>d.id).filter(id=>!G.done.has(id)&&(
- id===nextMain(G.done)||(id===FINALE&&nextMain(G.done)===null)||(id in OPTIONAL&&G.done.has(OPTIONAL[id])))).sort();
+ id===nextMain(G.done)||(id===FINALE&&nextMain(G.done)===null)||(id in OPTIONAL&&G.done.has(OPTIONAL[id])&&G.done.has(QUIET_UNTIL)))).sort();
+// W8-FIRST15: in index.html no optional job opens before Sayyad is awake (one « next » in the first driveway).
 while(nextMission(G)) {
  const next=nextMission(G),fresh=ALL_MISSIONS.filter(d=>!G.done.has(d.id)&&missionAvailable(G,d));
  assert.deepEqual(fresh.map(d=>d.id).sort(),expected(),'available set after '+[...G.done].join(','));

@@ -27,6 +27,7 @@ import { OWNER, homeKey } from './homes.js';
 import { couchInMaple } from './sidejobs.js';
 import { createSpecStack } from './specstack.js';
 import * as kijiji from './kijiji.js';
+import { quietStart } from './campaign.js';
 import { collectTowDebt } from './tow.js';
 
 // The historical repair garage supplied by Tom. The legacy 'norm' key keeps
@@ -711,7 +712,10 @@ export function installEconomy(env) {
   function nearHint() {
     const v = G.veh;
     if (!v) return false;
+    // W8-FIRST15: not in the first driveway (before Sayyad is awake): his job
+    // is the one « next ». K itself still opens Kijiji, and the legend says so.
     return HINT_AT.some((k) => {
+      if (k === 'home' && quietStart(G)) return false;
       const p = PLACES[k];
       return p && Math.hypot(v.x - p.x, v.z - p.z) < 30;
     });

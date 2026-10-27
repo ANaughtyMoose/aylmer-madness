@@ -1,0 +1,11 @@
+{
+ "name": "courseproof",
+ "entry": "index.html",
+ "note": "[w8-courseproof] medals, R rerun, ghost (bz_vieux), Crash Night result and record, church shortcut; then a reload and what survived. Needs AYLMER.qa (?review=, always on in the harness). Cloud: --size 800x500 --warp 3 --wall-factor 15.",
+ "beats": [
+  { "do": "boot", "via": "free" },
+  { "do": "script", "id": "courseproof", "course": "bz_vieux", "kmh1": 300, "kmh2": 260, "nights": 5 },
+  { "do": "boot", "via": "free" },
+  { "do": "script", "id": "courseproof-reload", "course": "bz_vieux" }
+ ]
+}

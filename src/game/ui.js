@@ -135,6 +135,19 @@ export class Legend {
     this.render();
   }
 
+  /**
+   * W8-FIRST15: while the first-control HUD is calm (hudCalm below) the folded
+   * pill is not drawn at all. `?` still opens the legend (toggle), and an open
+   * legend is never hidden: CSS hides only `#legend.held.collapsed`.
+   * Touches the DOM only when the state changes, so it is cheap every frame.
+   */
+  setHeld(on) {
+    on = !!on;
+    if (on === this.held) return;
+    this.held = on;
+    this.root?.classList?.toggle('held', on);
+  }
+
   // Rebuild after a language change.
   render() {
     if (!this.root) return;
@@ -151,6 +164,23 @@ export class Legend {
       (k.alt ? `<span class="alt">${esc(k.alt)}</span>` : '') +
       `<span class="lab">${esc(t(k.label))}</span></div>`).join('');
   }
+}
+
+/**
+ * W8-FIRST15 (pressure check risk 3; redteam FIRST-15 dead spot 2): at first
+ * control a new player saw six or seven text elements. Until the first natural
+ * moment the key legend pill and the FRÔLÉS / CASSÉS counters stay off the
+ * screen. The moment is the first near miss or smash (anything those counters
+ * would count), or the first-drive tutorial ending, whichever comes first. A
+ * player who has finished the tutorial before, or has a job done, never sees
+ * the calm HUD. Latched on G (G.hudLoud): once loud, it stays loud. Pure on G.
+ */
+export function hudCalm(G, tutorialDone) {
+  if (!G || G.hudLoud) return false;
+  const s = G.stats || {};
+  const noise = (s.nearMiss || 0) + (s.styleNear || 0) + (s.propsSmashed || 0);
+  if (tutorialDone || noise > 0 || (G.done && G.done.size > 0)) { G.hudLoud = true; return false; }
+  return true;
 }
 
 // U8: collapsed by default. Expanded, the legend is fourteen rows and 322 px

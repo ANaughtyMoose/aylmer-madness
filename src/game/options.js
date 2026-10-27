@@ -65,6 +65,8 @@ export const SECTIONS = [
         k: 'quality', type: 'select', preset: true,
         options: [['low', 'menu.q.low'], ['med', 'menu.q.med'], ['high', 'menu.q.high']],
       },
+      // Tom 27 Oct: grouped with the graphics quality. Read once at start-up (look/advlight.js).
+      { k: 'advLight', type: 'check' },
       { k: 'renderScale', type: 'range', min: 0.5, max: 1, step: 0.05, fmt: 'pct' },
       { k: 'maxDpr', type: 'select', num: true, options: [['1', '1×'], ['1.5', '1.5×'], ['2', '2×']], raw: true },
       { k: 'drawDist', type: 'range', min: 400, max: 1200, step: 20, fmt: 'metres' },
@@ -79,7 +81,6 @@ export const SECTIONS = [
       { k: 'showHud', type: 'check' },
       { k: 'showLegend', type: 'check' },
       { k: 'showFps', type: 'check' },
-      { k: 'advLight', type: 'check' },   // W8-LIGHT: read once at start-up (look/advlight.js)
       { act: 'fullscreen', type: 'action', label: 'opt.fullscreen' },
     ],
   },

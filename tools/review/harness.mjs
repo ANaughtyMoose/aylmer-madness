@@ -80,7 +80,10 @@ if (flag('list')) {
 const stamp = (() => { const d = new Date(), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; })();   // local time
 const OUT = arg('out', path.join(REVIEW_ROOT, `${stamp}-${plan.name || 'plan'}`));
 fs.mkdirSync(path.join(OUT, 'shots'), { recursive: true });
-if (!fs.existsSync(path.join(REVIEW_ROOT, '.gitignore'))) fs.writeFileSync(path.join(REVIEW_ROOT, '.gitignore'), '# Review evidence packs: local only, never committed.\n*\n');
+// [w8-courseproof] The "*" .gitignore belongs to the default pack root only. With --out
+// elsewhere (a cloud VM with no ~/Desktop/Coding Projects) it is not written, so the
+// run no longer dies on ENOENT for a folder it never uses.
+if (path.resolve(OUT).startsWith(path.resolve(REVIEW_ROOT) + path.sep) && !fs.existsSync(path.join(REVIEW_ROOT, '.gitignore'))) fs.writeFileSync(path.join(REVIEW_ROOT, '.gitignore'), '# Review evidence packs: local only, never committed.\n*\n');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const T0 = Date.now();
@@ -210,10 +213,12 @@ const evaluate = async (expression, awaitPromise = true) => {
   return r.result.value;
 };
 // Real OS-level key events (CDP Input), for the boot, the first drive and the latency probe.
+// [w8-courseproof] Enter carries text "\r": without it Chrome does not turn the CDP key into
+// a button activation (a focused « Continuer » stayed unpressed, RESULTS.md).
 const KEYMAP = { KeyW: ['w', 87], KeyA: ['a', 65], KeyS: ['s', 83], KeyD: ['d', 68], KeyE: ['e', 69], KeyR: ['r', 82], KeyM: ['m', 77], Enter: ['Enter', 13], Escape: ['Escape', 27], Space: [' ', 32], KeyT: ['t', 84], KeyY: ['y', 89], KeyZ: ['z', 90] };
 async function realKey(code, type) {
   const [key, vk] = KEYMAP[code];
-  await send('Input.dispatchKeyEvent', { type, code, key, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, text: type === 'keyDown' && key.length === 1 ? key : undefined });
+  await send('Input.dispatchKeyEvent', { type, code, key, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, text: type === 'keyDown' ? (key.length === 1 ? key : code === 'Enter' ? '\r' : undefined) : undefined });
 }
 async function realTap(code) { await realKey(code, 'keyDown'); await sleep(70); await realKey(code, 'keyUp'); }
 
@@ -270,15 +275,25 @@ const audioLog = [];      // B-02: one row a second, every beat (audio.csv and t
 const wrongVehicle = [];  // B-02: beats that started outside the job's intended vehicle
 
 // Run one page task to its end, screenshotting the beats it reports.
+// [w8-courseproof] maxSecs counts GAME seconds (G.time), like the page agent's task clocks:
+// on SwiftShader the game runs at about 0.1x real time and a wall-clock maxSecs ended
+// every course before the game got there. A wall-clock cap of maxSecs x --wall-factor
+// (default 3, CMP_WALL_FACTOR; 15 on a SwiftShader VM) still ends a page that stopped.
+const WALL_FACTOR = Math.max(1, Number(arg('wall-factor', process.env.CMP_WALL_FACTOR || '3')) || 3);
+const gameNow = () => evaluate('(window.AYLMER && window.AYLMER.G && Number.isFinite(window.AYLMER.G.time)) ? window.AYLMER.G.time : null').catch(() => null);
 async function runTask(task, label, { maxSecs = 900, every = 30 } = {}) {
   await evaluate(`window.__RV.run(${JSON.stringify(task)})`);
   const t0 = Date.now();
+  let gLast = await gameNow(), gameSecs = 0;
   let lastShot = Date.now(), end = null, lastTrace = 0;
   const provenance = [];
   const trace = ['wallSecs,x,z,kmh,damage,heat,stage,distToTarget,mode,prompt,bot'];
   while (!end) {
     await sleep(250);
     const evs = await evaluate('window.__RV.drain()');
+    const gt = await gameNow();
+    if (gt != null && gLast != null && gt > gLast && gt - gLast < 60) gameSecs += gt - gLast;
+    if (gt != null) gLast = gt;
     for (const e of evs) {
       if (e.kind === 'task-end') end = e;
       if (e.shot) await shot(`${label}-${e.kind}${e.idx != null ? '-s' + e.idx : ''}${e.card ? '-' + e.card : ''}`);
@@ -296,17 +311,17 @@ async function runTask(task, label, { maxSecs = 900, every = 30 } = {}) {
       fs.writeFileSync(path.join(OUT, 'in-progress.json'), JSON.stringify({ label, state: st, rawFrames: raw, provenance, console: counts }, null, 1));
     }
     if (!end && Date.now() - lastShot > every * 1000) { lastShot = Date.now(); await shot(`${label}-t${Math.round((Date.now() - t0) / 1000)}`); }
-    if (!end && Date.now() - t0 > maxSecs * 1000) {
+    if (!end && (gameSecs > maxSecs || Date.now() - t0 > maxSecs * WALL_FACTOR * 1000)) {
       // Keep what the bot got through: the finished stages plus the one it was stuck in.
       const left = await evaluate(`(() => { const T = window.__RV.task || {}; const st = (T.stages || []).slice(); if (T.stage >= 0) st.push({ idx: T.stage, secs: +(T.stageT || 0).toFixed(1), text: T.stageText, unfinished: true });
         const p = (document.querySelector('#prompt, .prompt, #hudprompt')?.innerText || '').trim().slice(0, 140);
         window.__RV.task = null; window.__RV.release(); if (window.AYLMER.G.mission) window.AYLMER.abandon(); return { stages: st, assists: T.assists || [], prompt: p }; })()`).catch(() => ({}));
-      end = { outcome: 'harness-timeout', elapsed: maxSecs, stages: left.stages || [], assists: left.assists || [], why: left.stages?.length ? `stuck in stage ${left.stages.at(-1).idx}: ${left.stages.at(-1).text || ''} (prompt: ${left.prompt || '-'})` : '' };
+      end = { outcome: 'harness-timeout', elapsed: +gameSecs.toFixed(1), wallSecs: Math.round((Date.now() - t0) / 1000), stages: left.stages || [], assists: left.assists || [], why: left.stages?.length ? `stuck in stage ${left.stages.at(-1).idx}: ${left.stages.at(-1).text || ''} (prompt: ${left.prompt || '-'})` : '' };
     }
   }
   fs.mkdirSync(path.join(OUT, 'traces'), { recursive: true });
   fs.writeFileSync(path.join(OUT, 'traces', `${label}.csv`), trace.join('\n') + '\n');
-  return { ...end, provenance };
+  return { ...end, gameSecs: +gameSecs.toFixed(1), wallSecs: Math.round((Date.now() - t0) / 1000), provenance };
 }
 
 // Warp: extra fixed steps per real frame, for long plans. 1 = honest real time.

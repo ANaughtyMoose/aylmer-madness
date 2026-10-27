@@ -47,6 +47,18 @@ export const DIFF = {
 };
 export function diff(G) { return DIFF[G && G.difficulty] || DIFF.normal; }
 
+// W8-FIRST15: the Saint-Jean (mission 3) is date-locked to 24 June, day 2
+// (campaign.js SAINT_JEAN_DAY; calendar.js imports nothing, so the number is
+// repeated here and smoke_first15 checks the two agree). On easy a job was half
+// a day, so L'alternateur and Sayyad left the calendar on the 23rd and a new
+// player was told to sleep before mission 3. Before that day a job costs a
+// whole day on every difficulty; easy's half days start on the 24th.
+export const WHOLE_DAYS_UNTIL = 2;
+export function dayCost(G) {
+  const c = diff(G).dayCost;
+  return G && Number.isFinite(G.day) && G.day < WHOLE_DAYS_UNTIL ? Math.max(1, c) : c;
+}
+
 const DOW = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
 const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juill', 'août', 'sept', 'oct', 'nov', 'déc'];
 
@@ -109,7 +121,7 @@ export function spendDay(G, hud = G.hud) {
   // a retry window that never got settled cannot turn into a free day.
   const owed = Math.max(0, G.dayOwed | 0);
   G.dayOwed = 0;
-  G.day = Math.min(LAST, G.day + diff(G).dayCost * (1 + owed));
+  G.day = Math.min(LAST, G.day + dayCost(G) * (1 + owed));
   // index.html (progression review P7): the ending needs Labour Day, which is
   // 72 day-spends, but there are only 33 jobs, so a player who did everything
   // never saw it without replaying 39 more. « Le dernier voyage » is written as

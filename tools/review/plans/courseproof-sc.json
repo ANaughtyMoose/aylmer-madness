@@ -1,0 +1,11 @@
+{
+ "name": "courseproof-sc",
+ "entry": "index.html",
+ "note": "[w8-courseproof] the church shortcut save/reload step alone (part of the courseproof plan).",
+ "beats": [
+  { "do": "boot", "via": "free" },
+  { "do": "script", "id": "courseproof", "only": "shortcut" },
+  { "do": "boot", "via": "free" },
+  { "do": "script", "id": "courseproof-reload", "only": "shortcut" }
+ ]
+}

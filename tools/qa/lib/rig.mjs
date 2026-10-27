@@ -88,7 +88,11 @@ export async function startChrome({ gpu = false, port = ports().cdp, w = 1280, h
     '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'];
   if (gpu) flags.push('--use-angle=metal', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu',
     '--disable-gpu-vsync', '--disable-frame-rate-limit');
-  else flags.push('--use-angle=swiftshader');
+  // [w8-courseproof] --enable-unsafe-swiftshader: Chrome 156 deprecates the silent software
+  // fallback and warns without it. CMP_CHROME_NO_SANDBOX=1 adds --no-sandbox (a VM user
+  // without user namespaces, e.g. root on Colab), the same switch as review/harness.mjs.
+  else flags.push('--use-angle=swiftshader', '--enable-unsafe-swiftshader');
+  if (process.env.CMP_CHROME_NO_SANDBOX === '1') flags.push('--no-sandbox');
   flags.push('about:blank');
   const k = spawn(CHROME, flags, { stdio: 'ignore' });
   kids.push(k);

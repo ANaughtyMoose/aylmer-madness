@@ -57,8 +57,12 @@ ok('C3 a job costs a day, half a day on easy, and Labour Day ends it', () => {
   assert.equal(G.hud.toasts.length, 1);
   assert.ok(G.hud.toasts[0].startsWith('Mer 23 juin'), G.hud.toasts[0]);
   const E = cal.startSummer({ difficulty: 'easy', hud: hudSpy() });
-  assert.ok(!cal.spendDay(E)); assert.equal(E.day, 0.5); assert.equal(E.hud.toasts.length, 0);
-  assert.ok(cal.spendDay(E)); assert.equal(E.day, 1);
+  // W8-FIRST15: before the Saint-Jean (day 2) a job is a whole day on easy too,
+  // so mission 3 is never date-locked; the half days start on the 24th.
+  assert.ok(cal.spendDay(E)); assert.equal(E.day, 1); assert.equal(E.hud.toasts.length, 1);
+  assert.ok(cal.spendDay(E)); assert.equal(E.day, 2);
+  assert.ok(!cal.spendDay(E)); assert.equal(E.day, 2.5); assert.equal(E.hud.toasts.length, 2);
+  assert.ok(cal.spendDay(E)); assert.equal(E.day, 3);
   for (let i = 0; i < 200; i++) cal.spendDay(G);
   assert.equal(G.day, cal.LAST, 'the calendar never runs past Labour Day');
   G.summerOver = true;

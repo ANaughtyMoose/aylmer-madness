@@ -121,12 +121,30 @@
 
   // ---------------------------------------------------------------- frames
   let lastF = performance.now();
+  // [w8-courseproof] Task clocks (a task's `seconds`, `timeout`, the stage watchdog,
+  // the steering timers) count GAME seconds: G.time's advance since the last frame,
+  // warp sub-steps included. On SwiftShader the game runs at about 0.1x real time,
+  // and a wall clock timed every task out before the game got there (RESULTS.md).
+  // RV.clock = 'wall' puts the old behaviour back. A menu, a card or a pause stops
+  // G.time, so a task waits through them; the Node side keeps a wall-clock cap.
+  RV.clock = 'game';
+  let lastG = null;
+  RV.gameSecs = 0;
+  function gameDt(wallS) {
+    const t = A && A.G && Number.isFinite(A.G.time) ? A.G.time : null;
+    if (t == null) { lastG = null; return RV.clock === 'wall' ? wallS : 0; }
+    const d = lastG == null ? 0 : t - lastG;
+    lastG = t;
+    const g = d > 0 && d < 5 ? d : 0;   // a new game resets G.time: never a negative step
+    RV.gameSecs += g;
+    return RV.clock === 'wall' ? wallS : g;
+  }
   function rec(t) {
     watchCamera();
     const dt = t - lastF; lastF = t;
     if (Number.isFinite(dt) && dt > 0) RV.frames.push(dt);
     if (RV.frames.length > 20000) RV.frames.splice(0, 10000);
-    control(dt / 1000);
+    control(gameDt(dt / 1000));
     requestAnimationFrame(rec);
   }
   requestAnimationFrame(rec);

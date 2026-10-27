@@ -396,6 +396,7 @@ export class Hud {
   setTimer(seconds) {
     const el = this.elTimer;
     if (!el) return;
+    if (this._softKey != null) { this._softKey = null; el.classList.remove('soft', 'over'); }
     if (seconds == null) {
       // A-04: no clock on this stage, but a later one has a deadline (the
       // blitz grid, a timed run after untimed stages). Show that budget now,
@@ -438,6 +439,30 @@ export class Hud {
     const G = globalThis.AYLMER && globalThis.AYLMER.G;
     if (!G || !G.mission) return null;
     return { mission: G.mission, scale: G.timerScale || 1 };
+  }
+
+  /**
+   * W8-FIRST15: a soft clock in the same slot, counting up against a time to
+   * beat (Maman's, on L'alternateur's way home): « 1:12 · Maman 2:10 ». Dim, no
+   * red, no flash, because nothing fails when it runs out; past the time it
+   * just dims further. Repaints only when the shown second changes.
+   */
+  setSoftClock(seconds, target, en = false) {
+    const el = this.elTimer;
+    if (!el) return;
+    const s = Math.max(0, Math.floor(seconds || 0));
+    const key = s * 4096 + (target | 0) * 2 + (en ? 1 : 0);
+    if (key === this._softKey) return;
+    this._softKey = key;
+    el.classList.remove('hidden', 'pending', 'warn');
+    el.classList.add('soft');
+    el.classList.toggle('over', s > target);
+    el.style.opacity = '';
+    el.style.transform = '';
+    const f = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0');
+    const txt = f(s) + '  ·  ' + (en ? 'Mom ' : 'Maman ') + f(target);
+    el.textContent = txt;
+    this._lastTimer = txt;
   }
 
   _paintTimer(el, s) {

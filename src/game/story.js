@@ -17,6 +17,7 @@
 // The one exception is the opener's own card: it goes through ui.js's
 // setModal() so the HUD stops drawing behind it (U7).
 import { ALL_MISSIONS, missionAvailable } from './missions.js';
+import { earlyStory, nextMain } from './campaign.js';
 import { setModal } from './ui.js';
 import { PLACES } from './places.js';
 import { carById } from './cars.js';
@@ -143,6 +144,22 @@ export function nearestJob(G, list = ALL_MISSIONS) {
   return best;
 }
 
+/**
+ * W8-FIRST15: until the Saint-Jean is done (campaign.js earlyStory), the line
+ * names the next main mission when it can start, wherever you are, so the
+ * first driveways have one « next ». Null otherwise (nearestJob decides).
+ */
+export function earlyNext(G, list = ALL_MISSIONS) {
+  const v = G && (G.focus || G.veh);
+  if (!v || !earlyStory(G)) return null;
+  const id = nextMain((G && G.done) || new Set(), (x) => list.some((d) => d.id === x));
+  const def = id ? list.find((d) => d.id === id) : null;
+  if (!def || !missionAvailable(G, def)) return null;
+  const p = PLACES[def.giver];
+  if (!p) return null;
+  return { def, place: p, dist: Math.hypot(p.x - v.x, p.z - v.z) };
+}
+
 /** The closest job of all, done or not — for when there is nothing left to do. */
 export function nearestAnyJob(G, list = ALL_MISSIONS) {
   const v = G && (G.focus || G.veh);
@@ -251,7 +268,7 @@ export function freeRoamLines(G, garage = null) {
     };
   }
 
-  const job = nearestJob(G);
+  const job = earlyNext(G) || nearestJob(G);
   if (job) {
     return {
       text: `Prochaine job: ${job.def.title}, ${fmtDist(job.dist)}`,
