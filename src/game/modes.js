@@ -671,7 +671,7 @@ export function startCruise(G) {
   }
   G.modeNow = 'cruise';
   if (G.hud) {
-    G.hud.toast('CRUISE\nPas de chrono. Roule jusqu’à un pilier jaune pis ⏎ pour prendre la job.', 2800);
+    G.hud.toast('BALADE · HORS HISTOIRE\nPas de chrono. Roule jusqu’à un pilier jaune pis ⏎ pour prendre la job.', 2800);
   }
 }
 

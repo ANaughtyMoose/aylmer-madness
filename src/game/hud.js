@@ -618,6 +618,11 @@ export class Hud {
     if (text != null) this.toast(text, ft.ms || 3000, true);
   }
 
+  /** W9-LEVELS: take one toast down early (the start banner, cleared with Enter). */
+  dropToast(text) {
+    if (text != null && this.toasts.drop(text)) this._paintToasts();
+  }
+
   /** B-12a: empty the toast slot and the queue (a load, the menu). */
   clearToasts() {
     this._failText = null;

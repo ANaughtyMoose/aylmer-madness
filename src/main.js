@@ -50,6 +50,7 @@ import { BigMap } from './game/bigmap.js';
 import { MISSIONS, ALL_MISSIONS, unlockArc, nextMission, missionAvailable, missionLockReason, availableMissions, storyProgress, mamanTime, homeLeg } from './game/missions.js';
 // The restructure (29 Sept 2026): the finale id, and the quiet streets counter.
 import { FINALE, quietStart } from './game/campaign.js';
+import { startEyebrow, startBanner, endEyebrow, nextLine, endsOnCard, BANNER_MS } from './game/missionframe.js';   // W9-LEVELS
 import { noteStreet, streetsLine } from './game/streets.js';
 // ---- S4-SUMMER (begin): pacing, sleep, summer-end screen ----
 import * as summer from './game/summer.js';
@@ -326,8 +327,8 @@ flavour.onUnlock = (a) => {
   audio.chime(true);
 };
 // AUD-02: index.html plays the real recordings whenever tools/serve.mjs serves
-// the private library (--audio-dir), and the synth dial otherwise (the public
-// build has no recordings). prototype.html mounts its own library panel.
+// the private library (--audio-dir) or, on the live link, the R2 bucket named in
+// radio-local.js; the synth dial otherwise. prototype.html mounts its own panel.
 const localRadio = VISUAL_PROTOTYPE ? [] : await fetchLocalLibrary();
 const radio = VISUAL_PROTOTYPE || localRadio.length ? new RecordedRadio(audio) : new Radio(audio);
 if (!VISUAL_PROTOTYPE && localRadio.length) {
@@ -1788,6 +1789,27 @@ function updateDayNight(dt) {
 
 // ---------------------------------------------------------------- missions
 
+// W9-LEVELS: the start banner of a story mission that starts with no card
+// (L'alternateur after the opening or « Été 2004 »). One toast in the front
+// slot, number and title then the first objective; it never stops the truck.
+// The friends' start lines wait for it on game time, so the title is the first
+// thing said. Enter clears it at once.
+let startBannerHold = null;
+function holdBanner(text, then) {
+  hud.toast(text, BANNER_MS, true);
+  startBannerHold = { text, t: BANNER_MS / 1000, then, def: G.mission && G.mission.def, skip: false };
+}
+function tickBanner(dt) {
+  const b = startBannerHold;
+  if (!b) return;
+  if (!G.mission || G.mission.def !== b.def) { startBannerHold = null; return; }
+  b.t -= dt;
+  if (b.t > 0 && !b.skip) return;
+  startBannerHold = null;
+  if (b.skip) hud.dropToast(b.text);
+  b.then();
+}
+
 // `opts.card: false` [opening]: the opening has just told this job's story (Dad
 // on the phone), so the first job starts without its brief card.
 function startMission(def, opts = {}) {
@@ -1844,7 +1866,10 @@ function startMission(def, opts = {}) {
     opening.cast.queueForJob(def.id);
     opening.cast.active ? opening.cast.onIdle(() => sayFriend(def, 'start')) : sayFriend(def, 'start');
   };
-  if (opts.card !== false) cinema.show({ title: def.title, body: def.brief,
+  // W9-LEVELS: the card says which mission this is (or that it is a side job,
+  // a course); with no card, a story mission still gets its number and title.
+  const banner = opts.card === false ? startBanner(def, stages[0].text, en) : null;
+  if (opts.card !== false) cinema.show({ eyebrow: startEyebrow(def, en), title: def.title, body: def.brief,
     // B-10: the card is graded to the job's hour and weather (cinematic.js
     // cardArt); alternateur keeps its own painting.
     job: def,
@@ -1853,6 +1878,7 @@ function startMission(def, opts = {}) {
     button: en ? 'Start the job →' : 'Commencer la job →',
     onDone: castThenLines,
   });
+  else if (banner) holdBanner(banner, castThenLines);
   else castThenLines();
   G.tutoJobTaken = true;
   G.stuck = null;
@@ -1928,11 +1954,14 @@ function applyStage() {
 // A course (def.mode) costs its day once: running it again on the day that
 // first run brought you to is free, so « une autre run » stays a retry, not a
 // week of the summer. Any other job spending a day ends the free reruns.
+// W9-LEVELS: while a job's end card is being built, the toasts it would have
+// left in the queue (a lent car, the new day) are collected for the card.
+let endSink = null;
 function endOfJob(def = null) {
   if (VISUAL_PROTOTYPE) return;
   const course = def && def.mode ? def.id : null;
   if (course && G.courseDay && G.courseDay[course] === Math.floor(G.day)) return;
-  calendar.spendDay(G, hud);
+  calendar.spendDay(G, endSink ? { toast: (t) => endSink.push(t) } : hud);   // W9-LEVELS: the new day goes on the end card
   if (course) G.courseDay = { [course]: Math.floor(G.day) };
   else G.courseDay = null;
   if (calendar.isOver(G.day) && !G.summerOver) runEnding();
@@ -2014,6 +2043,7 @@ function closeMission(outcome) {
   heckle.cancel?.(outcome === 'done' ? 'friend' : null);
   // [opening-v2] start lines still waiting on a name card go with the job.
   opening.cast.dropIdle();
+  startBannerHold = null;   // W9-LEVELS: and the start banner's
   if (m) {
     if (outcome !== 'done') refundJob(G, m);
     missionCleanup(G, m, outcome !== 'done');
@@ -2119,6 +2149,7 @@ function updateMission(dt) {
     return;
   }
   G.wantCycle = false;
+  tickBanner(dt);   // W9-LEVELS
 
   // Twenty seconds without twenty metres: the stage's hint comes back and the
   // objective line flashes. It is the same text that has been on screen all
@@ -2177,10 +2208,14 @@ function updateMission(dt) {
     if (def.result) { closeMission('done'); const res = def.result(G, m); if (res && res.toast) hud.toast(res.toast, 5200); audio.chime(true); return; }
     G.done.add(def.id);
     audio.chime(true);
+    // W9-LEVELS: a job that ends on its card says everything on it. Nothing
+    // about it waits in the toast queue (frozen under the card) to come up
+    // after it closes, over free roam or the next job's brief.
+    const tail = endsOnCard(def, G.summerOver) ? [] : null;
     // Somebody may just have decided to lend you their car.
     garage.setProgress(G.done);
     for (const u of garage.newlyUnlocked(G.done)) {
-      if (u.toast) hud.toast(u.toast, 3600);
+      if (u.toast) { if (tail) tail.push(u.toast); else hud.toast(u.toast, 3600); }
       if (u.id !== G.carId && !G.parked[u.id]) {
         // Next free slot at that address (your own car counts if it lives there).
         G.parked[u.id] = curbSpot(homeOf(u.id), nextFreeSlot(G.parked, G.carId, u.id));
@@ -2195,17 +2230,20 @@ function updateMission(dt) {
     const leg = def.id === 'alternateur' ? homeLeg(G, m) : null;
     if (style.money) style.money = Math.min(15, style.money);   // the budget table caps it
     if (style.money && G.wallet) G.wallet.add(style.money);
-    hud.toast('FINI : ' + def.title + '\n' + (medal ? medalEyebrow(medal, medalEn) + '  ' + medalLine(medal, medalEn) + (ghostLine ? '\n' + ghostLine : '')   // [w7-replay]
+    const finiText = 'FINI : ' + def.title + '\n' + (medal ? medalEyebrow(medal, medalEn) + '  ' + medalLine(medal, medalEn) + (ghostLine ? '\n' + ghostLine : '')   // [w7-replay]
       : fmtTime(runT) + (record ? '  NOUVEAU RECORD' : '  (record ' + fmtTime(prev) + ')'))
       + (style.money ? `\nSTYLE +${style.money} $  ·  ${style.text}` : '')
-      + '\n' + storyLine(), 4600);
+      + '\n' + storyLine();
+    if (!tail) hud.toast(finiText, 4600);   // W9-LEVELS: a course or a challenge ends on this toast; a card says it itself
     // Cleanup runs before endOfJob(), as it always has.
     closeMission('done');
     // [opening-v2] W7b: a card due at the end (Sayyad's) comes before the end lines.
     // W8-FIRST15: Margaret at the door first: under her time or not (English, main cast).
     const sayEnd = () => { if (leg) heckle.line('Margaret', leg.line, 3000, { group: 'friend' }); sayFriend(def, 'end'); };
     { const n = opening.cast.queueForJob(def.id, 'end'); n ? opening.cast.onIdle(sayEnd) : sayEnd(); }
+    endSink = tail;
     endOfJob(def);     // the day is spent (a course rerun is free); Labour Day may have arrived
+    endSink = null;
     // « Le dernier soir » is the ending, in both builds (the prototype spends
     // no day on a job, so endOfJob() alone would never get there).
     if (def.id === FINALE && !G.summerOver) runEnding();
@@ -2213,9 +2251,15 @@ function updateMission(dt) {
     autosave('job');   // one of exactly two events that write without being asked
     // B-08: no rival's challenge line over a scene that holds the street.
     const followUp = () => { if (!heckle.hushed) ambush.holdAfterJob(G, def); };   // [w7-polish] offered once the friends' end lines are done (ambush.tick)
+    // W9-LEVELS fix (wave 9 cloud QA): the card names the next mission, so the
+    // arc's « NOUVELLE JOB » toast for it, pushed by unlockArc later this frame
+    // and queued under the card, would replay it the moment the card closes.
+    // Sync the arc here, quietly; with no card it still announces.
+    if (tail && endsOnCard(def, G.summerOver)) unlockArc(G, { quiet: true });
     // [w7-replay] a course ends on its 4.6 s toast, not the card, so R works at once.
-    if (!G.summerOver && !def.mode) cinema.show({
-      eyebrow: medal ? medalEyebrow(medal, medalEn) : (G.settings.lang === 'en' ? 'JOB COMPLETE' : 'JOB TERMINÉE'),
+    if (tail && endsOnCard(def, G.summerOver)) cinema.show({
+      // W9-LEVELS: « MISSION 2 SUR 10 TERMINÉE » for the story, « JOB TERMINÉE » for a side job.
+      eyebrow: endEyebrow(def, medalEn, medal ? medalEyebrow(medal, medalEn) : ''),
       title: def.title,
       // The story's own last line (for the alternateur, the solenoid twist:
       // missions.js), never a hard-coded one that hides it.
@@ -2225,12 +2269,16 @@ function updateMission(dt) {
         + (leg ? '\n' + leg.task : '')
         + (m.paid ? `\nPaye : ${Math.round(m.paid)} $` : '')
         + (style.money ? `\nStyle +${style.money} $` : '')
+        + (tail.length ? '\n' + tail.join('\n') : '')
+        // W9-LEVELS: the one next step, on the card.
+        + (nextLine(G.done, medalEn) ? '\n' + nextLine(G.done, medalEn) : '')
         // ---- S4-SUMMER (begin): when the story comes back ----
         + (VISUAL_PROTOTYPE ? '' : (summer.nextStoryNote(G) ? '\n' + summer.nextStoryNote(G) : '')),
         // ---- S4-SUMMER (end) ----
       art: 'home', onDone: followUp,
     });
-    else { if (toastOnCard) hud.toast(stageToast, 2400); followUp(); }
+    // W9-LEVELS: the summer ended on it (no card): what the card would have said goes out as toasts.
+    else { if (toastOnCard) hud.toast(stageToast, 2400); if (tail) { hud.toast(finiText, 4600); for (const t of tail) hud.toast(t, 3600); } followUp(); }
     return;
   }
   // The job moved on: the start lines about the stage just done are stale.
@@ -2513,6 +2561,7 @@ function handleKeys() {
     G.settings = saveSettings({ ...G.settings, cam: G.cam });
   }
   if (input.hit('Backspace') && G.mission) { failMission('Abandonné.'); }
+  if (startBannerHold && input.hit('Enter')) startBannerHold.skip = true;   // W9-LEVELS
   // The input layer resolves the Shift+R chord before either reader runs.
   if (G.settings.lookBackToggle) {
     if (input.hit('LookBackToggle')) G.lookBack = !G.lookBack;

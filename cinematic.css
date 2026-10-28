@@ -18,3 +18,8 @@
 
 #cinematic[data-art="home"] .cinema-art{background-position:left center}
 #cinematic .cinema-note{margin-top:18px}
+
+/* W9-LEVELS fix (wave 9 cloud QA): at 800x500 an end card with the day and the next mission ran 150 px past the
+   viewport and the button's focus scrolled the eyebrow (« MISSION 1 SUR 10 TERMINÉE ») and the title off the top.
+   Short windows get a tighter card that fits: 641 px to 500 at 800x500, 672 to 500 for a 9-line task. */
+@media(max-height:620px) and (min-width:701px){.cinema-copy{padding:18px 28px}.cinema-eyebrow{margin-bottom:10px}#cinema-title{font-size:28px;margin-bottom:10px}.cinema-body{font-size:15px;line-height:1.4;margin-bottom:12px}.cinema-task{font-size:15px;line-height:1.35;padding-top:10px}.cinema-copy footer{padding-top:12px}.cinema-go{padding:10px 18px;min-height:40px;font-size:16px}#cinematic .cinema-note{margin-top:6px}}

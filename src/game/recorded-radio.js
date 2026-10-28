@@ -205,6 +205,9 @@ export class RecordedRadio {
     // one per station change grew without bound. Tuning swaps `src` instead.
     this.el = this.mediaFactory();
     this.el.preload = 'metadata'; this.el.playbackRate = 1;
+    // The live link streams from the R2 bucket (radio-local.js): without CORS
+    // mode a cross-origin element plays silence through Web Audio.
+    this.el.crossOrigin = 'anonymous';
     this.node = ctx.createMediaElementSource(this.el);
     this.fade = ctx.createGain(); this.fade.gain.value = 0;
     this.node.connect(this.fade); this.fade.connect(this.out);

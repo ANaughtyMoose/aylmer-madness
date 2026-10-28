@@ -731,7 +731,10 @@ let arcNext = null;
  *
  * Returns the jobs that just opened, so a test can watch the summer open up.
  */
-export function unlockArc(G) {
+// W9-LEVELS fix: `quiet` syncs the arc with no « NOUVELLE JOB » toast. main.js
+// passes it when a job ends on its card, which already names the next mission
+// (missionframe.js nextLine); the toast would replay it as the card closes.
+export function unlockArc(G, { quiet = false } = {}) {
   if (G && isPrototype(G)) waitNotice(G);
   const done = (G && G.done) || new Set();
   const day = G && Number.isFinite(G.day) ? Math.floor(G.day) : null;
@@ -746,7 +749,7 @@ export function unlockArc(G) {
   const added = [];
   if (!fresh && next && next !== before) added.push(byId(next));
   if (!fresh && before && !next && !done.has(FINALE) && byId(FINALE)) added.push(byId(FINALE));
-  if (added.length && G && G.hud) {
+  if (added.length && G && G.hud && !quiet) {
     for (const def of added.filter(Boolean)) {
       const p = PLACES[def.giver];
       G.hud.toast(`NOUVELLE JOB\n${def.title}\n${p && p.label ? p.label : ''}`, 3600);
